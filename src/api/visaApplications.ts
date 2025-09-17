@@ -1,0 +1,55 @@
+import { backendApiEnums } from "@/enums/backendApi.enums";
+import { successMessagesEnums } from "@/enums/successMessages.enum";
+import { apigateway } from "@/gateways/apigateway";
+
+export const getUserVisaApplications = async (token) => {
+  return apigateway({
+    endpoint: backendApiEnums.ENDPOINTS.VISA_APPLICATION.GET_USER_APPLICATIONS,
+    method: backendApiEnums.METHODS.GET,
+    token: token,
+  });
+};
+
+// export const createUserVisaApplications = async (
+//   token,
+//   payload,
+//   successCallback
+// ) => {
+//   console.log(
+//     "got token, payload, successCallback",
+//     token,
+//     payload,
+//     successCallback
+//   );
+//   return apigateway({
+//     endpoint:
+//       backendApiEnums.ENDPOINTS.VISA_APPLICATION.CREATE_USER_APPLICATIONS,
+//     method: backendApiEnums.METHODS.POST,
+//     token: token,
+//     payload,
+//     isDisplayResponsePopUp: true,
+//     successMessage: successMessagesEnums.Visa_Application.CREATE,
+//     successCallback,
+//   });
+// };
+
+// Add this new function for step-by-step creation/updates
+export const createOrUpdateApplication = async (token, payload) => {
+  return apigateway({
+    endpoint: backendApiEnums.ENDPOINTS.VISA_APPLICATION.CREATE_OR_UPDATE,
+    method: backendApiEnums.METHODS.POST,
+    token: token,
+    payload,
+    isDisplayResponsePopUp: true,
+    successMessage: successMessagesEnums.Visa_Application.CREATE,
+  });
+};
+
+export const getVisaApplication = async (token, payload) => {
+  return apigateway({
+    endpoint: backendApiEnums.ENDPOINTS.VISA_APPLICATION.GET_APPLICATION_BY_ID,
+    method: backendApiEnums.METHODS.POST,
+    token: token,
+    payload,
+  });
+};

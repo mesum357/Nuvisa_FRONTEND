@@ -1,0 +1,91 @@
+@import "tailwindcss";
+@import "./fonts.css";
+.text_primary_color {
+  @apply text-[#6400b7];
+}
+.bg_primary_color {
+  @apply bg-[#6400b7];
+}
+.input_styling {
+  @apply w-full p-2 border-[2px] border-gray-300 outline-none  rounded-md focus:ring-[#6400b7] focus:border-[#6400b7];
+}
+.b_color {
+  @apply border-gray-300;
+}
+.public_text_clr {
+  @apply text-[#7351ff];
+}
+.public_bg_clr {
+  @apply bg-[#7350FF];
+}
+.public_border_clr {
+  @apply border-[#423577];
+}
+.sec_bg {
+  @apply bg-[#23232B];
+}
+.pri_bg {
+  @apply bg-[#1E1E27];
+}
+button {
+  cursor: pointer;
+}
+
+@layer base {
+  html,
+  body {
+    font-family: "GilroyMedium", -apple-system, BlinkMacSystemFont, Roboto,
+      Helvetica Neue, Arial, sans-serif;
+  }
+
+  button:disabled,
+  button[disabled] {
+    @apply opacity-60 cursor-not-allowed shadow-none;
+    filter: saturate(0.6);
+    pointer-events: auto; /* keeps tooltip/title hover working */
+  }
+
+  button:disabled:hover,
+  button:disabled:focus {
+    @apply outline-none ring-0 transform-none;
+  }
+
+  [aria-disabled="true"],
+  [data-disabled="true"] {
+    @apply opacity-60 cursor-not-allowed;
+    filter: saturate(0.6);
+    pointer-events: none;
+  }
+
+  @media (forced-colors: active) {
+    button:disabled,
+    button[disabled],
+    [aria-disabled="true"],
+    [data-disabled="true"] {
+      opacity: 1;
+      filter: none;
+      border: 1px solid GrayText;
+      color: GrayText;
+    }
+  }
+}
+
+.hide-scrollbar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer and Edge */
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Safari and Chrome */
+}
+
+/* Hide default number input arrows */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield; /* Firefox */
+}
