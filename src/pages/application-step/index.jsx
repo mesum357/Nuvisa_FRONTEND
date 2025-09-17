@@ -19,6 +19,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ChevronLeft } from "lucide-react";
 import useCreateDynamicCheckoutSession from "@/hooks/useCreateDynamicCheckoutSession";
+import { useToast } from "@/contexts/ToastContext";
 
 const MultiStepAccordion = () => {
   const token = localStorageGateway("token", localStorageEnums.GET);
@@ -26,6 +27,7 @@ const MultiStepAccordion = () => {
   const applicationId = searchParams.get("application_id");
   const visaState = useAppSelector((state) => state.visa);
   const dispatch = useAppDispatch();
+  const { showError } = useToast();
 
   // State for hydration-safe title
   const [isClient, setIsClient] = useState(false);
@@ -56,8 +58,11 @@ const MultiStepAccordion = () => {
         state: "",
         city: "",
         pincode: "",
+        mobileNumber: "",
         passportFront: null,
         passportBack: null,
+        travelStartDate: "",
+        travelEndDate: "",
       },
       // Visit Details
       visitDetails: {
@@ -148,34 +153,33 @@ const MultiStepAccordion = () => {
   // const [documents, setDocuments] = useState({});
 
   // Map step info to UI steps - now uses current traveler's step info
-  const updateStepsFromStepInfo = (stepInfo = null) => {
-    // Use provided stepInfo or get current traveler's step info
+ const updateStepsFromStepInfo = (stepInfo = null) => {
     const relevantStepInfo = stepInfo || getCurrentTravelerStepInfo();
     if (!relevantStepInfo) return;
 
-    const stepMapping = {
-      basicDetails: 1,
-      visitDetails: 2,
-      documents: 3,
-      insurance: 4,
-      completed: 5,
-    };
+    setSteps((prevSteps) => {
+      const currentlyOpenStepId = prevSteps.find((s) => s.open)?.id;
 
-    setSteps((prev) =>
-      prev.map((step) => {
-        const isCompleted = relevantStepInfo.completedSteps?.includes(
-          step.stepType
-        );
-        const isCurrent = relevantStepInfo.currentStep === step.stepType;
-        const isNext = relevantStepInfo.nextStep === step.stepType;
+      return prevSteps.map((step) => {
+        const isCompleted = relevantStepInfo.completedSteps?.includes(step.stepType);
+        const isCurrentFromServer = relevantStepInfo.currentStep === step.stepType;
+        const isNextFromServer = relevantStepInfo.nextStep === step.stepType;
+
+        let shouldBeOpen = false;
+
+        if (currentlyOpenStepId === step.id) {
+          shouldBeOpen = true;
+        } else if (!currentlyOpenStepId) {
+          shouldBeOpen = isCurrentFromServer || isNextFromServer;
+        }
 
         return {
           ...step,
           completed: isCompleted,
-          open: isCurrent || isNext,
+          open: shouldBeOpen,
         };
-      })
-    );
+      });
+    });
   };
 
   // Filter steps based on traveler-specific insurance requirements and completion per traveler
@@ -502,8 +506,11 @@ const MultiStepAccordion = () => {
           state: "",
           city: "",
           pincode: "",
+          mobileNumber: "",
           passportFront: null,
           passportBack: null,
+          travelStartDate: "",
+          travelEndDate: "",
         },
         visitDetails: {
           // Travel Information (always present in current form)
@@ -588,6 +595,7 @@ const MultiStepAccordion = () => {
           state: "",
           city: "",
           pincode: "",
+          mobileNumber: "",
           passportFront: null,
           passportBack: null,
         },
@@ -676,6 +684,7 @@ const MultiStepAccordion = () => {
     try {
       const step = steps.find((s) => s.id === stepId);
       const currentTraveler = travelersData[currentTravelerIndex];
+      
 
       // Use updated travelers data if provided, otherwise use current state
       let travelersDataToSend = stepData.updatedTravelersData || travelersData;
@@ -761,6 +770,8 @@ const MultiStepAccordion = () => {
             }));
           } catch (error) {
             console.error("Error parsing updated travelers data:", error);
+            showError("Failed to parse application data. Please try again.");
+            return;
           }
         }
 
@@ -769,9 +780,37 @@ const MultiStepAccordion = () => {
 
         // Refresh application data
         await fetchApplicationById();
+
+
+        const completedStepIndex = steps.findIndex((s) => s.id === step.id);
+
+        if (completedStepIndex !== -1 && completedStepIndex < steps.length - 1) {
+          const nextStep = steps[completedStepIndex + 1];
+          
+          toggleStep(nextStep.id);
+        }
+      } else {
+        // Handle API error responses
+        const errorMessage = response?.data?.message || 
+                            response?.data?.error || 
+                            "Failed to complete step. Please try again.";
+        showError(errorMessage);
       }
     } catch (error) {
       console.error("Error completing step:", error);
+      
+      // Show user-friendly error message
+      let errorMessage = "Something went wrong. Please try again.";
+      
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      }
+      
+      showError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -795,6 +834,7 @@ const MultiStepAccordion = () => {
       basicDetails.state &&
       basicDetails.city &&
       basicDetails.pincode &&
+      basicDetails.mobileNumber &&
       basicDetails.passportFront &&
       basicDetails.passportBack
     );
@@ -851,7 +891,7 @@ const MultiStepAccordion = () => {
   const validateDocuments = () => {
     const currentTraveler = getCurrentTravelerData();
     const documents = currentTraveler.documents?.documents || {};
-    const requiredDocIds = [1, 2, 5];
+    const requiredDocIds = [1, 2, 5]; // Only required documents need validation
     return requiredDocIds.every((id) => documents[id]);
   };
 
@@ -931,6 +971,7 @@ const MultiStepAccordion = () => {
               setTravelersStepInfo(initialTravelersStepInfo);
             } catch (error) {
               console.error("Error parsing travelersData:", error);
+              showError("Failed to load application data. Please refresh the page.");
             }
           }
 
@@ -941,9 +982,16 @@ const MultiStepAccordion = () => {
             dispatch(setTravelers(applicationData.numberOfTravellers));
           }
         }
+      } else {
+        // Handle API error responses
+        const errorMessage = response?.data?.message || 
+                            response?.data?.error || 
+                            "Failed to load application. Please try again.";
+        showError(errorMessage);
       }
     } catch (error) {
       console.error("Error fetching application:", error);
+      showError("Failed to load application. Please check your connection and try again.");
     }
   };
 
@@ -1325,22 +1373,37 @@ const PassportStep = ({
   // Helper function to convert file to base64
   const fileToBase64 = (file) => {
     return new Promise((resolve, reject) => {
+      console.log("=== FILE TO BASE64 DEBUG ===");
+      console.log("fileToBase64 called with:", file);
+      console.log("File type:", typeof file);
+      console.log("File instanceof File:", file instanceof File);
+      
       if (!file) {
+        console.log("No file provided, resolving with null");
         resolve(null);
         return;
       }
 
       // If it's already a base64 string, return it as is
       if (typeof file === "string" && file.startsWith("data:")) {
+        console.log("File is already base64 string, returning as-is");
         resolve(file);
         return;
       }
 
       // If it's a File object, convert it to base64
       if (file instanceof File) {
+        console.log("Converting File object to base64");
+        console.log("File details - name:", file.name, "size:", file.size, "type:", file.type);
         const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = (error) => reject(error);
+        reader.onload = () => {
+          console.log("FileReader onload - result length:", reader.result?.length);
+          resolve(reader.result);
+        };
+        reader.onerror = (error) => {
+          console.error("FileReader error:", error);
+          reject(error);
+        };
         reader.readAsDataURL(file);
       } else {
         // Unknown type
@@ -1434,7 +1497,9 @@ const PassportStep = ({
   };
 
   const updateBasicDetails = (data) => {
+    console.log("=== UPDATE BASIC DETAILS DEBUG ===");
     console.log("updateBasicDetails called with:", data);
+    console.log("Data type:", typeof data);
     console.log("Current traveler index:", travelerIndex);
     console.log(
       "Current traveler data before update:",
@@ -1445,9 +1510,21 @@ const PassportStep = ({
     if (typeof data === "function") {
       const updatedData = data(travelerData.basicDetails || {});
       console.log("Function update result:", updatedData);
+      console.log("Passport files in update result:");
+      console.log("- passportFront:", updatedData.passportFront);
+      console.log("- passportFront type:", typeof updatedData.passportFront);
+      console.log("- passportFront instanceof File:", updatedData.passportFront instanceof File);
+      console.log("- passportBack:", updatedData.passportBack);
+      console.log("- passportBack type:", typeof updatedData.passportBack);
+      console.log("- passportBack instanceof File:", updatedData.passportBack instanceof File);
       updateCurrentTravelerData("basicDetails", updatedData);
     } else {
       console.log("Direct object update:", data);
+      console.log("Passport files in direct update:");
+      console.log("- passportFront:", data.passportFront);
+      console.log("- passportFront type:", typeof data.passportFront);
+      console.log("- passportBack:", data.passportBack);
+      console.log("- passportBack type:", typeof data.passportBack);
       updateCurrentTravelerData("basicDetails", data);
     }
   };
@@ -1574,6 +1651,23 @@ const DocumentStep = ({
     }
   };
 
+  const handleUploadSuccess = (documentData, docId) => {
+    // Check if all required documents are uploaded (only 1, 2, 5 are required)
+    const requiredDocIds = [1, 2, 5]; // Only required documents
+    const currentDocs = { ...documents, [docId]: documentData };
+    const allRequiredUploaded = requiredDocIds.every(id => currentDocs[id]);
+    
+    if (allRequiredUploaded) {
+      // Auto-save and proceed to next step when all required documents are uploaded
+        handleSave();
+    }
+  };
+
+  const handleUploadError = (errorMessage) => {
+    console.error("Document upload error:", errorMessage);
+    // You can add toast notification here if needed, but keeping it simple for now
+  };
+
   const handleSave = () => {
     // Convert documents to the format expected by backend
     const documentsForBackend = {};
@@ -1602,6 +1696,8 @@ const DocumentStep = ({
         key={`documents-${travelerIndex}`}
         documents={documents}
         setDocuments={setDocuments}
+        onUploadSuccess={handleUploadSuccess}
+        onUploadError={handleUploadError}
       />
       <button
         onClick={handleSave}
@@ -1642,7 +1738,7 @@ const InsuranceStep = ({
   const hasInsurance = stepInfo.hasInsurance || false;
 
   // Check if this traveler needs to pay for insurance
-  const needsInsurancePayment = selectedInsurance === "true";
+  const needsInsurancePayment = selectedInsurance === "purchase";
 
   const handleInsuranceSelection = (value) => {
     setSelectedInsurance(value);
@@ -1650,7 +1746,7 @@ const InsuranceStep = ({
     updateCurrentTravelerData("insurance", {
       insurance: value,
       insuranceDetails:
-        value === "true"
+        value === "purchase"
           ? { selected: true }
           : value === "own"
           ? { hasOwnInsurance: true }
@@ -1801,6 +1897,8 @@ const InsuranceStep = ({
         insuranceDetails:
           selectedInsurance === "own"
             ? { hasOwnInsurance: true, certificateUploaded: true }
+            : selectedInsurance === "purchase"
+            ? { selected: true }
             : null,
         insuranceCertificate:
           selectedInsurance === "own" ? uploadedCertificate : null,
@@ -1817,212 +1915,218 @@ const InsuranceStep = ({
     onComplete(saveData);
   };
 
+  // Insurance options data structure similar to documentTypes
+  const insuranceOptions = [
+    {
+      id: "purchase",
+      title: "Yes, I want travel insurance",
+      description: isAdditionalTraveler
+        ? "Comprehensive coverage for additional traveler"
+        : "Comprehensive travel insurance coverage",
+      price: `¥${insuranceFee.toLocaleString()}`,
+      priceNote: "per person",
+      benefits: [
+        "Medical expenses up to ¥1,000,000",
+        "Trip cancellation coverage",
+        "Lost baggage protection",
+      ],
+      required: false,
+    },
+    {
+      id: "own",
+      title: "I have my own insurance certificate",
+      description: "Upload your existing insurance certificate document",
+      required: false,
+    },
+  ];
+
+  const completedCount = selectedInsurance ? 1 : 0;
+  const totalCount = 1;
+
   return (
-    <div className="space-y-6">
-      <div className="bg-white rounded-lg p-6 shadow-sm">
-        <h3 className="text-lg font-gilroy-bold mb-4">
-          {isAdditionalTraveler
-            ? "Additional Traveler Insurance"
-            : "Travel Insurance"}
-        </h3>
-
-        {isAdditionalTraveler && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-            <div className="flex items-start">
-              <div className="flex-shrink-0">
-                <svg
-                  className="h-5 w-5 text-yellow-400"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <h4 className="text-sm font-medium text-yellow-800">
-                  Additional Traveler
-                </h4>
-                <p className="text-sm text-yellow-700 mt-1">
-                  You are an additional traveler beyond the originally paid
-                  count. You need to select and pay for your own insurance.
-                </p>
-              </div>
-            </div>
+    <div className="space-y-4">
+      {/* Header - matching DocumentUploadSection style */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-purple-600 rounded flex items-center justify-center">
+            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" clipRule="evenodd" />
+            </svg>
           </div>
-        )}
-
-        <div className="space-y-4">
-          <div
-            className={`border-2 rounded-lg p-4 cursor-pointer transition-colors ${
-              selectedInsurance === "true"
-                ? "border-[#7350FF] bg-[#7350FF]/5"
-                : "border-gray-200 hover:border-gray-300"
-            }`}
-            onClick={() => handleInsuranceSelection("true")}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  type="radio"
-                  name={`insurance-${travelerIndex}`}
-                  value="true"
-                  checked={selectedInsurance === "true"}
-                  onChange={(e) => handleInsuranceSelection(e.target.value)}
-                  className="h-4 w-4 text-[#7350FF] focus:ring-[#7350FF] border-gray-300"
-                />
-                <div className="ml-3">
-                  <h4 className="font-semibold text-gray-900">
-                    Yes, I want travel insurance
-                  </h4>
-                  <p className="text-sm text-gray-600">
-                    {isAdditionalTraveler
-                      ? "Comprehensive coverage for additional traveler"
-                      : "Comprehensive travel insurance coverage"}
-                  </p>
-                </div>
-              </div>
-              <div className="text-right">
-                <span className="font-bold text-lg">
-                  ¥{insuranceFee.toLocaleString()}
-                </span>
-                <p className="text-sm text-gray-600">per person</p>
-              </div>
-            </div>
-
-            {selectedInsurance === "true" && (
-              <div className="mt-4 pl-7 space-y-2 text-sm text-gray-600">
-                <div className="flex items-center">
-                  <svg
-                    className="h-4 w-4 text-green-500 mr-2"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  Medical expenses up to ¥1,000,000
-                </div>
-                <div className="flex items-center">
-                  <svg
-                    className="h-4 w-4 text-green-500 mr-2"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  Trip cancellation coverage
-                </div>
-                <div className="flex items-center">
-                  <svg
-                    className="h-4 w-4 text-green-500 mr-2"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  Lost baggage protection
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div
-            className={`border-2 rounded-lg p-4 cursor-pointer transition-colors ${
-              selectedInsurance === "own"
-                ? "border-[#7350FF] bg-[#7350FF]/5"
-                : "border-gray-200 hover:border-gray-300"
-            }`}
-            onClick={() => handleInsuranceSelection("own")}
-          >
-            <div className="flex items-center">
-              <input
-                type="radio"
-                name={`insurance-${travelerIndex}`}
-                value="own"
-                checked={selectedInsurance === "own"}
-                onChange={(e) => handleInsuranceSelection(e.target.value)}
-                className="h-4 w-4 text-[#7350FF] focus:ring-[#7350FF] border-gray-300"
-              />
-              <div className="ml-3">
-                <h4 className="font-semibold text-gray-900">
-                  I have my own insurance certificate
-                </h4>
-                <p className="text-sm text-gray-600">
-                  Upload your existing insurance certificate document
-                </p>
-              </div>
-            </div>
-
-            {selectedInsurance === "own" && (
-              <div className="mt-4 pl-7">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Upload Insurance Certificate
-                </label>
-                <input
-                  type="file"
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  onChange={handleCertificateUpload}
-                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#7350FF] file:text-white hover:file:bg-[#7350FF]/90"
-                />
-                {uploadedCertificate && (
-                  <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-md">
-                    <p className="text-sm text-green-800">
-                      ✓ Certificate uploaded: {uploadedCertificate.name}
-                    </p>
-                  </div>
-                )}
-                <p className="text-xs text-gray-500 mt-1">
-                  Accepted formats: PDF, JPG, JPEG, PNG (max 5MB)
-                </p>
-              </div>
-            )}
-          </div>
+          <h3 className="text-lg font-semibold text-white">
+            {isAdditionalTraveler ? "Additional Traveler Insurance" : "Travel Insurance"}
+          </h3>
+          <span className="text-sm text-gray-500">
+            {completedCount} / {totalCount}
+          </span>
         </div>
-
-        {requiresInsurance && (
-          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm text-blue-800">
-              <strong>Note:</strong>{" "}
-              {isAdditionalTraveler
-                ? "As an additional traveler, you must make an insurance selection to complete your application."
-                : "You need to make an insurance selection to complete your application."}
-            </p>
-          </div>
-        )}
-
-        {needsInsurancePayment && (
-          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-sm text-yellow-800">
-              <strong>Payment Required:</strong> You'll be redirected to secure
-              payment to complete your insurance purchase for ¥
-              {insuranceFee.toLocaleString()}.
-            </p>
-          </div>
-        )}
       </div>
 
+      {/* Additional Traveler Alert */}
+      {isAdditionalTraveler && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h4 className="text-sm font-medium text-yellow-800">Additional Traveler</h4>
+              <p className="text-sm text-yellow-700 mt-1">
+                You are an additional traveler beyond the originally paid count. You need to select and pay for your own insurance.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Insurance Options List - matching DocumentUploadSection style */}
+      <div>
+        {insuranceOptions.map((option) => {
+          const isSelected = selectedInsurance === option.id;
+
+          return (
+            <div key={option.id} className="p-6 border dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-4 max-w-56 w-full">
+                    <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                      isSelected ? "bg-green-600" : "bg-gray-600"
+                    }`}>
+                      {isSelected ? (
+                        <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      ) : (
+                        <div className="w-4 h-4 border border-gray-300 rounded-full" />
+                      )}
+                    </div>
+                    <h4 className="text-base font-semibold text-gray-900 dark:text-gray-100 w-full">
+                      {option.title}
+                    </h4>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      {option.description}
+                    </p>
+                    {option.price && (
+                      <div className="text-right mt-2">
+                        <span className="font-bold text-lg text-gray-900 dark:text-gray-100">
+                          {option.price}
+                        </span>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">{option.priceNote}</p>
+                      </div>
+                    )}
+                    {option.benefits && isSelected && (
+                      <div className="mt-3 space-y-2">
+                        {option.benefits.map((benefit, index) => (
+                          <div key={index} className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                            <svg className="h-4 w-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                            {benefit}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="self-start">
+                  <input
+                    type="radio"
+                    name={`insurance-${travelerIndex}`}
+                    value={option.id}
+                    checked={selectedInsurance === option.id}
+                    onChange={(e) => handleInsuranceSelection(e.target.value)}
+                    className="sr-only"
+                    id={`insurance-option-${option.id}`}
+                  />
+                  <label
+                    htmlFor={`insurance-option-${option.id}`}
+                    className={`cursor-pointer font-semibold px-6 py-2.5 rounded-lg transition-colors ${
+                      isSelected
+                        ? "bg-green-600 text-white"
+                        : "bg-purple-600 text-white hover:bg-purple-700"
+                    }`}
+                  >
+                    {isSelected ? "Selected" : "Select"}
+                  </label>
+                </div>
+              </div>
+
+              {/* Certificate Upload Section for "own" option */}
+              {isSelected && option.id === "own" && (
+                <div className="flex items-center justify-between pl-12 mt-4 bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Upload Insurance Certificate
+                    </label>
+                    <input
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={handleCertificateUpload}
+                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#7350FF] file:text-white hover:file:bg-[#7350FF]/90"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Accepted formats: PDF, JPG, JPEG, PNG (max 5MB)
+                    </p>
+                  </div>
+                  {uploadedCertificate && (
+                    <div className="flex items-center gap-2 ml-4">
+                      <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">
+                        ✓ {uploadedCertificate.name}
+                      </p>
+                      <button
+                        onClick={() => setUploadedCertificate(null)}
+                        className="p-2 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+                        title="Remove certificate"
+                      >
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Status Messages */}
+      {requiresInsurance && (
+        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-sm text-blue-800">
+            <strong>Note:</strong>{" "}
+            {isAdditionalTraveler
+              ? "As an additional traveler, you must make an insurance selection to complete your application."
+              : "You need to make an insurance selection to complete your application."}
+          </p>
+        </div>
+      )}
+
+      {needsInsurancePayment && (
+        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <p className="text-sm text-yellow-800">
+            <strong>Payment Required:</strong> You'll be redirected to secure
+            payment to complete your insurance purchase for ¥
+            {insuranceFee.toLocaleString()}.
+          </p>
+        </div>
+      )}
+
+      {/* Action Button - matching DocumentUploadSection style */}
       <button
         onClick={handleSave}
         disabled={
           loading ||
           paymentLoading ||
           cretingDynamicCheckout ||
-          !selectedInsurance
+          !selectedInsurance ||
+          (selectedInsurance === "own" && !uploadedCertificate)
         }
         className="w-full bg-[#7350FF] text-white py-3 px-4 rounded-md hover:bg-[#7350FF] disabled:bg-[#7350FF]/30 font-medium"
       >
@@ -2036,6 +2140,8 @@ const InsuranceStep = ({
           ? uploadedCertificate
             ? "Complete with Own Insurance"
             : "Upload Certificate First"
+          : selectedInsurance === "purchase"
+          ? "Complete Insurance Purchase"
           : isAdditionalTraveler
           ? "Complete Additional Traveler Insurance"
           : "Complete Insurance Step"}

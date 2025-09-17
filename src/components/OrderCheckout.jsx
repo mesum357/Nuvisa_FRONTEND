@@ -105,7 +105,34 @@ const VisaCheckout = () => {
     const insuranceFeesFromParams = Number(searchParams.get("insuranceFees"));
     const travelersFromParams = Number(searchParams.get("travelers"));
     const visaTypeIdFromParams = searchParams.get("visaTypeId");
+    const expressPaymentFromParams = searchParams.get("expressPayment");
+    const paymentMethodFromParams = searchParams.get("paymentMethod");
+    const userEmailFromParams = searchParams.get("userEmail");
+    const discountCodeFromParams = searchParams.get("discountCode");
+    const discountPercentageFromParams = searchParams.get("discountPercentage");
+    const discountDescriptionFromParams = searchParams.get("discountDescription");
 
+    // Pre-fill email if coming from express payment flow
+    if (userEmailFromParams && !email) {
+      setEmail(userEmailFromParams);
+    }
+
+    // Set payment method if coming from express payment flow
+    if (paymentMethodFromParams && !selectedPaymentMethod) {
+      setSelectedPaymentMethod(paymentMethodFromParams);
+    }
+
+    // Apply discount if coming from discount flow
+    if (discountCodeFromParams && discountPercentageFromParams && !appliedDiscount) {
+      setCouponCode(discountCodeFromParams);
+      setAppliedDiscount({
+        code: discountCodeFromParams,
+        percentage: Number(discountPercentageFromParams),
+        description: discountDescriptionFromParams || "Applied Discount",
+      });
+    }
+
+    // Update Redux store with URL parameters
     if (visaFeesFromParams && visaFeesFromParams !== visaState.visaFees) {
       dispatch(setVisaFees(visaFeesFromParams));
     }
@@ -573,7 +600,7 @@ const VisaCheckout = () => {
             <h2 className="font-medium text-lg">Express Checkout</h2>
             <div className="space-y-2">
               <div
-                className={`border rounded-md p-3 cursor-pointer ${
+                className={`border rounded-md p-3 cursor-pointer transition-all ${
                   selectedPaymentMethod === "apple"
                     ? "border-black bg-gray-50"
                     : "border-gray-300"
@@ -591,6 +618,11 @@ const VisaCheckout = () => {
                   />
                   <FaApple className="text-lg" />
                   <span className="text-sm font-medium">Apple Pay</span>
+                  {selectedPaymentMethod === "apple" && (
+                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full ml-auto">
+                      Selected
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -613,6 +645,11 @@ const VisaCheckout = () => {
                   />
                   <FaGoogle className="text-lg" />
                   <span className="text-sm font-medium">Google Pay</span>
+                  {selectedPaymentMethod === "google" && (
+                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full ml-auto">
+                      Selected
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -1232,7 +1269,26 @@ const VisaCheckout = () => {
                   : "cursor-pointer"
               }`}
             >
-              {cretingDynamicCheckout ? "Processing..." : "Complete Order"}
+              {cretingDynamicCheckout ? (
+                "Processing..."
+              ) : selectedPaymentMethod === "apple" ? (
+                <div className="flex items-center justify-center space-x-2">
+                  <FaApple />
+                  <span>Pay with Apple Pay</span>
+                </div>
+              ) : selectedPaymentMethod === "google" ? (
+                <div className="flex items-center justify-center space-x-2">
+                  <FaGoogle />
+                  <span>Pay with Google Pay</span>
+                </div>
+              ) : selectedPaymentMethod === "klarna" ? (
+                <div className="flex items-center justify-center space-x-2">
+                  <SiKlarna />
+                  <span>Pay with Klarna</span>
+                </div>
+              ) : (
+                "Complete Order"
+              )}
             </button>
           </div>
         </div>

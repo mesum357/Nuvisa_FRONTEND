@@ -29,6 +29,7 @@ import { useEffect, useRef, useState } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import VisaTypeSelector from "./VisaTypeSelector";
+import { FaApple, FaGoogle } from "react-icons/fa";
 
 const CountrySlider = () => {
   const router = useRouter();
@@ -154,6 +155,16 @@ const CountrySlider = () => {
   });
   const [validationErrors, setValidationErrors] = useState(new Set());
   const [selectedVisaType, setSelectedVisaType] = useState(null); // Add state for selected visa type
+
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
+
+  const [couponCode, setCouponCode] = useState("");
+  const [couponError, setCouponError] = useState("");
+  const [appliedDiscount, setAppliedDiscount] = useState(null);
+  
+  const [userEmail, setUserEmail] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
 
   // Helper function to safely parse duration from visa type
   const parseDurationDays = (durationString) => {
@@ -609,13 +620,114 @@ const CountrySlider = () => {
     }, 5000);
   };
 
-  // Auto-sync insurance days from calendar dates
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validateUserEmail = () => {
+    if (!userEmail.trim()) {
+      setEmailError("Email is required");
+      return false;
+    }
+    if (!validateEmail(userEmail)) {
+      setEmailError("Please enter a valid email address");
+      return false;
+    }
+    setEmailError("");
+    setIsEmailVerified(true);
+    return true;
+  };
+
+  const handlePaymentMethodSelect = (method) => {
+    setSelectedPaymentMethod(method);
+    if (method === "apple" || method === "google") {
+      setIsEmailVerified(false);
+      setEmailError("");
+    }
+    
+    // Clear any previous validation errors when switching payment methods
+    setEmailError("");
+    setValidationErrors(new Set());
+  };
+
+  const calculateFinalPrice = () => {
+    const currentBaseFee =
+      selectedVisaType && selectedVisaType.priceGBP
+        ? Number(selectedVisaType.priceGBP)
+        : selectedVisaType && selectedVisaType.price
+        ? Math.round(Number(selectedVisaType.price) / 100)
+        : baseFee;
+    
+    const basePrice = currentBaseFee * travelers;
+    
+    if (appliedDiscount) {
+      const discountAmount = (basePrice * appliedDiscount.percentage) / 100;
+      return basePrice - discountAmount;
+    }
+    
+    return basePrice;
+  };
+
+  const calculateOriginalPrice = () => {
+    const currentBaseFee =
+      selectedVisaType && selectedVisaType.priceGBP
+        ? Number(selectedVisaType.priceGBP)
+        : selectedVisaType && selectedVisaType.price
+        ? Math.round(Number(selectedVisaType.price) / 100)
+        : baseFee;
+    
+    return Math.round(currentBaseFee * 1.25) * travelers;
+  };
+
+  const applyCouponCode = () => {
+    if (!couponCode.trim()) {
+      setCouponError("Please enter a coupon code");
+      return;
+    }
+
+    if (!userEmail.trim()) {
+      setCouponError("Please enter your email address for verification");
+      return;
+    }
+
+    if (!validateEmail(userEmail)) {
+      setCouponError("Please enter a valid email address");
+      return;
+    }
+
+    const availableDiscounts = {
+      STUDENT10: {
+        description: "Student discount",
+        percentage: 10,
+        requiresEmailVerification: true,
+      },
+    };
+
+    const discount = availableDiscounts[couponCode.toUpperCase()];
+
+    if (!discount) {
+      setCouponError("Invalid coupon code");
+      return;
+    }
+
+    setIsEmailVerified(true);
+    setAppliedDiscount(discount);
+    setCouponError("");
+  };
+
+  const removeCoupon = () => {
+    setAppliedDiscount(null);
+    setCouponCode("");
+    setCouponError("");
+    setIsEmailVerified(false);
+  };
+
   useEffect(() => {
     if (arrivalDate && departureDate) {
       const diffTime = Math.abs(departureDate - arrivalDate);
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-      // Calculate maximum allowed days based on visa type
       let maxAllowedDays = 90; // Default
       if (selectedVisaType && selectedVisaType.duration_permitted) {
         maxAllowedDays =
@@ -640,7 +752,12 @@ const CountrySlider = () => {
     insuranceDays, // Added to dependency array
   ]);
 
-  const handleGetVisa = () => {
+  const handleGetVisa = async () => {
+    if ((selectedPaymentMethod === "apple" || selectedPaymentMethod === "google") && !isEmailVerified) {
+      setEmailError("Please verify your email before proceeding with express checkout");
+      return;
+    }
+
     // Validate required documents (except insurance which is optional)
     const requiredFields = [
       "passport",
@@ -673,7 +790,16 @@ const CountrySlider = () => {
         : selectedVisaType && selectedVisaType.price
         ? Math.round(Number(selectedVisaType.price) / 100)
         : baseFee;
-    const visaFees = currentBaseFee * travelers;
+    
+    let visaFees = currentBaseFee * travelers;
+    
+    // Apply discount if available
+    let discountAmount = 0;
+    if (appliedDiscount) {
+      discountAmount = (visaFees * appliedDiscount.percentage) / 100;
+      visaFees = visaFees - discountAmount;
+    }
+    
     const insuranceFees = recommendedItems.insuranceCertificate
       ? (visaState.insuranceFees || 400) * travelers
       : 0;
@@ -724,22 +850,33 @@ const CountrySlider = () => {
     console.log("requiredDocuments ::: ", requiredDocuments);
     console.log("recommendedItems ::: ", recommendedItems);
 
-    // Navigate with query params including all selections (ensure all values are serializable)
+    // Calculate total amount for payment processing
+    const totalAmount = Math.round(visaFees + insuranceFees + giftCardFees);
+
+    // For all payment methods - redirect to checkout page with payment info
+    console.log(`Redirecting to checkout page for ${selectedPaymentMethod || 'default'} payment...`);
+    
     const queryParams = new URLSearchParams({
-      visaFees: visaFees.toString(),
+      visaFees: Math.round(visaFees).toString(),
       insuranceFees: insuranceFees.toString(),
       giftCardFees: giftCardFees.toString(),
       travelers: travelers.toString(),
       selectedCountry: countryName,
-      departureDate: arrivalDate
-        ? arrivalDate.toISOString()
-        : new Date().toISOString(),
-      returnDate: departureDate
-        ? departureDate.toISOString()
-        : new Date().toISOString(),
+      departureDate: arrivalDate ? arrivalDate.toISOString() : new Date().toISOString(),
+      returnDate: departureDate ? departureDate.toISOString() : new Date().toISOString(),
       requiredDocuments: JSON.stringify(requiredDocuments),
       recommendedItems: JSON.stringify(recommendedItems),
       insuranceOnly: hasOnlyInsurance.toString(),
+      paymentMethod: selectedPaymentMethod || "stripe",
+      userEmail: userEmail || "",
+      emailVerified: isEmailVerified.toString(),
+      visaTypeId: selectedVisaType?.id || "",
+      ...(appliedDiscount && {
+        discountCode: couponCode,
+        discountPercentage: appliedDiscount.percentage.toString(),
+        discountAmount: Math.round(discountAmount).toString(),
+        discountDescription: appliedDiscount.description,
+      }),
     });
 
     router.push(`/visa-checkout?${queryParams.toString()}`);
@@ -953,17 +1090,18 @@ const CountrySlider = () => {
             </h1>
             <div className="flex items-center justify-between gap-3 mb-4">
               <span className="text-lg font-semibold line-through">
-                £
-                {selectedVisaType && selectedVisaType.priceGBP
-                  ? Math.round(selectedVisaType.priceGBP * 1.25) * travelers
-                  : 200 * travelers}
+                £{calculateOriginalPrice()}
               </span>
-              <span className="text-2xl font-gilroy-bold">
-                £
-                {selectedVisaType && selectedVisaType.priceGBP
-                  ? Math.round(selectedVisaType.priceGBP) * travelers
-                  : 159 * travelers}
-              </span>
+              <div className="flex flex-col items-end">
+                <span className="text-2xl font-gilroy-bold">
+                  £{Math.round(calculateFinalPrice())}
+                </span>
+                {appliedDiscount && (
+                  <span className="text-sm text-green-400">
+                    {appliedDiscount.percentage}% discount applied
+                  </span>
+                )}
+              </div>
 
               <div className="flex items-center gap-2 shadow-lg shadow-black/20 p-2 rounded-full">
                 <div className="w-4 h-4 rounded-full flex items-center justify-center">
@@ -1011,85 +1149,94 @@ const CountrySlider = () => {
             </div>
           </div>
         </div>
-        <div className="flex gap-10 my-10 items-center">
-          <div>
-            <label className="block text-base font-medium mb-1">
-              Arrival Date
-            </label>
-            <div className="relative w-64 font-semibold">
-              <DatePicker
-                selected={arrivalDate}
-                onChange={handleArrivalDateChange}
-                minDate={new Date()}
-                maxDate={
-                  selectedVisaType && selectedVisaType.validity_period
-                    ? (() => {
-                        const validityDays = parseDurationDays(
-                          selectedVisaType.validity_period
-                        );
-                        return validityDays
-                          ? new Date(
-                              Date.now() + validityDays * 24 * 60 * 60 * 1000
-                            )
-                          : undefined;
-                      })()
-                    : undefined
-                }
-                dateFormat="dd/MM/yyyy"
-                className={`w-full bg-[#24242D] text-white rounded text-sm pr-8 font-semibold border-gray-600 focus:outline-none border-none focus:ring-2 ${
-                  dateValidationErrors.pastDate ||
-                  dateValidationErrors.dateOrder
-                    ? "focus:ring-red-500"
-                    : "focus:ring-purple-500"
-                }`}
-                placeholderText="Select arrival date"
-              />
-              <Calendar className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-            </div>
-            {(dateValidationErrors.pastDate ||
-              dateValidationErrors.dateOrder) && (
-              <div className="text-red-500 text-xs mt-1">
-                {dateValidationErrors.pastDate ||
-                  dateValidationErrors.dateOrder}
+        <div className="bg-white/5 rounded-xl p-6 my-8">
+          <h3 className="text-lg font-semibold mb-4 text-center">Travel Dates</h3>
+          <div className="flex flex-col lg:flex-row gap-6 items-center justify-center">
+            <div className="flex-1 max-w-xs">
+              <label className="block text-base font-medium mb-2 text-center lg:text-left">
+                📅 Arrival Date
+              </label>
+              <div className="relative">
+                <DatePicker
+                  selected={arrivalDate}
+                  onChange={handleArrivalDateChange}
+                  minDate={new Date()}
+                  maxDate={
+                    selectedVisaType && selectedVisaType.validity_period
+                      ? (() => {
+                          const validityDays = parseDurationDays(
+                            selectedVisaType.validity_period
+                          );
+                          return validityDays
+                            ? new Date(
+                                Date.now() + validityDays * 24 * 60 * 60 * 1000
+                              )
+                            : undefined;
+                        })()
+                      : undefined
+                  }
+                  dateFormat="dd/MM/yyyy"
+                  className={`w-full bg-white/10 backdrop-blur-sm text-white rounded-lg text-center px-4 py-3 font-semibold border-2 transition-all duration-200 ${
+                    dateValidationErrors.pastDate ||
+                    dateValidationErrors.dateOrder
+                      ? "border-red-500 focus:border-red-400 focus:ring-2 focus:ring-red-400/20"
+                      : "border-white/20 hover:border-white/40 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20"
+                  } focus:outline-none`}
+                  placeholderText="Select arrival date"
+                  showPopperArrow={false}
+                  popperClassName="react-datepicker-popper-custom"
+                />
+                <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-white/60 pointer-events-none" />
               </div>
-            )}
+              {(dateValidationErrors.pastDate ||
+                dateValidationErrors.dateOrder) && (
+                <div className="text-red-400 text-xs mt-2 text-center">
+                  ⚠️ {dateValidationErrors.pastDate ||
+                    dateValidationErrors.dateOrder}
+                </div>
+              )}
+            </div>
+
+
+
+            <div className="flex-1 max-w-xs">
+              <label className="block text-base font-medium mb-2 text-center lg:text-left">
+                🛫 Departure Date
+              </label>
+              <div className="relative">
+                <DatePicker
+                  selected={departureDate}
+                  onChange={handleDepartureDateChange}
+                  minDate={arrivalDate || new Date()}
+                  dateFormat="dd/MM/yyyy"
+                  className={`w-full bg-white/10 backdrop-blur-sm text-white rounded-lg text-center px-4 py-3 font-semibold border-2 transition-all duration-200 ${
+                    dateValidationErrors.exceedsLimit
+                      ? "border-red-500 focus:border-red-400 focus:ring-2 focus:ring-red-400/20"
+                      : "border-white/20 hover:border-white/40 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20"
+                  } focus:outline-none`}
+                  placeholderText="Select departure date"
+                  showPopperArrow={false}
+                  popperClassName="react-datepicker-popper-custom"
+                />
+                <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-white/60 pointer-events-none" />
+              </div>
+              {dateValidationErrors.exceedsLimit && (
+                <div className="text-red-400 text-xs mt-2 text-center">
+                  ⚠️ {dateValidationErrors.exceedsLimit}
+                </div>
+              )}
+            </div>
           </div>
-
-          <PlaneIcon className="rotate-45 fill-white size-5" />
-
-          <div>
-            <label className="block text-base font-medium mb-1">
-              Departure Date
-            </label>
-            <div className="relative w-64 font-semibold">
-              <DatePicker
-                selected={departureDate}
-                onChange={handleDepartureDateChange}
-                dateFormat="dd/MM/yyyy"
-                className={`w-full bg-[#24242D] text-white rounded text-sm pr-8 font-semibold border-gray-600 focus:outline-none border-none focus:ring-2 ${
-                  dateValidationErrors.exceedsLimit
-                    ? "focus:ring-red-500"
-                    : "focus:ring-purple-500"
-                }`}
-                placeholderText="Select departure date"
-              />
-              <Calendar className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-            </div>
-            {dateValidationErrors.exceedsLimit && (
-              <div className="text-red-500 text-xs mt-1">
-                {dateValidationErrors.exceedsLimit}
-              </div>
-            )}
-            {arrivalDate && departureDate && (
-              <div className="text-green-400 text-xs mt-1">
-                Trip duration:{" "}
-                {Math.ceil(
+          
+          {arrivalDate && departureDate && (
+            <div className="mt-4 text-center">
+              <div className="inline-flex items-center bg-green-500/20 text-green-400 px-4 py-2 rounded-full text-sm font-medium">
+                ✅ Trip duration: {Math.ceil(
                   (departureDate - arrivalDate) / (1000 * 60 * 60 * 24)
-                )}{" "}
-                days
+                )} days
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Required Documents */}
@@ -1589,16 +1736,239 @@ const CountrySlider = () => {
             </div>
           )}
 
+          {/* Express Checkout Section */}
+          <div className="space-y-3 mb-6">
+            <h2 className="font-medium text-lg">Payment Methods</h2>
+            
+            {/* Apple Pay & Google Pay - Express Checkout */}
+            <div className="space-y-2">
+              <div className="text-sm text-gray-300 mb-2">
+                <span className="font-medium text-green-400">📱 Express Checkout</span> - Quick setup with saved payment methods
+              </div>
+              
+              <div
+                className={`border rounded-md p-3 cursor-pointer transition-all ${
+                  selectedPaymentMethod === "apple"
+                    ? "border-white bg-white/10 ring-2 ring-white/20"
+                    : "border-gray-500 hover:border-gray-400"
+                }`}
+                onClick={() => handlePaymentMethodSelect("apple")}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      name="payment"
+                      value="apple"
+                      checked={selectedPaymentMethod === "apple"}
+                      onChange={(e) => handlePaymentMethodSelect(e.target.value)}
+                      className="h-4 w-4"
+                    />
+                    <FaApple className="text-lg" />
+                    <span className="text-sm font-medium">Apple Pay</span>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                className={`border rounded-md p-3 cursor-pointer transition-all ${
+                  selectedPaymentMethod === "google"
+                    ? "border-white bg-white/10 ring-2 ring-white/20"
+                    : "border-gray-500 hover:border-gray-400"
+                }`}
+                onClick={() => handlePaymentMethodSelect("google")}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      name="payment"
+                      value="google"
+                      checked={selectedPaymentMethod === "google"}
+                      onChange={(e) => handlePaymentMethodSelect(e.target.value)}
+                      className="h-4 w-4"
+                    />
+                    <FaGoogle className="text-lg" />
+                    <span className="text-sm font-medium">Google Pay</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Email input for Apple Pay or Google Pay */}
+            {(selectedPaymentMethod === "apple" || selectedPaymentMethod === "google") && (
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-300">
+                  Email address for payment confirmation
+                </label>
+                <div className="flex space-x-2">
+                  <input
+                    type="email"
+                    value={userEmail}
+                    onChange={(e) => setUserEmail(e.target.value)}
+                    placeholder="Enter your email address"
+                    className={`flex-1 border ${
+                      emailError ? "border-red-400" : "border-gray-500"
+                    } bg-[#24242D] text-white rounded-md p-2 text-sm ${
+                      emailError
+                        ? "outline-none ring-2 ring-red-400"
+                        : "focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    }`}
+                  />
+                  {!isEmailVerified ? (
+                    <button
+                      onClick={validateUserEmail}
+                      className="px-4 py-2 bg-white text-black text-sm rounded-md hover:bg-gray-200 transition-colors font-medium"
+                    >
+                      Verify
+                    </button>
+                  ) : (
+                    <div className="px-4 py-2 bg-green-600 text-white text-sm rounded-md flex items-center">
+                      <Check className="w-4 h-4" />
+                    </div>
+                  )}
+                </div>
+                {emailError && (
+                  <span className="text-sm text-red-400">{emailError}</span>
+                )}
+                {isEmailVerified && (
+                  <span className="text-sm text-green-400">✓ Email verified</span>
+                )}
+              </div>
+            )}
+          </div>
+
+     
+
+          {/* Discount Code Section */}
+          <div className="space-y-3 mb-6">
+            <h2 className="font-medium text-lg">Discount Code</h2>
+            <div className="space-y-2">
+              {/* Show email input for verification if not verified and no express payment method selected */}
+              {!isEmailVerified && !selectedPaymentMethod && (
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-300">
+                    Email address for verification
+                  </label>
+                  <div className="flex space-x-2">
+                    <input
+                      type="email"
+                      value={userEmail}
+                      onChange={(e) => setUserEmail(e.target.value)}
+                      placeholder="Enter your email address"
+                      className={`flex-1 border ${
+                        emailError ? "border-red-400" : "border-gray-500"
+                      } bg-[#24242D] text-white rounded-md p-2 text-sm ${
+                        emailError
+                          ? "outline-none ring-2 ring-red-400"
+                          : "focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      }`}
+                    />
+                    <button
+                      onClick={validateUserEmail}
+                      className="px-4 py-2 bg-white text-black text-sm rounded-md hover:bg-gray-200 transition-colors font-medium"
+                    >
+                      Verify
+                    </button>
+                  </div>
+                  {emailError && (
+                    <span className="text-sm text-red-400">{emailError}</span>
+                  )}
+                  {isEmailVerified && (
+                    <span className="text-sm text-green-400">✓ Email verified</span>
+                  )}
+                </div>
+              )}
+              
+              <div className="flex space-x-2">
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    value={couponCode}
+                    onChange={(e) =>
+                      setCouponCode(e.target.value.toUpperCase())
+                    }
+                    placeholder="Enter coupon code (e.g., STUDENT10)"
+                    className={`w-full border ${
+                      couponError ? "border-red-400" : "border-gray-500"
+                    } bg-[#24242D] text-white rounded-md p-2 text-sm ${
+                      couponError
+                        ? "outline-none ring-2 ring-red-400"
+                        : "focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    }`}
+                    disabled={appliedDiscount}
+                  />
+                </div>
+                {!appliedDiscount ? (
+                  <button
+                    onClick={applyCouponCode}
+                    className="px-4 py-2 bg-white text-black text-sm rounded-md hover:bg-gray-200 transition-colors font-medium"
+                  >
+                    Apply
+                  </button>
+                ) : (
+                  <button
+                    onClick={removeCoupon}
+                    className="px-4 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+
+              {couponError && (
+                <span className="text-sm text-red-400">{couponError}</span>
+              )}
+
+              {appliedDiscount && (
+                <div className="flex items-center space-x-2 text-sm text-green-400 bg-green-600/20 p-2 rounded-md">
+                  <span>
+                    ✓ {appliedDiscount.description} (
+                    {appliedDiscount.percentage}% off) applied!
+                  </span>
+                </div>
+              )}
+
+              <div className="text-xs text-gray-400">
+                <p>Available discounts:</p>
+                <p>
+                  • <span className="font-semibold">STUDENT10</span> - 10%
+                  student discount
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Checkout Button */}
           <button
             onClick={handleGetVisa}
             className="group flex w-full justify-between items-center bg-[#6B4EFF] text-white  gap-[16px] font-medium px-[20px] py-3.5 rounded-full cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb]"
           >
-            <span className="mr-3 text-xl font-semibold">CHECKOUT</span>
+            <span className="mr-3 text-xl font-semibold">
+              {selectedPaymentMethod === "apple" ? "CONTINUE WITH APPLE PAY" :
+               selectedPaymentMethod === "google" ? "CONTINUE WITH GOOGLE PAY" :
+               selectedPaymentMethod === "stripe" ? "CONTINUE WITH CREDIT CARD" :
+               selectedPaymentMethod === "klarna" ? "CONTINUE WITH KLARNA" :
+               "CONTINUE TO CHECKOUT"}
+            </span>
             <span className="bg-white rounded-full p-1.5 transition-transform duration-300 group-hover:rotate-45 group-hover:translate-x-1 group-hover:-translate-y-0">
               <ArrowUpRight className="w-5 h-5 text-[#6B4EFF]" />
             </span>
           </button>
+
+          {/* Payment Flow Information */}
+          {selectedPaymentMethod && (
+            <div className="mt-3 p-2 bg-white/5 rounded-lg text-xs text-gray-300">
+              {selectedPaymentMethod === "apple" || selectedPaymentMethod === "google" ? (
+                <p>📱 <strong>Express Checkout:</strong> You'll go to the checkout page with your information pre-filled, then complete payment with {selectedPaymentMethod === "apple" ? "Apple Pay" : "Google Pay"}.</p>
+              ) : selectedPaymentMethod === "stripe" ? (
+                <p>💳 <strong>Credit Card:</strong> You'll go to the checkout page where you can enter your card details and complete the payment.</p>
+              ) : selectedPaymentMethod === "klarna" ? (
+                <p>🏦 <strong>Klarna:</strong> You'll go to the checkout page with your information pre-filled, then be redirected to Klarna for flexible payment options.</p>
+              ) : null}
+            </div>
+          )}
 
           {/* Footer Info */}
           <div className="mt-4 space-y-2">
