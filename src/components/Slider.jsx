@@ -30,12 +30,13 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import VisaTypeSelector from "./VisaTypeSelector";
 import { FaApple, FaGoogle } from "react-icons/fa";
+import { useToast } from "@/contexts/ToastContext";
 
 const CountrySlider = () => {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const visaState = useAppSelector((state) => state.visa);
-
+  const {showError} = useToast()
   const handleCountrySelect = (countryName) => {
     // Extract just the country name from "City, Country" format
     const country = countryName.includes(",")
@@ -161,10 +162,15 @@ const CountrySlider = () => {
   const [couponCode, setCouponCode] = useState("");
   const [couponError, setCouponError] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState(null);
+  const [studentEmail, setStudentEmail] = useState("");
+  const [studentVerificationSent, setStudentVerificationSent] = useState(false);
+  const [studentOtp, setStudentOtp] = useState("");
+  const [studentVerified, setStudentVerified] = useState(false);
+  const [isSendingVerification, setIsSendingVerification] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   
   const [userEmail, setUserEmail] = useState("");
   const [emailError, setEmailError] = useState("");
-  const [isEmailVerified, setIsEmailVerified] = useState(false);
 
   // Helper function to safely parse duration from visa type
   const parseDurationDays = (durationString) => {
@@ -635,14 +641,13 @@ const CountrySlider = () => {
       return false;
     }
     setEmailError("");
-    setIsEmailVerified(true);
+    // Email verification state removed — validation passes
     return true;
   };
 
   const handlePaymentMethodSelect = (method) => {
     setSelectedPaymentMethod(method);
     if (method === "apple" || method === "google") {
-      setIsEmailVerified(false);
       setEmailError("");
     }
     
@@ -686,21 +691,26 @@ const CountrySlider = () => {
       return;
     }
 
-    if (!userEmail.trim()) {
-      setCouponError("Please enter your email address for verification");
-      return;
-    }
 
-    if (!validateEmail(userEmail)) {
-      setCouponError("Please enter a valid email address");
-      return;
-    }
+    // if (!validateEmail(userEmail)) {
+    //   setCouponError("Please enter a valid email address");
+    //   return;
+    // }
 
     const availableDiscounts = {
       STUDENT10: {
         description: "Student discount",
         percentage: 10,
         requiresEmailVerification: true,
+      },
+      GROUP20: {
+        description: "Group discount (3+ travellers)",
+        percentage: 20,
+        requiresMinTravellers: 3,
+      },
+      SAVE10: {
+        description: "Save 10%",
+        percentage: 10,
       },
     };
 
@@ -711,7 +721,25 @@ const CountrySlider = () => {
       return;
     }
 
-    setIsEmailVerified(true);
+    // Check group requirement
+    if (discount.requiresMinTravellers && travelers < discount.requiresMinTravellers) {
+      setCouponError(`This coupon requires at least ${discount.requiresMinTravellers} travellers`);
+      return;
+    }
+
+    // If coupon requires verification (STUDENT10), prompt the student flow
+    if (discount.requiresEmailVerification) {
+      // Do not apply yet - wait for verification
+      setCouponError("");
+      setAppliedDiscount(null);
+      // focus on student email entry (UI will show below)
+      setStudentVerified(false);
+      setStudentVerificationSent(false);
+      showError && showError("Student coupon requires email verification. Enter your student email below.");
+      return;
+    }
+
+    // Apply immediately for standard coupons
     setAppliedDiscount(discount);
     setCouponError("");
   };
@@ -720,7 +748,7 @@ const CountrySlider = () => {
     setAppliedDiscount(null);
     setCouponCode("");
     setCouponError("");
-    setIsEmailVerified(false);
+  // email verification reset not required
   };
 
   useEffect(() => {
@@ -753,10 +781,6 @@ const CountrySlider = () => {
   ]);
 
   const handleGetVisa = async () => {
-    if ((selectedPaymentMethod === "apple" || selectedPaymentMethod === "google") && !isEmailVerified) {
-      setEmailError("Please verify your email before proceeding with express checkout");
-      return;
-    }
 
     // Validate required documents (except insurance which is optional)
     const requiredFields = [
@@ -868,8 +892,7 @@ const CountrySlider = () => {
       recommendedItems: JSON.stringify(recommendedItems),
       insuranceOnly: hasOnlyInsurance.toString(),
       paymentMethod: selectedPaymentMethod || "stripe",
-      userEmail: userEmail || "",
-      emailVerified: isEmailVerified.toString(),
+  userEmail: userEmail || "",
       visaTypeId: selectedVisaType?.id || "",
       ...(appliedDiscount && {
         discountCode: couponCode,
@@ -881,6 +904,7 @@ const CountrySlider = () => {
 
     router.push(`/visa-checkout?${queryParams.toString()}`);
   };
+
 
   return (
     <div className="w-full max-w-[1300px] gap-20 max-lg:flex-col flex items-start justify-center mt-5 px-5">
@@ -1796,47 +1820,6 @@ const CountrySlider = () => {
 
             </div>
 
-            {/* Email input for Apple Pay or Google Pay */}
-            {(selectedPaymentMethod === "apple" || selectedPaymentMethod === "google") && (
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-300">
-                  Email address for payment confirmation
-                </label>
-                <div className="flex space-x-2">
-                  <input
-                    type="email"
-                    value={userEmail}
-                    onChange={(e) => setUserEmail(e.target.value)}
-                    placeholder="Enter your email address"
-                    className={`flex-1 border ${
-                      emailError ? "border-red-400" : "border-gray-500"
-                    } bg-[#24242D] text-white rounded-md p-2 text-sm ${
-                      emailError
-                        ? "outline-none ring-2 ring-red-400"
-                        : "focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    }`}
-                  />
-                  {!isEmailVerified ? (
-                    <button
-                      onClick={validateUserEmail}
-                      className="px-4 py-2 bg-white text-black text-sm rounded-md hover:bg-gray-200 transition-colors font-medium"
-                    >
-                      Verify
-                    </button>
-                  ) : (
-                    <div className="px-4 py-2 bg-green-600 text-white text-sm rounded-md flex items-center">
-                      <Check className="w-4 h-4" />
-                    </div>
-                  )}
-                </div>
-                {emailError && (
-                  <span className="text-sm text-red-400">{emailError}</span>
-                )}
-                {isEmailVerified && (
-                  <span className="text-sm text-green-400">✓ Email verified</span>
-                )}
-              </div>
-            )}
           </div>
 
      
@@ -1845,41 +1828,7 @@ const CountrySlider = () => {
           <div className="space-y-3 mb-6">
             <h2 className="font-medium text-lg">Discount Code</h2>
             <div className="space-y-2">
-              {/* Show email input for verification if not verified and no express payment method selected */}
-              {!isEmailVerified && !selectedPaymentMethod && (
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-300">
-                    Email address for verification
-                  </label>
-                  <div className="flex space-x-2">
-                    <input
-                      type="email"
-                      value={userEmail}
-                      onChange={(e) => setUserEmail(e.target.value)}
-                      placeholder="Enter your email address"
-                      className={`flex-1 border ${
-                        emailError ? "border-red-400" : "border-gray-500"
-                      } bg-[#24242D] text-white rounded-md p-2 text-sm ${
-                        emailError
-                          ? "outline-none ring-2 ring-red-400"
-                          : "focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      }`}
-                    />
-                    <button
-                      onClick={validateUserEmail}
-                      className="px-4 py-2 bg-white text-black text-sm rounded-md hover:bg-gray-200 transition-colors font-medium"
-                    >
-                      Verify
-                    </button>
-                  </div>
-                  {emailError && (
-                    <span className="text-sm text-red-400">{emailError}</span>
-                  )}
-                  {isEmailVerified && (
-                    <span className="text-sm text-green-400">✓ Email verified</span>
-                  )}
-                </div>
-              )}
+          
               
               <div className="flex space-x-2">
                 <div className="flex-1">
@@ -1937,6 +1886,108 @@ const CountrySlider = () => {
                   student discount
                 </p>
               </div>
+              {/* Student verification UI */}
+              <div className="mt-4 border-t border-[#2b2b33] pt-3">
+                <div className="text-sm text-gray-300 mb-2">Student? Add your student email, we'll send a verification email there.</div>
+                <div className="flex space-x-2">
+                  <input
+                    type="email"
+                    value={studentEmail}
+                    onChange={(e) => setStudentEmail(e.target.value)}
+                    placeholder="your@student.edu"
+                    className="flex-1 border border-gray-500 bg-[#24242D] text-white rounded-md p-2 text-sm"
+                    disabled={studentVerified}
+                  />
+                  <button
+                    onClick={async () => {
+                      if (!studentEmail || !studentEmail.includes("@")) {
+                        setCouponError("Please enter a valid student email");
+                        return;
+                      }
+                      setIsSendingVerification(true);
+                      try {
+                        const res = await fetch('/api/student/send-verification', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ email: studentEmail })
+                        });
+                        const data = await res.json();
+                        if (res.ok) {
+                          setStudentVerificationSent(true);
+                          // If debug code returned (dev mode), show it in couponError so developer/testers can see
+                          if (data?.debugCode) {
+                            setCouponError(`Debug code: ${data.debugCode}`);
+                          } else {
+                            setCouponError("");
+                          }
+                        } else {
+                          setCouponError(data?.error || 'Failed to send verification');
+                        }
+                      } catch (err) {
+                        console.error(err);
+                        setCouponError('Failed to send verification');
+                      } finally {
+                        setIsSendingVerification(false);
+                      }
+                    }}
+                    className="px-4 py-2 bg-white text-black text-sm rounded-md hover:bg-gray-200 transition-colors"
+                    disabled={isSendingVerification || studentVerificationSent || studentVerified}
+                  >
+                    {isSendingVerification ? 'Sending...' : studentVerificationSent ? 'Sent' : 'Send'}
+                  </button>
+                </div>
+
+                {studentVerificationSent && !studentVerified && (
+                  <div className="mt-3 flex space-x-2">
+                    <input
+                      type="text"
+                      value={studentOtp}
+                      onChange={(e) => setStudentOtp(e.target.value)}
+                      placeholder="Enter verification code"
+                      className="flex-1 border border-gray-500 bg-[#24242D] text-white rounded-md p-2 text-sm"
+                    />
+                    <button
+                      onClick={async () => {
+                        if (!studentOtp) {
+                          setCouponError('Please enter the code');
+                          return;
+                        }
+                        setIsVerifyingOtp(true);
+                        try {
+                          const res = await fetch('/api/student/verify', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email: studentEmail, code: studentOtp })
+                          });
+                          const data = await res.json();
+                          if (res.ok && data?.verified) {
+                            setStudentVerified(true);
+                            // apply discount
+                            const discount = { description: 'Student discount', percentage: 10 };
+                            setAppliedDiscount(discount);
+                            setCouponError('');
+                          } else {
+                            setCouponError(data?.error || 'Invalid code');
+                          }
+                        } catch (err) {
+                          console.error(err);
+                          setCouponError('Verification failed');
+                        } finally {
+                          setIsVerifyingOtp(false);
+                        }
+                      }}
+                      className="px-4 py-2 bg-[#22c55e] text-black text-sm rounded-md hover:bg-[#16a34a] transition-colors"
+                      disabled={isVerifyingOtp}
+                    >
+                      {isVerifyingOtp ? 'Verifying...' : 'Verify'}
+                    </button>
+                  </div>
+                )}
+
+                {studentVerified && (
+                  <div className="mt-2 text-sm text-green-400">Student verified — 10% discount applied.</div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -1957,18 +2008,6 @@ const CountrySlider = () => {
             </span>
           </button>
 
-          {/* Payment Flow Information */}
-          {selectedPaymentMethod && (
-            <div className="mt-3 p-2 bg-white/5 rounded-lg text-xs text-gray-300">
-              {selectedPaymentMethod === "apple" || selectedPaymentMethod === "google" ? (
-                <p>📱 <strong>Express Checkout:</strong> You'll go to the checkout page with your information pre-filled, then complete payment with {selectedPaymentMethod === "apple" ? "Apple Pay" : "Google Pay"}.</p>
-              ) : selectedPaymentMethod === "stripe" ? (
-                <p>💳 <strong>Credit Card:</strong> You'll go to the checkout page where you can enter your card details and complete the payment.</p>
-              ) : selectedPaymentMethod === "klarna" ? (
-                <p>🏦 <strong>Klarna:</strong> You'll go to the checkout page with your information pre-filled, then be redirected to Klarna for flexible payment options.</p>
-              ) : null}
-            </div>
-          )}
 
           {/* Footer Info */}
           <div className="mt-4 space-y-2">

@@ -12,6 +12,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { Sparkles } from "lucide-react";
 
 // The full application component including the form, state management, and all sections.
 export default function App({ passportData, setPassportData, handleSave }) {
@@ -84,10 +85,18 @@ const PassportInformationSection = ({
   const [backOcrError, setBackOcrError] = useState(null);
   const [frontOcrSuccessMessage, setFrontOcrSuccessMessage] = useState("");
   const [backOcrSuccessMessage, setBackOcrSuccessMessage] = useState("");
-  const [showManualFallback, setShowManualFallback] = useState(false);
-  // Track whether OCR has already been performed for the uploaded files
   const [frontOcrDone, setFrontOcrDone] = useState(false);
   const [backOcrDone, setBackOcrDone] = useState(false);
+
+  const [showUploadCard, setShowUploadCard] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [extractionProgress, setExtractionProgress] = useState(0);
+  const [extractionStep, setExtractionStep] = useState("");
+  const [showAutofillAnimation, setShowAutofillAnimation] = useState(false);
+
+  const hasPassportImages =
+    passportData.passportFront || passportData.passportBack;
+  const hasBothImages = passportData.passportFront && passportData.passportBack;
 
   // useEffect to handle loading saved images only when switching travelers
   useEffect(() => {
@@ -120,7 +129,19 @@ const PassportInformationSection = ({
     } else {
       setBackPreview(null);
     }
-  }, [passportData.passportFront, passportData.passportBack, travelerIndex]);
+
+    // Hide upload card when both images are uploaded and processed
+    if (hasBothImages && frontOcrDone && backOcrDone) {
+      setShowUploadCard(false);
+    }
+  }, [
+    passportData.passportFront,
+    passportData.passportBack,
+    travelerIndex,
+    hasBothImages,
+    frontOcrDone,
+    backOcrDone,
+  ]);
 
   // Separate useEffect to clear file inputs only when traveler changes
   useEffect(() => {
@@ -128,20 +149,6 @@ const PassportInformationSection = ({
     if (frontInputRef.current) frontInputRef.current.value = "";
     if (backInputRef.current) backInputRef.current.value = "";
   }, [travelerIndex]);
-
-  // When both front and back are present, run OCR only for the front side (once)
-  // This ensures OCR doesn't run twice or process the back side at all.
-  useEffect(() => {
-    const frontFile = passportData && passportData.passportFront;
-    const backFile = passportData && passportData.passportBack;
-
-    // Only trigger OCR when both files are uploaded, and only if front hasn't been processed yet
-    if (frontFile && backFile && !frontOcrDone) {
-      performOCR(frontFile, 'front');
-      setFrontOcrDone(true);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [passportData.passportFront, passportData.passportBack]);
 
   // Handles changes to text/select inputs
   const handleInputChange = (e) => {
@@ -168,14 +175,39 @@ const PassportInformationSection = ({
       setBackOcrSuccessMessage("");
     }
 
+    // Start autofill animation when processing begins
+    setShowAutofillAnimation(true);
+    setExtractionProgress(0);
+    setExtractionStep("Processing document...");
+
+    // Simulate progress updates
+    const progressUpdates = [
+      { progress: 20, step: "Analyzing document..." },
+      { progress: 40, step: "Detecting text fields..." },
+      { progress: 60, step: "Extracting information..." },
+      { progress: 80, step: "Validating data..." },
+      { progress: 100, step: "Complete!" },
+    ];
+
+    let progressIndex = 0;
+    const progressInterval = setInterval(() => {
+      if (progressIndex < progressUpdates.length) {
+        setExtractionProgress(progressUpdates[progressIndex].progress);
+        setExtractionStep(progressUpdates[progressIndex].step);
+        progressIndex++;
+      } else {
+        clearInterval(progressInterval);
+      }
+    }, 800);
+
     try {
       // Create FormData to send file to API
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append("file", file);
 
       // Send to Mindee API route
-      const response = await fetch('/api/extract-passport', {
-        method: 'POST',
+      const response = await fetch("/api/extract-passport", {
+        method: "POST",
         body: formData,
       });
 
@@ -185,6 +217,10 @@ const PassportInformationSection = ({
       }
 
       const data = await response.json();
+
+      clearInterval(progressInterval);
+      setExtractionProgress(100);
+      setExtractionStep("Data extracted successfully!");
 
       // The backend returns { raw, extractedFields, simpleFields }.
       // Prefer `extractedFields` (already mapped), fall back to `simpleFields` (flat raw values),
@@ -202,28 +238,71 @@ const PassportInformationSection = ({
 
       const extracted = {
         passportNumber:
-          mapped.passportNumber || simple.passport_number || (rawFields && rawFields.passport_number && rawFields.passport_number.value) || null,
+          mapped.passportNumber ||
+          simple.passport_number ||
+          (rawFields &&
+            rawFields.passport_number &&
+            rawFields.passport_number.value) ||
+          null,
         firstName:
-          mapped.firstName || simple.given_names || (rawFields && rawFields.given_names && rawFields.given_names.value) || null,
+          mapped.firstName ||
+          simple.given_names ||
+          (rawFields && rawFields.given_names && rawFields.given_names.value) ||
+          null,
         lastName:
-          mapped.lastName || simple.surnames || (rawFields && rawFields.surnames && rawFields.surnames.value) || null,
+          mapped.lastName ||
+          simple.surnames ||
+          (rawFields && rawFields.surnames && rawFields.surnames.value) ||
+          null,
         dateOfBirth:
-          mapped.dateOfBirth || simple.date_of_birth || (rawFields && rawFields.date_of_birth && rawFields.date_of_birth.value) || null,
+          mapped.dateOfBirth ||
+          simple.date_of_birth ||
+          (rawFields &&
+            rawFields.date_of_birth &&
+            rawFields.date_of_birth.value) ||
+          null,
         sex:
-          mapped.sex || simple.sex || (rawFields && rawFields.sex && rawFields.sex.value) || null,
+          mapped.sex ||
+          simple.sex ||
+          (rawFields && rawFields.sex && rawFields.sex.value) ||
+          null,
         passportIssueDate:
-          mapped.passportIssueDate || simple.date_of_issue || (rawFields && rawFields.date_of_issue && rawFields.date_of_issue.value) || null,
+          mapped.passportIssueDate ||
+          simple.date_of_issue ||
+          (rawFields &&
+            rawFields.date_of_issue &&
+            rawFields.date_of_issue.value) ||
+          null,
         passportExpiryDate:
-          mapped.passportExpiryDate || simple.date_of_expiry || (rawFields && rawFields.date_of_expiry && rawFields.date_of_expiry.value) || null,
+          mapped.passportExpiryDate ||
+          simple.date_of_expiry ||
+          (rawFields &&
+            rawFields.date_of_expiry &&
+            rawFields.date_of_expiry.value) ||
+          null,
         placeOfBirth:
-          mapped.placeOfBirth || simple.place_of_birth || (rawFields && rawFields.place_of_birth && rawFields.place_of_birth.value) || null,
+          mapped.placeOfBirth ||
+          simple.place_of_birth ||
+          (rawFields &&
+            rawFields.place_of_birth &&
+            rawFields.place_of_birth.value) ||
+          null,
         nationality:
-          mapped.nationality || simple.nationality || (rawFields && rawFields.nationality && rawFields.nationality.value) || null,
-        mrz_line_1: (rawFields && rawFields.mrz_line_1 && rawFields.mrz_line_1.value) || null,
-        mrz_line_2: (rawFields && rawFields.mrz_line_2 && rawFields.mrz_line_2.value) || null,
+          mapped.nationality ||
+          simple.nationality ||
+          (rawFields && rawFields.nationality && rawFields.nationality.value) ||
+          null,
+        mrz_line_1:
+          (rawFields && rawFields.mrz_line_1 && rawFields.mrz_line_1.value) ||
+          null,
+        mrz_line_2:
+          (rawFields && rawFields.mrz_line_2 && rawFields.mrz_line_2.value) ||
+          null,
       };
 
-      const foundFields = Object.values(extracted).filter((v) => v != null).length;
+      const foundFields = Object.values(extracted).filter(
+        (v) => v != null
+      ).length;
 
       if (foundFields > 0) {
         setPassportData((prev) => {
@@ -235,31 +314,38 @@ const PassportInformationSection = ({
             }
           };
 
-          assignIfPresent('passportNumber', extracted.passportNumber);
-          assignIfPresent('firstName', extracted.firstName);
-          assignIfPresent('lastName', extracted.lastName);
-          assignIfPresent('dateOfBirth', extracted.dateOfBirth);
-          assignIfPresent('sex', extracted.sex);
-          assignIfPresent('passportIssueDate', extracted.passportIssueDate);
-          assignIfPresent('passportExpiryDate', extracted.passportExpiryDate);
-          assignIfPresent('placeOfBirth', extracted.placeOfBirth);
-          assignIfPresent('nationality', extracted.nationality);
+          assignIfPresent("passportNumber", extracted.passportNumber);
+          assignIfPresent("firstName", extracted.firstName);
+          assignIfPresent("lastName", extracted.lastName);
+          assignIfPresent("dateOfBirth", extracted.dateOfBirth);
+          assignIfPresent("sex", extracted.sex);
+          assignIfPresent("passportIssueDate", extracted.passportIssueDate);
+          assignIfPresent("passportExpiryDate", extracted.passportExpiryDate);
+          assignIfPresent("placeOfBirth", extracted.placeOfBirth);
+          assignIfPresent("nationality", extracted.nationality);
 
           // Map issuing country -> passportIssuePlace if present
           if (mapped && mapped.issuingCountry) {
-            assignIfPresent('passportIssuePlace', mapped.issuingCountry);
+            assignIfPresent("passportIssuePlace", mapped.issuingCountry);
           } else if (simple && simple.issuing_country) {
-            assignIfPresent('passportIssuePlace', simple.issuing_country);
-          } else if (rawFields && rawFields.issuing_country && rawFields.issuing_country.value) {
-            assignIfPresent('passportIssuePlace', rawFields.issuing_country.value);
+            assignIfPresent("passportIssuePlace", simple.issuing_country);
+          } else if (
+            rawFields &&
+            rawFields.issuing_country &&
+            rawFields.issuing_country.value
+          ) {
+            assignIfPresent(
+              "passportIssuePlace",
+              rawFields.issuing_country.value
+            );
           }
 
           const finalUpdate = { ...prev, ...updates };
           // Preserve file refs and set the side file
-          if (side === 'front') {
+          if (side === "front") {
             finalUpdate.passportFront = file;
           }
-          if (side === 'back') {
+          if (side === "back") {
             finalUpdate.passportBack = file;
           }
 
@@ -267,36 +353,65 @@ const PassportInformationSection = ({
         });
 
         const successMessage = `✅ Successfully extracted ${foundFields} field(s) from passport ${side} side.`;
-        if (side === 'front') {
+        if (side === "front") {
           setFrontOcrSuccessMessage(successMessage);
           setFrontOcrError(null);
-          setTimeout(() => setFrontOcrSuccessMessage(''), 8000);
+          setTimeout(() => setFrontOcrSuccessMessage(""), 8000);
+          // mark front OCR as done
+          setFrontOcrDone(true);
         } else {
           setBackOcrSuccessMessage(successMessage);
           setBackOcrError(null);
-          setTimeout(() => setBackOcrSuccessMessage(''), 8000);
+          setTimeout(() => setBackOcrSuccessMessage(""), 8000);
+          // mark back OCR as done
+          setBackOcrDone(true);
         }
+
+        // Hide autofill animation after success
+        setTimeout(() => {
+          setShowAutofillAnimation(false);
+          setExtractionProgress(0);
+          setExtractionStep("");
+        }, 2000);
       } else {
         const errorMessage = `No passport fields detected. Please try a clearer photo or enter details manually.`;
-        if (side === 'front') {
+        if (side === "front") {
           setFrontOcrError(errorMessage);
-          setFrontOcrSuccessMessage('');
+          setFrontOcrSuccessMessage("");
         } else {
           setBackOcrError(errorMessage);
-          setBackOcrSuccessMessage('');
+          setBackOcrSuccessMessage("");
         }
         setShowManualFallback(true);
+
+        // mark OCR as done to avoid re-processing on refresh
+        if (side === "front") setFrontOcrDone(true);
+        else setBackOcrDone(true);
+
+        // Hide autofill animation on no data
+        setShowAutofillAnimation(false);
+        setExtractionProgress(0);
+        setExtractionStep("");
       }
     } catch (error) {
       console.error("Mindee API Error:", error);
       const errorMessage = `Failed to process the passport ${side} side. This could be due to image quality, network issues, or API limits. Please try again or enter details manually.`;
 
+      clearInterval(progressInterval);
+
       if (side === "front") {
         setFrontOcrError(errorMessage);
+        setFrontOcrDone(true);
       } else {
         setBackOcrError(errorMessage);
+        setBackOcrDone(true);
       }
       setShowManualFallback(true);
+
+      // Hide autofill animation on error
+      setShowAutofillAnimation(false);
+      setExtractionProgress(0);
+      setExtractionStep("");
     } finally {
       // Clear loading states based on side
       if (side === "front") {
@@ -358,10 +473,10 @@ const PassportInformationSection = ({
       // Extract dates
       if (prediction.birth_date && prediction.birth_date.value) {
         // Convert from DD/MM/YYYY to YYYY-MM-DD format
-        const dateParts = prediction.birth_date.value.split('/');
+        const dateParts = prediction.birth_date.value.split("/");
         if (dateParts.length === 3) {
-          const day = dateParts[0].padStart(2, '0');
-          const month = dateParts[1].padStart(2, '0');
+          const day = dateParts[0].padStart(2, "0");
+          const month = dateParts[1].padStart(2, "0");
           const year = dateParts[2];
           extractedData.dateOfBirth = `${year}-${month}-${day}`;
           extractedData.foundFields++;
@@ -371,10 +486,10 @@ const PassportInformationSection = ({
 
       if (prediction.expiry_date && prediction.expiry_date.value) {
         // Convert from DD/MM/YYYY to YYYY-MM-DD format
-        const dateParts = prediction.expiry_date.value.split('/');
+        const dateParts = prediction.expiry_date.value.split("/");
         if (dateParts.length === 3) {
-          const day = dateParts[0].padStart(2, '0');
-          const month = dateParts[1].padStart(2, '0');
+          const day = dateParts[0].padStart(2, "0");
+          const month = dateParts[1].padStart(2, "0");
           const year = dateParts[2];
           extractedData.expiryDate = `${year}-${month}-${day}`;
           extractedData.foundFields++;
@@ -384,10 +499,10 @@ const PassportInformationSection = ({
 
       if (prediction.issuance_date && prediction.issuance_date.value) {
         // Convert from DD/MM/YYYY to YYYY-MM-DD format
-        const dateParts = prediction.issuance_date.value.split('/');
+        const dateParts = prediction.issuance_date.value.split("/");
         if (dateParts.length === 3) {
-          const day = dateParts[0].padStart(2, '0');
-          const month = dateParts[1].padStart(2, '0');
+          const day = dateParts[0].padStart(2, "0");
+          const month = dateParts[1].padStart(2, "0");
           const year = dateParts[2];
           extractedData.issueDate = `${year}-${month}-${day}`;
           extractedData.foundFields++;
@@ -398,11 +513,11 @@ const PassportInformationSection = ({
       // Extract gender
       if (prediction.gender && prediction.gender.value) {
         const gender = prediction.gender.value.toLowerCase();
-        if (gender === 'm' || gender === 'male') {
-          extractedData.sex = 'Male';
+        if (gender === "m" || gender === "male") {
+          extractedData.sex = "Male";
           extractedData.foundFields++;
-        } else if (gender === 'f' || gender === 'female') {
-          extractedData.sex = 'Female';
+        } else if (gender === "f" || gender === "female") {
+          extractedData.sex = "Female";
           extractedData.foundFields++;
         }
         console.log("Found gender:", extractedData.sex);
@@ -431,18 +546,26 @@ const PassportInformationSection = ({
           console.log("Found address:", extractedData.currentAddress);
         }
 
-        if (prediction.emergency_contact && prediction.emergency_contact.value) {
+        if (
+          prediction.emergency_contact &&
+          prediction.emergency_contact.value
+        ) {
           extractedData.emergencyContact = prediction.emergency_contact.value;
           extractedData.foundFields++;
-          console.log("Found emergency contact:", extractedData.emergencyContact);
+          console.log(
+            "Found emergency contact:",
+            extractedData.emergencyContact
+          );
         }
       }
-
     } catch (error) {
       console.error("Error extracting data from Mindee inference:", error);
     }
 
-    console.log(`Extracted ${extractedData.foundFields} fields from ${side} side:`, extractedData);
+    console.log(
+      `Extracted ${extractedData.foundFields} fields from ${side} side:`,
+      extractedData
+    );
     return extractedData;
   };
 
@@ -1067,11 +1190,10 @@ const PassportInformationSection = ({
           ...prev,
           passportFront: "",
         }));
-          // Ensure front is marked as not-yet-processed so OCR will run for the front side
-          // (we only perform OCR on the front side; the back will be ignored)
-          setFrontOcrDone(false);
-          // Mark back as already "done" so it won't trigger OCR when uploaded
-          setBackOcrDone(true);
+        // Ensure front OCR runs for this newly uploaded file
+        setFrontOcrDone(false);
+        // Start OCR for the uploaded front file
+        performOCR(file, "front");
       } else {
         setBackPreview(reader.result);
 
@@ -1086,8 +1208,7 @@ const PassportInformationSection = ({
           ...prev,
           passportBack: "",
         }));
-        // We do not run OCR on the back side. Mark it as done so it won't be processed.
-        setBackOcrDone(true);
+        // We do not run OCR on the back side by default. Keep backOcrDone as-is.
       }
     };
     reader.readAsDataURL(file);
@@ -1235,573 +1356,566 @@ const PassportInformationSection = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Travel Dates Section */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className=" rounded-xl p-6 border border-[#423577] shadow-sm"
+      >
+        <h2 className="flex items-center text-xl font-semibold mb-6 text-white">
+          <Calendar className="text-white mr-3" size={24} />
+          1. Add your tentative travel dates
+        </h2>
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+          <p className="text-sm text-yellow-800">
+            These dates can be approximate and are only required to get you a
+            visa. You may make changes later as per visa issuance period.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-white mb-2">
+              Tentative departure date
+            </label>
+            <div className="relative">
+              <input
+                type="date"
+                name="travelStartDate"
+                value={passportData.travelStartDate || ""}
+                onChange={handleInputChange}
+                min={new Date().toISOString().split("T")[0]}
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none bg-[#292933] text-white [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer ${
+                  errors.travelStartDate ? "border-red-500" : "border-[#423577]"
+                }`}
+                style={{
+                  colorScheme: "light",
+                }}
+              />
+            </div>
+            {errors.travelStartDate && (
+              <p className="text-red-400 text-xs mt-1">
+                {errors.travelStartDate}
+              </p>
+            )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-white mb-2">
+              Tentative return date
+            </label>
+            <div className="relative">
+              <input
+                type="date"
+                name="travelEndDate"
+                value={passportData.travelEndDate || ""}
+                onChange={handleInputChange}
+                min={
+                  passportData.travelStartDate ||
+                  new Date().toISOString().split("T")[0]
+                }
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none bg-[#292933] text-white [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer ${
+                  errors.travelEndDate ? "border-red-500" : "border-[#423577]"
+                }`}
+                style={{
+                  colorScheme: "light",
+                }}
+              />
+            </div>
+            {errors.travelEndDate && (
+              <p className="text-red-400 text-xs mt-1">
+                {errors.travelEndDate}
+              </p>
+            )}
+          </div>
+        </div>
+      </motion.div>
+
       <div className="flex flex-col md:flex-row gap-10">
         {/* Passport Upload Section (Left Side) */}
         <motion.div
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.1 }}
-          className=" w-full md:w-1/2"
+          className="w-full md:w-1/2"
         >
-          <h3 className="flex items-center text-lg font-semibold mb-4">
-            <Upload className="text-[#7350FF] mr-2" size={20} />
-            Passport Upload
-          </h3>
-          <div className="space-y-6">
-            {/* Front Side Upload */}
-            <div
-              className={`border-2 border-dashed rounded-xl p-4 transition ${
-                errors.passportFront
-                  ? "border-red-500 bg-red-50"
-                  : "border-[#423577] hover:border-purple-400"
-              }`}
-            >
-              <label className="block text-sm font-medium  mb-2">
-                Passport Front Page
-              </label>
-              <p className="text-xs text-gray-400 mb-3">
-                Upload a clear photo of the front page (JPG, PNG or PDF) - Data
-                will be auto-extracted
-              </p>
+          <div className=" rounded-xl p-6 border border-[#423577] shadow-sm">
+            <h3 className="flex items-center text-lg font-semibold mb-4 text-white">
+              <Upload className="text-[#7350FF] mr-2" size={20} />
+              2. Upload passport
+            </h3>
 
-              {/* OCR Status Messages for Front Side */}
-              {frontOcrLoading && (
-                <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-center text-blue-800">
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    <span className="text-sm font-medium">
-                      Processing passport front side...
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {frontOcrSuccessMessage && (
-                <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                  <div className="flex items-center text-green-800">
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    <span className="text-sm font-medium">
-                      {frontOcrSuccessMessage}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {frontOcrError && (
-                <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <div className="flex items-center text-red-800">
-                    <AlertCircle className="w-4 h-4 mr-2" />
-                    <span className="text-sm font-medium">{frontOcrError}</span>
-                  </div>
-                  <button
-                    onClick={() => retryOCR("front")}
-                    className="mt-2 text-xs text-blue-600 hover:text-blue-800 underline"
-                  >
-                    Try OCR Again
-                  </button>
-                </div>
-              )}
-
-              {frontPreview ? (
-                <div className="mb-3 relative group">
-                  <img
-                    src={frontPreview}
-                    alt="Passport Front Preview"
-                    className="max-h-48 w-full object-contain mx-auto border rounded-lg"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveImage("front")}
-                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center justify-center w-full">
-                  <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-[#423577] border-dashed rounded-lg cursor-pointer transition">
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                      <Upload className="w-10 h-10 mb-3 text-gray-400" />
-                      <p className="mb-2 text-sm text-gray-400">
-                        <span className="font-semibold">Click to upload</span>{" "}
-                        or drag and drop
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        JPG, PNG or PDF (MAX. 5MB)
-                      </p>
-                    </div>
-                    <input
-                      id="passport-front"
-                      type="file"
-                      ref={frontInputRef}
-                      className="hidden"
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      onChange={(e) => handleFileUpload(e, "front")}
-                    />
-                  </label>
-                </div>
-              )}
-              {errors.passportFront && (
-                <p className="text-red-500 text-xs mt-1">
-                  {errors.passportFront}
+            <div className="space-y-6">
+              {/* Front Side Upload */}
+              <div
+                className={`border-2 border-dashed rounded-xl p-4 transition ${
+                  errors.passportFront
+                    ? "border-red-500 bg-red-50"
+                    : "border-[#423577] hover:border-purple-400"
+                }`}
+              >
+                <label className="block text-sm font-medium  mb-2">
+                  Passport Front Page
+                </label>
+                <p className="text-xs text-gray-400 mb-3">
+                  Upload a clear photo of the front page (JPG, PNG or PDF) -
+                  Data will be auto-extracted
                 </p>
-              )}
-            </div>
-            {/* Back Side Upload */}
-            <div
-              className={`border-2 border-dashed rounded-xl p-4 transition ${
-                errors.passportBack
-                  ? "border-red-500 bg-red-50"
-                  : "border-[#423577] hover:border-purple-400"
-              }`}
-            >
-              <label className="block text-sm font-medium  mb-2">
-                Passport Back Page
-              </label>
-              <p className="text-xs text-gray-400 mb-3">
-                Upload a clear photo of the back page (JPG, PNG or PDF) -
-                Additional data may be extracted
-              </p>
 
-              {/* OCR Status Messages for Back Side */}
-              {backOcrLoading && (
-                <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-center text-blue-800">
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    <span className="text-sm font-medium">
-                      Processing passport back side...
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {backOcrSuccessMessage && (
-                <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                  <div className="flex items-center text-green-800">
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    <span className="text-sm font-medium">
-                      {backOcrSuccessMessage}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {backOcrError && (
-                <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <div className="flex items-center text-red-800">
-                    <AlertCircle className="w-4 h-4 mr-2" />
-                    <span className="text-sm font-medium">{backOcrError}</span>
-                  </div>
-                  <button
-                    onClick={() => retryOCR("back")}
-                    className="mt-2 text-xs text-blue-600 hover:text-blue-800 underline"
-                  >
-                    Try OCR Again
-                  </button>
-                </div>
-              )}
-
-              {backPreview ? (
-                <div className="mb-3 relative group">
-                  <img
-                    src={backPreview}
-                    alt="Passport Back Preview"
-                    className="max-h-48 w-full object-contain mx-auto border rounded-lg"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveImage("back")}
-                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center justify-center w-full">
-                  <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-[#423577] border-dashed rounded-lg cursor-pointer transition">
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                      <Upload className="w-10 h-10 mb-3 text-gray-400" />
-                      <p className="mb-2 text-sm text-gray-400">
-                        <span className="font-semibold">Click to upload</span>{" "}
-                        or drag and drop
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        JPG, PNG or PDF (MAX. 5MB)
-                      </p>
+                {/* OCR Status Messages for Front Side */}
+                {frontOcrLoading && (
+                  <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center text-blue-800">
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      <span className="text-sm font-medium">
+                        Processing passport front side...
+                      </span>
                     </div>
-                    <input
-                      id="passport-back"
-                      type="file"
-                      ref={backInputRef}
-                      className="hidden"
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      onChange={(e) => handleFileUpload(e, "back")}
+                  </div>
+                )}
+
+                {/* front OCR success/error messages removed - using shared UI */}
+
+                {frontPreview ? (
+                  <div className="mb-3 relative group">
+                    <img
+                      src={frontPreview}
+                      alt="Passport Front Preview"
+                      className="max-h-48 w-full object-contain mx-auto border rounded-lg"
                     />
-                  </label>
-                </div>
-              )}
-              {errors.passportBack && (
-                <p className="text-red-500 text-xs mt-1">
-                  {errors.passportBack}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage("front")}
+                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center w-full">
+                    <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-[#423577] border-dashed rounded-lg cursor-pointer transition">
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <Upload className="w-10 h-10 mb-3 text-gray-400" />
+                        <p className="mb-2 text-sm text-gray-400">
+                          <span className="font-semibold">Click to upload</span>{" "}
+                          or drag and drop
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          JPG, PNG or PDF (MAX. 5MB)
+                        </p>
+                      </div>
+                      <input
+                        id="passport-front"
+                        type="file"
+                        ref={frontInputRef}
+                        className="hidden"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={(e) => handleFileUpload(e, "front")}
+                      />
+                    </label>
+                  </div>
+                )}
+                {errors.passportFront && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.passportFront}
+                  </p>
+                )}
+              </div>
+              {/* Back Side Upload */}
+              <div
+                className={`border-2 border-dashed rounded-xl p-4 transition ${
+                  errors.passportBack
+                    ? "border-red-500 bg-red-50"
+                    : "border-[#423577] hover:border-purple-400"
+                }`}
+              >
+                <label className="block text-sm font-medium  mb-2">
+                  Passport Back Page
+                </label>
+                <p className="text-xs text-gray-400 mb-3">
+                  Upload a clear photo of the back page (JPG, PNG or PDF) -
+                  Additional data may be extracted
                 </p>
-              )}
+
+                {/* OCR Status Messages for Back Side */}
+                {backOcrLoading && (
+                  <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center text-blue-800">
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      <span className="text-sm font-medium">
+                        Processing passport back side...
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* back OCR success/error messages removed - using shared UI */}
+
+                {backPreview ? (
+                  <div className="mb-3 relative group">
+                    <img
+                      src={backPreview}
+                      alt="Passport Back Preview"
+                      className="max-h-48 w-full object-contain mx-auto border rounded-lg"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage("back")}
+                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center w-full">
+                    <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-[#423577] border-dashed rounded-lg cursor-pointer transition">
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <Upload className="w-10 h-10 mb-3 text-gray-400" />
+                        <p className="mb-2 text-sm text-gray-400">
+                          <span className="font-semibold">Click to upload</span>{" "}
+                          or drag and drop
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          JPG, PNG or PDF (MAX. 5MB)
+                        </p>
+                      </div>
+                      <input
+                        id="passport-back"
+                        type="file"
+                        ref={backInputRef}
+                        className="hidden"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={(e) => handleFileUpload(e, "back")}
+                      />
+                    </label>
+                  </div>
+                )}
+                {errors.passportBack && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.passportBack}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </motion.div>
 
-        {/* Other Sections (Right Side) */}
-        <div className="w-full md:w-1/2 space-y-6">
-          {/* Personal Information Section */}
-          <motion.div
-            initial={{ opacity: 0, x: 10 }}
-            animate={{ opacity: 1, x: 0 }}
-            // className="bg-[#23232B] rounded-xl shadow-sm p-6 border border-[#423577]"
-          >
-            <h3 className="flex items-center text-lg font-semibold mb-5">
-              {/* <User className="text-[#7350FF] mr-2" size={20} /> */}
-              Personal Information
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium  mb-1">
-                  Passport Number
-                </label>
-                <input
-                  type="text"
-                  name="passportNumber"
-                  value={passportData.passportNumber}
-                  onChange={handleInputChange}
-                  placeholder="Enter passport number"
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
-                    errors.passportNumber
-                      ? "border-red-500"
-                      : "border-[#423577]"
-                  }`}
-                />
-                {errors.passportNumber && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {errors.passportNumber}
-                  </p>
-                )}
-              </div>
-              <div className="col-span-2">
-                <label className="block text-sm font-medium  mb-1 ">
-                  Given Name (as on Passport)
-                </label>
-                <input
-                  type="text"
-                  name="firstName"
-                  value={passportData.firstName}
-                  onChange={handleInputChange}
-                  placeholder="First name"
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
-                    errors.firstName ? "border-red-500" : "border-[#423577]"
-                  }`}
-                />
-                {errors.firstName && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {errors.firstName}
-                  </p>
-                )}
-              </div>
-              <div col>
-                <label className="block text-sm font-medium  mb-1">
-                  Surname
-                </label>
-                <input
-                  type="text"
-                  name="lastName"
-                  value={passportData.lastName}
-                  onChange={handleInputChange}
-                  placeholder="Last name"
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
-                    errors.lastName ? "border-red-500" : "border-[#423577]"
-                  }`}
-                />
-                {errors.lastName && (
-                  <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>
-                )}
-              </div>
-              <div>
-                <label className="block text-sm font-medium  mb-1">Sex</label>
-                <select
-                  name="sex"
-                  value={passportData.sex}
-                  onChange={handleInputChange}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
-                    errors.sex ? "border-red-500" : "border-[#423577]"
-                  }`}
-                >
-                  <option value="">Select gender</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                </select>
-                {errors.sex && (
-                  <p className="text-red-500 text-xs mt-1">{errors.sex}</p>
-                )}
-              </div>
-              <div>
-                <label className="block text-sm font-medium  mb-1">
-                  Date of Birth
-                </label>
-                <input
-                  type="date"
-                  name="dateOfBirth"
-                  value={passportData.dateOfBirth}
-                  onChange={handleInputChange}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
-                    errors.dateOfBirth ? "border-red-500" : "border-[#423577]"
-                  }`}
-                />
-                {errors.dateOfBirth && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {errors.dateOfBirth}
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Mobile Number
-                </label>
-                <input
-                  type="tel"
-                  name="mobileNumber"
-                  value={passportData.mobileNumber || ""}
-                  onChange={handleInputChange}
-                  placeholder="+1 (555) 123-4567"
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
-                    errors.mobileNumber ? "border-red-500" : "border-[#423577]"
-                  }`}
-                />
-                {errors.mobileNumber && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {errors.mobileNumber}
-                  </p>
-                )}
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium  mb-1">
-                  Place of Birth
-                </label>
-                <input
-                  type="text"
-                  name="placeOfBirth"
-                  value={passportData.placeOfBirth}
-                  onChange={handleInputChange}
-                  placeholder="City, Country"
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
-                    errors.placeOfBirth ? "border-red-500" : "border-[#423577]"
-                  }`}
-                />
-                {errors.placeOfBirth && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {errors.placeOfBirth}
-                  </p>
-                )}
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Passport Details Section */}
-          <motion.div
-            initial={{ opacity: 0, x: 10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-            // className="bg-[#23232B] rounded-xl shadow-sm p-6 border border-[#423577]"
-          >
-            <h3 className="flex items-center text-lg font-semibold mb-4">
-              <CreditCard className="text-[#7350FF] mr-2" size={20} />
-              Passport Details
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium  mb-1">
-                  Passport Issue Place
-                </label>
-                <input
-                  type="text"
-                  name="passportIssuePlace"
-                  value={passportData.passportIssuePlace}
-                  onChange={handleInputChange}
-                  placeholder="City, Country"
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
-                    errors.passportIssuePlace
-                      ? "border-red-500"
-                      : "border-[#423577]"
-                  }`}
-                />
-                {errors.passportIssuePlace && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {errors.passportIssuePlace}
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className="block text-sm font-medium  mb-1">
-                  Passport Issue Date
-                </label>
-                <input
-                  type="date"
-                  name="passportIssueDate"
-                  value={passportData.passportIssueDate}
-                  onChange={handleInputChange}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
-                    errors.passportIssueDate
-                      ? "border-red-500"
-                      : "border-[#423577]"
-                  }`}
-                />
-                {errors.passportIssueDate && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {errors.passportIssueDate}
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className="block text-sm font-medium  mb-1">
-                  Passport Expiry Date
-                </label>
-                <input
-                  type="date"
-                  name="passportExpiryDate"
-                  value={passportData.passportExpiryDate}
-                  onChange={handleInputChange}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
-                    errors.passportExpiryDate
-                      ? "border-red-500"
-                      : "border-[#423577]"
-                  }`}
-                />
-                {errors.passportExpiryDate && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {errors.passportExpiryDate}
-                  </p>
-                )}
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Travel Dates Section */}
-          <motion.div
-            initial={{ opacity: 0, x: 10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.25 }}
-          >
-            <h3 className="flex items-center text-lg font-semibold mb-4">
-              <Calendar className="text-[#7350FF] mr-2" size={20} />
-              Travel Dates
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Travel Start Date
-                </label>
-                <input
-                  type="date"
-                  name="travelStartDate"
-                  value={passportData.travelStartDate || ""}
-                  onChange={handleInputChange}
-                  min={new Date().toISOString().split("T")[0]}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
-                    errors.travelStartDate
-                      ? "border-red-500"
-                      : "border-[#423577]"
-                  }`}
-                />
-                {errors.travelStartDate && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {errors.travelStartDate}
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Travel End Date
-                </label>
-                <input
-                  type="date"
-                  name="travelEndDate"
-                  value={passportData.travelEndDate || ""}
-                  onChange={handleInputChange}
-                  min={
-                    passportData.travelStartDate ||
-                    new Date().toISOString().split("T")[0]
-                  }
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
-                    errors.travelEndDate ? "border-red-500" : "border-[#423577]"
-                  }`}
-                />
-                {errors.travelEndDate && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {errors.travelEndDate}
-                  </p>
-                )}
-              </div>
-            </div>
-            {passportData.travelStartDate && passportData.travelEndDate && (
-              <div className="mt-3 p-2 bg-green-50 rounded-lg">
-                <p className="text-sm text-green-800">
-                  ✓ Trip duration:{" "}
-                  {Math.ceil(
-                    (new Date(passportData.travelEndDate) -
-                      new Date(passportData.travelStartDate)) /
-                      (1000 * 60 * 60 * 24)
-                  )}{" "}
-                  days
+        {/* Form Section (Right Side) */}
+        <div className="w-full md:w-1/2 space-y-6 relative">
+          {/* Blur overlay when no passport uploaded */}
+          {!hasPassportImages && !showAutofillAnimation && (
+            <div className="absolute inset-0 backdrop-blur-sm rounded-xl z-10 flex items-center justify-center">
+              <div className="text-center p-8">
+                <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Sparkles className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-2">
+                  Autofill basic details
+                </h3>
+                <div className="h-2"></div>
+                <p className="text-gray-300 text-sm">
+                  Upload passport to autofill your basic details and start your
+                  application
                 </p>
               </div>
-            )}
-          </motion.div>
+            </div>
+          )}
 
-          {/* Current Address Section */}
-          <motion.div
-            initial={{ opacity: 0, x: 10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 }}
-            // className="bg-[#23232B] rounded-xl shadow-sm p-6 border border-[#423577]"
-          >
-            <h3 className="flex items-center text-lg font-semibold mb-4">
-              <MapPin className="text-[#7350FF] mr-2" size={20} />
-              Current Address
+          {/* OCR Processing Animation */}
+          {
+            showAutofillAnimation
+             && (
+              <div className="absolute inset-0 backdrop-blur-sm rounded-xl z-10 flex items-center justify-center">
+                <div className="flex flex-col items-center text-center p-8 space-y-4">
+                  <div className="bg-gradient-to-r from-purple-500 to-blue-500 p-4 rounded-full w-20 h-20 mx-auto flex items-center justify-center relative">
+                    <Sparkles className="w-8 h-8 text-white animate-pulse" />
+                  </div>
+
+                  <div>
+                    <h3 className="text-xl font-semibold text-white mb-2">
+                      Extracting Information
+                    </h3>
+                    <p className="text-gray-300 text-sm mb-4">
+                      {extractionStep}
+                    </p>
+
+                    {/* Progress Bar */}
+                    <div className="w-64 h-2 bg-gray-700 rounded-full mx-auto overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${extractionProgress}%` }}
+                        transition={{ duration: 0.5, ease: "easeOut" }}
+                        className="h-full bg-gradient-to-r from-purple-500 to-blue-500 rounded-full"
+                      />
+                    </div>
+
+                    <div className="mt-2 text-sm text-gray-400">
+                      {extractionProgress}% complete
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
+          }
+
+          {/* Form Content */}
+          <div className="rounded-xl p-6 border border-[#423577] shadow-sm">
+            <h3 className="text-lg font-semibold mb-6 text-white">
+              Review {passportData.firstName || "YOUR"}{" "}
+              {passportData.lastName || "NAME"}'s basic details:
             </h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium  mb-1">
-                  Address Line 1
-                </label>
-                <input
-                  type="text"
-                  name="currentAddress1"
-                  value={passportData.currentAddress1}
-                  onChange={handleInputChange}
-                  placeholder="Street address, P.O. box"
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
-                    errors.currentAddress1
-                      ? "border-red-500"
-                      : "border-[#423577]"
-                  }`}
-                />
-                {errors.currentAddress1 && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {errors.currentAddress1}
-                  </p>
-                )}
+            {/* Personal Information Section */}
+            <motion.div
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              // className="bg-[#23232B] rounded-xl shadow-sm p-6 border border-[#423577]"
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium  mb-1">
+                    Passport Number
+                  </label>
+                  <input
+                    type="text"
+                    name="passportNumber"
+                    value={passportData.passportNumber}
+                    onChange={handleInputChange}
+                    placeholder="Enter passport number"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
+                      errors.passportNumber
+                        ? "border-red-500"
+                        : "border-[#423577]"
+                    }`}
+                  />
+                  {errors.passportNumber && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.passportNumber}
+                    </p>
+                  )}
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium  mb-1 ">
+                    Given Name (as on Passport)
+                  </label>
+                  <input
+                    type="text"
+                    name="firstName"
+                    value={passportData.firstName}
+                    onChange={handleInputChange}
+                    placeholder="First name"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
+                      errors.firstName ? "border-red-500" : "border-[#423577]"
+                    }`}
+                  />
+                  {errors.firstName && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.firstName}
+                    </p>
+                  )}
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium  mb-1">
+                    Surname
+                  </label>
+                  <input
+                    type="text"
+                    name="lastName"
+                    value={passportData.lastName}
+                    onChange={handleInputChange}
+                    placeholder="Last name"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
+                      errors.lastName ? "border-red-500" : "border-[#423577]"
+                    }`}
+                  />
+                  {errors.lastName && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.lastName}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium  mb-1">Sex</label>
+                  <select
+                    name="sex"
+                    value={passportData.sex}
+                    onChange={handleInputChange}
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
+                      errors.sex ? "border-red-500" : "border-[#423577]"
+                    }`}
+                  >
+                    <option value="">Select gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                  {errors.sex && (
+                    <p className="text-red-500 text-xs mt-1">{errors.sex}</p>
+                  )}
+                </div>
+                <div className="relative">
+                  <label className="block text-sm font-medium  mb-1">
+                    Date of Birth
+                  </label>
+                  <input
+                    type="date"
+                    name="dateOfBirth"
+                    value={passportData.dateOfBirth}
+                    onChange={handleInputChange}
+                    className={`w-full px-4  py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer ${
+                      errors.dateOfBirth ? "border-red-500" : "border-[#423577]"
+                    }`}
+                    style={{
+                      colorScheme: "light",
+                    }}
+                  />
+                  {errors.dateOfBirth && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.dateOfBirth}
+                    </p>
+                  )}
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium  mb-1">
+                    Place of Birth
+                  </label>
+                  <input
+                    type="text"
+                    name="placeOfBirth"
+                    value={passportData.placeOfBirth}
+                    onChange={handleInputChange}
+                    placeholder="City, Country"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
+                      errors.placeOfBirth
+                        ? "border-red-500"
+                        : "border-[#423577]"
+                    }`}
+                  />
+                  {errors.placeOfBirth && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.placeOfBirth}
+                    </p>
+                  )}
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium  mb-1">
-                  Address Line 2
-                </label>
-                <input
-                  type="text"
-                  name="currentAddress2"
-                  value={passportData.currentAddress2}
-                  onChange={handleInputChange}
-                  placeholder="Apartment, suite, unit, building, floor"
-                  className="w-full px-4 py-2 border border-[#423577] rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none"
-                />
+            </motion.div>
+
+            {/* Passport Details Section */}
+            <motion.div
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+              // className="bg-[#23232B] rounded-xl shadow-sm p-6 border border-[#423577]"
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium  mb-1">
+                    Passport Issue Place
+                  </label>
+                  <input
+                    type="text"
+                    name="passportIssuePlace"
+                    value={passportData.passportIssuePlace}
+                    onChange={handleInputChange}
+                    placeholder="City, Country"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
+                      errors.passportIssuePlace
+                        ? "border-red-500"
+                        : "border-[#423577]"
+                    }`}
+                  />
+                  {errors.passportIssuePlace && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.passportIssuePlace}
+                    </p>
+                  )}
+                </div>
+                <div className="relative">
+                  <label className="block text-sm font-medium  mb-1">
+                    Passport Issue Date
+                  </label>
+                  <input
+                    type="date"
+                    name="passportIssueDate"
+                    value={passportData.passportIssueDate}
+                    onChange={handleInputChange}
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer ${
+                      errors.passportIssueDate
+                        ? "border-red-500"
+                        : "border-[#423577]"
+                    }`}
+                  />
+                  {errors.passportIssueDate && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.passportIssueDate}
+                    </p>
+                  )}
+                </div>
+                <div className="relative">
+                  <label className="block text-sm font-medium  mb-1">
+                    Passport Expiry Date
+                  </label>
+                  <input
+                    type="date"
+                    name="passportExpiryDate"
+                    value={passportData.passportExpiryDate}
+                    onChange={handleInputChange}
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer ${
+                      errors.passportExpiryDate
+                        ? "border-red-500"
+                        : "border-[#423577]"
+                    }`}
+                  />
+                  {errors.passportExpiryDate && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.passportExpiryDate}
+                    </p>
+                  )}
+                </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            </motion.div>
+
+            {/* Current Address Section */}
+            <motion.div
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3 }}
+              // className="bg-[#23232B] rounded-xl shadow-sm p-6 border border-[#423577]"
+            >
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium  mb-1">
+                    Address Line 1
+                  </label>
+                  <input
+                    type="text"
+                    name="currentAddress1"
+                    value={passportData.currentAddress1}
+                    onChange={handleInputChange}
+                    placeholder="Street address, P.O. box"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
+                      errors.currentAddress1
+                        ? "border-red-500"
+                        : "border-[#423577]"
+                    }`}
+                  />
+                  {errors.currentAddress1 && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.currentAddress1}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium  mb-1">
+                    Address Line 2
+                  </label>
+                  <input
+                    type="text"
+                    name="currentAddress2"
+                    value={passportData.currentAddress2}
+                    onChange={handleInputChange}
+                    placeholder="Apartment, suite, unit, building, floor"
+                    className="w-full px-4 py-2 border border-[#423577] rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none"
+                  />
+                </div>
                 <div>
                   <label className="block text-sm font-medium  mb-1">
                     State
@@ -1823,47 +1937,71 @@ const PassportInformationSection = ({
                     <p className="text-red-500 text-xs mt-1">{errors.state}</p>
                   )}
                 </div>
-                <div>
-                  <label className="block text-sm font-medium  mb-1">
-                    City
-                  </label>
-                  <input
-                    type="text"
-                    name="city"
-                    value={passportData.city}
-                    onChange={handleInputChange}
-                    placeholder="City"
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
-                      errors.city ? "border-red-500" : "border-[#423577]"
-                    }`}
-                  />
-                  {errors.city && (
-                    <p className="text-red-500 text-xs mt-1">{errors.city}</p>
-                  )}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium  mb-1">
+                      City
+                    </label>
+                    <input
+                      type="text"
+                      name="city"
+                      value={passportData.city}
+                      onChange={handleInputChange}
+                      placeholder="City"
+                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
+                        errors.city ? "border-red-500" : "border-[#423577]"
+                      }`}
+                    />
+                    {errors.city && (
+                      <p className="text-red-500 text-xs mt-1">{errors.city}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium  mb-1">
+                      ZIP/Pincode
+                    </label>
+                    <input
+                      type="text"
+                      name="pincode"
+                      value={passportData.pincode}
+                      onChange={handleInputChange}
+                      placeholder="Postal code"
+                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
+                        errors.pincode ? "border-red-500" : "border-[#423577]"
+                      }`}
+                    />
+                    {errors.pincode && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {errors.pincode}
+                      </p>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium  mb-1">
-                    ZIP/Pincode
+                <div className="flex flex-col gap-1">
+                  <label className="block text-sm font-medium col-span-2">
+                    Mobile Number
                   </label>
                   <input
-                    type="text"
-                    name="pincode"
-                    value={passportData.pincode}
+                    type="tel"
+                    name="mobileNumber"
+                    value={passportData.mobileNumber || ""}
                     onChange={handleInputChange}
-                    placeholder="Postal code"
+                    placeholder="+1 (555) 123-4567"
                     className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
-                      errors.pincode ? "border-red-500" : "border-[#423577]"
+                      errors.mobileNumber
+                        ? "border-red-500"
+                        : "border-[#423577]"
                     }`}
                   />
-                  {errors.pincode && (
+                  {errors.mobileNumber && (
                     <p className="text-red-500 text-xs mt-1">
-                      {errors.pincode}
+                      {errors.mobileNumber}
                     </p>
                   )}
                 </div>
               </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          </div>
         </div>
       </div>
 

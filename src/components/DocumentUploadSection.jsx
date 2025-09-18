@@ -1,7 +1,7 @@
 import { Upload, Check, Eye, Download, Trash2 } from "lucide-react";
 import { useState, useRef } from "react";
 
-const DocumentUploadSection = ({ documents, setDocuments }) => {
+const DocumentUploadSection = ({ documents, setDocuments, onUploadSuccess, onUploadError }) => {
   const fileInputRefs = useRef({});
   const [uploadProgress, setUploadProgress] = useState(0);
 
@@ -46,24 +46,42 @@ const DocumentUploadSection = ({ documents, setDocuments }) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Simulate upload progress
-    setUploadProgress((prev) => Math.min(prev + 1, documentTypes.length));
+    try {
+      setUploadProgress((prev) => Math.min(prev + 1, documentTypes.length));
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setDocuments((prev) => ({
-        ...prev,
-        [docId]: {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const documentData = {
           file,
           preview: reader.result,
           name: file.name,
           type: file.type,
           size: file.size,
           uploadedAt: new Date().toISOString(),
-        },
-      }));
-    };
-    reader.readAsDataURL(file);
+        };
+
+        setDocuments((prev) => ({
+          ...prev,
+          [docId]: documentData,
+        }));
+
+        if (onUploadSuccess) {
+          onUploadSuccess(documentData, docId);
+        }
+      };
+      reader.onerror = () => {
+        const errorMessage = "Failed to read file. Please try again.";
+        if (onUploadError) {
+          onUploadError(errorMessage);
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      const errorMessage = "Failed to upload file. Please try again.";
+      if (onUploadError) {
+        onUploadError(errorMessage);
+      }
+    }
   };
 
   const handleRemoveDocument = (docId) => {
@@ -130,8 +148,14 @@ const DocumentUploadSection = ({ documents, setDocuments }) => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4  ">
                   <div className="flex items-center gap-4 max-w-56 w-full">
-                    <div className="flex-shrink-0 w-8 h-8  dark:bg-green-900/50 rounded-full flex items-center justify-center">
-                      <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
+                    <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                      isUploaded ? 'bg-green-600 dark:bg-green-900/50' : 'bg-gray-400 dark:bg-gray-600'
+                    }`}>
+                      {isUploaded ? (
+                        <Check className="w-5 h-5 text-white dark:text-green-400" />
+                      ) : (
+                        <div className="w-2 h-2 bg-white dark:bg-gray-300 rounded-full"></div>
+                      )}
                     </div>
                     <h4 className="text-base font-semibold text-gray-900 dark:text-gray-100 w-full ">
                       {docType.title}

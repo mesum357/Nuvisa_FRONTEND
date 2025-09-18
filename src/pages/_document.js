@@ -10,7 +10,7 @@ export default function Document() {
           onLoad={() => console.log('Google Pay API loaded')}
         />
   
-        <script src="https://js.stripe.com/v3/"></script>
+  <script async src="https://js.stripe.com/v3/"></script>
       </Head>
       <body className="antialiased">
         <Main />
