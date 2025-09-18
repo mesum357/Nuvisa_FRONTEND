@@ -12,7 +12,6 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import Tesseract from "tesseract.js";
 
 // The full application component including the form, state management, and all sections.
 export default function App({ passportData, setPassportData, handleSave }) {
@@ -81,13 +80,14 @@ const PassportInformationSection = ({
 
   const [frontOcrLoading, setFrontOcrLoading] = useState(false);
   const [backOcrLoading, setBackOcrLoading] = useState(false);
-  const [frontOcrProgress, setFrontOcrProgress] = useState(0);
-  const [backOcrProgress, setBackOcrProgress] = useState(0);
   const [frontOcrError, setFrontOcrError] = useState(null);
   const [backOcrError, setBackOcrError] = useState(null);
   const [frontOcrSuccessMessage, setFrontOcrSuccessMessage] = useState("");
   const [backOcrSuccessMessage, setBackOcrSuccessMessage] = useState("");
   const [showManualFallback, setShowManualFallback] = useState(false);
+  // Track whether OCR has already been performed for the uploaded files
+  const [frontOcrDone, setFrontOcrDone] = useState(false);
+  const [backOcrDone, setBackOcrDone] = useState(false);
 
   // useEffect to handle loading saved images only when switching travelers
   useEffect(() => {
@@ -129,6 +129,20 @@ const PassportInformationSection = ({
     if (backInputRef.current) backInputRef.current.value = "";
   }, [travelerIndex]);
 
+  // When both front and back are present, run OCR only for the front side (once)
+  // This ensures OCR doesn't run twice or process the back side at all.
+  useEffect(() => {
+    const frontFile = passportData && passportData.passportFront;
+    const backFile = passportData && passportData.passportBack;
+
+    // Only trigger OCR when both files are uploaded, and only if front hasn't been processed yet
+    if (frontFile && backFile && !frontOcrDone) {
+      performOCR(frontFile, 'front');
+      setFrontOcrDone(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [passportData.passportFront, passportData.passportBack]);
+
   // Handles changes to text/select inputs
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -146,120 +160,136 @@ const PassportInformationSection = ({
   const performOCR = async (file, side) => {
     if (side === "front") {
       setFrontOcrLoading(true);
-      setFrontOcrProgress(0);
       setFrontOcrError(null);
       setFrontOcrSuccessMessage("");
     } else {
       setBackOcrLoading(true);
-      setBackOcrProgress(0);
       setBackOcrError(null);
       setBackOcrSuccessMessage("");
     }
 
     try {
-      const result = await Tesseract.recognize(file, "eng", {
-        logger: (m) => {
-          if (m.status === "recognizing text") {
-            const progress = Math.round(m.progress * 100);
-            if (side === "front") {
-              setFrontOcrProgress(progress);
-            } else {
-              setBackOcrProgress(progress);
-            }
-          }
-        },
+      // Create FormData to send file to API
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // Send to Mindee API route
+      const response = await fetch('/api/extract-passport', {
+        method: 'POST',
+        body: formData,
       });
 
-      const extractedText = result.data.text;
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`OCR API error: ${response.status} ${text}`);
+      }
 
-      const extractedData = extractPassportData(extractedText, side);
+      const data = await response.json();
 
-      if (extractedData.foundFields > 0) {
+      // The backend returns { raw, extractedFields, simpleFields }.
+      // Prefer `extractedFields` (already mapped), fall back to `simpleFields` (flat raw values),
+      // and finally try to read values from `raw.rawHttp.inference.result.fields`.
+      const mapped = data.extractedFields || {};
+      const simple = data.simpleFields || {};
+      const rawFields =
+        data.raw &&
+        data.raw.rawHttp &&
+        data.raw.rawHttp.inference &&
+        data.raw.rawHttp.inference.result &&
+        data.raw.rawHttp.inference.result.fields
+          ? data.raw.rawHttp.inference.result.fields
+          : null;
+
+      const extracted = {
+        passportNumber:
+          mapped.passportNumber || simple.passport_number || (rawFields && rawFields.passport_number && rawFields.passport_number.value) || null,
+        firstName:
+          mapped.firstName || simple.given_names || (rawFields && rawFields.given_names && rawFields.given_names.value) || null,
+        lastName:
+          mapped.lastName || simple.surnames || (rawFields && rawFields.surnames && rawFields.surnames.value) || null,
+        dateOfBirth:
+          mapped.dateOfBirth || simple.date_of_birth || (rawFields && rawFields.date_of_birth && rawFields.date_of_birth.value) || null,
+        sex:
+          mapped.sex || simple.sex || (rawFields && rawFields.sex && rawFields.sex.value) || null,
+        passportIssueDate:
+          mapped.passportIssueDate || simple.date_of_issue || (rawFields && rawFields.date_of_issue && rawFields.date_of_issue.value) || null,
+        passportExpiryDate:
+          mapped.passportExpiryDate || simple.date_of_expiry || (rawFields && rawFields.date_of_expiry && rawFields.date_of_expiry.value) || null,
+        placeOfBirth:
+          mapped.placeOfBirth || simple.place_of_birth || (rawFields && rawFields.place_of_birth && rawFields.place_of_birth.value) || null,
+        nationality:
+          mapped.nationality || simple.nationality || (rawFields && rawFields.nationality && rawFields.nationality.value) || null,
+        mrz_line_1: (rawFields && rawFields.mrz_line_1 && rawFields.mrz_line_1.value) || null,
+        mrz_line_2: (rawFields && rawFields.mrz_line_2 && rawFields.mrz_line_2.value) || null,
+      };
+
+      const foundFields = Object.values(extracted).filter((v) => v != null).length;
+
+      if (foundFields > 0) {
         setPassportData((prev) => {
           const updates = {};
 
-          if (extractedData.passportNumber) {
-            updates.passportNumber = extractedData.passportNumber;
-          }
-          if (extractedData.firstName) {
-            updates.firstName = extractedData.firstName;
-          }
-          if (extractedData.lastName) {
-            updates.lastName = extractedData.lastName;
-          }
-          if (extractedData.dateOfBirth) {
-            updates.dateOfBirth = extractedData.dateOfBirth;
-          }
-          if (extractedData.sex) {
-            updates.sex = extractedData.sex;
-          }
-          if (extractedData.expiryDate) {
-            updates.passportExpiryDate = extractedData.expiryDate;
-          }
-          if (extractedData.issueDate) {
-            updates.passportIssueDate = extractedData.issueDate;
-          }
-          if (extractedData.placeOfBirth) {
-            updates.placeOfBirth = extractedData.placeOfBirth;
-          }
-          if (extractedData.currentAddress) {
-            updates.currentAddress1 = extractedData.currentAddress;
-          }
-
-          const finalUpdate = {
-            ...prev,
-            ...updates,
+          const assignIfPresent = (key, value) => {
+            if (value !== null && value !== undefined && value !== "") {
+              updates[key] = value;
+            }
           };
 
-          if (side === "front") {
+          assignIfPresent('passportNumber', extracted.passportNumber);
+          assignIfPresent('firstName', extracted.firstName);
+          assignIfPresent('lastName', extracted.lastName);
+          assignIfPresent('dateOfBirth', extracted.dateOfBirth);
+          assignIfPresent('sex', extracted.sex);
+          assignIfPresent('passportIssueDate', extracted.passportIssueDate);
+          assignIfPresent('passportExpiryDate', extracted.passportExpiryDate);
+          assignIfPresent('placeOfBirth', extracted.placeOfBirth);
+          assignIfPresent('nationality', extracted.nationality);
+
+          // Map issuing country -> passportIssuePlace if present
+          if (mapped && mapped.issuingCountry) {
+            assignIfPresent('passportIssuePlace', mapped.issuingCountry);
+          } else if (simple && simple.issuing_country) {
+            assignIfPresent('passportIssuePlace', simple.issuing_country);
+          } else if (rawFields && rawFields.issuing_country && rawFields.issuing_country.value) {
+            assignIfPresent('passportIssuePlace', rawFields.issuing_country.value);
+          }
+
+          const finalUpdate = { ...prev, ...updates };
+          // Preserve file refs and set the side file
+          if (side === 'front') {
             finalUpdate.passportFront = file;
-          } else {
+          }
+          if (side === 'back') {
             finalUpdate.passportBack = file;
           }
 
-          console.log("Applying updates:", finalUpdate);
           return finalUpdate;
         });
 
-        const extractedFields = [];
-        if (extractedData.passportNumber)
-          extractedFields.push("Passport Number");
-        if (extractedData.firstName) extractedFields.push("First Name");
-        if (extractedData.lastName) extractedFields.push("Last Name");
-        if (extractedData.dateOfBirth) extractedFields.push("Date of Birth");
-        if (extractedData.sex) extractedFields.push("Gender");
-        if (extractedData.expiryDate) extractedFields.push("Expiry Date");
-        if (extractedData.issueDate) extractedFields.push("Issue Date");
-        if (extractedData.placeOfBirth) extractedFields.push("Place of Birth");
-        if (extractedData.nationality) extractedFields.push("Nationality");
-        if (extractedData.currentAddress) extractedFields.push("Address");
-        if (extractedData.emergencyContact)
-          extractedFields.push("Emergency Contact");
-
-        const successMessage = `✅ Successfully extracted: ${extractedFields.join(
-          ", "
-        )} from passport ${side} side!`;
-
-        if (side === "front") {
+        const successMessage = `✅ Successfully extracted ${foundFields} field(s) from passport ${side} side.`;
+        if (side === 'front') {
           setFrontOcrSuccessMessage(successMessage);
-          setTimeout(() => setFrontOcrSuccessMessage(""), 8000);
+          setFrontOcrError(null);
+          setTimeout(() => setFrontOcrSuccessMessage(''), 8000);
         } else {
           setBackOcrSuccessMessage(successMessage);
-          setTimeout(() => setBackOcrSuccessMessage(""), 8000);
+          setBackOcrError(null);
+          setTimeout(() => setBackOcrSuccessMessage(''), 8000);
         }
       } else {
-        const errorMessage = `Could not extract passport information from ${side} side. The image might be unclear or the format is not recognized. Please try with a clearer image or enter details manually.`;
-
-        if (side === "front") {
+        const errorMessage = `No passport fields detected. Please try a clearer photo or enter details manually.`;
+        if (side === 'front') {
           setFrontOcrError(errorMessage);
+          setFrontOcrSuccessMessage('');
         } else {
           setBackOcrError(errorMessage);
+          setBackOcrSuccessMessage('');
         }
         setShowManualFallback(true);
       }
     } catch (error) {
-      console.error("OCR Error:", error);
-      const errorMessage = `Failed to process the passport ${side} side. This could be due to image quality or network issues. Please try again or enter details manually.`;
+      console.error("Mindee API Error:", error);
+      const errorMessage = `Failed to process the passport ${side} side. This could be due to image quality, network issues, or API limits. Please try again or enter details manually.`;
 
       if (side === "front") {
         setFrontOcrError(errorMessage);
@@ -271,12 +301,149 @@ const PassportInformationSection = ({
       // Clear loading states based on side
       if (side === "front") {
         setFrontOcrLoading(false);
-        setFrontOcrProgress(0);
       } else {
         setBackOcrLoading(false);
-        setBackOcrProgress(0);
       }
     }
+  };
+
+  // Function to extract passport data from Mindee inference
+  const extractPassportDataFromMindee = (inference, side) => {
+    const extractedData = {
+      passportNumber: null,
+      firstName: null,
+      lastName: null,
+      dateOfBirth: null,
+      sex: null,
+      expiryDate: null,
+      issueDate: null,
+      placeOfBirth: null,
+      nationality: null,
+      currentAddress: null,
+      emergencyContact: null,
+      foundFields: 0,
+    };
+
+    try {
+      console.log("Processing Mindee inference:", inference);
+
+      // Check if we have prediction data
+      if (!inference || !inference.prediction) {
+        console.log("No prediction data in inference");
+        return extractedData;
+      }
+
+      const prediction = inference.prediction;
+
+      // Extract passport number
+      if (prediction.passport_number && prediction.passport_number.value) {
+        extractedData.passportNumber = prediction.passport_number.value;
+        extractedData.foundFields++;
+        console.log("Found passport number:", extractedData.passportNumber);
+      }
+
+      // Extract names
+      if (prediction.given_names && prediction.given_names.length > 0) {
+        extractedData.firstName = prediction.given_names[0].value;
+        extractedData.foundFields++;
+        console.log("Found first name:", extractedData.firstName);
+      }
+
+      if (prediction.surname && prediction.surname.value) {
+        extractedData.lastName = prediction.surname.value;
+        extractedData.foundFields++;
+        console.log("Found last name:", extractedData.lastName);
+      }
+
+      // Extract dates
+      if (prediction.birth_date && prediction.birth_date.value) {
+        // Convert from DD/MM/YYYY to YYYY-MM-DD format
+        const dateParts = prediction.birth_date.value.split('/');
+        if (dateParts.length === 3) {
+          const day = dateParts[0].padStart(2, '0');
+          const month = dateParts[1].padStart(2, '0');
+          const year = dateParts[2];
+          extractedData.dateOfBirth = `${year}-${month}-${day}`;
+          extractedData.foundFields++;
+          console.log("Found date of birth:", extractedData.dateOfBirth);
+        }
+      }
+
+      if (prediction.expiry_date && prediction.expiry_date.value) {
+        // Convert from DD/MM/YYYY to YYYY-MM-DD format
+        const dateParts = prediction.expiry_date.value.split('/');
+        if (dateParts.length === 3) {
+          const day = dateParts[0].padStart(2, '0');
+          const month = dateParts[1].padStart(2, '0');
+          const year = dateParts[2];
+          extractedData.expiryDate = `${year}-${month}-${day}`;
+          extractedData.foundFields++;
+          console.log("Found expiry date:", extractedData.expiryDate);
+        }
+      }
+
+      if (prediction.issuance_date && prediction.issuance_date.value) {
+        // Convert from DD/MM/YYYY to YYYY-MM-DD format
+        const dateParts = prediction.issuance_date.value.split('/');
+        if (dateParts.length === 3) {
+          const day = dateParts[0].padStart(2, '0');
+          const month = dateParts[1].padStart(2, '0');
+          const year = dateParts[2];
+          extractedData.issueDate = `${year}-${month}-${day}`;
+          extractedData.foundFields++;
+          console.log("Found issue date:", extractedData.issueDate);
+        }
+      }
+
+      // Extract gender
+      if (prediction.gender && prediction.gender.value) {
+        const gender = prediction.gender.value.toLowerCase();
+        if (gender === 'm' || gender === 'male') {
+          extractedData.sex = 'Male';
+          extractedData.foundFields++;
+        } else if (gender === 'f' || gender === 'female') {
+          extractedData.sex = 'Female';
+          extractedData.foundFields++;
+        }
+        console.log("Found gender:", extractedData.sex);
+      }
+
+      // Extract nationality
+      if (prediction.nationality && prediction.nationality.value) {
+        extractedData.nationality = prediction.nationality.value;
+        extractedData.foundFields++;
+        console.log("Found nationality:", extractedData.nationality);
+      }
+
+      // Extract place of birth
+      if (prediction.birth_place && prediction.birth_place.value) {
+        extractedData.placeOfBirth = prediction.birth_place.value;
+        extractedData.foundFields++;
+        console.log("Found place of birth:", extractedData.placeOfBirth);
+      }
+
+      // For back side specific fields (if available in the model)
+      if (side === "back") {
+        // These fields might be available depending on the custom model
+        if (prediction.address && prediction.address.value) {
+          extractedData.currentAddress = prediction.address.value;
+          extractedData.foundFields++;
+          console.log("Found address:", extractedData.currentAddress);
+        }
+
+        if (prediction.emergency_contact && prediction.emergency_contact.value) {
+          extractedData.emergencyContact = prediction.emergency_contact.value;
+          extractedData.foundFields++;
+          console.log("Found emergency contact:", extractedData.emergencyContact);
+        }
+      }
+
+    } catch (error) {
+      console.error("Error extracting data from Mindee inference:", error);
+    }
+
+    console.log(`Extracted ${extractedData.foundFields} fields from ${side} side:`, extractedData);
+    return extractedData;
   };
 
   // Function to extract passport data from OCR text
@@ -900,7 +1067,11 @@ const PassportInformationSection = ({
           ...prev,
           passportFront: "",
         }));
-        performOCR(file, side);
+          // Ensure front is marked as not-yet-processed so OCR will run for the front side
+          // (we only perform OCR on the front side; the back will be ignored)
+          setFrontOcrDone(false);
+          // Mark back as already "done" so it won't trigger OCR when uploaded
+          setBackOcrDone(true);
       } else {
         setBackPreview(reader.result);
 
@@ -915,7 +1086,8 @@ const PassportInformationSection = ({
           ...prev,
           passportBack: "",
         }));
-        performOCR(file, side);
+        // We do not run OCR on the back side. Mark it as done so it won't be processed.
+        setBackOcrDone(true);
       }
     };
     reader.readAsDataURL(file);
@@ -930,6 +1102,8 @@ const PassportInformationSection = ({
         passportFront: null,
       }));
       if (frontInputRef.current) frontInputRef.current.value = "";
+      // Reset OCR-done flag when front image removed
+      setFrontOcrDone(false);
     } else {
       setBackPreview(null);
       setPassportData((prev) => ({
@@ -937,6 +1111,8 @@ const PassportInformationSection = ({
         passportBack: null,
       }));
       if (backInputRef.current) backInputRef.current.value = "";
+      // Reset OCR-done flag when back image removed
+      setBackOcrDone(false);
     }
   };
 
@@ -1097,17 +1273,6 @@ const PassportInformationSection = ({
                       Processing passport front side...
                     </span>
                   </div>
-                  <div className="mt-2">
-                    <div className="w-full bg-blue-200 rounded-full h-2">
-                      <div
-                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${frontOcrProgress}%` }}
-                      ></div>
-                    </div>
-                    <p className="text-xs text-blue-600 mt-1">
-                      {frontOcrProgress}% complete
-                    </p>
-                  </div>
                 </div>
               )}
 
@@ -1206,17 +1371,6 @@ const PassportInformationSection = ({
                     <span className="text-sm font-medium">
                       Processing passport back side...
                     </span>
-                  </div>
-                  <div className="mt-2">
-                    <div className="w-full bg-blue-200 rounded-full h-2">
-                      <div
-                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${backOcrProgress}%` }}
-                      ></div>
-                    </div>
-                    <p className="text-xs text-blue-600 mt-1">
-                      {backOcrProgress}% complete
-                    </p>
                   </div>
                 </div>
               )}
