@@ -8,24 +8,22 @@ const DocumentUploadSection = ({ documents, setDocuments, onUploadSuccess, onUpl
   const documentTypes = [
     {
       id: 1,
-      title: "Sponsor IT Return",
-      description: "Please Upload Sponsor IT Return for 3 Years",
+      title: "Passport sized photographs",
+      description: "Recent passport-sized colour photographs",
       required: true,
     },
     {
       id: 2,
-      title: "Cover letter",
+      title: "Bank statements (last 3 months)",
       description:
-        "Should indicate the purpose of travel, number of days, passport and travel details. Any abrupt/sudden deposits into your bank statement must be appropriately explained and justified",
+        "Last 3 months showing sufficient funds (recommended £50–£80 per day per person)",
       required: true,
     },
     {
       id: 3,
-      title:
-        "Proof of Fixed Deposits, Property Investments, Other Investments etc.",
-      description:
-        "Rental Income Receipt, Interest Income, Other Source of savings like fixed deposits, shares and mutual funds",
-      required: false,
+      title: "Employment proof (last 3 months payslips)",
+      description: "Payslips for the last 3 months",
+      required: true,
     },
     {
       id: 4,
@@ -35,10 +33,16 @@ const DocumentUploadSection = ({ documents, setDocuments, onUploadSuccess, onUpl
     },
     {
       id: 5,
-      title: "Copy of entry and exit stamp and previous visas held",
+      title: "UK visa (minimum 3 months validity after travel end date)",
       description:
-        "Any sticker visas and/or Entry/exit stamp pages on passport for the last 10 years",
+        "Passport page showing a valid UK visa (must have at least 3 months validity after your travel end date)",
       required: true,
+    },
+    {
+      id: 6,
+      title: "Other supporting document",
+      description: "Optional additional supporting document",
+      required: false,
     },
   ];
 

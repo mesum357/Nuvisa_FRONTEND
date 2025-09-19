@@ -1,3 +1,4 @@
+"use client"
 import { getCountryConfig } from "@/constants/countryConfig";
 import { useAppDispatch, useAppSelector } from "@/store";
 import {
@@ -9,6 +10,7 @@ import {
   setArrivalDate,
   setDepartureDate,
 } from "@/store/visaSlice";
+import ClientOnly from "./ClientOnly";
 import {
   ArrowUpRight,
   Calendar,
@@ -31,12 +33,13 @@ import "react-datepicker/dist/react-datepicker.css";
 import VisaTypeSelector from "./VisaTypeSelector";
 import { FaApple, FaGoogle } from "react-icons/fa";
 import { useToast } from "@/contexts/ToastContext";
+import { useMemo } from "react";
 
 const CountrySlider = () => {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const visaState = useAppSelector((state) => state.visa);
-  const {showError} = useToast()
+  const { showError, showSuccess } = useToast();
   const handleCountrySelect = (countryName) => {
     // Extract just the country name from "City, Country" format
     const country = countryName.includes(",")
@@ -162,13 +165,18 @@ const CountrySlider = () => {
   const [couponCode, setCouponCode] = useState("");
   const [couponError, setCouponError] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState(null);
+  const [showStudentModal, setShowStudentModal] = useState(false);
+  const [pendingCheckoutQuery, setPendingCheckoutQuery] = useState(null);
   const [studentEmail, setStudentEmail] = useState("");
   const [studentVerificationSent, setStudentVerificationSent] = useState(false);
   const [studentOtp, setStudentOtp] = useState("");
   const [studentVerified, setStudentVerified] = useState(false);
   const [isSendingVerification, setIsSendingVerification] = useState(false);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
-  
+
+  // Keep a ref to the polling interval so we can clear it from other places
+  const verificationPollRef = useRef(null);
+
   const [userEmail, setUserEmail] = useState("");
   const [emailError, setEmailError] = useState("");
 
@@ -366,6 +374,28 @@ const CountrySlider = () => {
       }
     }
   }, [router.query.selectedCountry, dispatch]);
+
+  // On mount: read stored verified student email and apply to UI if valid
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('nuvisa.verifiedStudentEmail');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.email && parsed.expiresAt && Date.now() < parsed.expiresAt) {
+          setUserEmail(parsed.email);
+          setStudentVerified(true);
+          // Auto-fill student coupon and apply discount
+          setCouponCode('STUDENT10');
+          setAppliedDiscount({ description: 'Student discount', percentage: 10 });
+          try { if (typeof showSuccess === 'function') showSuccess('Student discount auto-applied for verified email'); } catch (e) {}
+        } else {
+          try { localStorage.removeItem('nuvisa.verifiedStudentEmail'); } catch (e) {}
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, []);
 
   // Set default dates after component mounts to avoid hydration mismatch
   useEffect(() => {
@@ -650,7 +680,7 @@ const CountrySlider = () => {
     if (method === "apple" || method === "google") {
       setEmailError("");
     }
-    
+
     // Clear any previous validation errors when switching payment methods
     setEmailError("");
     setValidationErrors(new Set());
@@ -663,14 +693,14 @@ const CountrySlider = () => {
         : selectedVisaType && selectedVisaType.price
         ? Math.round(Number(selectedVisaType.price) / 100)
         : baseFee;
-    
+
     const basePrice = currentBaseFee * travelers;
-    
+
     if (appliedDiscount) {
       const discountAmount = (basePrice * appliedDiscount.percentage) / 100;
       return basePrice - discountAmount;
     }
-    
+
     return basePrice;
   };
 
@@ -681,27 +711,21 @@ const CountrySlider = () => {
         : selectedVisaType && selectedVisaType.price
         ? Math.round(Number(selectedVisaType.price) / 100)
         : baseFee;
-    
+
     return Math.round(currentBaseFee * 1.25) * travelers;
   };
 
+  // Apply coupon immediately (no verification at apply time)
   const applyCouponCode = () => {
     if (!couponCode.trim()) {
       setCouponError("Please enter a coupon code");
       return;
     }
 
-
-    // if (!validateEmail(userEmail)) {
-    //   setCouponError("Please enter a valid email address");
-    //   return;
-    // }
-
     const availableDiscounts = {
       STUDENT10: {
         description: "Student discount",
         percentage: 10,
-        requiresEmailVerification: true,
       },
       GROUP20: {
         description: "Group discount (3+ travellers)",
@@ -727,28 +751,39 @@ const CountrySlider = () => {
       return;
     }
 
-    // If coupon requires verification (STUDENT10), prompt the student flow
-    if (discount.requiresEmailVerification) {
-      // Do not apply yet - wait for verification
-      setCouponError("");
-      setAppliedDiscount(null);
-      // focus on student email entry (UI will show below)
-      setStudentVerified(false);
-      setStudentVerificationSent(false);
-      showError && showError("Student coupon requires email verification. Enter your student email below.");
-      return;
-    }
-
-    // Apply immediately for standard coupons
+    // Apply immediately
     setAppliedDiscount(discount);
     setCouponError("");
+
+    // If student discount, auto-check local verified email and set UI so user isn't asked again
+    if (discount && discount.description.toLowerCase().includes('student')) {
+      try {
+        const raw = localStorage.getItem('nuvisa.verifiedStudentEmail');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.email && parsed.expiresAt && Date.now() < parsed.expiresAt) {
+            // If the stored verified email matches the email field (or if email field empty), accept it
+            if (!userEmail || userEmail.toLowerCase() === parsed.email.toLowerCase()) {
+              setUserEmail(parsed.email);
+              setStudentVerified(true);
+              showSuccess && showSuccess('Student discount applied — verified email detected');
+            } else {
+              // Mismatch: inform the user they can either enter the verified email or re-verify
+              showError && showError('A different student email was previously verified. Enter that email to auto-apply the discount, or verify this email.');
+            }
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
   };
 
   const removeCoupon = () => {
     setAppliedDiscount(null);
     setCouponCode("");
     setCouponError("");
-  // email verification reset not required
+    // email verification reset not required
   };
 
   useEffect(() => {
@@ -781,7 +816,6 @@ const CountrySlider = () => {
   ]);
 
   const handleGetVisa = async () => {
-
     // Validate required documents (except insurance which is optional)
     const requiredFields = [
       "passport",
@@ -814,16 +848,16 @@ const CountrySlider = () => {
         : selectedVisaType && selectedVisaType.price
         ? Math.round(Number(selectedVisaType.price) / 100)
         : baseFee;
-    
+
     let visaFees = currentBaseFee * travelers;
-    
+
     // Apply discount if available
     let discountAmount = 0;
     if (appliedDiscount) {
       discountAmount = (visaFees * appliedDiscount.percentage) / 100;
       visaFees = visaFees - discountAmount;
     }
-    
+
     const insuranceFees = recommendedItems.insuranceCertificate
       ? (visaState.insuranceFees || 400) * travelers
       : 0;
@@ -877,23 +911,28 @@ const CountrySlider = () => {
     // Calculate total amount for payment processing
     const totalAmount = Math.round(visaFees + insuranceFees + giftCardFees);
 
-    // For all payment methods - redirect to checkout page with payment info
-    console.log(`Redirecting to checkout page for ${selectedPaymentMethod || 'default'} payment...`);
-    
+    // Build checkout query params
+    console.log(`Preparing checkout for ${selectedPaymentMethod || "default"} payment...`);
+
     const queryParams = new URLSearchParams({
       visaFees: Math.round(visaFees).toString(),
       insuranceFees: insuranceFees.toString(),
       giftCardFees: giftCardFees.toString(),
       travelers: travelers.toString(),
       selectedCountry: countryName,
-      departureDate: arrivalDate ? arrivalDate.toISOString() : new Date().toISOString(),
-      returnDate: departureDate ? departureDate.toISOString() : new Date().toISOString(),
+      departureDate: arrivalDate
+        ? arrivalDate.toISOString()
+        : new Date().toISOString(),
+      returnDate: departureDate
+        ? departureDate.toISOString()
+        : new Date().toISOString(),
       requiredDocuments: JSON.stringify(requiredDocuments),
       recommendedItems: JSON.stringify(recommendedItems),
       insuranceOnly: hasOnlyInsurance.toString(),
       paymentMethod: selectedPaymentMethod || "stripe",
-  userEmail: userEmail || "",
+      userEmail: userEmail || "",
       visaTypeId: selectedVisaType?.id || "",
+      totalAmount: totalAmount.toString(),
       ...(appliedDiscount && {
         discountCode: couponCode,
         discountPercentage: appliedDiscount.percentage.toString(),
@@ -902,9 +941,687 @@ const CountrySlider = () => {
       }),
     });
 
-    router.push(`/visa-checkout?${queryParams.toString()}`);
+    const queryString = queryParams.toString();
+
+    router.push(`/visa-checkout?${queryString}`);
   };
 
+  // Helper function to generate checkout query string
+  const getCheckoutQueryString = () => {
+    // Calculate fees (similar to handleGetVisa)
+    const currentBaseFee =
+      selectedVisaType && selectedVisaType.priceGBP
+        ? Number(selectedVisaType.priceGBP)
+        : selectedVisaType && selectedVisaType.price
+        ? Math.round(Number(selectedVisaType.price) / 100)
+        : 159; // baseFee
+
+    let visaFees = currentBaseFee * travelers;
+
+    // Apply discount if available
+    let discountAmount = 0;
+    if (appliedDiscount) {
+      discountAmount = (visaFees * appliedDiscount.percentage) / 100;
+      visaFees = visaFees - discountAmount;
+    }
+
+    const insuranceFees = recommendedItems.insuranceCertificate
+      ? (visaState.insuranceFees || 400) * travelers
+      : 0;
+    const giftCardFees = recommendedItems.giftCard ? 188 * giftCardCount : 0;
+
+    const totalAmount = Math.round(visaFees + insuranceFees + giftCardFees);
+
+    const queryParams = new URLSearchParams({
+      visaFees: Math.round(visaFees).toString(),
+      insuranceFees: insuranceFees.toString(),
+      giftCardFees: giftCardFees.toString(),
+      travelers: travelers.toString(),
+      selectedCountry: countryName,
+      departureDate: arrivalDate
+        ? arrivalDate.toISOString()
+        : new Date().toISOString(),
+      returnDate: departureDate
+        ? departureDate.toISOString()
+        : new Date().toISOString(),
+      requiredDocuments: JSON.stringify(requiredDocuments),
+      recommendedItems: JSON.stringify(recommendedItems),
+      insuranceOnly: hasOnlyInsurance.toString(),
+      paymentMethod: selectedPaymentMethod || "stripe",
+      userEmail: userEmail || "",
+      visaTypeId: selectedVisaType?.id || "",
+      totalAmount: totalAmount.toString(),
+      ...(appliedDiscount && {
+        discountCode: couponCode,
+        discountPercentage: appliedDiscount.percentage.toString(),
+        discountAmount: Math.round(discountAmount).toString(),
+        discountDescription: appliedDiscount.description,
+      }),
+    });
+
+    return queryParams.toString();
+  };
+
+  // Send verification email via API
+  const sendStudentVerification = async (email) => {
+    if (!email || !validateEmail(email)) {
+      setEmailError("Please enter a valid email");
+      return false;
+    }
+
+    // Check if email appears to be from an educational institution
+    const educationalDomains = ['.edu', '.ac.uk', '.edu.au', '.edu.ca', '.ac.nz', '.edu.sg', '.uni-', '.university', '.college', '.ac.', '.edu.'];
+    const isEducationalEmail = educationalDomains.some(domain => email.toLowerCase().includes(domain));
+    
+    if (!isEducationalEmail) {
+      setEmailError("Please use your educational institution email address (.edu, .ac.uk, etc.)");
+      return false;
+    }
+
+    setIsSendingVerification(true);
+    setEmailError("");
+    
+    try {
+      const resp = await fetch("/api/student/send-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      
+      const data = await resp.json();
+      setIsSendingVerification(false);
+      
+      if (resp.ok) {
+        setStudentVerificationSent(true);
+        setEmailError("");
+        // Start polling to check if email is verified
+        startVerificationPolling(email);
+        return true;
+      } else {
+        setEmailError(data?.error || "Failed to send verification email");
+        return false;
+      }
+    } catch (err) {
+      setIsSendingVerification(false);
+      setEmailError("Network error sending verification email");
+      return false;
+    }
+  };
+
+  // Poll for email verification status
+  const startVerificationPolling = (email) => {
+    const pollInterval = setInterval(async () => {
+      try {
+        const resp = await fetch("/api/student/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+        
+        const data = await resp.json();
+        
+        if (resp.ok && data.verified) {
+          setStudentVerified(true);
+          setStudentVerificationSent(false); // Hide the "check inbox" message
+          if (verificationPollRef.current) {
+            clearInterval(verificationPollRef.current);
+            verificationPollRef.current = null;
+          } else {
+            clearInterval(pollInterval);
+          }
+          
+          // Show success toast
+          try {
+            if (typeof showSuccess === 'function') {
+              showSuccess('Email verified — student discount applied.');
+            }
+          } catch (e) { /* ignore */ }
+
+          // If there's a pending payment, proceed to checkout
+          if (pendingCheckoutQuery && (selectedPaymentMethod === "apple" || selectedPaymentMethod === "google")) {
+            router.push(`/payment/${selectedPaymentMethod}?${pendingCheckoutQuery}`);
+          } else if (pendingCheckoutQuery) {
+            router.push(`/visa-checkout?${pendingCheckoutQuery}`);
+          } else {
+            router.push('/get-the-visa');
+          }
+        }
+      } catch (err) {
+        console.error("Error checking verification status:", err);
+      }
+    }, 3000); // Poll every 3 seconds
+    verificationPollRef.current = pollInterval;
+
+    // Stop polling after 10 minutes
+    setTimeout(() => {
+      if (verificationPollRef.current) {
+        clearInterval(verificationPollRef.current);
+        verificationPollRef.current = null;
+      }
+    }, 10 * 60 * 1000);
+  };
+
+  // Listen for postMessage from verification page so we can immediately mark verified
+  useEffect(() => {
+    const onMessage = (e) => {
+      try {
+        const data = e.data || {};
+        if (data && data.type === 'student-email-verified') {
+          // Optionally verify the email matches the one we expect (if we stored it)
+          setStudentVerified(true);
+          setStudentVerificationSent(false);
+          // Clear any polling
+          if (verificationPollRef.current) {
+            clearInterval(verificationPollRef.current);
+            verificationPollRef.current = null;
+          }
+
+          // Show toast
+          try {
+            if (typeof showSuccess === 'function') {
+              showSuccess('Email verified — student discount applied.');
+            }
+          } catch (e) { /* ignore */ }
+
+          // Redirect to pending payment if present, otherwise to get-the-visa
+          if (pendingCheckoutQuery && (selectedPaymentMethod === "apple" || selectedPaymentMethod === "google")) {
+            router.push(`/payment/${selectedPaymentMethod}?${pendingCheckoutQuery}`);
+          } else if (pendingCheckoutQuery) {
+            router.push(`/visa-checkout?${pendingCheckoutQuery}`);
+          } else {
+            router.push('/get-the-visa');
+          }
+        }
+      } catch (err) {
+        // ignore
+      }
+    };
+
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, [pendingCheckoutQuery, selectedPaymentMethod, router, showSuccess]);
+
+  // Validate required documents before allowing express payment
+  const validateRequiredDocuments = () => {
+    const requiredFields = [
+      "passport",
+      "ukVisa",
+      "photos",
+      "bankStatements",
+      "employmentProof",
+    ];
+
+    const missingDocs = requiredFields.filter((field) => !requiredDocuments[field]);
+
+    // Check if it's an insurance-only checkout (allowed even if required docs missing)
+    const hasOnlyInsurance =
+      recommendedItems.insuranceCertificate &&
+      !recommendedItems.giftCard &&
+      missingDocs.length === requiredFields.length;
+
+    if (missingDocs.length > 0 && !hasOnlyInsurance) {
+      // Mark validation errors and inform the user
+      setValidationErrors(new Set(missingDocs));
+      try {
+        if (typeof showError === 'function') {
+          const pretty = missingDocs
+            .map((d) => (d === 'ukVisa' ? 'UK visa' : d.replace(/([A-Z])/g, ' $1')))
+            .join(', ');
+          showError(`Please provide required documents: ${pretty}`);
+        }
+      } catch (e) {
+        // ignore
+      }
+      return false;
+    }
+
+    return true;
+  };
+
+  // Apple Pay click handler
+  const handleApplePayClick = async () => {
+    // Validate required documents for express payment
+    if (!validateRequiredDocuments()) return;
+
+    // Check if student discount requires verification
+    if (appliedDiscount && appliedDiscount.description.toLowerCase().includes('student') && !studentVerified) {
+      if (!userEmail || !validateEmail(userEmail)) {
+        setEmailError("Please enter a valid student email before using Apple Pay");
+        return;
+      }
+      
+      const verificationSent = await sendStudentVerification(userEmail);
+      if (verificationSent) {
+        // Store pending payment data to process after verification
+        setPendingCheckoutQuery(getCheckoutQueryString());
+        setSelectedPaymentMethod("apple");
+        // The polling will handle redirecting to payment once verified
+        return;
+      } else {
+        return; // Error already set by sendStudentVerification
+      }
+    }
+
+    // Calculate payment amount with all components
+    const currentBaseFee =
+      selectedVisaType && selectedVisaType.priceGBP
+        ? Number(selectedVisaType.priceGBP)
+        : selectedVisaType && selectedVisaType.price
+        ? Math.round(Number(selectedVisaType.price) / 100)
+        : 159; // baseFee
+
+    let visaFees = currentBaseFee * travelers;
+
+    // Apply discount if available
+    if (appliedDiscount) {
+      const discountAmount = (visaFees * appliedDiscount.percentage) / 100;
+      visaFees = visaFees - discountAmount;
+    }
+
+    const insuranceFees = recommendedItems.insuranceCertificate
+      ? (visaState.insuranceFees || 400) * travelers
+      : 0;
+    const giftCardFees = recommendedItems.giftCard ? 188 * giftCardCount : 0;
+
+    const totalAmount = Math.round(visaFees + insuranceFees + giftCardFees);
+
+    // Check if Apple Pay is supported at all
+    if (!window.ApplePaySession) {
+      alert('Apple Pay is not supported on this browser. Please use Safari on a supported Apple device.');
+      return;
+    }
+
+    // Check device capability first
+    const canMakePayments = ApplePaySession.canMakePayments();
+    if (!canMakePayments) {
+      alert('Apple Pay is not available on this device. Please ensure you have Apple Pay set up with a valid payment method.');
+      return;
+    }
+
+    // For development/testing on localhost or non-HTTPS
+    if (window.location.hostname === 'localhost' || window.location.protocol !== 'https:') {
+      // Simulate successful Apple Pay flow
+      const confirmPayment = confirm(
+        `Process Apple Pay payment of £${totalAmount}?\n\n` +
+        `This will redirect to payment processing page.`
+      );
+      
+      if (confirmPayment) {
+        // Build checkout query params similar to handleGetVisa
+        const queryParams = new URLSearchParams({
+          visaFees: Math.round(visaFees).toString(),
+          insuranceFees: insuranceFees.toString(),
+          giftCardFees: giftCardFees.toString(),
+          travelers: travelers.toString(),
+          selectedCountry: selectedCountry?.name || selectedCountry || "Germany",
+          departureDate: arrivalDate ? arrivalDate.toISOString() : new Date().toISOString(),
+          returnDate: departureDate ? departureDate.toISOString() : new Date().toISOString(),
+          requiredDocuments: JSON.stringify(requiredDocuments),
+          recommendedItems: JSON.stringify(recommendedItems),
+          paymentMethod: 'apple-pay',
+          userEmail: userEmail || "",
+          totalAmount: totalAmount.toString(),
+          ...(appliedDiscount && {
+            discountCode: couponCode,
+            discountPercentage: appliedDiscount.percentage.toString(),
+            discountAmount: Math.round((currentBaseFee * travelers * appliedDiscount.percentage) / 100).toString(),
+            discountDescription: appliedDiscount.description,
+          }),
+        });
+
+        router.push(`/visa-checkout?${queryParams.toString()}`);
+      }
+      return;
+    }
+    
+    try {
+      // Build line items for detailed breakdown
+      const lineItems = [
+        {
+          label: `Visa Processing Fee (${travelers} traveller${travelers > 1 ? 's' : ''})`,
+          amount: Math.round(visaFees).toString(),
+          type: 'final'
+        }
+      ];
+
+      if (recommendedItems.insuranceCertificate) {
+        lineItems.push({
+          label: `Insurance Certificate (${travelers} traveller${travelers > 1 ? 's' : ''})`,
+          amount: insuranceFees.toString(),
+          type: 'final'
+        });
+      }
+
+      if (recommendedItems.giftCard) {
+        lineItems.push({
+          label: `Gift Card (${giftCardCount} card${giftCardCount > 1 ? 's' : ''})`,
+          amount: giftCardFees.toString(),
+          type: 'final'
+        });
+      }
+
+      if (appliedDiscount) {
+        lineItems.push({
+          label: `Discount (${appliedDiscount.percentage}% off)`,
+          amount: `-${Math.round((currentBaseFee * travelers * appliedDiscount.percentage) / 100)}`,
+          type: 'final'
+        });
+      }
+
+      const request = {
+        countryCode: 'GB',
+        currencyCode: 'GBP',
+        supportedNetworks: ['visa', 'masterCard', 'amex', 'discover'],
+        merchantCapabilities: ['supports3DS'],
+        total: {
+          label: 'NUvisa - Visa Application',
+          amount: totalAmount.toString(),
+          type: 'final'
+        },
+        lineItems: lineItems
+      };
+
+      const session = new ApplePaySession(3, request);
+      
+      // Flag used to avoid logging a cancellation when we are intentionally redirecting
+      let suppressCancel = false;
+      let redirecting = false;
+
+      // Override oncancel immediately to prevent any spurious logs
+      session.oncancel = () => {
+        if (!suppressCancel && !redirecting) {
+          console.log('Apple Pay cancelled by user');
+        } else {
+          console.log('Apple Pay session ended (redirect in progress)');
+        }
+      };
+
+      session.onvalidatemerchant = async (event) => {
+        try {
+          console.log('Apple Pay merchant validation required:', event.validationURL);
+          console.log('Redirecting to checkout (no merchant validation setup)');
+          
+          // Mark that we're redirecting to prevent cancel logs
+          suppressCancel = true;
+          redirecting = true;
+
+          // Build checkout query params similar to handleGetVisa
+          const queryParams = new URLSearchParams({
+            visaFees: Math.round(visaFees).toString(),
+            insuranceFees: insuranceFees.toString(),
+            giftCardFees: giftCardFees.toString(),
+            travelers: travelers.toString(),
+            selectedCountry: selectedCountry?.name || selectedCountry || "Germany",
+            departureDate: arrivalDate ? arrivalDate.toISOString() : new Date().toISOString(),
+            returnDate: departureDate ? departureDate.toISOString() : new Date().toISOString(),
+            requiredDocuments: JSON.stringify(requiredDocuments),
+            recommendedItems: JSON.stringify(recommendedItems),
+            paymentMethod: 'apple-pay',
+            userEmail: userEmail || "",
+            totalAmount: totalAmount.toString(),
+            ...(appliedDiscount && {
+              discountCode: couponCode,
+              discountPercentage: appliedDiscount.percentage.toString(),
+              discountAmount: Math.round((currentBaseFee * travelers * appliedDiscount.percentage) / 100).toString(),
+              discountDescription: appliedDiscount.description,
+            }),
+          });
+
+          router.push(`/visa-checkout?${queryParams.toString()}`);
+          
+        } catch (error) {
+          console.error('Apple Pay merchant validation failed:', error);
+          suppressCancel = true;
+          redirecting = true;
+          try { alert('Apple Pay setup required. Redirecting to standard checkout...'); } catch (e) {}
+
+          // Fallback to standard checkout
+          const queryParams = new URLSearchParams({
+            visaFees: Math.round(visaFees).toString(),
+            insuranceFees: insuranceFees.toString(),
+            giftCardFees: giftCardFees.toString(),
+            travelers: travelers.toString(),
+            selectedCountry: selectedCountry?.name || selectedCountry || "Germany",
+            paymentMethod: 'stripe',
+            totalAmount: totalAmount.toString(),
+          });
+          
+          router.push(`/visa-checkout?${queryParams.toString()}`);
+        }
+      };
+
+      session.onpaymentauthorized = (event) => {
+        console.log('Apple Pay payment authorized:', event.payment);
+        session.completePayment(ApplePaySession.STATUS_SUCCESS);
+        try {
+          const stored = localStorage.getItem('paymentMetadata');
+          const pm = stored ? JSON.parse(stored) : null;
+          const appId = pm?.applicationId || null;
+          if (appId) {
+            router.push(`/application-step?application_id=${encodeURIComponent(appId)}`);
+          } else {
+            router.push('/payment-success');
+          }
+        } catch (e) {
+          console.error('Error parsing paymentMetadata for redirect:', e);
+          router.push('/payment-success');
+        }
+      };
+
+      session.oncancel = () => {
+        if (!suppressCancel) {
+          console.log('Apple Pay cancelled by user');
+        } else {
+          // quietly ignore cancellation caused by our intentional redirect fallback
+        }
+      };
+
+      session.onerror = (error) => {
+        console.error('Apple Pay session error:', error);
+        alert('Apple Pay error occurred. Please try a different payment method.');
+      };
+
+      session.begin();
+      
+    } catch (error) {
+      console.error('Apple Pay initialization error:', error);
+      alert('Apple Pay is not available. Please try a different payment method.');
+    }
+  };
+
+  // Google Pay click handler
+  const handleGooglePayClick = async () => {
+    // Validate required documents for express payment
+    if (!validateRequiredDocuments()) return;
+
+    // Check if student discount requires verification
+    if (appliedDiscount && appliedDiscount.description.toLowerCase().includes('student') && !studentVerified) {
+      if (!userEmail || !validateEmail(userEmail)) {
+        setEmailError("Please enter a valid student email before using Google Pay");
+        return;
+      }
+      
+      const verificationSent = await sendStudentVerification(userEmail);
+      if (verificationSent) {
+        // Store pending payment data to process after verification
+        setPendingCheckoutQuery(getCheckoutQueryString());
+        setSelectedPaymentMethod("google");
+        // The polling will handle redirecting to payment once verified
+        return;
+      } else {
+        return; // Error already set by sendStudentVerification
+      }
+    }
+
+    // Calculate payment amount with all components
+    const currentBaseFee =
+      selectedVisaType && selectedVisaType.priceGBP
+        ? Number(selectedVisaType.priceGBP)
+        : selectedVisaType && selectedVisaType.price
+        ? Math.round(Number(selectedVisaType.price) / 100)
+        : 159; // baseFee
+
+    let visaFees = currentBaseFee * travelers;
+
+    // Apply discount if available
+    if (appliedDiscount) {
+      const discountAmount = (visaFees * appliedDiscount.percentage) / 100;
+      visaFees = visaFees - discountAmount;
+    }
+
+    const insuranceFees = recommendedItems.insuranceCertificate
+      ? (visaState.insuranceFees || 400) * travelers
+      : 0;
+    const giftCardFees = recommendedItems.giftCard ? 188 * giftCardCount : 0;
+
+    const totalAmount = Math.round(visaFees + insuranceFees + giftCardFees);
+
+    // Check if Google Pay is available
+    if (!window.google || !window.google.payments) {
+      alert('Google Pay is not available. Please refresh the page and try again.');
+      return;
+    }
+
+    try {
+      const paymentsClient = new google.payments.api.PaymentsClient({
+        environment: 'TEST', // Change to 'PRODUCTION' for live
+        paymentDataCallbacks: {
+          onPaymentAuthorized: (paymentData) => {
+            return new Promise((resolve) => {
+              // Process payment data
+              console.log('Google Pay payment authorized:', paymentData);
+              
+              // Here you would normally send the payment data to your server
+              // For now, we'll simulate success
+              resolve({ transactionState: 'SUCCESS' });
+              
+              // Redirect to success page or back to existing application if present
+              setTimeout(() => {
+                try {
+                  const stored = localStorage.getItem('paymentMetadata');
+                  const pm = stored ? JSON.parse(stored) : null;
+                  const appId = pm?.applicationId || null;
+                  if (appId) {
+                    router.push(`/application-step?application_id=${encodeURIComponent(appId)}`);
+                  } else {
+                    router.push('/payment-success');
+                  }
+                } catch (e) {
+                  console.error('Error parsing paymentMetadata for redirect:', e);
+                  router.push('/payment-success');
+                }
+              }, 1000);
+            });
+          }
+        }
+      });
+
+      // Check if Google Pay is ready
+      const isReadyToPayRequest = {
+        apiVersion: 2,
+        apiVersionMinor: 0,
+        allowedPaymentMethods: [{
+          type: 'CARD',
+          parameters: {
+            allowedAuthMethods: ['PAN_ONLY', 'CRYPTOGRAM_3DS'],
+            allowedCardNetworks: ['MASTERCARD', 'VISA', 'AMEX']
+          }
+        }]
+      };
+
+      const isReadyToPay = await paymentsClient.isReadyToPay(isReadyToPayRequest);
+      
+      if (!isReadyToPay.result) {
+        alert('Google Pay is not available on this device or no payment methods are set up.');
+        return;
+      }
+
+      // Build display items for detailed breakdown
+      const displayItems = [
+        {
+          label: `Visa Processing Fee (${travelers} traveller${travelers > 1 ? 's' : ''})`,
+          type: 'LINE_ITEM',
+          price: Math.round(visaFees).toString()
+        }
+      ];
+
+      if (recommendedItems.insuranceCertificate) {
+        displayItems.push({
+          label: `Insurance Certificate (${travelers} traveller${travelers > 1 ? 's' : ''})`,
+          type: 'LINE_ITEM',
+          price: insuranceFees.toString()
+        });
+      }
+
+      if (recommendedItems.giftCard) {
+        displayItems.push({
+          label: `Gift Card (${giftCardCount} card${giftCardCount > 1 ? 's' : ''})`,
+          type: 'LINE_ITEM',
+          price: giftCardFees.toString()
+        });
+      }
+
+      if (appliedDiscount) {
+        displayItems.push({
+          label: `Discount (${appliedDiscount.percentage}% off)`,
+          type: 'LINE_ITEM',
+          price: `-${Math.round((currentBaseFee * travelers * appliedDiscount.percentage) / 100)}`
+        });
+      }
+
+      const paymentDataRequest = {
+        apiVersion: 2,
+        apiVersionMinor: 0,
+        allowedPaymentMethods: [{
+          type: 'CARD',
+          parameters: {
+            allowedAuthMethods: ['PAN_ONLY', 'CRYPTOGRAM_3DS'],
+            allowedCardNetworks: ['MASTERCARD', 'VISA', 'AMEX'],
+            billingAddressRequired: true,
+            billingAddressParameters: {
+              format: 'FULL',
+              phoneNumberRequired: true
+            }
+          },
+          tokenizationSpecification: {
+            type: 'PAYMENT_GATEWAY',
+            parameters: {
+              gateway: 'stripe', // Use your actual payment gateway
+              'stripe:version': '2020-08-27',
+              'stripe:publishableKey': 'pk_test_...' // Use your actual publishable key
+            }
+          }
+        }],
+        merchantInfo: {
+          merchantId: 'BCR2DN4TXZQJHQBF', // Use your actual Google Pay merchant ID
+          merchantName: 'NUvisa'
+        },
+        transactionInfo: {
+          totalPriceStatus: 'FINAL',
+          totalPriceLabel: 'Total',
+          totalPrice: totalAmount.toString(),
+          currencyCode: 'GBP',
+          countryCode: 'GB',
+          displayItems: displayItems
+        },
+        callbackIntents: ['PAYMENT_AUTHORIZATION'],
+        shippingAddressRequired: false,
+        shippingOptionRequired: false
+      };
+
+      // This will show the Google Pay interface, not credit card selection
+      const paymentData = await paymentsClient.loadPaymentData(paymentDataRequest);
+      console.log('Google Pay payment completed:', paymentData);
+      
+    } catch (error) {
+      console.error('Google Pay error:', error);
+      if (error.statusCode === 'CANCELED') {
+        console.log('User cancelled Google Pay');
+        return;
+      }
+      alert('Google Pay payment failed. Please try a different payment method.');
+    }
+  };
 
   return (
     <div className="w-full max-w-[1300px] gap-20 max-lg:flex-col flex items-start justify-center mt-5 px-5">
@@ -1104,7 +1821,6 @@ const CountrySlider = () => {
           </div>
         </section>
       </section>
-
       <section className="bg-[#24242D] text-white lg:max-w-[40%] rounded-2xl p-6">
         <div className="w-full">
           {/* Header with pricing */}
@@ -1173,95 +1889,72 @@ const CountrySlider = () => {
             </div>
           </div>
         </div>
-        <div className="bg-white/5 rounded-xl p-6 my-8">
-          <h3 className="text-lg font-semibold mb-4 text-center">Travel Dates</h3>
-          <div className="flex flex-col lg:flex-row gap-6 items-center justify-center">
-            <div className="flex-1 max-w-xs">
-              <label className="block text-base font-medium mb-2 text-center lg:text-left">
-                📅 Arrival Date
-              </label>
-              <div className="relative">
-                <DatePicker
-                  selected={arrivalDate}
-                  onChange={handleArrivalDateChange}
-                  minDate={new Date()}
-                  maxDate={
-                    selectedVisaType && selectedVisaType.validity_period
-                      ? (() => {
-                          const validityDays = parseDurationDays(
-                            selectedVisaType.validity_period
-                          );
-                          return validityDays
-                            ? new Date(
-                                Date.now() + validityDays * 24 * 60 * 60 * 1000
-                              )
-                            : undefined;
-                        })()
-                      : undefined
-                  }
-                  dateFormat="dd/MM/yyyy"
-                  className={`w-full bg-white/10 backdrop-blur-sm text-white rounded-lg text-center px-4 py-3 font-semibold border-2 transition-all duration-200 ${
-                    dateValidationErrors.pastDate ||
-                    dateValidationErrors.dateOrder
-                      ? "border-red-500 focus:border-red-400 focus:ring-2 focus:ring-red-400/20"
-                      : "border-white/20 hover:border-white/40 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20"
-                  } focus:outline-none`}
-                  placeholderText="Select arrival date"
-                  showPopperArrow={false}
-                  popperClassName="react-datepicker-popper-custom"
-                />
-                <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-white/60 pointer-events-none" />
-              </div>
-              {(dateValidationErrors.pastDate ||
-                dateValidationErrors.dateOrder) && (
-                <div className="text-red-400 text-xs mt-2 text-center">
-                  ⚠️ {dateValidationErrors.pastDate ||
-                    dateValidationErrors.dateOrder}
-                </div>
-              )}
-            </div>
+      <div className="w-full">
+  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 items-start">
+    {/* Start Date Column */}
+    <div className="w-full">
+      <label htmlFor="arrivalDate" className="block text-base font-medium mb-2 text-white">
+        Start date
+      </label>
+      <div className="relative">
+        <input
+          type="date"
+          id="arrivalDate"
+          value={arrivalDate ? arrivalDate.toISOString().split("T")[0] : ""}
+          onChange={(e) => handleArrivalDateChange(new Date(e.target.value))}
+          min={new Date().toISOString().split("T")[0]}
+          className={`w-full bg-white/10 backdrop-blur-sm text-white rounded-lg px-4 py-3 font-semibold border-2 transition-all duration-200 [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer ${
+            dateValidationErrors.pastDate || dateValidationErrors.dateOrder
+              ? "border-red-500 focus:border-red-400 focus:ring-2 focus:ring-red-400/20"
+              : "border-white/20 hover:border-white/40 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20"
+          } focus:outline-none`}
+          style={{
+            colorScheme: "white",
+          }}
+        />
+      </div>
+      {(dateValidationErrors.pastDate || dateValidationErrors.dateOrder) && (
+        <p className="text-red-400 text-xs mt-2">
+          {dateValidationErrors.pastDate || dateValidationErrors.dateOrder}
+        </p>
+      )}
+    </div>
 
+    {/* End Date Column */}
+    <div className="w-full">
+      <label htmlFor="departureDate" className="block text-base font-medium mb-2 text-white">
+        End date
+      </label>
+      <div className="relative">
+        <input
+          type="date"
+          id="departureDate"
+          value={departureDate ? departureDate.toISOString().split("T")[0] : ""}
+          onChange={(e) => handleDepartureDateChange(new Date(e.target.value))}
+          min={arrivalDate ? arrivalDate.toISOString().split("T")[0] : new Date().toISOString().split("T")[0]}
+          className={`w-full bg-white/10 backdrop-blur-sm text-white rounded-lg px-4 py-3 font-semibold border-2 transition-all duration-200 [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer ${
+            dateValidationErrors.exceedsLimit
+              ? "border-red-500 focus:border-red-400 focus:ring-2 focus:ring-red-400/20"
+              : "border-white/20 hover:border-white/40 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20"
+          } focus:outline-none`}
+          style={{
+            colorScheme: "white",
+          }}
+        />
+      </div>
+      {dateValidationErrors.exceedsLimit && (
+        <p className="text-red-400 text-xs mt-2">
+          {dateValidationErrors.exceedsLimit}
+        </p>
+      )}
+    </div>
+  </div>
 
-
-            <div className="flex-1 max-w-xs">
-              <label className="block text-base font-medium mb-2 text-center lg:text-left">
-                🛫 Departure Date
-              </label>
-              <div className="relative">
-                <DatePicker
-                  selected={departureDate}
-                  onChange={handleDepartureDateChange}
-                  minDate={arrivalDate || new Date()}
-                  dateFormat="dd/MM/yyyy"
-                  className={`w-full bg-white/10 backdrop-blur-sm text-white rounded-lg text-center px-4 py-3 font-semibold border-2 transition-all duration-200 ${
-                    dateValidationErrors.exceedsLimit
-                      ? "border-red-500 focus:border-red-400 focus:ring-2 focus:ring-red-400/20"
-                      : "border-white/20 hover:border-white/40 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20"
-                  } focus:outline-none`}
-                  placeholderText="Select departure date"
-                  showPopperArrow={false}
-                  popperClassName="react-datepicker-popper-custom"
-                />
-                <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-white/60 pointer-events-none" />
-              </div>
-              {dateValidationErrors.exceedsLimit && (
-                <div className="text-red-400 text-xs mt-2 text-center">
-                  ⚠️ {dateValidationErrors.exceedsLimit}
-                </div>
-              )}
-            </div>
-          </div>
-          
-          {arrivalDate && departureDate && (
-            <div className="mt-4 text-center">
-              <div className="inline-flex items-center bg-green-500/20 text-green-400 px-4 py-2 rounded-full text-sm font-medium">
-                ✅ Trip duration: {Math.ceil(
-                  (departureDate - arrivalDate) / (1000 * 60 * 60 * 24)
-                )} days
-              </div>
-            </div>
-          )}
-        </div>
+  {/* Safe Dates Prompt */}
+  <p className="text-xs text-purple-300 mt-3">
+    For a higher chance of approval, please select travel dates that are at least 15-20 days in the future.
+  </p>
+</div>
 
         {/* Required Documents */}
         <div className="mb-6">
@@ -1463,17 +2156,28 @@ const CountrySlider = () => {
                     )}
                   </div>
                   <span className="font-medium">Insurance certificate</span>
-                  <div className="flex items-center space-x-2 mt-1 ml-6">
-                    <span className="text-lg font-semibold line-through">
-                      £
-                      {Math.round(
-                        (visaState.insuranceFees || 400) * 1.25 * travelers
-                      )}
-                    </span>
-                    <span className="font-gilroy-bold text-2xl">
-                      £{(visaState.insuranceFees || 400) * travelers}
-                    </span>
-                  </div>
+                  <ClientOnly fallback={
+                    <div className="flex items-center space-x-2 mt-1 ml-6">
+                      <span className="text-lg font-semibold line-through">
+                        £{Math.round(400 * 1.25 * travelers)}
+                      </span>
+                      <span className="font-gilroy-bold text-2xl">
+                        £{400 * travelers}
+                      </span>
+                    </div>
+                  }>
+                    <div className="flex items-center space-x-2 mt-1 ml-6">
+                      <span className="text-lg font-semibold line-through">
+                        £
+                        {Math.round(
+                          (visaState.insuranceFees || 400) * 1.25 * travelers
+                        )}
+                      </span>
+                      <span className="font-gilroy-bold text-2xl">
+                        £{(visaState.insuranceFees || 400) * travelers}
+                      </span>
+                    </div>
+                  </ClientOnly>
                 </div>
               </div>
 
@@ -1760,76 +2464,10 @@ const CountrySlider = () => {
             </div>
           )}
 
-          {/* Express Checkout Section */}
-          <div className="space-y-3 mb-6">
-            <h2 className="font-medium text-lg">Payment Methods</h2>
-            
-            {/* Apple Pay & Google Pay - Express Checkout */}
-            <div className="space-y-2">
-              <div className="text-sm text-gray-300 mb-2">
-                <span className="font-medium text-green-400">📱 Express Checkout</span> - Quick setup with saved payment methods
-              </div>
-              
-              <div
-                className={`border rounded-md p-3 cursor-pointer transition-all ${
-                  selectedPaymentMethod === "apple"
-                    ? "border-white bg-white/10 ring-2 ring-white/20"
-                    : "border-gray-500 hover:border-gray-400"
-                }`}
-                onClick={() => handlePaymentMethodSelect("apple")}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="apple"
-                      checked={selectedPaymentMethod === "apple"}
-                      onChange={(e) => handlePaymentMethodSelect(e.target.value)}
-                      className="h-4 w-4"
-                    />
-                    <FaApple className="text-lg" />
-                    <span className="text-sm font-medium">Apple Pay</span>
-                  </div>
-                </div>
-              </div>
-
-              <div
-                className={`border rounded-md p-3 cursor-pointer transition-all ${
-                  selectedPaymentMethod === "google"
-                    ? "border-white bg-white/10 ring-2 ring-white/20"
-                    : "border-gray-500 hover:border-gray-400"
-                }`}
-                onClick={() => handlePaymentMethodSelect("google")}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="google"
-                      checked={selectedPaymentMethod === "google"}
-                      onChange={(e) => handlePaymentMethodSelect(e.target.value)}
-                      className="h-4 w-4"
-                    />
-                    <FaGoogle className="text-lg" />
-                    <span className="text-sm font-medium">Google Pay</span>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-
-          </div>
-
-     
-
-          {/* Discount Code Section */}
+           {/* Discount Code Section */}
           <div className="space-y-3 mb-6">
             <h2 className="font-medium text-lg">Discount Code</h2>
             <div className="space-y-2">
-          
-              
               <div className="flex space-x-2">
                 <div className="flex-1">
                   <input
@@ -1886,110 +2524,105 @@ const CountrySlider = () => {
                   student discount
                 </p>
               </div>
-              {/* Student verification UI */}
-              <div className="mt-4 border-t border-[#2b2b33] pt-3">
-                <div className="text-sm text-gray-300 mb-2">Student? Add your student email, we'll send a verification email there.</div>
+            </div>
+          </div>
+
+          {/* Email Verification Section - Shows when student discount is applied */}
+          {appliedDiscount && appliedDiscount.description.toLowerCase().includes('student') && (
+            <div className="space-y-3 mb-6">
+              <h2 className="font-medium text-lg">Student Verification Required</h2>
+              <div className="space-y-2">
+                <div className="text-sm text-yellow-300 mb-2">
+                  <span className="font-medium">📧 Email Verification</span>{" "}
+                  - Please verify your student email to continue with the discount
+                </div>
+                
                 <div className="flex space-x-2">
-                  <input
-                    type="email"
-                    value={studentEmail}
-                    onChange={(e) => setStudentEmail(e.target.value)}
-                    placeholder="your@student.edu"
-                    className="flex-1 border border-gray-500 bg-[#24242D] text-white rounded-md p-2 text-sm"
-                    disabled={studentVerified}
-                  />
-                  <button
-                    onClick={async () => {
-                      if (!studentEmail || !studentEmail.includes("@")) {
-                        setCouponError("Please enter a valid student email");
-                        return;
-                      }
-                      setIsSendingVerification(true);
-                      try {
-                        const res = await fetch('/api/student/send-verification', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ email: studentEmail })
-                        });
-                        const data = await res.json();
-                        if (res.ok) {
-                          setStudentVerificationSent(true);
-                          // If debug code returned (dev mode), show it in couponError so developer/testers can see
-                          if (data?.debugCode) {
-                            setCouponError(`Debug code: ${data.debugCode}`);
-                          } else {
-                            setCouponError("");
-                          }
-                        } else {
-                          setCouponError(data?.error || 'Failed to send verification');
-                        }
-                      } catch (err) {
-                        console.error(err);
-                        setCouponError('Failed to send verification');
-                      } finally {
-                        setIsSendingVerification(false);
-                      }
-                    }}
-                    className="px-4 py-2 bg-white text-black text-sm rounded-md hover:bg-gray-200 transition-colors"
-                    disabled={isSendingVerification || studentVerificationSent || studentVerified}
-                  >
-                    {isSendingVerification ? 'Sending...' : studentVerificationSent ? 'Sent' : 'Send'}
-                  </button>
+                  <div className="flex-1">
+                    <input
+                      type="email"
+                      value={userEmail}
+                      onChange={(e) => setUserEmail(e.target.value)}
+                      placeholder="Enter your student email (e.g., you@student.uni.ac.uk)"
+                      className={`w-full border ${
+                        emailError ? "border-red-400" : "border-gray-500"
+                      } bg-[#24242D] text-white rounded-md p-2 text-sm ${
+                        emailError
+                          ? "outline-none ring-2 ring-red-400"
+                          : "focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      }`}
+                      disabled={studentVerified}
+                    />
+                  </div>
+                  {!studentVerified ? (
+                    <button
+                      onClick={() => sendStudentVerification(userEmail)}
+                      disabled={isSendingVerification || !userEmail}
+                      className="px-4 py-2 bg-yellow-600 text-white text-sm rounded-md hover:bg-yellow-700 transition-colors font-medium disabled:bg-gray-600 disabled:cursor-not-allowed"
+                    >
+                      {isSendingVerification ? 'Sending...' : 'Verify Email'}
+                    </button>
+                  ) : (
+                    <div className="px-4 py-2 bg-green-600 text-white text-sm rounded-md flex items-center">
+                      ✓ Verified
+                    </div>
+                  )}
                 </div>
 
+                {emailError && (
+                  <span className="text-sm text-red-400">{emailError}</span>
+                )}
+
                 {studentVerificationSent && !studentVerified && (
-                  <div className="mt-3 flex space-x-2">
-                    <input
-                      type="text"
-                      value={studentOtp}
-                      onChange={(e) => setStudentOtp(e.target.value)}
-                      placeholder="Enter verification code"
-                      className="flex-1 border border-gray-500 bg-[#24242D] text-white rounded-md p-2 text-sm"
-                    />
-                    <button
-                      onClick={async () => {
-                        if (!studentOtp) {
-                          setCouponError('Please enter the code');
-                          return;
-                        }
-                        setIsVerifyingOtp(true);
-                        try {
-                          const res = await fetch('/api/student/verify', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ email: studentEmail, code: studentOtp })
-                          });
-                          const data = await res.json();
-                          if (res.ok && data?.verified) {
-                            setStudentVerified(true);
-                            // apply discount
-                            const discount = { description: 'Student discount', percentage: 10 };
-                            setAppliedDiscount(discount);
-                            setCouponError('');
-                          } else {
-                            setCouponError(data?.error || 'Invalid code');
-                          }
-                        } catch (err) {
-                          console.error(err);
-                          setCouponError('Verification failed');
-                        } finally {
-                          setIsVerifyingOtp(false);
-                        }
-                      }}
-                      className="px-4 py-2 bg-[#22c55e] text-black text-sm rounded-md hover:bg-[#16a34a] transition-colors"
-                      disabled={isVerifyingOtp}
-                    >
-                      {isVerifyingOtp ? 'Verifying...' : 'Verify'}
-                    </button>
+                  <div className="text-sm text-green-400 bg-green-600/20 p-2 rounded-md">
+                    ✓ Verification email sent! Please check your inbox and click the verification link.
                   </div>
                 )}
 
                 {studentVerified && (
-                  <div className="mt-2 text-sm text-green-400">Student verified — 10% discount applied.</div>
+                  <div className="text-sm text-green-400 bg-green-600/20 p-2 rounded-md">
+                    ✓ Student email verified! You can now proceed with the student discount.
+                  </div>
                 )}
               </div>
             </div>
+          )}
+
+          {/* Express Checkout Section */}
+          <div className="space-y-3 mb-6">
+            <h2 className="font-medium text-lg">Payment Methods</h2>
+
+            {/* Apple Pay & Google Pay - Express Checkout */}
+            <div className="space-y-2">
+              <div className="text-sm text-gray-300 mb-2">
+                <span className="font-medium text-green-400">
+                  📱 Express Checkout
+                </span>{" "}
+                - Quick setup with saved payment methods
+              </div>
+
+              {/* Apple Pay Button */}
+              <button
+                onClick={handleApplePayClick}
+                className="w-full bg-black text-white rounded-md p-3 hover:bg-gray-900 transition-all flex items-center justify-center space-x-2"
+                style={{ backgroundColor: '#000' }}
+              >
+                <FaApple className="text-lg" />
+                <span className="text-sm font-medium">Pay with Apple Pay</span>
+              </button>
+
+              {/* Google Pay Button */}
+              <button
+                onClick={handleGooglePayClick}
+                className="w-full bg-white text-black rounded-md p-3 hover:bg-gray-100 transition-all flex items-center justify-center space-x-2 border border-gray-300"
+              >
+                <FaGoogle className="text-lg text-blue-500" />
+                <span className="text-sm font-medium">Pay with Google Pay</span>
+              </button>
+            </div>
           </div>
+
+         
 
           {/* Checkout Button */}
           <button
@@ -1997,17 +2630,16 @@ const CountrySlider = () => {
             className="group flex w-full justify-between items-center bg-[#6B4EFF] text-white  gap-[16px] font-medium px-[20px] py-3.5 rounded-full cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb]"
           >
             <span className="mr-3 text-xl font-semibold">
-              {selectedPaymentMethod === "apple" ? "CONTINUE WITH APPLE PAY" :
-               selectedPaymentMethod === "google" ? "CONTINUE WITH GOOGLE PAY" :
-               selectedPaymentMethod === "stripe" ? "CONTINUE WITH CREDIT CARD" :
-               selectedPaymentMethod === "klarna" ? "CONTINUE WITH KLARNA" :
-               "CONTINUE TO CHECKOUT"}
+              {selectedPaymentMethod === "stripe"
+                ? "CONTINUE WITH CREDIT CARD"
+                : selectedPaymentMethod === "klarna"
+                ? "CONTINUE WITH KLARNA"
+                : "CONTINUE TO CHECKOUT"}
             </span>
             <span className="bg-white rounded-full p-1.5 transition-transform duration-300 group-hover:rotate-45 group-hover:translate-x-1 group-hover:-translate-y-0">
               <ArrowUpRight className="w-5 h-5 text-[#6B4EFF]" />
             </span>
           </button>
-
 
           {/* Footer Info */}
           <div className="mt-4 space-y-2">

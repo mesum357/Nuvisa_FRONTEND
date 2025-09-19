@@ -27,6 +27,16 @@ import {
 } from "react-icons/fa";
 import { HiOutlineDeviceMobile } from "react-icons/hi";
 import { SiKlarna } from "react-icons/si";
+import {
+  calculatePaymentFees,
+  formatCurrency,
+  validateCouponCode,
+  applyCouponDiscount,
+  CURRENCY_RATES,
+  PAYMENT_METHODS,
+  getPaymentMethodFee
+} from "@/utils/currency";
+import { validateCouponCode as apiValidateCoupon } from "@/api/coupon";
 
 const VisaCheckout = () => {
   const dispatch = useAppDispatch();
@@ -63,6 +73,7 @@ const VisaCheckout = () => {
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState("");
   const [phone, setPhone] = useState("");
+  const [phoneError, setPhoneError] = useState("");
   const [postcode, setPostcode] = useState("");
   const [postcodeError, setPostcodeError] = useState("");
   const [emailNewsOffers, setEmailNewsOffers] = useState(false);
@@ -152,7 +163,7 @@ const VisaCheckout = () => {
   }, [searchParams, dispatch]);
 
   // Function to apply coupon code
-  const applyCouponCode = () => {
+  const applyCouponCode = async () => {
     setCouponError("");
 
     if (!couponCode.trim()) {
@@ -160,17 +171,33 @@ const VisaCheckout = () => {
       return;
     }
 
-    // Check for valid coupon codes
-    if (couponCode.toUpperCase() === "STUDENT10") {
+    // Calculate subtotal in GBP first
+    const currentSubtotal = baseVisaFee * travelers + (includeInsurance ? baseInsuranceFee * travelers : 0);
+
+    try {
+      // Validate coupon using API
+      const validationResult = await validateCouponCode(couponCode.toUpperCase());
+
+      if (!validationResult.valid) {
+        setCouponError(validationResult.message || "Invalid coupon code");
+        return;
+      }
+
+      // Apply coupon discount
+      const discountAmountEUR = applyCouponDiscount(calculatePaymentFees(currentSubtotal, 'GBP', 'EUR'), couponCode.toUpperCase());
+      const finalTotalEUR = Math.max(0, calculatePaymentFees(currentSubtotal, 'GBP', 'EUR') - discountAmountEUR);
+
       setAppliedDiscount({
-        code: "STUDENT10",
-        percentage: 10,
-        description: "Student Discount",
+        code: couponCode.toUpperCase(),
+        percentage: validationResult.discount || 10,
+        description: validationResult.description || "Applied Discount",
+        discountAmount: discountAmountEUR,
+        finalTotal: finalTotalEUR
       });
       setCouponError("");
-    } else {
-      setCouponError("Invalid coupon code");
-      setAppliedDiscount(null);
+    } catch (error) {
+      console.error("Coupon validation error:", error);
+      setCouponError("Failed to validate coupon. Please try again.");
     }
   };
 
@@ -208,25 +235,45 @@ const VisaCheckout = () => {
     return v;
   };
 
+  const isValidUKPhone = (value) => {
+    if (!value) return false;
+    const normalized = value.replace(/[^+0-9]/g, "");
+    if (/^\+447\d{9}$/.test(normalized)) return true;
+    if (/^07\d{9}$/.test(normalized)) return true;
+    return false;
+  };
+
+  const isValidUKPostcode = (value) => {
+    if (!value) return false;
+    const v = String(value).trim().toUpperCase();
+    const normalized = v.replace(/\s+/g, "");
+
+    const withSpace = normalized.slice(0, -3) + " " + normalized.slice(-3);
+
+    const re = /^([Gg][Ii][Rr]0[Aa]{2})|((?:[A-PR-UWYZ][0-9]{1,2}|[A-PR-UWYZ][A-HK-Y][0-9]{1,2}|[A-PR-UWYZ][0-9][A-HJKPSTUW]|[A-PR-UWYZ][A-HK-Y][0-9][ABEHMNPRVWXY])\s?[0-9][ABD-HJLNP-UW-Z]{2})$/i;
+
+    return re.test(withSpace) || re.test(v) || re.test(normalized);
+  };
+
   const validateCardDetails = () => {
     const errors = {};
 
     if (!cardNumber.replace(/\s/g, "")) {
       errors.cardNumber = "Card number is required";
     } else if (cardNumber.replace(/\s/g, "").length < 13) {
-      errors.cardNumber = "Invalid card number";
+      errors.cardNumber = "Card number is invalid";
     }
 
     if (!expirationDate.replace(/\s|\//g, "")) {
       errors.expirationDate = "Expiration date is required";
     } else if (expirationDate.replace(/\s|\//g, "").length !== 4) {
-      errors.expirationDate = "Invalid expiration date";
+      errors.expirationDate = "Expiration date is invalid";
     }
 
     if (!securityCode) {
       errors.securityCode = "Security code is required";
     } else if (securityCode.length < 3) {
-      errors.securityCode = "Invalid security code";
+      errors.securityCode = "Security code is invalid";
     }
 
     if (!nameOnCard.trim()) {
@@ -247,8 +294,12 @@ const VisaCheckout = () => {
       if (!billingCity.trim()) {
         errors.billingCity = "City is required";
       }
-      if (!billingPostcode.trim()) {
-        errors.billingPostcode = "Postcode is required";
+      if (billingCountry === "United Kingdom") {
+        if (!billingPostcode.trim()) {
+          errors.billingPostcode = "Postcode is required";
+        } else if (!isValidUKPostcode(billingPostcode)) {
+          errors.billingPostcode = "Please enter a valid UK postcode (e.g. SW1A 1AA)";
+        }
       }
     }
 
@@ -256,21 +307,29 @@ const VisaCheckout = () => {
     return Object.keys(errors).length === 0;
   };
 
-  // Calculate dynamic values based on user selections
+  // Calculate dynamic values based on user selections in GBP first
   const visaFees = baseVisaFee * travelers;
   const insuranceFees = includeInsurance ? baseInsuranceFee * travelers : 0;
   const eVisaFees = 0; // Currently free
   const subtotal = visaFees + insuranceFees + eVisaFees;
 
-  // Apply discount if coupon is applied
-  const discountAmount = appliedDiscount
-    ? (subtotal * appliedDiscount.percentage) / 100
-    : 0;
-  const discountedSubtotal = subtotal - discountAmount;
+  // Calculate original price and savings (for display purposes)
+  const originalPrice = baseVisaFee * travelers; // Original price without any discounts
+  const savings = originalPrice - visaFees; // Any savings from discounts
 
-  const originalPrice = 200 * travelers; // Original price per traveler
-  const savings = originalPrice - discountedSubtotal;
-  const totalAmount = discountedSubtotal;
+  // Calculate dynamic values based on user selections in EUR
+  const visaFeesEUR = calculatePaymentFees(baseVisaFee * travelers, 'GBP', 'EUR');
+  const insuranceFeesEUR = includeInsurance ? calculatePaymentFees(baseInsuranceFee * travelers, 'GBP', 'EUR') : 0;
+  const eVisaFeesEUR = 0; // Currently free
+  const subtotalEUR = calculatePaymentFees(subtotal, 'GBP', 'EUR');
+
+  // Apply discount if coupon is applied
+  const discountAmountEUR = appliedDiscount ? appliedDiscount.discountAmount || 0 : 0;
+  const discountedSubtotalEUR = subtotalEUR - discountAmountEUR;
+
+  const originalPriceEUR = calculatePaymentFees(originalPrice, 'GBP', 'EUR');
+  const savingsEUR = calculatePaymentFees(savings, 'GBP', 'EUR');
+  const totalAmountEUR = discountedSubtotalEUR;
 
   const handleProceedToCheckout = async () => {
     if (cretingDynamicCheckout) return;
@@ -286,6 +345,12 @@ const VisaCheckout = () => {
 
     if (!postcode) {
       setPostcodeError("Postcode is required for checkout");
+      return;
+    }
+
+    // If phone is provided, ensure it's a valid UK phone number
+    if (phone && phone.trim() && !isValidUKPhone(phone)) {
+      setPhoneError("Please enter a valid UK phone number (e.g. +44 7XXXXXXXXX or 07XXXXXXXXX)");
       return;
     }
 
@@ -322,7 +387,7 @@ const VisaCheckout = () => {
     await localStorageGateway(
       "insurancePayment",
       localStorageEnums.SET,
-      String(includeInsurance ? insuranceFees : 0)
+      String(insuranceFeesEUR)
     );
     await localStorageGateway(
       "travelers",
@@ -332,7 +397,7 @@ const VisaCheckout = () => {
     await localStorageGateway(
       "paymentAmount",
       localStorageEnums.SET,
-      String(totalAmount)
+      String(totalAmountEUR)
     );
     await localStorageGateway(
       "appliedDiscount",
@@ -393,10 +458,10 @@ const VisaCheckout = () => {
 
     const statusResult = await handleCreateDynamicCheckoutSession({
       email: email,
-      amount: String(totalAmount),
+      amount: String(totalAmountEUR),
       travellers: String(travelers),
       country: String(selectedCountry || ""),
-      insurance: String(includeInsurance ? insuranceFees : 0),
+      insurance: String(insuranceFeesEUR),
       phone: phone,
       postcode: postcode,
       paymentMethod: selectedPaymentMethod,
@@ -546,10 +611,29 @@ const VisaCheckout = () => {
                   type="tel"
                   id="phone"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setPhone(v);
+                    // Clear error if empty (phone is optional)
+                    if (!v.trim()) {
+                      setPhoneError("");
+                      return;
+                    }
+                    // Validate UK phone and set error message accordingly
+                    if (!isValidUKPhone(v)) {
+                      setPhoneError("Please enter a valid UK phone number (e.g. +44 7XXXXXXXXX or 07XXXXXXXXX)");
+                    } else {
+                      setPhoneError("");
+                    }
+                  }}
                   placeholder="+44 123 456 7890"
-                  className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                  className={`w-full border ${
+                    phoneError ? "border-red-400 outline-none ring-2 ring-red-400" : "border-gray-300 focus:outline-none focus:ring-2 focus:ring-black"
+                  } rounded-md p-2 text-sm`}
                 />
+                {phoneError && (
+                  <span className="text-sm text-red-400 mt-1">{phoneError}</span>
+                )}
               </div>
 
               <div>
@@ -1274,20 +1358,20 @@ const VisaCheckout = () => {
               ) : selectedPaymentMethod === "apple" ? (
                 <div className="flex items-center justify-center space-x-2">
                   <FaApple />
-                  <span>Pay with Apple Pay</span>
+                  <span>Pay {formatCurrency(totalAmountEUR, 'EUR')} with Apple Pay</span>
                 </div>
               ) : selectedPaymentMethod === "google" ? (
                 <div className="flex items-center justify-center space-x-2">
                   <FaGoogle />
-                  <span>Pay with Google Pay</span>
+                  <span>Pay {formatCurrency(totalAmountEUR, 'EUR')} with Google Pay</span>
                 </div>
               ) : selectedPaymentMethod === "klarna" ? (
                 <div className="flex items-center justify-center space-x-2">
                   <SiKlarna />
-                  <span>Pay with Klarna</span>
+                  <span>Pay {formatCurrency(totalAmountEUR, 'EUR')} with Klarna</span>
                 </div>
               ) : (
-                "Complete Order"
+                `Complete Order`
               )}
             </button>
           </div>
@@ -1355,8 +1439,8 @@ const VisaCheckout = () => {
             </div>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="line-through">£{originalPrice.toFixed(2)}</span>
-            <span>£{visaFees.toFixed(2)}</span>
+            <span className="line-through">{formatCurrency(originalPriceEUR, 'EUR')}</span>
+            <span>{formatCurrency(visaFeesEUR, 'EUR')}</span>
           </div>
 
           {/* Insurance */}
@@ -1372,7 +1456,7 @@ const VisaCheckout = () => {
               <FaShieldAlt />
               <span className="text-sm">Insurance certificate</span>
             </div>
-            <span className="text-sm">£{insuranceFees.toFixed(2)}</span>
+            <span className="text-sm">{formatCurrency(insuranceFeesEUR, 'EUR')}</span>
           </div>
           {includeInsurance && (
             <p className="text-xs text-gray-400">
@@ -1387,13 +1471,13 @@ const VisaCheckout = () => {
               <HiOutlineDeviceMobile />
               <span className="text-sm">E visa card</span>
             </div>
-            <span className="text-sm">£{eVisaFees.toFixed(2)}</span>
+            <span className="text-sm">{formatCurrency(eVisaFeesEUR, 'EUR')}</span>
           </div>
 
           {/* Subtotal */}
           <div className="flex justify-between text-sm pt-2 border-t border-gray-700">
             <span>Subtotal</span>
-            <span>£{subtotal.toFixed(2)}</span>
+            <span>{formatCurrency(subtotalEUR, 'EUR')}</span>
           </div>
 
           {/* Discount */}
@@ -1402,20 +1486,20 @@ const VisaCheckout = () => {
               <span>
                 {appliedDiscount.description} (-{appliedDiscount.percentage}%)
               </span>
-              <span>-£{discountAmount.toFixed(2)}</span>
+              <span>-{formatCurrency(discountAmountEUR, 'EUR')}</span>
             </div>
           )}
 
           {/* You Save */}
           <div className="flex justify-between text-sm text-green-400">
             <span>You save</span>
-            <span>£{savings.toFixed(2)}</span>
+            <span>{formatCurrency(savingsEUR, 'EUR')}</span>
           </div>
 
           {/* Total */}
           <div className="flex justify-between font-gilroy-bold text-xl pt-2 border-t border-gray-700">
             <span>Total</span>
-            <span>£{totalAmount.toFixed(2)} GBP</span>
+            <span>{formatCurrency(totalAmountEUR, 'EUR')} EUR</span>
           </div>
 
           {/* Risk Free */}

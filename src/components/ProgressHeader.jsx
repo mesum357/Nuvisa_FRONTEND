@@ -20,7 +20,8 @@ const ProgressHeader = ({ steps }) => {
         {steps.map((step, index) => {
           const isActive = steps.find((s) => s.open)?.id === step.id;
           return (
-            <div key={step.id} className="flex flex-col items-center z-10">
+            // flex-1 so steps are evenly spaced across the available width
+            <div key={step.id} className="flex-1 flex flex-col items-center z-10">
               <div
                 className={`w-10 h-10 rounded-full flex items-center justify-center
                   ${
@@ -50,9 +51,10 @@ const ProgressHeader = ({ steps }) => {
                 )}
               </div>
               <span
-                className={`mt-2 text-center text-sm font-medium ${
+                className={`mt-2 text-center text-sm font-medium w-28 truncate ${
                   isActive ? "text-[#7350FF]" : "text-gray-400"
                 }`}
+                title={step.title}
               >
                 {step.title}
               </span>

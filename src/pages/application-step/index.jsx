@@ -1,3 +1,4 @@
+"use client";
 import {
   getVisaApplication,
   createOrUpdateApplication,
@@ -6,20 +7,32 @@ import ApplicationCompletedSection from "@/components/ApplicationCompletedSectio
 import DocumentUploadSection from "@/components/DocumentUploadSection";
 import { Header } from "@/components/layout/Header";
 import PassportInformationSection from "@/components/PassportInformationSection";
-import PaymentSection from "@/components/PaymentSection";
 import ProgressHeader from "@/components/ProgressHeader";
 import VisitDetailSection from "@/components/VisitDetailSection";
 import ClientOnly from "@/components/ClientOnly";
 import { localStorageEnums } from "@/enums/localstorage.enums";
 import { localStorageGateway } from "@/gateways/localStoragegateway";
 import { useAppSelector, useAppDispatch } from "@/store";
-import { setInsuranceFees, setTravelers } from "@/store/visaSlice";
+import {
+  setInsuranceFees,
+  setTravelers,
+  setArrivalDate,
+  setDepartureDate,
+} from "@/store/visaSlice";
 import { COUNTRY_CONFIG } from "@/constants/countryConfig";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ChevronLeft } from "lucide-react";
 import { useToast } from "@/contexts/ToastContext";
 import BookingAppointment from "@/components/BookingAppointment";
+import {
+  calculatePaymentFees,
+  formatCurrency,
+  validateCouponCode,
+  applyCouponDiscount,
+} from "@/utils/currency";
+import useCreateDynamicCheckoutSession from "@/hooks/useCreateDynamicCheckoutSession";
+import { useMemo } from "react";
 
 const MultiStepAccordion = () => {
   const token = localStorageGateway("token", localStorageEnums.GET);
@@ -48,14 +61,14 @@ const MultiStepAccordion = () => {
           city: "",
           dateRangeStart: null,
           dateRangeEnd: null,
-          slot: ""
+          slot: "",
         },
         preference2: {
           city: "",
           dateRangeStart: null,
           dateRangeEnd: null,
-          slot: ""
-        }
+          slot: "",
+        },
       },
       // Basic Details (Passport Information)
       basicDetails: {
@@ -126,9 +139,9 @@ const MultiStepAccordion = () => {
       // Payment
       payment: {
         appointmentFees: 2060,
-        teleportFee: 1524.60,
-        cgst: 137.20,
-        sgst: 137.20,
+        teleportFee: 1524.6,
+        cgst: 137.2,
+        sgst: 137.2,
         grandTotal: 3859,
         paymentStatus: "pending",
         paymentMethod: "",
@@ -167,13 +180,6 @@ const MultiStepAccordion = () => {
       open: false,
       stepType: "insurance",
     },
-      {
-      id: 6,
-      title: "Payment",
-      completed: false,
-      open: false,
-      stepType: "payment",
-    },
     {
       id: 3,
       title: "Book an appointment",
@@ -181,7 +187,14 @@ const MultiStepAccordion = () => {
       open: false,
       stepType: "appointment",
     },
-  
+    {
+      id: 6,
+      title: "Payment",
+      completed: false,
+      open: false,
+      stepType: "payment",
+    },
+
     {
       id: 7,
       title: "Application Completed",
@@ -194,7 +207,7 @@ const MultiStepAccordion = () => {
   // const [documents, setDocuments] = useState({});
 
   // Map step info to UI steps - now uses current traveler's step info
- const updateStepsFromStepInfo = (stepInfo = null) => {
+  const updateStepsFromStepInfo = (stepInfo = null) => {
     const relevantStepInfo = stepInfo || getCurrentTravelerStepInfo();
     if (!relevantStepInfo) return;
 
@@ -202,8 +215,11 @@ const MultiStepAccordion = () => {
       const currentlyOpenStepId = prevSteps.find((s) => s.open)?.id;
 
       return prevSteps.map((step) => {
-        const isCompleted = relevantStepInfo.completedSteps?.includes(step.stepType);
-        const isCurrentFromServer = relevantStepInfo.currentStep === step.stepType;
+        const isCompleted = relevantStepInfo.completedSteps?.includes(
+          step.stepType
+        );
+        const isCurrentFromServer =
+          relevantStepInfo.currentStep === step.stepType;
         const isNextFromServer = relevantStepInfo.nextStep === step.stepType;
 
         let shouldBeOpen = false;
@@ -242,18 +258,24 @@ const MultiStepAccordion = () => {
     // Backend may store a boolean/string flag or nested details. Treat any of these as indication
     // that the traveler has selected/needs insurance and therefore the insurance step should be shown.
     const insuranceFlagTrue =
-      travelerInsuranceObj.insurance === "true" || travelerInsuranceObj.insurance === true;
+      travelerInsuranceObj.insurance === "true" ||
+      travelerInsuranceObj.insurance === true;
     const insuranceDetailsSelected =
       travelerInsuranceObj.insuranceDetails?.selected === true ||
       travelerInsuranceObj.insuranceDetails?.hasOwnInsurance === true;
     const insuranceSelectedPurchaseOrOwn =
-      travelerInsuranceObj.insurance === "purchase" || travelerInsuranceObj.insurance === "own";
+      travelerInsuranceObj.insurance === "purchase" ||
+      travelerInsuranceObj.insurance === "own";
 
     const computedRequiresInsurance =
-      insuranceFlagTrue || insuranceDetailsSelected || insuranceSelectedPurchaseOrOwn;
+      insuranceFlagTrue ||
+      insuranceDetailsSelected ||
+      insuranceSelectedPurchaseOrOwn;
 
     const travelerRequiresInsurance =
-      currentTravelerStepInfo?.requiresInsurance || computedRequiresInsurance || false;
+      currentTravelerStepInfo?.requiresInsurance ||
+      computedRequiresInsurance ||
+      false;
     const travelerHasInsurance = currentTravelerStepInfo?.hasInsurance || false;
     const isAdditionalTraveler =
       currentTravelerStepInfo?.isAdditionalTraveler || false;
@@ -265,56 +287,51 @@ const MultiStepAccordion = () => {
     //   isTravelerCompleted: isTravelerCompleted,
     // });
 
-    // If traveler has insurance and doesn't need insurance step, hide insurance step completely
-    if (travelerHasInsurance && !travelerRequiresInsurance) {
-      // Remove insurance step for travelers who already have insurance
+
+    const showInsuranceStep =
+      travelerInsuranceObj.insurance === "own" ||
+      (travelerInsuranceObj.insurance === "true" &&
+        !travelerInsuranceObj.insuranceCertificate);
+
+    if (!showInsuranceStep) {
+      // Remove insurance step for travelers who didn't select "own"
       visibleSteps = visibleSteps.filter(
         (step) => step.stepType !== "insurance"
       );
 
-      // Always show completion step for these travelers (they have 4 steps total: basic, visit, documents, completed)
+      // Ensure completion step reflects current traveler state
       visibleSteps = visibleSteps.map((step) => {
         if (step.stepType === "completed") {
           return {
             ...step,
             title: "Application Completed",
             completed: isTravelerCompleted,
-            open:
-              
-              currentTravelerStepInfo?.currentStep === "completed",
+            open: currentTravelerStepInfo?.currentStep === "completed",
           };
         }
         return step;
       });
     } else {
-      // For travelers who need insurance, show all 5 steps including insurance and completion
-      if (travelerRequiresInsurance) {
-        // Update insurance step title for additional travelers
-        visibleSteps = visibleSteps.map((step) => {
-          if (step.stepType === "insurance") {
-            return {
-              ...step,
-              title: isAdditionalTraveler
-                ? "Insurance (Additional Traveler)"
-                : "Insurance",
-            };
-          }
-          return step;
-        });
-      }
-
-      // Always show completion step (5th step) for travelers with insurance pending
+      // When traveler selected "own", show insurance step and adjust title for additional travelers
       visibleSteps = visibleSteps.map((step) => {
+        if (step.stepType === "insurance") {
+          return {
+            ...step,
+            title: isAdditionalTraveler
+              ? "Insurance (Additional Traveler)"
+              : "Insurance",
+          };
+        }
+
         if (step.stepType === "completed") {
           return {
             ...step,
             title: "Application Completed",
             completed: isTravelerCompleted,
-            open:
-             
-              currentTravelerStepInfo?.currentStep === "completed",
+            open: currentTravelerStepInfo?.currentStep === "completed",
           };
         }
+
         return step;
       });
     }
@@ -332,14 +349,14 @@ const MultiStepAccordion = () => {
           city: "",
           dateRangeStart: null,
           dateRangeEnd: null,
-          slot: ""
+          slot: "",
         },
         preference2: {
           city: "",
           dateRangeStart: null,
           dateRangeEnd: null,
-          slot: ""
-        }
+          slot: "",
+        },
       },
       // Basic Details (Passport Information)
       basicDetails: {
@@ -357,6 +374,7 @@ const MultiStepAccordion = () => {
         state: "",
         city: "",
         pincode: "",
+        mobileNumber: "",
         passportFront: null,
         passportBack: null,
       },
@@ -407,9 +425,9 @@ const MultiStepAccordion = () => {
       // Payment
       payment: {
         appointmentFees: 2060,
-        teleportFee: 1524.60,
-        cgst: 137.20,
-        sgst: 137.20,
+        teleportFee: 1524.6,
+        cgst: 137.2,
+        sgst: 137.2,
         grandTotal: 3859,
         paymentStatus: "pending",
         paymentMethod: "",
@@ -554,6 +572,16 @@ const MultiStepAccordion = () => {
       data,
       currentTravelerIndex,
     });
+    // If basicDetails contains travel dates, sync them to global Redux store
+    if (section === "basicDetails") {
+      if (data.travelStartDate) {
+        dispatch(setArrivalDate(String(data.travelStartDate)));
+      }
+      if (data.travelEndDate) {
+        dispatch(setDepartureDate(String(data.travelEndDate)));
+      }
+    }
+
     setTravelersData((prev) => {
       const updated = prev.map((traveler, index) => {
         if (index === currentTravelerIndex) {
@@ -567,7 +595,6 @@ const MultiStepAccordion = () => {
         }
         return traveler;
       });
-      console.log("Updated travelers data:", updated);
       return updated;
     });
   };
@@ -584,13 +611,13 @@ const MultiStepAccordion = () => {
           preference1: {
             city: "",
             dateRange: "",
-            slot: ""
+            slot: "",
           },
           preference2: {
             city: "",
             dateRange: "",
-            slot: ""
-          }
+            slot: "",
+          },
         },
         basicDetails: {
           passportNumber: "",
@@ -779,13 +806,11 @@ const MultiStepAccordion = () => {
       }))
     );
   };
-
   const handleCompleteStep = async (stepId, stepData = {}) => {
     setLoading(true);
     try {
       const step = steps.find((s) => s.id === stepId);
       const currentTraveler = travelersData[currentTravelerIndex];
-      
 
       // Use updated travelers data if provided, otherwise use current state
       let travelersDataToSend = stepData.updatedTravelersData || travelersData;
@@ -795,9 +820,7 @@ const MultiStepAccordion = () => {
         (stepId === 3 || step?.stepType === "appointment") &&
         stepData.appointmentData
       ) {
-        console.log("🔥 APPOINTMENT DATA MERGE - CONDITION MET!");
-        console.log("stepId:", stepId, "step.stepType:", step?.stepType);
-        console.log("Appointment data to merge:", stepData.appointmentData);
+
 
         // Update the current traveler's appointment data
         travelersDataToSend = travelersDataToSend.map((traveler, index) => {
@@ -806,7 +829,7 @@ const MultiStepAccordion = () => {
               ...traveler,
               appointment: stepData.appointmentData,
             };
-            console.log("Updated traveler appointment:", updatedTraveler.appointment);
+         
             return updatedTraveler;
           }
           return traveler;
@@ -818,9 +841,7 @@ const MultiStepAccordion = () => {
         (stepId === 1 || step?.stepType === "basicDetails") &&
         stepData.basicDetails
       ) {
-        console.log("🔥 BASIC DETAILS DATA MERGE - CONDITION MET!");
-        console.log("stepId:", stepId, "step.stepType:", step?.stepType);
-        console.log("Basic details data to merge:", stepData.basicDetails);
+     
 
         // Update the current traveler's basic details data
         travelersDataToSend = travelersDataToSend.map((traveler, index) => {
@@ -832,7 +853,7 @@ const MultiStepAccordion = () => {
                 ...stepData.basicDetails,
               },
             };
-            console.log("Updated traveler basic details:", updatedTraveler.basicDetails);
+       
             return updatedTraveler;
           }
           return traveler;
@@ -846,9 +867,7 @@ const MultiStepAccordion = () => {
           step?.stepType === "insurance") &&
         stepData.insuranceData
       ) {
-        console.log("🔥 INSURANCE DATA MERGE - CONDITION MET!");
-        console.log("stepId:", stepId, "step.stepType:", step?.stepType);
-        console.log("Insurance data to merge:", stepData.insuranceData);
+      
 
         // Update the current traveler's insurance data
         travelersDataToSend = travelersDataToSend.map((traveler, index) => {
@@ -857,10 +876,7 @@ const MultiStepAccordion = () => {
               ...traveler,
               insurance: stepData.insuranceData,
             };
-            console.log(
-              "Updated traveler insurance:",
-              updatedTraveler.insurance
-            );
+    
             return updatedTraveler;
           }
           return traveler;
@@ -871,11 +887,32 @@ const MultiStepAccordion = () => {
         console.log("Has insuranceData:", !!stepData.insuranceData);
       }
 
-      console.log("=== HANDLE COMPLETE STEP DEBUG ===");
-      console.log("Step ID:", stepId);
-      console.log("Step Data:", stepData);
-      console.log("Using travelers data:", travelersDataToSend);
-      console.log("=== END HANDLE COMPLETE STEP DEBUG ===");
+      if (stepId === 6 || step?.stepType === "payment") {
+
+
+        // Update the current traveler's payment data
+        travelersDataToSend = travelersDataToSend.map((traveler, index) => {
+          if (index === currentTravelerIndex) {
+            const updatedPayment = {
+              ...traveler.payment,
+              ...(stepData.paymentData || {}),
+              paymentStatus: "completed", // Mark as completed
+              paymentMethod: stepData.paymentData?.paymentMethod || traveler.payment?.paymentMethod || "stripe",
+              paymentDate: new Date().toISOString(),
+              amountPaid: stepData.paymentData?.grandTotal || traveler.payment?.grandTotal || 3859,
+            };
+
+            const updatedTraveler = {
+              ...traveler,
+              payment: updatedPayment,
+            };
+            return updatedTraveler;
+          }
+          return traveler;
+        });
+      }
+
+  
 
       // Build payload but exclude appointmentData (we already merged it into travelersDataToSend)
       const stepDataForPayload = { ...stepData };
@@ -883,14 +920,16 @@ const MultiStepAccordion = () => {
       delete stepDataForPayload.appointmentData;
       delete stepDataForPayload.updatedTravelersData;
       delete stepDataForPayload.insuranceData;
+      delete stepDataForPayload.paymentData;
 
-      // Backend expects one of: createApplication, basicDetails, visitDetails, documents, insurance
+      // Backend expects one of: createApplication, basicDetails, visitDetails, documents, insurance, payment
       const allowedTypes = [
         "createApplication",
         "basicDetails",
         "visitDetails",
         "documents",
         "insurance",
+        "payment",
       ];
 
       // Map internal step types to backend-allowed types
@@ -903,7 +942,7 @@ const MultiStepAccordion = () => {
         typeToSend = typeMapping[typeToSend] || "createApplication";
       }
 
-      console.log(`Payload type resolved: ${typeToSend} (original: ${step.stepType})`);
+     
 
       const payload = {
         type: step.stepType,
@@ -911,13 +950,19 @@ const MultiStepAccordion = () => {
         currentTravelerIndex: currentTravelerIndex,
         travelersData: travelersDataToSend,
         numberOfTravellers: numberOfTravelers,
-        ...stepDataForPayload,
+        ...(stepDataForPayload || {}),
+        ...(stepData.appointmentData
+          ? { appointment: stepData.appointmentData }
+          : {}),
+          
       };
+
+      console.log("=== FINAL PAYLOAD BEFORE API CALL ===", payload);
+
 
       const response = await createOrUpdateApplication(token, payload);
 
       if (response?.status >= 200 && response?.status < 300) {
-        // Get updated traveler data from response
         const updatedApplication = response?.data?.data?.results?.application;
 
         if (updatedApplication?.travelersData) {
@@ -928,10 +973,8 @@ const MultiStepAccordion = () => {
               ? updatedApplication.travelersData
               : JSON.parse(updatedApplication.travelersData);
 
-            // Update local travelers data with backend response
             setTravelersData(updatedTravelersData);
 
-            // Update travelers step info from backend response
             const updatedTravelersStepInfo = {};
             updatedTravelersData.forEach((traveler) => {
               if (traveler.stepInfo) {
@@ -955,27 +998,31 @@ const MultiStepAccordion = () => {
         // Refresh application data
         await fetchApplicationById();
 
+        // Determine next visible step (skip removed/hidden steps like insurance when not needed)
+        const visible = getVisibleSteps();
 
-        const completedStepIndex = steps.findIndex((s) => s.id === step.id);
+        // Find the position of the currently completed step in the visible list
+        const currentVisibleIndex = visible.findIndex((s) => s.id === step.id);
 
-        if (completedStepIndex !== -1 && completedStepIndex < steps.length - 1) {
-          const nextStep = steps[completedStepIndex + 1];
-          
-          toggleStep(nextStep.id);
+        // If there is a next visible step, open it
+        if (currentVisibleIndex !== -1 && currentVisibleIndex < visible.length - 1) {
+          const nextVisibleStep = visible[currentVisibleIndex + 1];
+          if (nextVisibleStep) toggleStep(nextVisibleStep.id);
         }
       } else {
         // Handle API error responses
-        const errorMessage = response?.data?.message || 
-                            response?.data?.error || 
-                            "Failed to complete step. Please try again.";
+        const errorMessage =
+          response?.data?.message ||
+          response?.data?.error ||
+          "Failed to complete step. Please try again.";
         showError(errorMessage);
       }
     } catch (error) {
       console.error("Error completing step:", error);
-      
+
       // Show user-friendly error message
       let errorMessage = "Something went wrong. Please try again.";
-      
+
       if (error.message) {
         errorMessage = error.message;
       } else if (error.response?.data?.message) {
@@ -983,7 +1030,7 @@ const MultiStepAccordion = () => {
       } else if (error.response?.data?.error) {
         errorMessage = error.response.data.error;
       }
-      
+
       showError(errorMessage);
     } finally {
       setLoading(false);
@@ -1069,6 +1116,41 @@ const MultiStepAccordion = () => {
     return requiredDocIds.every((id) => documents[id]);
   };
 
+  const validateAppointment = () => {
+    const currentTraveler = getCurrentTravelerData();
+    const appointment = currentTraveler.appointment || {};
+
+    // Check if at least preference1 is filled
+    const pref1 = appointment.preference1 || {};
+    return (
+      pref1.city &&
+      pref1.dateRangeStart &&
+      pref1.dateRangeEnd &&
+      pref1.slot
+    );
+  };
+
+  const validateInsurance = () => {
+    const currentTraveler = getCurrentTravelerData();
+    const insurance = currentTraveler.insurance || {};
+
+    // Insurance is complete if:
+    // 1. It's "true" (paid through the system), OR
+    // 2. It's "own" and a certificate is uploaded
+    if (insurance.insurance === "true") {
+      return true; // Paid insurance is always valid
+    }
+
+    if (insurance.insurance === "own") {
+      return !!(
+        insurance.insuranceCertificate &&
+        insurance.insuranceDetails?.certificateUploaded
+      );
+    }
+
+    return false;
+  };
+
   // console.log("Current Traveler Data:", getCurrentTravelerData());
   // console.log("Travelers Data:", travelersData);
   // console.log("Current Traveler Index:", currentTravelerIndex);
@@ -1114,8 +1196,45 @@ const MultiStepAccordion = () => {
               )
                 ? applicationData.travelersData
                 : JSON.parse(applicationData.travelersData);
-              setTravelersData(savedTravelersData);
-              setNumberOfTravelers(savedTravelersData.length);
+              // Normalize redux dates to YYYY-MM-DD and fill missing per-traveler dates
+              const normalizeDate = (v) => {
+                if (!v) return "";
+                if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+                if (String(v).includes("T")) return String(v).split("T")[0];
+                try {
+                  const d = new Date(v);
+                  if (isNaN(d.getTime())) return "";
+                  return d.toISOString().split("T")[0];
+                } catch (e) {
+                  return "";
+                }
+              };
+
+              const reduxArrival = normalizeDate(visaState?.arrivalDate);
+              const reduxDeparture = normalizeDate(visaState?.departureDate);
+
+              const filledTravelersData = savedTravelersData.map((t) => {
+                const basic = t.basicDetails || {};
+                const updatedBasic = { ...basic };
+                if (
+                  (!updatedBasic.travelStartDate ||
+                    String(updatedBasic.travelStartDate).trim() === "") &&
+                  reduxArrival
+                ) {
+                  updatedBasic.travelStartDate = reduxArrival;
+                }
+                if (
+                  (!updatedBasic.travelEndDate ||
+                    String(updatedBasic.travelEndDate).trim() === "") &&
+                  reduxDeparture
+                ) {
+                  updatedBasic.travelEndDate = reduxDeparture;
+                }
+                return { ...t, basicDetails: updatedBasic };
+              });
+
+              setTravelersData(filledTravelersData);
+              setNumberOfTravelers(filledTravelersData.length);
 
               // Initialize per-traveler step info - use backend stepInfo if available
               const initialTravelersStepInfo = {};
@@ -1146,7 +1265,9 @@ const MultiStepAccordion = () => {
               setTravelersStepInfo(initialTravelersStepInfo);
             } catch (error) {
               console.error("Error parsing travelersData:", error);
-              showError("Failed to load application data. Please refresh the page.");
+              showError(
+                "Failed to load application data. Please refresh the page."
+              );
             }
           }
 
@@ -1159,14 +1280,17 @@ const MultiStepAccordion = () => {
         }
       } else {
         // Handle API error responses
-        const errorMessage = response?.data?.message || 
-                            response?.data?.error || 
-                            "Failed to load application. Please try again.";
+        const errorMessage =
+          response?.data?.message ||
+          response?.data?.error ||
+          "Failed to load application. Please try again.";
         showError(errorMessage);
       }
     } catch (error) {
       console.error("Error fetching application:", error);
-      showError("Failed to load application. Please check your connection and try again.");
+      showError(
+        "Failed to load application. Please check your connection and try again."
+      );
     }
   };
 
@@ -1190,6 +1314,59 @@ const MultiStepAccordion = () => {
       updateStepsFromStepInfo();
     }
   }, [currentTravelerIndex, travelersData, travelersStepInfo]);
+
+  // Prefill per-traveler travelStartDate / travelEndDate from global Redux visa dates.
+  // Run when global dates change or when the number of travelers changes so newly
+  // added traveler entries can inherit the selected dates.
+  useEffect(() => {
+    const reduxArrivalRaw = visaState?.arrivalDate;
+    const reduxDepartureRaw = visaState?.departureDate;
+
+    if (!reduxArrivalRaw && !reduxDepartureRaw) return;
+
+    const normalizeDate = (v) => {
+      if (!v) return "";
+      if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+      if (String(v).includes("T")) return String(v).split("T")[0];
+      try {
+        const d = new Date(v);
+        if (isNaN(d.getTime())) return "";
+        return d.toISOString().split("T")[0];
+      } catch (e) {
+        return "";
+      }
+    };
+
+    const reduxArrival = normalizeDate(reduxArrivalRaw);
+    const reduxDeparture = normalizeDate(reduxDepartureRaw);
+
+    if (!reduxArrival && !reduxDeparture) return;
+
+    setTravelersData((current) => {
+      let changed = false;
+      const next = current.map((t) => {
+        const basic = t.basicDetails || {};
+        const hasStart =
+          basic.travelStartDate && String(basic.travelStartDate).trim() !== "";
+        const hasEnd =
+          basic.travelEndDate && String(basic.travelEndDate).trim() !== "";
+        const updatedBasic = { ...basic };
+        let itemChanged = false;
+        if (!hasStart && reduxArrival) {
+          updatedBasic.travelStartDate = reduxArrival;
+          itemChanged = true;
+        }
+        if (!hasEnd && reduxDeparture) {
+          updatedBasic.travelEndDate = reduxDeparture;
+          itemChanged = true;
+        }
+        if (itemChanged) changed = true;
+        return itemChanged ? { ...t, basicDetails: updatedBasic } : t;
+      });
+
+      return changed ? next : current;
+    });
+  }, [visaState?.arrivalDate, visaState?.departureDate, numberOfTravelers]);
 
   // // Effect to ensure traveler data is properly initialized when switching travelers
   // useEffect(() => {
@@ -1499,6 +1676,7 @@ const MultiStepAccordion = () => {
                       <BookingAppointment
                         travelerData={getCurrentTravelerData()}
                         updateCurrentTravelerData={updateCurrentTravelerData}
+                        validateAppointment={validateAppointment}
                         onComplete={(data) => handleCompleteStep(step.id, data)}
                         loading={loading}
                       />
@@ -1533,12 +1711,16 @@ const MultiStepAccordion = () => {
                         updateCurrentTravelerData={updateCurrentTravelerData}
                         onComplete={(data) => handleCompleteStep(step.id, data)}
                         loading={loading}
+                        setLoading={setLoading}
+                        applicationId={applicationId}
+                        travelersData={travelersData}
+                        numberOfTravelers={numberOfTravelers}
                         parentVisaApplication={parentVisaApplication}
                       />
                     )}
 
                     {step.id === 7 && step.stepType === "completed" && (
-                      <ApplicationCompletedSection 
+                      <ApplicationCompletedSection
                         parentVisaApplication={parentVisaApplication}
                         applicationId={applicationId}
                         onAddTraveler={() => {
@@ -1550,7 +1732,9 @@ const MultiStepAccordion = () => {
                         }}
                         onUploadDocument={() => {
                           // Navigate back to documents step for current traveler
-                          const documentsStep = steps.find(s => s.stepType === "documents");
+                          const documentsStep = steps.find(
+                            (s) => s.stepType === "documents"
+                          );
                           if (documentsStep) {
                             toggleStep(documentsStep.id);
                           }
@@ -1585,7 +1769,7 @@ const PassportStep = ({
       console.log("fileToBase64 called with:", file);
       console.log("File type:", typeof file);
       console.log("File instanceof File:", file instanceof File);
-      
+
       if (!file) {
         console.log("No file provided, resolving with null");
         resolve(null);
@@ -1602,10 +1786,20 @@ const PassportStep = ({
       // If it's a File object, convert it to base64
       if (file instanceof File) {
         console.log("Converting File object to base64");
-        console.log("File details - name:", file.name, "size:", file.size, "type:", file.type);
+        console.log(
+          "File details - name:",
+          file.name,
+          "size:",
+          file.size,
+          "type:",
+          file.type
+        );
         const reader = new FileReader();
         reader.onload = () => {
-          console.log("FileReader onload - result length:", reader.result?.length);
+          console.log(
+            "FileReader onload - result length:",
+            reader.result?.length
+          );
           resolve(reader.result);
         };
         reader.onerror = (error) => {
@@ -1664,24 +1858,34 @@ const PassportStep = ({
       // Also update the local state for UI consistency
       updateCurrentTravelerData("basicDetails", updatedBasicDetails);
 
+      // NOTE: Field-level validation and error display is handled by
+      // PassportInformationSection.validate() which sets inline errors.
+      // Remove alert-based validation here to surface errors inline in the form.
+
       const stepData = {
-        // Personal Information
-        firstName: basicDetails.firstName,
-        lastName: basicDetails.lastName,
-        passportNumber: basicDetails.passportNumber,
-        sex: basicDetails.sex,
-        dateOfBirth: basicDetails.dateOfBirth,
-        placeOfBirth: basicDetails.placeOfBirth,
-        passportIssuePlace: basicDetails.passportIssuePlace,
-        passportIssueDate: basicDetails.passportIssueDate,
-        passportExpiryDate: basicDetails.passportExpiryDate,
+        // Provide the full basicDetails object so backend merging is reliable
+        basicDetails: updatedBasicDetails,
+
+        // Personal Information (kept for backward compatibility)
+        firstName: updatedBasicDetails.firstName,
+        lastName: updatedBasicDetails.lastName,
+        passportNumber: updatedBasicDetails.passportNumber,
+        sex: updatedBasicDetails.sex,
+        dateOfBirth: updatedBasicDetails.dateOfBirth,
+        placeOfBirth: updatedBasicDetails.placeOfBirth,
+        passportIssuePlace: updatedBasicDetails.passportIssuePlace,
+        passportIssueDate: updatedBasicDetails.passportIssueDate,
+        passportExpiryDate: updatedBasicDetails.passportExpiryDate,
 
         // Current Address
-        currentAddress1: basicDetails.currentAddress1,
-        currentAddress2: basicDetails.currentAddress2,
-        state: basicDetails.state,
-        city: basicDetails.city,
-        pincode: basicDetails.pincode,
+        currentAddress1: updatedBasicDetails.currentAddress1,
+        currentAddress2: updatedBasicDetails.currentAddress2,
+        state: updatedBasicDetails.state,
+        city: updatedBasicDetails.city,
+        pincode: updatedBasicDetails.pincode,
+        mobileNumber: updatedBasicDetails.mobileNumber,
+        travelStartDate: updatedBasicDetails.travelStartDate,
+        travelEndDate: updatedBasicDetails.travelEndDate,
 
         // Passport Images as base64 strings
         passportFront: passportFrontBase64,
@@ -1721,10 +1925,16 @@ const PassportStep = ({
       console.log("Passport files in update result:");
       console.log("- passportFront:", updatedData.passportFront);
       console.log("- passportFront type:", typeof updatedData.passportFront);
-      console.log("- passportFront instanceof File:", updatedData.passportFront instanceof File);
+      console.log(
+        "- passportFront instanceof File:",
+        updatedData.passportFront instanceof File
+      );
       console.log("- passportBack:", updatedData.passportBack);
       console.log("- passportBack type:", typeof updatedData.passportBack);
-      console.log("- passportBack instanceof File:", updatedData.passportBack instanceof File);
+      console.log(
+        "- passportBack instanceof File:",
+        updatedData.passportBack instanceof File
+      );
       updateCurrentTravelerData("basicDetails", updatedData);
     } else {
       console.log("Direct object update:", data);
@@ -1860,8 +2070,7 @@ const DocumentStep = ({
   };
 
   const handleUploadSuccess = (documentData, docId) => {
-
-     console.log(`Successfully uploaded document: ${documentData.name}`)
+    console.log(`Successfully uploaded document: ${documentData.name}`);
   };
 
   const handleUploadError = (errorMessage) => {
@@ -1900,13 +2109,17 @@ const DocumentStep = ({
         onUploadSuccess={handleUploadSuccess}
         onUploadError={handleUploadError}
       />
-      <button
-        onClick={handleSave}
-        disabled={loading}
-        className="mt-4 bg-[#7350FF] text-white px-4 py-2 rounded hover:bg-[#7350FF] disabled:bg-[#7350FF]/30"
-      >
-        {loading ? "Saving..." : "Save and Continue"}
-      </button>
+
+      {/* Right-aligned Save button */}
+      <div className="mt-4 flex justify-end">
+        <button
+          onClick={handleSave}
+          disabled={loading}
+          className="bg-[#7350FF] text-white px-4 py-2 rounded hover:bg-[#7350FF] disabled:bg-[#7350FF]/30"
+        >
+          {loading ? "Saving..." : "Save and Continue"}
+        </button>
+      </div>
     </div>
   );
 };
@@ -1922,6 +2135,7 @@ const InsuranceStep = ({
   const [uploadedCertificate, setUploadedCertificate] = useState(
     travelerData?.insurance?.insuranceCertificate || null
   );
+  const [insuranceError, setInsuranceError] = useState("");
 
   const handleCertificateUpload = (event) => {
     const file = event.target.files[0];
@@ -1940,7 +2154,10 @@ const InsuranceStep = ({
         // Update traveler's insurance data with certificate
         updateCurrentTravelerData("insurance", {
           insurance: "own",
-          insuranceDetails: { hasOwnInsurance: true, certificateUploaded: true },
+          insuranceDetails: {
+            hasOwnInsurance: true,
+            certificateUploaded: true,
+          },
           insuranceCertificate: certificateData,
         });
       };
@@ -1948,9 +2165,36 @@ const InsuranceStep = ({
     }
   };
 
+  const handleViewDocument = () => {
+    if (uploadedCertificate) {
+      window.open(uploadedCertificate.data, "_blank");
+    }
+  };
+
+  const handleDownloadDocument = () => {
+    if (uploadedCertificate) {
+      const link = document.createElement("a");
+      link.href = uploadedCertificate.data;
+      link.download = uploadedCertificate.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
+  const handleRemoveDocument = () => {
+    setUploadedCertificate(null);
+    updateCurrentTravelerData("insurance", {
+      insurance: "",
+      insuranceDetails: null,
+      insuranceCertificate: null,
+    });
+  };
+
   const handleSave = () => {
+    setInsuranceError("");
     if (!uploadedCertificate) {
-      alert("Please upload your insurance certificate");
+      setInsuranceError("Please upload your insurance certificate.");
       return;
     }
 
@@ -1968,65 +2212,138 @@ const InsuranceStep = ({
     onComplete && onComplete(saveData);
   };
 
+  const isUploaded = !!uploadedCertificate;
+  const completedCount = isUploaded ? 1 : 0;
+  const totalCount = 1;
+
   return (
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-purple-600 rounded flex items-center justify-center">
-            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" clipRule="evenodd" />
+            <svg
+              className="w-5 h-5 text-white"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"
+                clipRule="evenodd"
+              />
             </svg>
           </div>
-          <h3 className="text-lg font-semibold text-white">Upload Insurance Certificate</h3>
+          <h3 className="text-lg font-semibold text-white">
+            Upload Insurance Certificate
+          </h3>
+          <span className="text-sm text-gray-500">
+            {completedCount} / {totalCount}
+          </span>
         </div>
       </div>
 
-      {/* Document Upload Section */}
-      <div className="bg-[#23232B] border border-[#423577] rounded-lg p-6">
-        <h4 className="text-white font-gilroy-bold text-lg mb-4">Insurance Certificate</h4>
-        <p className="text-gray-300 mb-4">Upload your existing insurance certificate document</p>
-        
-        <div className="border-2 border-dashed border-[#423577] rounded-lg p-6 text-center">
-          <input
-            type="file"
-            accept=".pdf,.jpg,.jpeg,.png"
-            onChange={handleCertificateUpload}
-            className="hidden"
-            id="insurance-upload"
-          />
-          <label
-            htmlFor="insurance-upload"
-            className="cursor-pointer flex flex-col items-center"
-          >
-            <svg className="w-12 h-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-            </svg>
-            <span className="text-white font-medium">Click to upload insurance certificate</span>
-            <span className="text-gray-400 text-sm mt-1">PDF, JPG, PNG up to 10MB</span>
-          </label>
+      {/* Insurance Certificate Upload */}
+      <div className="p-6 border border-gray-700">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 max-w-56 w-full">
+              <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                isUploaded ? 'bg-green-600' : 'bg-gray-600'
+              }`}>
+                {isUploaded ? (
+                  <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      fillRule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                ) : (
+                  <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                )}
+              </div>
+              <h4 className="text-base font-semibold text-gray-100 w-full">
+                Insurance Certificate
+              </h4>
+            </div>
+            <p className="text-sm text-gray-400 mt-1">
+              Upload your existing insurance certificate document (PDF, JPG, PNG up to 10MB)
+            </p>
+            <div className="flex-1"></div>
+          </div>
+
+          <div className="self-start">
+            <input
+              type="file"
+              onChange={handleCertificateUpload}
+              className="hidden"
+              accept=".pdf,.jpg,.jpeg,.png"
+              id="insurance-upload"
+            />
+            <label
+              htmlFor="insurance-upload"
+              className="bg-purple-600 text-white font-semibold px-6 py-2.5 rounded-lg cursor-pointer hover:bg-purple-700 transition-colors"
+            >
+              Upload
+            </label>
+          </div>
         </div>
 
-        {uploadedCertificate && (
-          <div className="mt-4 p-3 bg-green-900/20 border border-green-600 rounded-lg">
+        {isUploaded && (
+          <div className="flex items-center justify-between pl-12 mt-4 bg-gray-800 p-3 rounded-lg">
+            <p className="text-sm text-gray-300 font-medium">
+              {uploadedCertificate.name}
+            </p>
             <div className="flex items-center gap-2">
-              <svg className="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-              </svg>
-              <span className="text-green-400 font-medium">Certificate uploaded: {uploadedCertificate.name}</span>
+              <button
+                onClick={handleViewDocument}
+                className="p-2 text-gray-400 hover:text-blue-400 transition-colors"
+                title="View document"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              </button>
+              <button
+                onClick={handleDownloadDocument}
+                className="p-2 text-gray-400 hover:text-green-400 transition-colors"
+                title="Download document"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </button>
+              <button
+                onClick={handleRemoveDocument}
+                className="p-2 text-gray-400 hover:text-red-400 transition-colors"
+                title="Remove document"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
             </div>
           </div>
         )}
       </div>
 
-      {/* Save Button */}
-      <button
-        onClick={handleSave}
-        disabled={loading || !uploadedCertificate}
-        className="w-full bg-[#7350FF] text-white py-3 px-4 rounded-md hover:bg-[#6350E5] disabled:bg-[#7350FF]/30 font-medium"
-      >
-        {loading ? "Saving..." : uploadedCertificate ? "Save Insurance Certificate" : "Upload Certificate First"}
-      </button>
+      {/* Error message */}
+      {insuranceError && (
+        <p className="text-red-400 text-sm mt-2">{insuranceError}</p>
+      )}
+
+      {/* Right-aligned Save button */}
+      <div className="mt-4 flex justify-end">
+        <button
+          onClick={handleSave}
+          disabled={loading || !uploadedCertificate}
+          className="bg-[#7350FF] text-white px-4 py-2 rounded hover:bg-[#7350FF] disabled:bg-[#7350FF]/30"
+        >
+          {loading ? "Saving..." : "Save and Continue"}
+        </button>
+      </div>
     </div>
   );
 };
@@ -2037,42 +2354,55 @@ const PaymentStep = ({
   updateCurrentTravelerData,
   onComplete,
   loading,
+  setLoading,
+  applicationId,
+  travelersData,
+  numberOfTravelers,
   parentVisaApplication,
 }) => {
-  // Calculate fees properly
-  const appointmentFees = 2060;
-  const teleportFeeBase = 1524.60;
-  const cgstRate = 0.09; // 9%
-  const sgstRate = 0.09; // 9%
-  const cgstAmount = Math.round(teleportFeeBase * cgstRate * 100) / 100;
-  const sgstAmount = Math.round(teleportFeeBase * sgstRate * 100) / 100;
-  const teleportFeeTotal = Math.round((teleportFeeBase + cgstAmount + sgstAmount) * 100) / 100;
-  const baseGrandTotal = appointmentFees + teleportFeeTotal;
-
-  // Initialize payment data from traveler if available
-  const initialPayment = travelerData?.payment || {};
   const [paymentData, setPaymentData] = useState({
-    appointmentFees: initialPayment.appointmentFees || appointmentFees,
-    teleportFee: initialPayment.teleportFee || teleportFeeBase,
-    cgst: initialPayment.cgst || cgstAmount,
-    sgst: initialPayment.sgst || sgstAmount,
-    teleportFeeTotal: initialPayment.teleportFeeTotal || teleportFeeTotal,
-    grandTotal: initialPayment.grandTotal || baseGrandTotal,
-    paymentStatus: initialPayment.paymentStatus || "pending",
-    paymentMethod: initialPayment.paymentMethod || "",
-    couponCode: initialPayment.couponCode || "",
-    discountAmount: initialPayment.discountAmount || 0,
+    appointmentFees: 2060,
+    teleportFee: 1524.6,
+    cgst: 137.2,
+    sgst: 137.2,
+    grandTotal: 3859,
+    paymentStatus: "pending",
+    paymentMethod: "",
+    couponCode: "",
+    discountAmount: 0,
   });
-  
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
-  const [couponCode, setCouponCode] = useState(paymentData.couponCode || "");
-  const [studentEmail, setStudentEmail] = useState("");
-  const [studentVerificationSent, setStudentVerificationSent] = useState(false);
-  const [studentOtp, setStudentOtp] = useState("");
-  const [studentVerified, setStudentVerified] = useState(false);
-  const [isSendingVerification, setIsSendingVerification] = useState(false);
-  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
-  const [isPlanOpen, setIsPlanOpen] = useState(false);
+
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("full_payment");
+  const [couponCode, setCouponCode] = useState("");
+  const [couponError, setCouponError] = useState("");
+  const [couponSuccess, setCouponSuccess] = useState("");
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+  const [paymentError, setPaymentError] = useState("");
+
+  // Use the payment hook
+  const { handleCreateDynamicCheckoutSession, cretingDynamicCheckout } =
+    useCreateDynamicCheckoutSession();
+
+  // Calculate fees in Euro using currency utilities
+  const euroFees = useMemo(() => {
+    const appointmentFeesEUR = calculatePaymentFees(2060, "INR", "EUR");
+    const teleportFeeEUR = calculatePaymentFees(1524.6, "INR", "EUR");
+    const cgstEUR = calculatePaymentFees(137.2, "INR", "EUR");
+    const sgstEUR = calculatePaymentFees(137.2, "INR", "EUR");
+    const grandTotalEUR = calculatePaymentFees(
+      paymentData.grandTotal,
+      "INR",
+      "EUR"
+    );
+
+    return {
+      appointmentFees: appointmentFeesEUR,
+      teleportFee: teleportFeeEUR,
+      cgst: cgstEUR,
+      sgst: sgstEUR,
+      grandTotal: grandTotalEUR,
+    };
+  }, [paymentData.grandTotal]);
 
   const handlePaymentMethodChange = (method) => {
     setSelectedPaymentMethod(method);
@@ -2081,131 +2411,204 @@ const PaymentStep = ({
     updateCurrentTravelerData("payment", updatedPaymentData);
   };
 
-  const handleCouponApply = () => {
-    // Apply coupon logic locally - prefer backend validation in production
-    const code = (couponCode || "").trim().toLowerCase();
-    let discount = 0;
+  const handleCouponApply = async () => {
+    const code = (couponCode || "").trim().toUpperCase();
 
     if (!code) {
-      showToast("Please enter a coupon code to apply");
+      setCouponError("Please enter a coupon code");
+      setCouponSuccess("");
       return;
     }
 
-    // Supported coupons:
-    // 'save10' -> 10% off immediately
-    // 'group20' -> 20% off but only valid when numberOfTravelers >= 3
-    // 'student10' -> reserved for students, requires verification via email (handled via separate flow)
-    if (code === "save10") {
-      discount = Math.round(baseGrandTotal * 0.1 * 100) / 100;
-    } else if (code === "group20") {
-      if (numberOfTravelers >= 3) {
-        discount = Math.round(baseGrandTotal * 0.2 * 100) / 100;
-      } else {
-        showToast("GROUP20 requires 3 or more travellers");
+    setIsApplyingCoupon(true);
+    setCouponError("");
+    setCouponSuccess("");
+
+    try {
+      // Validate coupon using API
+      const validationResult = await validateCouponCode(code);
+
+      if (!validationResult.valid) {
+        setCouponError(validationResult.message || "Invalid coupon code");
         return;
       }
-    } else {
-      // unknown coupon
-      showToast("Invalid coupon code");
-      return;
-    }
 
-    const finalGrandTotal = Math.round((baseGrandTotal - discount) * 100) / 100;
-    const updatedPaymentData = {
-      ...paymentData,
-      couponCode: code,
-      discountAmount: discount,
-      grandTotal: finalGrandTotal,
-    };
+      // Apply coupon discount
+      const discountAmount = applyCouponDiscount(euroFees.grandTotal, code);
+      const finalTotal = Math.max(0, euroFees.grandTotal - discountAmount);
 
-    setPaymentData(updatedPaymentData);
-    updateCurrentTravelerData("payment", updatedPaymentData);
-    showToast(`Coupon applied: -₹${discount}`);
-  };
+      const updatedPaymentData = {
+        ...paymentData,
+        couponCode: code,
+        discountAmount: discountAmount,
+        grandTotal: finalTotal,
+      };
 
-  // Student verification flows - calls local API to send and verify codes
-  const sendStudentVerification = async () => {
-    const email = (studentEmail || "").trim();
-    if (!email) {
-      showToast("Please enter your student email");
-      return;
-    }
-    setIsSendingVerification(true);
-    try {
-      const res = await fetch("/api/student/send-verification", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setStudentVerificationSent(true);
-        showToast("Verification email sent. Check your inbox (or debug response in dev).");
-      } else {
-        showToast(data?.error || "Failed to send verification email");
-      }
-    } catch (err) {
-      console.error(err);
-      showToast("Failed to send verification email");
+      setPaymentData(updatedPaymentData);
+      updateCurrentTravelerData("payment", updatedPaymentData);
+      setCouponSuccess(
+        `Coupon applied! You saved €${formatCurrency(discountAmount, "EUR")}`
+      );
+    } catch (error) {
+      console.error("Coupon validation error:", error);
+      setCouponError("Failed to validate coupon. Please try again.");
     } finally {
-      setIsSendingVerification(false);
+      setIsApplyingCoupon(false);
     }
   };
 
-  const verifyStudentCode = async () => {
-    const email = (studentEmail || "").trim();
-    const code = (studentOtp || "").trim();
-    if (!email || !code) {
-      showToast("Please provide email and verification code");
-      return;
-    }
-    setIsVerifyingOtp(true);
-    try {
-      const res = await fetch("/api/student/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, code }),
-      });
-      const data = await res.json();
-      if (res.ok && data?.verified) {
-        setStudentVerified(true);
-        // Apply 10% student discount
-        const discount = Math.round(baseGrandTotal * 0.1 * 100) / 100;
-        const finalGrandTotal = Math.round((baseGrandTotal - discount) * 100) / 100;
-        const updatedPaymentData = {
-          ...paymentData,
-          couponCode: "student10",
-          discountAmount: discount,
-          grandTotal: finalGrandTotal,
-        };
-        setPaymentData(updatedPaymentData);
-        updateCurrentTravelerData("payment", updatedPaymentData);
-        showToast(`Student verified — 10% applied: -₹${discount}`);
-      } else {
-        showToast(data?.error || "Invalid or expired code");
-      }
-    } catch (err) {
-      console.error(err);
-      showToast("Failed to verify code");
-    } finally {
-      setIsVerifyingOtp(false);
-    }
-  };
-
-  const handlePayment = () => {
+  const handlePayment = async () => {
     if (!selectedPaymentMethod) {
-      alert("Please select a payment method");
+      setPaymentError("Please select a payment method.");
       return;
     }
 
-    const updatedPaymentData = {
-      ...paymentData,
-      paymentStatus: "completed",
-    };
-    
-    setPaymentData(updatedPaymentData);
-    updateCurrentTravelerData("payment", updatedPaymentData);
-    onComplete && onComplete({ paymentData: updatedPaymentData });
+    setPaymentError("");
+
+    try {
+      // PAYMENT FLOW EXPLANATION:
+      // 1. Display amounts to user in EUR (converted from INR)
+      // 2. For payment processing, convert EUR back to INR
+      // 3. Send INR amount to payment gateway (in paisa)
+      // 4. This allows user to see EUR pricing while backend processes INR
+      
+      // Prepare payment payload
+      const currentTraveler = travelersData[travelerIndex] || travelersData[0];
+      const userEmail =
+        currentTraveler?.basicDetails?.email ||
+        localStorageGateway("userEmail", localStorageEnums.GET) ||
+        "test@123.com"; // fallback
+
+      // Store payment metadata for success page handling
+      const paymentMetadata = {
+        applicationId: applicationId,
+        travelerIndex: travelerIndex,
+        paymentType: "application_creation",
+        amount: euroFees.grandTotal, // Display amount in EUR
+        amountINR: paymentData.grandTotal, // Original INR amount
+        currency: "EUR", // Display currency
+        paymentCurrency: "INR", // Actual payment currency
+        email: userEmail,
+        timestamp: Date.now(),
+      };
+      localStorage.setItem("paymentMetadata", JSON.stringify(paymentMetadata));
+
+      console.log("Payment metadata stored:", paymentMetadata);
+      console.log("Amount conversion debug:");
+      console.log("- Original INR amount:", paymentData.grandTotal);
+      console.log("- Converted EUR amount:", euroFees.grandTotal);
+      console.log("- Converting EUR back to INR for payment system");
+      
+      // Convert EUR back to INR for payment system (current exchange rate as of 2024)
+      // You might want to get this from a live API or environment config
+      const eurToInrRate = 91.5; // Current approximate rate: 1 EUR = 91.5 INR
+      const inrAmountForPayment = Math.round(euroFees.grandTotal * eurToInrRate);
+      
+      console.log("- INR amount for payment system:", inrAmountForPayment);
+      console.log("- INR amount in paisa (for payment):", inrAmountForPayment * 100);
+
+      // Use the hook to create checkout session
+      const response = await handleCreateDynamicCheckoutSession({
+        email: userEmail,
+        amount: (inrAmountForPayment * 100).toString(), // Send amount in INR paisa
+        travellers: numberOfTravelers.toString(),
+        country: parentVisaApplication?.country || "Croatia",
+        insurance:
+          currentTraveler?.insurance?.insurance === "true" ||
+          currentTraveler?.insurance?.insurance === "purchase"
+            ? (468 * 100).toString() // Insurance in INR paisa
+            : "0",
+        applicationId: applicationId || "",
+        travelerIndex: travelerIndex.toString(),
+        paymentType: "application_creation",
+        visaTypeId: parentVisaApplication?.visaTypeId || "",
+        currency: "INR", // Change back to INR for payment processing
+      });
+
+      console.log("Payment API response:", response);
+      console.log("Response structure debug:");
+      console.log("- response.data:", response?.data);
+      console.log("- response.data.data:", response?.data?.data);
+      console.log(
+        "- response.data.data.results:",
+        response?.data?.data?.results
+      );
+      console.log(
+        "- response.data.data.results.url:",
+        response?.data?.data?.results?.url
+      );
+
+      if (
+        (response?.data?.status === "success" &&
+          response?.data?.data?.results?.url) ||
+        response?.data?.results?.url
+      ) {
+        // Handle successful payment session creation
+        const results =
+          response?.data?.data?.results || response?.data?.results;
+        const { url: checkoutUrl, token, message } = results;
+
+        console.log("Payment session created successfully:", {
+          checkoutUrl,
+          token,
+          message,
+        });
+
+        // Store the token if provided
+        if (token) {
+          localStorageGateway("token", localStorageEnums.SET, token);
+          console.log("Authentication token stored successfully");
+        }
+
+        // Update application with payment initiation - similar to other steps
+        try {
+          await onComplete({
+            paymentStatus: "processing",
+            paymentMethod: selectedPaymentMethod,
+            couponCode: couponCode || "",
+            amount: euroFees.grandTotal, // Use converted EUR amount
+            currency: "EUR",
+            stripeSessionId: results.sessionId || "",
+            travelerIndex: travelerIndex,
+          });
+        } catch (updateError) {
+          console.warn(
+            "Failed to update application status, but proceeding with payment:",
+            updateError
+          );
+        }
+
+        // Show success message
+        console.log("Redirecting to Stripe checkout:", checkoutUrl);
+
+        // Redirect to Stripe checkout
+        window.location.href = checkoutUrl;
+      } else {
+        // Handle API error
+        const errorMessage =
+          response?.data?.data?.results?.statusCode === 400
+            ? "Invalid payment details. Please check your information and try again."
+            : response?.data?.data?.results?.error ||
+              response?.data?.message ||
+              response?.message ||
+              "Failed to initiate payment. Please try again.";
+        setPaymentError(errorMessage);
+        console.error("Payment initiation failed:", response);
+      }
+    } catch (error) {
+      console.error("Payment error:", error);
+
+      // Handle different types of errors
+      let errorMessage = "Something went wrong. Please try again.";
+
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      setPaymentError(errorMessage);
+    }
   };
 
   return (
@@ -2215,27 +2618,55 @@ const PaymentStep = ({
         {/* Left Side - Payment Method Selection */}
         <div className="flex-1">
           <div className="bg-[#23232B] border border-[#423577] rounded-lg p-6">
-            <h4 className="text-white font-gilroy-bold text-lg mb-4">Select a plan type</h4>
-            
+            <h4 className="text-white font-gilroy-bold text-lg mb-4">
+              Select a payment method
+            </h4>
+
             <div className="space-y-3">
-              {/* Collapsible plan item (accordion-like) */}
-              <div className={`border-2 rounded-lg p-2 transition-all ${isPlanOpen ? "border-[#7350FF] bg-[#7350FF]/8" : "border-[#423577]"}`}>
-                <div className="flex items-center justify-between p-3 cursor-pointer" onClick={
-                  () => setSelectedPaymentMethod("full") 
-                }>
-                  <div className="flex items-center gap-3">
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedPaymentMethod === "full" ? "border-[#7350FF]" : "border-gray-400"}`}>
-                      {selectedPaymentMethod === "full" && (
-                        <div className="w-3 h-3 bg-[#7350FF] rounded-full"></div>
+              {/* Direct Payment Option */}
+              <div
+                className={`border-2 rounded-lg p-6 cursor-pointer transition-all ${
+                  selectedPaymentMethod === "full_payment"
+                    ? "border-[#7350FF] bg-[#7350FF]/8"
+                    : "border-[#423577] hover:border-[#7350FF]/50"
+                }`}
+                onClick={() => handlePaymentMethodChange("full_payment")}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div
+                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                        selectedPaymentMethod === "full_payment"
+                          ? "border-[#7350FF]"
+                          : "border-gray-400"
+                      }`}
+                    >
+                      {selectedPaymentMethod === "full_payment" && (
+                        <div className="w-4 h-4 bg-[#7350FF] rounded-full"></div>
                       )}
                     </div>
                     <div>
-                      <div className="text-white font-medium">Full payment</div>
-                      <div className="text-white font-gilroy-bold text-xl">₹{paymentData.grandTotal}</div>
+                      <div className="text-white font-gilroy-bold text-xl">
+                        Full payment
+                      </div>
+                      <div className="text-2xl font-gilroy-bold text-white mt-1">
+                        €{euroFees.grandTotal.toFixed(2)}
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 text-gray-400">
-                    Pay nothing later
+                  <div className="flex items-center gap-2">
+                    <svg 
+                      className="w-5 h-5 text-green-400" 
+                      fill="currentColor" 
+                      viewBox="0 0 20 20"
+                    >
+                      <path 
+                        fillRule="evenodd" 
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" 
+                        clipRule="evenodd" 
+                      />
+                    </svg>
+                    <span className="text-green-400 font-medium">Pay nothing later</span>
                   </div>
                 </div>
               </div>
@@ -2246,110 +2677,83 @@ const PaymentStep = ({
         {/* Right Side - Payment Summary */}
         <div className="w-80">
           <div className="bg-[#23232B] border border-[#423577] rounded-lg p-6">
-            <h4 className="text-white font-gilroy-bold text-lg mb-4">Summary</h4>
-            
-            {/* Coupon Code */}
+            <h4 className="text-white font-gilroy-bold text-lg mb-4">
+              Payment Summary
+            </h4>
+
+            {/* Coupon Code Section */}
             <div className="mb-6">
               <div className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="Apply coupon"
+                  placeholder="Enter coupon code"
                   value={couponCode}
-                  onChange={(e) => setCouponCode(e.target.value)}
+                  onChange={(e) => {
+                    setCouponCode(e.target.value.toUpperCase());
+                    setCouponError("");
+                    setCouponSuccess("");
+                  }}
                   className="flex-1 bg-[#292933] border border-[#423577] text-white px-3 py-2 rounded-lg focus:outline-none focus:border-[#6366F1] placeholder-gray-400"
                 />
                 <button
                   onClick={handleCouponApply}
-                  className="bg-[#423577] border border-[#423577] text-white px-4 py-2 rounded-lg hover:bg-[#353540] transition-colors"
+                  disabled={isApplyingCoupon}
+                  className="bg-[#423577] border border-[#423577] text-white px-4 py-2 rounded-lg hover:bg-[#353540] transition-colors disabled:opacity-50"
                 >
-                  Apply
+                  {isApplyingCoupon ? "Applying..." : "Apply"}
                 </button>
               </div>
-            </div>
-
-            {/* Student verification (optional) */}
-            <div className="mb-6 border-t border-[#423577] pt-4">
-              <div className="text-sm text-gray-300 mb-2">Student? Add your student email, we'll send a verification email there.</div>
-              <div className="flex gap-2">
-                <input
-                  type="email"
-                  placeholder="Student email"
-                  value={studentEmail}
-                  onChange={(e) => setStudentEmail(e.target.value)}
-                  className="flex-1 bg-[#292933] border border-[#423577] text-white px-3 py-2 rounded-lg focus:outline-none focus:border-[#6366F1] placeholder-gray-400"
-                />
-                <button
-                  onClick={sendStudentVerification}
-                  disabled={isSendingVerification || studentVerificationSent}
-                  className="bg-[#423577] border border-[#423577] text-white px-4 py-2 rounded-lg hover:bg-[#353540] transition-colors"
-                >
-                  {isSendingVerification ? "Sending..." : studentVerificationSent ? "Sent" : "Send"}
-                </button>
-              </div>
-
-              {studentVerificationSent && !studentVerified && (
-                <div className="mt-3 flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Enter code"
-                    value={studentOtp}
-                    onChange={(e) => setStudentOtp(e.target.value)}
-                    className="flex-1 bg-[#292933] border border-[#423577] text-white px-3 py-2 rounded-lg focus:outline-none focus:border-[#6366F1] placeholder-gray-400"
-                  />
-                  <button
-                    onClick={verifyStudentCode}
-                    disabled={isVerifyingOtp}
-                    className="bg-[#22c55e] border border-[#22c55e] text-black px-4 py-2 rounded-lg hover:bg-[#16a34a] transition-colors"
-                  >
-                    {isVerifyingOtp ? "Verifying..." : "Verify"}
-                  </button>
-                </div>
+              {couponError && (
+                <p className="text-red-400 text-sm mt-2">{couponError}</p>
               )}
-
-              {studentVerified && (
-                <div className="mt-3 text-sm text-green-400">Student verified — 10% discount applied.</div>
+              {couponSuccess && (
+                <p className="text-green-400 text-sm mt-2">{couponSuccess}</p>
               )}
             </div>
 
             {/* Fee Breakdown */}
             <div className="space-y-3 mb-6">
               <div className="flex justify-between items-center">
-                <span className="text-gray-300 font-medium">Appointment fees</span>
-                <span className="text-white font-medium">₹{paymentData.appointmentFees}</span>
+                <span className="text-gray-300 font-medium">
+                  Appointment fees
+                </span>
+                <span className="text-white font-medium">
+                  {formatCurrency(euroFees.appointmentFees, "EUR")}
+                </span>
               </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-400">₹{paymentData.appointmentFees} (per traveller) x 1</span>
-                <span className="text-white"></span>
-              </div>
-              
+
               <div className="border-t border-[#423577] pt-3">
                 <div className="flex justify-between items-center mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-300 font-medium">Teleport fee</span>
-                    <span className="text-white font-medium">₹{paymentData.teleportFeeTotal}</span>
-
-                  </div>
+                  <span className="text-gray-300 font-medium">Service fee</span>
+                  <span className="text-white font-medium">
+                    {formatCurrency(
+                      euroFees.teleportFee + euroFees.cgst + euroFees.sgst,
+                      "EUR"
+                    )}
+                  </span>
                 </div>
                 <div className="ml-4 space-y-1 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-400">Teleport fee</span>
-                    <span className="text-gray-300">₹{paymentData.teleportFee}</span>
+                    <span className="text-gray-400">Base fee</span>
+                    <span className="text-gray-300">
+                      {formatCurrency(euroFees.teleportFee, "EUR")}
+                    </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-400">CGST (9%)</span>
-                    <span className="text-gray-300">₹{paymentData.cgst}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-blue-400">SGST (9%)</span>
-                    <span className="text-gray-300">₹{paymentData.sgst}</span>
+                    <span className="text-gray-400">VAT (18%)</span>
+                    <span className="text-gray-300">
+                      {formatCurrency(euroFees.cgst + euroFees.sgst, "EUR")}
+                    </span>
                   </div>
                 </div>
               </div>
-              
+
               {paymentData.discountAmount > 0 && (
                 <div className="flex justify-between items-center text-green-400 border-t border-[#423577] pt-3">
-                  <span>Discount ({couponCode})</span>
-                  <span>-₹{paymentData.discountAmount}</span>
+                  <span>Discount ({paymentData.couponCode})</span>
+                  <span>
+                    -{formatCurrency(paymentData.discountAmount, "EUR")}
+                  </span>
                 </div>
               )}
             </div>
@@ -2357,19 +2761,32 @@ const PaymentStep = ({
             {/* Grand Total */}
             <div className="border-t border-[#423577] pt-4 mb-6">
               <div className="flex justify-between items-center">
-                <span className="text-white font-gilroy-bold text-lg">Grand Total</span>
-                <span className="text-white font-gilroy-bold text-lg">₹{paymentData.grandTotal}</span>
+                <span className="text-white font-gilroy-bold text-lg">
+                  Total Amount
+                </span>
+                <span className="text-white font-gilroy-bold text-lg">
+                  €{euroFees.grandTotal.toFixed(2)}
+                </span>
               </div>
             </div>
 
             {/* Payment Button */}
+            {paymentError && (
+              <p className="text-red-400 text-sm mb-2">{paymentError}</p>
+            )}
             <button
-              onClick={handlePayment}
-              disabled={loading || !selectedPaymentMethod}
+              onClick={() => {
+                setPaymentError("");
+                handlePayment();
+              }}
+              disabled={cretingDynamicCheckout}
               className="w-full bg-[#7350FF] text-white py-3 px-4 rounded-md hover:bg-[#6350E5] disabled:bg-[#7350FF]/30 font-medium text-lg"
             >
-              {loading ? "Processing..." : `Pay ₹${paymentData.grandTotal}`}
+              {cretingDynamicCheckout
+                ? "Processing..."
+                : `Pay €${euroFees.grandTotal.toFixed(2)}`}
             </button>
+
           </div>
         </div>
       </div>

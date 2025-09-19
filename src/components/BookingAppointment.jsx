@@ -3,21 +3,49 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { useAppointmentData } from '@/hooks/useAppointmentData';
 
-const BookingAppointment = ({ onComplete, loading }) => {
+const BookingAppointment = ({ onComplete, loading, validateAppointment, travelerData }) => {
   const { cities, slots, loadingCities, loadingSlots, error } = useAppointmentData();
   
+  // Parse existing date strings back to Date objects for DatePicker
+  const parseDate = (dateStr) => {
+    if (!dateStr) return null;
+    // Handle format like "19/09/2025"
+    const parts = dateStr.split('/');
+    if (parts.length === 3) {
+      return new Date(parts[2], parts[1] - 1, parts[0]); // year, month-1, day
+    }
+    return null;
+  };
+
+  // Extract date range from existing data if it exists
+  const getInitialDates = (preference) => {
+    const existingData = travelerData?.appointment?.[preference];
+    if (existingData?.dateRange) {
+      const dateRange = existingData.dateRange;
+      if (dateRange.includes(' - ')) {
+        const [startStr, endStr] = dateRange.split(' - ');
+        return {
+          dateRangeStart: parseDate(startStr),
+          dateRangeEnd: parseDate(endStr)
+        };
+      }
+    }
+    return {
+      dateRangeStart: null,
+      dateRangeEnd: null
+    };
+  };
+
   const [appointmentData, setAppointmentData] = useState({
     preference1: {
-      city: '',
-      dateRangeStart: null,
-      dateRangeEnd: null,
-      slot: ''
+      city: travelerData?.appointment?.preference1?.city || '',
+      ...getInitialDates('preference1'),
+      slot: travelerData?.appointment?.preference1?.slot || ''
     },
     preference2: {
-      city: '',
-      dateRangeStart: null,
-      dateRangeEnd: null,
-      slot: ''
+      city: travelerData?.appointment?.preference2?.city || '',
+      ...getInitialDates('preference2'),
+      slot: travelerData?.appointment?.preference2?.slot || ''
     }
   });
 
@@ -130,14 +158,20 @@ const BookingAppointment = ({ onComplete, loading }) => {
       preference1: {
         city: appointmentData.preference1.city,
         dateRange: `${formatDate(appointmentData.preference1.dateRangeStart)} - ${formatDate(appointmentData.preference1.dateRangeEnd)}`,
-        slot: appointmentData.preference1.slot
+        slot: appointmentData.preference1.slot,
+        // Also keep the individual date fields for validation
+        dateRangeStart: appointmentData.preference1.dateRangeStart,
+        dateRangeEnd: appointmentData.preference1.dateRangeEnd
       },
       preference2: {
         city: appointmentData.preference2.city,
         dateRange: appointmentData.preference2.dateRangeStart && appointmentData.preference2.dateRangeEnd
           ? `${formatDate(appointmentData.preference2.dateRangeStart)} - ${formatDate(appointmentData.preference2.dateRangeEnd)}`
           : '',
-        slot: appointmentData.preference2.slot
+        slot: appointmentData.preference2.slot,
+        // Also keep the individual date fields for validation
+        dateRangeStart: appointmentData.preference2.dateRangeStart,
+        dateRangeEnd: appointmentData.preference2.dateRangeEnd
       }
     };
 

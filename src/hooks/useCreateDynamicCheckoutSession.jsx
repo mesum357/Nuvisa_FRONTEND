@@ -14,6 +14,7 @@ const useCreateDynamicCheckoutSession = () => {
     travelerIndex = "",
     paymentType = "application_creation",
     visaTypeId = "",
+    currency = "EUR",
   }) => {
     setCreatingDynamicCheckout(true);
     const successCallbackFunction = () => {};
@@ -29,14 +30,25 @@ const useCreateDynamicCheckoutSession = () => {
       travelerIndex,
       paymentType,
       visaTypeId,
+      currency,
     });
 
-    // Build success URL with metadata for insurance payments
     let successUrl = "/payment-success";
-    if (
+
+    if (paymentType === "application_creation") {
+   
+      if (applicationId) {
+        successUrl = `/application-step?application_id=${encodeURIComponent(
+          applicationId
+        )}`;
+      } else {
+        successUrl = "/payment-success";
+      }
+    } else if (
       paymentType === "additional_traveler_insurance" ||
       paymentType === "traveler_insurance"
     ) {
+      successUrl = "/payment-success";
       successUrl += `?payment_type=${paymentType}&application_id=${applicationId}&traveler_index=${travelerIndex}`;
 
       // Also store insurance payment metadata in localStorage as backup
@@ -69,6 +81,7 @@ const useCreateDynamicCheckoutSession = () => {
       travelerIndex,
       paymentType,
       visaTypeId,
+      currency,
     };
 
     console.log("Final payload being sent to API:", payload);

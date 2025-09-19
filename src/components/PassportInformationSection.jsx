@@ -1251,7 +1251,6 @@ const PassportInformationSection = ({
       passportIssueDate,
       passportExpiryDate,
       currentAddress1,
-      state,
       city,
       pincode,
       mobileNumber,
@@ -1270,13 +1269,17 @@ const PassportInformationSection = ({
       newErrors.dateOfBirth = "Date of birth cannot be in the future.";
     if (!placeOfBirth) newErrors.placeOfBirth = "Place of birth is required.";
 
-    // Mobile number validation
+    // Mobile number validation (UK mobile formats)
     if (!mobileNumber) {
       newErrors.mobileNumber = "Mobile number is required.";
-    } else if (
-      !/^\+?[\d\s\-\(\)]{10,15}$/.test(mobileNumber.replace(/\s/g, ""))
-    ) {
-      newErrors.mobileNumber = "Please enter a valid mobile number.";
+    } else {
+      const s = String(mobileNumber).trim();
+      const digits = s.replace(/[\s()\-]/g, "");
+      // Accept +447XXXXXXXXX, 447XXXXXXXXX, 07XXXXXXXXX formats
+      const ukPhoneRegex = /^(?:\+447\d{9}|447\d{9}|07\d{9})$/;
+      if (!ukPhoneRegex.test(digits)) {
+        newErrors.mobileNumber = "Please enter a valid UK mobile number (e.g. +447123456789 or 07123456789).";
+      }
     }
 
     // Passport Details Validation
@@ -1292,11 +1295,16 @@ const PassportInformationSection = ({
     // Current Address Validation
     if (!currentAddress1)
       newErrors.currentAddress1 = "Address Line 1 is required.";
-    if (!state) newErrors.state = "State is required.";
+    // State removed for UK addresses per requirements
     if (!city) newErrors.city = "City is required.";
-    if (!pincode) newErrors.pincode = "Pincode is required.";
-    else if (!/^\d{6}$/.test(pincode))
-      newErrors.pincode = "Pincode must be a 6-digit number.";
+    if (!pincode) newErrors.pincode = "Postcode is required.";
+    else {
+      // UK postcode validation (allows with or without space, case-insensitive)
+      const ukPostcodeRegex = /^([A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}|GIR\s?0AA)$/i;
+      if (!ukPostcodeRegex.test(String(pincode).trim())) {
+        newErrors.pincode = "Please enter a valid UK postcode.";
+      }
+    }
 
     // Travel Dates Validation
     if (!passportData.travelStartDate)
@@ -1693,14 +1701,14 @@ const PassportInformationSection = ({
                 </div>
                 <div className="col-span-2">
                   <label className="block text-sm font-medium  mb-1 ">
-                    Given Name (as on Passport)
+                    Name (as on Passport)
                   </label>
                   <input
                     type="text"
                     name="firstName"
                     value={passportData.firstName}
                     onChange={handleInputChange}
-                    placeholder="First name"
+                    placeholder="Name"
                     className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
                       errors.firstName ? "border-red-500" : "border-[#423577]"
                     }`}
@@ -1713,14 +1721,14 @@ const PassportInformationSection = ({
                 </div>
                 <div className="col-span-2">
                   <label className="block text-sm font-medium  mb-1">
-                    Surname
+                    SurName
                   </label>
                   <input
                     type="text"
                     name="lastName"
                     value={passportData.lastName}
                     onChange={handleInputChange}
-                    placeholder="Last name"
+                    placeholder="SurName"
                     className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
                       errors.lastName ? "border-red-500" : "border-[#423577]"
                     }`}
@@ -1916,65 +1924,52 @@ const PassportInformationSection = ({
                     className="w-full px-4 py-2 border border-[#423577] rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium  mb-1">
-                    State
-                  </label>
-                  <select
-                    name="state"
-                    value={passportData.state}
-                    onChange={handleInputChange}
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
-                      errors.state ? "border-red-500" : "border-[#423577]"
-                    }`}
-                  >
-                    <option value="">Select state</option>
-                    <option value="California">California</option>
-                    <option value="New York">New York</option>
-                    <option value="Texas">Texas</option>
-                  </select>
-                  {errors.state && (
-                    <p className="text-red-500 text-xs mt-1">{errors.state}</p>
-                  )}
-                </div>
+                {/* State removed for UK addresses - kept intentionally blank */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium  mb-1">
                       City
                     </label>
                     <input
+                      list="city-options"
                       type="text"
                       name="city"
                       value={passportData.city}
                       onChange={handleInputChange}
-                      placeholder="City"
+                      placeholder="City (type or select)"
                       className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
                         errors.city ? "border-red-500" : "border-[#423577]"
                       }`}
                     />
+                    <datalist id="city-options">
+                      <option value="London" />
+                      <option value="Manchester" />
+                      <option value="Birmingham" />
+                      <option value="Edinburgh" />
+                    </datalist>
                     {errors.city && (
                       <p className="text-red-500 text-xs mt-1">{errors.city}</p>
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium  mb-1">
-                      ZIP/Pincode
-                    </label>
-                    <input
-                      type="text"
-                      name="pincode"
-                      value={passportData.pincode}
-                      onChange={handleInputChange}
-                      placeholder="Postal code"
-                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
-                        errors.pincode ? "border-red-500" : "border-[#423577]"
-                      }`}
-                    />
-                    {errors.pincode && (
-                      <p className="text-red-500 text-xs mt-1">
-                        {errors.pincode}
-                      </p>
-                    )}
+                      <label className="block text-sm font-medium  mb-1">
+                        Postcode
+                      </label>
+                      <input
+                        type="text"
+                        name="pincode"
+                        value={passportData.pincode}
+                        onChange={handleInputChange}
+                        placeholder="e.g. SW1A 1AA"
+                        className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
+                          errors.pincode ? "border-red-500" : "border-[#423577]"
+                        }`}
+                      />
+                      {errors.pincode && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {errors.pincode}
+                        </p>
+                      )}
                   </div>
                 </div>
                 <div className="flex flex-col gap-1">
@@ -1986,7 +1981,7 @@ const PassportInformationSection = ({
                     name="mobileNumber"
                     value={passportData.mobileNumber || ""}
                     onChange={handleInputChange}
-                    placeholder="+1 (555) 123-4567"
+                    placeholder="e.g. +447123456789 or 07123456789"
                     className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
                       errors.mobileNumber
                         ? "border-red-500"

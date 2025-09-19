@@ -36,5 +36,13 @@ export const backendApiEnums = {
     PAYMENT: {
       CREATE_DYNAMIC_CHECKOUT_SESSION: "/stripe_payment/session",
     },
+
+    COUPON: {
+      VALIDATE: "/coupon/validate",
+      AVAILABLE: "/coupon/available",
+      APPLY: "/coupon/apply",
+      REMOVE: "/coupon/remove",
+      VERIFY_STUDENT: "/coupon/verify-student",
+    },
   },
 };
