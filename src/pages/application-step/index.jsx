@@ -179,28 +179,14 @@ const MultiStepAccordion = () => {
     if (!relevantStepInfo) return;
 
     setSteps((prevSteps) => {
-      const currentlyOpenStepId = prevSteps.find((s) => s.open)?.id;
-
       return prevSteps.map((step) => {
         const isCompleted = relevantStepInfo.completedSteps?.includes(
           step.stepType
         );
-        const isCurrentFromServer =
-          relevantStepInfo.currentStep === step.stepType;
-        const isNextFromServer = relevantStepInfo.nextStep === step.stepType;
-
-        let shouldBeOpen = false;
-
-        if (currentlyOpenStepId === step.id) {
-          shouldBeOpen = true;
-        } else if (!currentlyOpenStepId) {
-          shouldBeOpen = isCurrentFromServer || isNextFromServer;
-        }
 
         return {
           ...step,
           completed: isCompleted,
-          open: shouldBeOpen,
         };
       });
     });
@@ -711,7 +697,12 @@ const MultiStepAccordion = () => {
       .slice(0, stepIndex)
       .every((s) => s.completed);
 
-    if (!allPreviousCompleted && stepId !== 1) return;
+    // Allow opening the first step or if all previous steps are completed
+    if (!allPreviousCompleted && stepId !== 1) {
+      // For manual navigation, be more permissive - allow opening next step if at least the immediately previous step is completed
+      const previousStep = steps[stepIndex - 1];
+      if (!previousStep?.completed) return;
+    }
 
     setSteps((prev) =>
       prev.map((step) => ({
@@ -865,6 +856,11 @@ const MultiStepAccordion = () => {
 
       const response = await createOrUpdateApplication(token, payload);
 
+      console.log("=== STEP COMPLETION DEBUG ===");
+      console.log("Step completed:", step.stepType, "ID:", step.id);
+      console.log("Response status:", response?.status);
+      console.log("=== END STEP COMPLETION DEBUG ===");
+
       if (response?.status >= 200 && response?.status < 300) {
         const updatedApplication = response?.data?.data?.results?.application;
 
@@ -895,17 +891,28 @@ const MultiStepAccordion = () => {
           }
         }
 
-        // Update UI steps based on current traveler's updated step info
-        updateStepsFromStepInfo();
+        // Mark current step as completed
+        setSteps((prevSteps) =>
+          prevSteps.map((s) =>
+            s.id === step.id ? { ...s, completed: true, open: false } : s
+          )
+        );
 
         // Refresh application data
         await fetchApplicationById();
 
-        // Determine next visible step (skip removed/hidden steps like insurance when not needed)
-        const visible = getVisibleSteps();
+        // Update UI steps based on current traveler's updated step info
+        updateStepsFromStepInfo();
 
-        // Find the position of the currently completed step in the visible list
+        // Determine next visible step and open it
+        const visible = getVisibleSteps();
         const currentVisibleIndex = visible.findIndex((s) => s.id === step.id);
+
+        console.log("=== STEP NAVIGATION DEBUG ===");
+        console.log("Current step ID:", step.id);
+        console.log("Visible steps:", visible.map(s => ({ id: s.id, type: s.stepType, completed: s.completed })));
+        console.log("Current visible index:", currentVisibleIndex);
+        console.log("=== END STEP NAVIGATION DEBUG ===");
 
         // If there is a next visible step, open it
         if (
@@ -913,7 +920,19 @@ const MultiStepAccordion = () => {
           currentVisibleIndex < visible.length - 1
         ) {
           const nextVisibleStep = visible[currentVisibleIndex + 1];
-          if (nextVisibleStep) toggleStep(nextVisibleStep.id);
+          if (nextVisibleStep) {
+            console.log("=== OPENING NEXT STEP ===");
+            console.log("Next step:", nextVisibleStep.stepType, "ID:", nextVisibleStep.id);
+            console.log("=== END OPENING NEXT STEP ===");
+            
+            // Force open the next step regardless of previous completion checks
+            setSteps((prevSteps) =>
+              prevSteps.map((s) => ({
+                ...s,
+                open: s.id === nextVisibleStep.id,
+              }))
+            );
+          }
         }
       } else {
         // Handle API error responses

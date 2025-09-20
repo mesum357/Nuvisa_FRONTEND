@@ -1,3 +1,4 @@
+import { CloudCog } from "lucide-react";
 import { Upload, Check, Eye, Download, Trash2 } from "lucide-react";
 import { useState, useRef } from "react";
 
