@@ -252,6 +252,7 @@ const VisitDetailSection = ({
   parentVisaApplication,
   setParentVisaApplication,
   onComplete,
+  loading,
 }) => {
   const visaState = useAppSelector((state) => state.visa);
   const selectedCountry = visaState.selectedCountry || "UK";
@@ -1142,10 +1143,11 @@ const VisitDetailSection = ({
       <div className="mt-8 flex">
         <button
           type="submit"
+          disabled={loading}
           className="mt-4 bg-[#7350FF] text-white px-4 py-2 rounded hover:bg-[#7350FF] disabled:bg-[#7350FF]/30"
           onClick={handleSubmit}
         >
-          Save and Continue
+          {loading ? "Saving..." : "Save and Continue"}
         </button>
       </div>
     </form>

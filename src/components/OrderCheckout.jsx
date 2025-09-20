@@ -32,11 +32,9 @@ import {
   formatCurrency,
   validateCouponCode,
   applyCouponDiscount,
-  CURRENCY_RATES,
-  PAYMENT_METHODS,
-  getPaymentMethodFee
 } from "@/utils/currency";
 import { validateCouponCode as apiValidateCoupon } from "@/api/coupon";
+import ClientOnly from "./ClientOnly";
 
 const VisaCheckout = () => {
   const dispatch = useAppDispatch();
@@ -69,7 +67,7 @@ const VisaCheckout = () => {
   const visaTypeId = visaState.visaTypeId;
 
   const [travelers, setTravelers] = useState(1); // Always start with 1 to avoid hydration mismatch
-  const [includeInsurance, setIncludeInsurance] = useState(true);
+  const [includeInsurance, setIncludeInsurance] = useState(false); // Insurance should be unchecked by default
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState("");
   const [phone, setPhone] = useState("");
@@ -102,48 +100,53 @@ const VisaCheckout = () => {
   // Card validation errors
   const [cardErrors, setCardErrors] = useState({});
 
-  // Update travelers count after hydration to avoid mismatch
+  const searchParamsString = searchParams ? searchParams.toString() : "";
+
   useEffect(() => {
-    const travelersFromParams = Number(initialTravelers) || 1;
+    const sp = new URLSearchParams(searchParamsString);
+    const travelersFromParams = Number(sp.get("travelers")) || 1;
     if (travelersFromParams !== travelers) {
       setTravelers(travelersFromParams);
     }
-  }, [initialTravelers, travelers]);
+  }, []);
 
-  // Initialize Redux store with URL parameters if they exist (only run once)
+  // Initialize Redux store with URL parameters if they exist (run only when params change)
   useEffect(() => {
-    const visaFeesFromParams = Number(searchParams.get("visaFees"));
-    const insuranceFeesFromParams = Number(searchParams.get("insuranceFees"));
-    const travelersFromParams = Number(searchParams.get("travelers"));
-    const visaTypeIdFromParams = searchParams.get("visaTypeId");
-    const expressPaymentFromParams = searchParams.get("expressPayment");
-    const paymentMethodFromParams = searchParams.get("paymentMethod");
-    const userEmailFromParams = searchParams.get("userEmail");
-    const discountCodeFromParams = searchParams.get("discountCode");
-    const discountPercentageFromParams = searchParams.get("discountPercentage");
-    const discountDescriptionFromParams = searchParams.get("discountDescription");
+    const sp = new URLSearchParams(searchParamsString);
+    const visaFeesFromParams = Number(sp.get("visaFees"));
+    const insuranceFeesFromParams = Number(sp.get("insuranceFees"));
+    const travelersFromParams = Number(sp.get("travelers"));
+    const visaTypeIdFromParams = sp.get("visaTypeId");
+    const expressPaymentFromParams = sp.get("expressPayment");
+    const paymentMethodFromParams = sp.get("paymentMethod");
+    const userEmailFromParams = sp.get("userEmail");
+    const discountCodeFromParams = sp.get("discountCode");
+    const discountPercentageFromParams = sp.get("discountPercentage");
+    const discountDescriptionFromParams = sp.get("discountDescription");
+    const discountAmountFromParams = sp.get("discountAmount");
 
-    // Pre-fill email if coming from express payment flow
+    // Pre-fill email if coming from express payment flow (only if current email is empty)
     if (userEmailFromParams && !email) {
       setEmail(userEmailFromParams);
     }
 
-    // Set payment method if coming from express payment flow
-    if (paymentMethodFromParams && !selectedPaymentMethod) {
+    // Set payment method if coming from express payment flow (only if not already set)
+    if (paymentMethodFromParams && selectedPaymentMethod === "stripe") {
       setSelectedPaymentMethod(paymentMethodFromParams);
     }
 
-    // Apply discount if coming from discount flow
+    // Apply discount if coming from discount flow (only if no discount currently applied)
     if (discountCodeFromParams && discountPercentageFromParams && !appliedDiscount) {
       setCouponCode(discountCodeFromParams);
       setAppliedDiscount({
         code: discountCodeFromParams,
         percentage: Number(discountPercentageFromParams),
         description: discountDescriptionFromParams || "Applied Discount",
+        discountAmount: Number(discountAmountFromParams) || 0,
       });
     }
 
-    // Update Redux store with URL parameters
+    // Update Redux store with URL parameters (only if different)
     if (visaFeesFromParams && visaFeesFromParams !== visaState.visaFees) {
       dispatch(setVisaFees(visaFeesFromParams));
     }
@@ -160,7 +163,7 @@ const VisaCheckout = () => {
       dispatch(setVisaTypeId(visaTypeIdFromParams));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, dispatch]);
+  }, []);
 
   // Function to apply coupon code
   const applyCouponCode = async () => {
@@ -390,6 +393,11 @@ const VisaCheckout = () => {
       String(insuranceFeesEUR)
     );
     await localStorageGateway(
+      "insuranceSelected",
+      localStorageEnums.SET,
+      includeInsurance ? "true" : "false"
+    );
+    await localStorageGateway(
       "travelers",
       localStorageEnums.SET,
       String(travelers)
@@ -461,7 +469,7 @@ const VisaCheckout = () => {
       amount: String(totalAmountEUR),
       travellers: String(travelers),
       country: String(selectedCountry || ""),
-      insurance: String(insuranceFeesEUR),
+      insurance: includeInsurance ? "true" : "false", // Simple boolean conversion
       phone: phone,
       postcode: postcode,
       paymentMethod: selectedPaymentMethod,
@@ -527,18 +535,11 @@ const VisaCheckout = () => {
       dispatch(setVisaTypeId(String(visaTypeId)));
     }
   }, [
-    visaFees,
-    insuranceFees,
-    travelers,
-    visaTypeId,
-    dispatch,
-    visaState.visaFees,
-    visaState.insuranceFees,
-    visaState.travelers,
-    visaState.visaTypeId,
+
   ]);
 
   return (
+    <ClientOnly>
     <div className="min-h-screen bg-white flex flex-col h-full">
       <div className="p-6 border-b border-neutral-200">
         <div className="flex items-center justify-between w-full max-w-6xl mx-auto">
@@ -1509,6 +1510,7 @@ const VisaCheckout = () => {
         </div>
       </div>
     </div>
+    </ClientOnly>
   );
 };
 

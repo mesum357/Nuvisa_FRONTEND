@@ -28,6 +28,31 @@ const ApplicationCompletedSection = ({
   onUploadDocument = null,
   applicationId = null
 }) => {
+  // Helper to format Application ID as AI######
+  const formatApplicationId = (id) => {
+    if (!id) return null;
+    // If already matches AI followed by digits, return as is
+    if (/^AI\d{6}$/.test(id)) return id;
+    // Try to extract digits from existing id
+    const digits = (id + "").replace(/\D/g, "").slice(0, 6).padEnd(6, "0");
+    return `AI${digits}`;
+  };
+
+  // Helper to format Order ID as ORD######
+  const formatOrderId = (orderId, fallbackId) => {
+    if (orderId && /^ORD\d{6}$/.test(orderId)) return orderId;
+    if (orderId && /^ORD-?\d+$/i.test(orderId)) {
+      // Normalize ORD-123 -> ORD123 and pad
+      const digits = orderId.replace(/\D/g, "").slice(0, 6).padEnd(6, "0");
+      return `ORD${digits}`;
+    }
+    if (fallbackId) {
+      const digits = (fallbackId + "").replace(/\D/g, "").slice(0, 6).padEnd(6, "0");
+      return `ORD${digits}`;
+    }
+    // default demo
+    return null;
+  };
   const [referenceNumber, setReferenceNumber] = useState("UKV-2023-XXXX");
   const [applicationStatus, setApplicationStatus] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -48,7 +73,7 @@ const ApplicationCompletedSection = ({
           id: `APP-${randomNum}`,
           status: "submitted",
           submittedAt: new Date().toISOString(),
-          estimatedProcessingTime: "10-15 business days",
+          estimatedProcessingTime: "Within 24 business hours",
           orderId: `ORD-${randomNum}`,
           currentStage: "Document Verification",
           progress: 25,
@@ -76,20 +101,20 @@ const ApplicationCompletedSection = ({
           // Use parentVisaApplication data as fallback
           if (parentVisaApplication) {
             setApplicationStatus({
-              id: parentVisaApplication.id,
-              status: parentVisaApplication.applicationStatus || "submitted",
-              submittedAt: parentVisaApplication.createdAt || new Date().toISOString(),
-              estimatedProcessingTime: "10-15 business days",
-              orderId: parentVisaApplication.orderId || `ORD-${parentVisaApplication.id}`,
-              currentStage: "Document Verification",
-              progress: 25,
-              nextSteps: [
-                "Document verification in progress",
-                "Biometric appointment (if required)",
-                "Application review by consulate", 
-                "Decision notification"
-              ]
-            });
+                id: parentVisaApplication.id,
+                status: parentVisaApplication.applicationStatus || "submitted",
+                submittedAt: parentVisaApplication.createdAt || new Date().toISOString(),
+                estimatedProcessingTime: "Within 24 business hours",
+                orderId: parentVisaApplication.orderId || formatOrderId(null, parentVisaApplication.id),
+                currentStage: "Document Verification",
+                progress: 25,
+                nextSteps: [
+                  "Document verification in progress",
+                  "Biometric appointment (if required)",
+                  "Application review by consulate", 
+                  "Decision notification"
+                ]
+              });
           }
         }
       } else {
@@ -268,14 +293,14 @@ const ApplicationCompletedSection = ({
               <label className="text-sm text-gray-400">Application ID</label>
               <p className="text-white font-medium">
                 <ClientOnly fallback={referenceNumber}>
-                  {currentStatus?.id || parentVisaApplication?.id || referenceNumber}
+                  {formatApplicationId(currentStatus?.id) || formatApplicationId(parentVisaApplication?.id) || referenceNumber}
                 </ClientOnly>
               </p>
             </div>
             <div>
               <label className="text-sm text-gray-400">Order ID</label>
               <p className="text-white font-medium">
-                {currentStatus?.orderId || parentVisaApplication?.orderId || "N/A"}
+                {formatOrderId(currentStatus?.orderId, currentStatus?.id) || formatOrderId(parentVisaApplication?.orderId, parentVisaApplication?.id) || "N/A"}
               </p>
             </div>
             <div>

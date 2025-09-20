@@ -188,14 +188,6 @@ const MultiStepAccordion = () => {
       stepType: "appointment",
     },
     {
-      id: 6,
-      title: "Payment",
-      completed: false,
-      open: false,
-      stepType: "payment",
-    },
-
-    {
       id: 7,
       title: "Application Completed",
       completed: false,
@@ -289,12 +281,21 @@ const MultiStepAccordion = () => {
 
 
     const showInsuranceStep =
-      travelerInsuranceObj.insurance === "own" ||
-      (travelerInsuranceObj.insurance === "true" &&
-        !travelerInsuranceObj.insuranceCertificate);
+      // Simple logic: 
+      // - Don't show if insurance is "true" (payment completed or auto-set)
+      // - Show if insurance is "own" (for document upload)
+      // - Show if insurance is "purchase" but not yet completed
+      // - Show if no insurance selection made yet
+      travelerInsuranceObj.insurance !== "true" &&
+      (
+        travelerInsuranceObj.insurance === "own" ||
+        (travelerInsuranceObj.insurance === "purchase" && !travelerInsuranceObj.insurancePaymentCompleted) ||
+        travelerInsuranceObj.insurance === "false" ||
+        !travelerInsuranceObj.insurance || 
+        travelerInsuranceObj.insurance === ""
+      );
 
     if (!showInsuranceStep) {
-      // Remove insurance step for travelers who didn't select "own"
       visibleSteps = visibleSteps.filter(
         (step) => step.stepType !== "insurance"
       );
@@ -312,7 +313,6 @@ const MultiStepAccordion = () => {
         return step;
       });
     } else {
-      // When traveler selected "own", show insurance step and adjust title for additional travelers
       visibleSteps = visibleSteps.map((step) => {
         if (step.stepType === "insurance") {
           return {
@@ -860,23 +860,25 @@ const MultiStepAccordion = () => {
         });
       }
 
-      // Special handling for insurance step data
       if (
         (stepId === "insurance" ||
           stepId === 5 ||
-          step?.stepType === "insurance") &&
+          step?.stepType === "insurance" ||
+          stepId === 6) &&
         stepData.insuranceData
       ) {
-      
 
         // Update the current traveler's insurance data
         travelersDataToSend = travelersDataToSend.map((traveler, index) => {
           if (index === currentTravelerIndex) {
             const updatedTraveler = {
               ...traveler,
-              insurance: stepData.insuranceData,
+              insurance: {
+                ...(traveler.insurance || {}),
+                ...stepData.insuranceData,
+              },
             };
-    
+
             return updatedTraveler;
           }
           return traveler;
@@ -1136,9 +1138,37 @@ const MultiStepAccordion = () => {
 
     // Insurance is complete if:
     // 1. It's "true" (paid through the system), OR
-    // 2. It's "own" and a certificate is uploaded
+    // 2. It's "own" and a certificate is uploaded, OR
+    // 3. Payment was completed (auto-set to true and hide step)
     if (insurance.insurance === "true") {
       return true; // Paid insurance is always valid
+    }
+
+    // If payment details exist, automatically mark as complete and update status
+    if (insurance.orderId && insurance.paymentAmount && insurance.insurancePaymentCompleted) {
+      // Auto-update insurance status to "true" when payment is completed
+      updateCurrentTravelerData("insurance", {
+        ...insurance,
+        insurance: "true"
+      });
+      return true; // Payment completed = insurance complete
+    }
+
+    // Enhanced check for purchase insurance payment completion
+    if (insurance.insurance === "purchase") {
+      const hasPaymentInfo = !!(insurance.orderId && insurance.paymentAmount && insurance.paymentDate);
+      const paymentCompleted = insurance.insurancePaymentCompleted === true;
+      
+      if (hasPaymentInfo && paymentCompleted) {
+        // Auto-update to "true" status when purchase is complete
+        updateCurrentTravelerData("insurance", {
+          ...insurance,
+          insurance: "true"
+        });
+        return true;
+      }
+      
+      return paymentCompleted && hasPaymentInfo;
     }
 
     if (insurance.insurance === "own") {
@@ -1704,21 +1734,6 @@ const MultiStepAccordion = () => {
                       />
                     )}
 
-                    {step.id === 6 && step.stepType === "payment" && (
-                      <PaymentStep
-                        travelerIndex={currentTravelerIndex}
-                        travelerData={getCurrentTravelerData()}
-                        updateCurrentTravelerData={updateCurrentTravelerData}
-                        onComplete={(data) => handleCompleteStep(step.id, data)}
-                        loading={loading}
-                        setLoading={setLoading}
-                        applicationId={applicationId}
-                        travelersData={travelersData}
-                        numberOfTravelers={numberOfTravelers}
-                        parentVisaApplication={parentVisaApplication}
-                      />
-                    )}
-
                     {step.id === 7 && step.stepType === "completed" && (
                       <ApplicationCompletedSection
                         parentVisaApplication={parentVisaApplication}
@@ -2136,6 +2151,55 @@ const InsuranceStep = ({
     travelerData?.insurance?.insuranceCertificate || null
   );
   const [insuranceError, setInsuranceError] = useState("");
+  const [isPaying, setIsPaying] = useState(false);
+  const [paymentError, setPaymentError] = useState("");
+  
+  // Initialize payment hook
+  const { handleCreateDynamicCheckoutSession, cretingDynamicCheckout } = useCreateDynamicCheckoutSession();
+
+  // Check for completed payment on component mount/update
+  useEffect(() => {
+    const insurance = travelerData?.insurance || {};
+    
+    // Auto-update insurance status if payment details exist but status is not "true"
+    if (insurance.orderId && insurance.paymentAmount && insurance.insurancePaymentCompleted && insurance.insurance !== "true") {
+      console.log("Insurance payment completed, auto-updating status to 'true'");
+      updateCurrentTravelerData("insurance", {
+        ...insurance,
+        insurance: "true" // Auto-set to true when payment is completed
+      });
+    }
+    
+    // Also check localStorage for completed insurance payment metadata
+    try {
+  const storedPayment = localStorage.getItem("insurancePaymentMetadata");
+      if (storedPayment) {
+        const paymentData = JSON.parse(storedPayment);
+        
+        // Check if this payment belongs to current traveler
+        if (paymentData.travelerIndex === travelerIndex && 
+            paymentData.applicationId === parentVisaApplication?.id) {
+          
+          console.log("Found completed insurance payment in localStorage:", paymentData);
+          
+          // Update insurance with payment information
+          updateCurrentTravelerData("insurance", {
+            insurance: "true", // Set to true when payment is completed
+            insurancePaymentCompleted: true,
+            orderId: paymentData.orderId,
+            paymentAmount: paymentData.paymentAmount,
+            paymentDate: new Date().toISOString(),
+            insuranceDetails: { selected: true },
+          });
+          
+          // Clear the stored payment data
+          localStorage.removeItem("insurancePaymentMetadata");
+        }
+      }
+    } catch (error) {
+      console.error("Error checking completed insurance payment:", error);
+    }
+  }, [travelerData?.insurance, travelerIndex, parentVisaApplication?.id]);
 
   const handleCertificateUpload = (event) => {
     const file = event.target.files[0];
@@ -2193,18 +2257,39 @@ const InsuranceStep = ({
 
   const handleSave = () => {
     setInsuranceError("");
-    if (!uploadedCertificate) {
+    
+    const currentInsurance = travelerData?.insurance || {};
+    
+    // For 'own' insurance we require a certificate
+    if (currentInsurance.insurance === "own" && !uploadedCertificate) {
       setInsuranceError("Please upload your insurance certificate.");
       return;
     }
 
+    // If insurance is completed via payment, auto-set to "true"
+    let insuranceToSave = currentInsurance;
+    if (currentInsurance.orderId && currentInsurance.paymentAmount && currentInsurance.insurancePaymentCompleted) {
+      insuranceToSave = {
+        ...currentInsurance,
+        insurance: "true" // Ensure status is "true" for completed payments
+      };
+      
+      // Update local state as well
+      updateCurrentTravelerData("insurance", insuranceToSave);
+    }
+
+    // Build payload similar to previous behavior
     const saveData = {
-      insurance: "own",
+      insurance: insuranceToSave.insurance || "",
       travelerIndex: travelerIndex,
       insuranceData: {
-        insurance: "own",
-        insuranceDetails: { hasOwnInsurance: true, certificateUploaded: true },
-        insuranceCertificate: uploadedCertificate,
+        insurance: insuranceToSave.insurance || "",
+        insuranceDetails: insuranceToSave.insuranceDetails || (uploadedCertificate ? { hasOwnInsurance: true, certificateUploaded: true } : null),
+        insuranceCertificate: uploadedCertificate || insuranceToSave.insuranceCertificate || null,
+        insurancePaymentCompleted: insuranceToSave.insurancePaymentCompleted || false,
+        orderId: insuranceToSave.orderId || null,
+        paymentAmount: insuranceToSave.paymentAmount || null,
+        paymentDate: insuranceToSave.paymentDate || null,
       },
     };
 
@@ -2212,47 +2297,221 @@ const InsuranceStep = ({
     onComplete && onComplete(saveData);
   };
 
-  const isUploaded = !!uploadedCertificate;
+  const isUploaded = !!uploadedCertificate || !!travelerData?.insurance?.insuranceCertificate;
   const completedCount = isUploaded ? 1 : 0;
   const totalCount = 1;
 
+  // Calculate days fallback
+  const calculateInsuranceDays = () => {
+    try {
+      const start = travelerData?.basicDetails?.travelStartDate;
+      const end = travelerData?.basicDetails?.travelEndDate;
+      const normalize = (d) => {
+        if (!d) return null;
+        if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return new Date(d);
+        return new Date(d);
+      };
+      const s = normalize(start);
+      const e = normalize(end);
+      if (s && e && !isNaN(s.getTime()) && !isNaN(e.getTime())) {
+        const diff = Math.ceil((e - s) / (1000 * 60 * 60 * 24));
+        return Math.max(1, diff);
+      }
+    } catch (e) {
+      // ignore and fallback
+    }
+    return 30;
+  };
+
+  // Inline insurance payment (2 GBP/day + 5% service fee) - redirect to Stripe
+  const handleInsurancePay = async () => {
+    setIsPaying(true);
+    setPaymentError("");
+    
+    try {
+  const days = calculateInsuranceDays();
+  const perDayGBP = 2;
+  const baseAmountGBP = days * perDayGBP;
+  // No service fee - charge base amount only
+  const totalWithFee = Math.round(baseAmountGBP * 100) / 100;
+
+      // Generate order ID for tracking
+      const orderId = `ORD${String(Math.floor(Math.random() * 900000) + 100000)}`;
+
+      console.log("=== INSURANCE PAYMENT DEBUG ===");
+      console.log("Travel days:", days);
+      console.log("Base amount:", baseAmountGBP);
+      console.log("Total with fee:", totalWithFee);
+      console.log("Order ID:", orderId);
+      console.log("Application ID:", parentVisaApplication?.id);
+      console.log("Traveler index:", travelerIndex);
+
+      // Get user email (assume it's available in application or traveler data)
+      const userEmail = parentVisaApplication?.email || 
+                       travelerData?.basicDetails?.email || 
+                       "user@example.com"; // fallback
+
+      // Create Stripe payment session for insurance
+      const paymentResponse = await handleCreateDynamicCheckoutSession({
+        email: userEmail,
+        // amount is the value used for Stripe checkout (converted to INR),
+        // include amountGBP separately so webhook / test endpoints can validate against the base GBP amount
+        amount: calculatePaymentFees(totalWithFee,"EUR","INR")?.toString(), // Convert to string for API (Stripe currency)
+        amountGBP: totalWithFee.toString(), // Base GBP amount for backend validation
+        travellers: "1", // This is for insurance payment, always 1
+        country: parentVisaApplication?.country || "United Kingdom",
+        insurance: "purchase",
+        applicationId: parentVisaApplication?.id || "",
+        travelerIndex: travelerIndex.toString(), // Convert to string for API
+        paymentType: "traveler_insurance", // This matches the hook's payment types
+        visaTypeId: parentVisaApplication?.visaTypeId || "",
+        currency: "GBP",
+      });
+
+      console.log("Payment session response:", paymentResponse);
+
+      // If successful, redirect to Stripe checkout
+      if (paymentResponse?.data?.data?.results?.url) {
+        const checkoutUrl = paymentResponse.data.data.results.url;
+        console.log("Redirecting to Stripe checkout:", checkoutUrl);
+        
+        // Store order ID and payment metadata in localStorage for when user returns
+        const insurancePaymentMetadata = {
+          orderId,
+          paymentAmount: totalWithFee,
+          travelerIndex,
+          applicationId: parentVisaApplication?.id,
+          paymentType: "traveler_insurance",
+          timestamp: Date.now(),
+        };
+  localStorage.setItem("insurancePaymentMetadata", JSON.stringify(insurancePaymentMetadata));
+        
+        // Redirect to Stripe
+        window.location.href = checkoutUrl;
+      } else {
+        throw new Error("Failed to create payment session - no checkout URL received");
+      }
+
+    } catch (err) {
+      console.error("Insurance payment error:", err);
+      setPaymentError(
+        err.response?.data?.message || 
+        err.message || 
+        "Failed to process payment. Please try again."
+      );
+    } finally {
+      setIsPaying(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-purple-600 rounded flex items-center justify-center">
-            <svg
-              className="w-5 h-5 text-white"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fillRule="evenodd"
-                d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </div>
-          <h3 className="text-lg font-semibold text-white">
-            Upload Insurance Certificate
-          </h3>
-          <span className="text-sm text-gray-500">
-            {completedCount} / {totalCount}
-          </span>
+      {/* Insurance Selection */}
+      <div className="bg-[#23232B] border border-[#423577] rounded-lg p-6">
+        <h3 className="text-white font-gilroy-bold text-lg mb-4">
+          Travel Insurance
+        </h3>
+        <p className="text-gray-300 text-sm mb-4">
+          Travel insurance is required for your visa application. Choose one of the options below:
+        </p>
+        
+        <div className="space-y-3">
+          <label className="flex items-center gap-3 p-3 border border-gray-600 rounded-lg cursor-pointer hover:border-purple-500 transition-colors">
+            <input
+              type="radio"
+              name="insuranceType"
+              value="own"
+              checked={travelerData?.insurance?.insurance === "own"}
+              onChange={(e) => {
+                updateCurrentTravelerData("insurance", {
+                  insurance: "own",
+                  insuranceDetails: null,
+                  insuranceCertificate: null,
+                  insurancePaymentCompleted: false,
+                  orderId: null,
+                  paymentAmount: null,
+                  paymentDate: null,
+                });
+              }}
+              className="w-4 h-4 text-purple-600 border-gray-300 focus:ring-purple-500"
+            />
+            <div className="flex-1">
+              <div className="text-white font-medium">I have my own insurance</div>
+              <div className="text-sm text-gray-400">Upload your existing travel insurance certificate</div>
+            </div>
+          </label>
+          
+          <label className="flex items-center gap-3 p-3 border border-gray-600 rounded-lg cursor-pointer hover:border-purple-500 transition-colors">
+            <input
+              type="radio"
+              name="insuranceType"
+              value="purchase"
+              checked={travelerData?.insurance?.insurance === "purchase"}
+              onChange={(e) => {
+                updateCurrentTravelerData("insurance", {
+                  insurance: "purchase",
+                  insuranceDetails: null,
+                  insuranceCertificate: null,
+                  insurancePaymentCompleted: false,
+                  orderId: null,
+                  paymentAmount: null,
+                  paymentDate: null,
+                });
+              }}
+              className="w-4 h-4 text-purple-600 border-gray-300 focus:ring-purple-500"
+            />
+              <div className="flex-1">
+              <div className="text-white font-medium">Purchase insurance through us</div>
+              <div className="text-sm text-gray-400">£2 per day • Instant coverage</div>
+            </div>
+          </label>
         </div>
       </div>
 
-      {/* Insurance Certificate Upload */}
-      <div className="p-6 border border-gray-700">
+      {/* Show appropriate section based on selection */}
+      {travelerData?.insurance?.insurance === "own" && (
+        <div>
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-purple-600 rounded flex items-center justify-center">
+                <svg
+                  className="w-5 h-5 text-white"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1  1h-12a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-white">
+                Upload Insurance Certificate
+              </h3>
+              <span className="text-sm text-gray-500">
+                {completedCount} / {totalCount}
+              </span>
+            </div>
+          </div>
+
+          {/* Insurance Certificate Upload */}
+          <div className="p-6 border border-gray-700 mt-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-4 max-w-56 w-full">
-              <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                isUploaded ? 'bg-green-600' : 'bg-gray-600'
-              }`}>
+              <div
+                className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                  isUploaded ? "bg-green-600" : "bg-gray-600"
+                }`}
+              >
                 {isUploaded ? (
-                  <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <svg
+                    className="w-5 h-5 text-white"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
                     <path
                       fillRule="evenodd"
                       d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -2268,7 +2527,8 @@ const InsuranceStep = ({
               </h4>
             </div>
             <p className="text-sm text-gray-400 mt-1">
-              Upload your existing insurance certificate document (PDF, JPG, PNG up to 10MB)
+              Upload your existing insurance certificate document (PDF, JPG, PNG up
+              to 10MB)
             </p>
             <div className="flex-1"></div>
           </div>
@@ -2293,7 +2553,8 @@ const InsuranceStep = ({
         {isUploaded && (
           <div className="flex items-center justify-between pl-12 mt-4 bg-gray-800 p-3 rounded-lg">
             <p className="text-sm text-gray-300 font-medium">
-              {uploadedCertificate.name}
+              {(uploadedCertificate || travelerData?.insurance?.insuranceCertificate)
+                ?.name}
             </p>
             <div className="flex items-center gap-2">
               <button
@@ -2301,9 +2562,24 @@ const InsuranceStep = ({
                 className="p-2 text-gray-400 hover:text-blue-400 transition-colors"
                 title="View document"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                  />
                 </svg>
               </button>
               <button
@@ -2311,8 +2587,18 @@ const InsuranceStep = ({
                 className="p-2 text-gray-400 hover:text-green-400 transition-colors"
                 title="Download document"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
                 </svg>
               </button>
               <button
@@ -2320,481 +2606,145 @@ const InsuranceStep = ({
                 className="p-2 text-gray-400 hover:text-red-400 transition-colors"
                 title="Remove document"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
                 </svg>
               </button>
             </div>
           </div>
         )}
-      </div>
+          </div>
 
-      {/* Error message */}
-      {insuranceError && (
-        <p className="text-red-400 text-sm mt-2">{insuranceError}</p>
+          {/* Error message */}
+          {insuranceError && (
+            <p className="text-red-400 text-sm mt-2">{insuranceError}</p>
+          )}
+
+          {/* Save button for own insurance */}
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={handleSave}
+              disabled={loading}
+              className="bg-[#7350FF] text-white px-4 py-2 rounded hover:bg-[#7350FF] disabled:bg-[#7350FF]/30"
+            >
+              {loading ? "Saving..." : "Save and Continue"}
+            </button>
+          </div>
+        </div>
       )}
 
-      {/* Right-aligned Save button */}
-      <div className="mt-4 flex justify-end">
-        <button
-          onClick={handleSave}
-          disabled={loading || !uploadedCertificate}
-          className="bg-[#7350FF] text-white px-4 py-2 rounded hover:bg-[#7350FF] disabled:bg-[#7350FF]/30"
-        >
-          {loading ? "Saving..." : "Save and Continue"}
-        </button>
-      </div>
-    </div>
-  );
-};
+      {/* Purchase Insurance Section */}
+      {travelerData?.insurance?.insurance === "purchase" && (
+        <div>
+          {/* Header */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-green-600 rounded flex items-center justify-center">
+                <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-white">
+                Purchase Travel Insurance
+              </h3>
+            </div>
+          </div>
 
-const PaymentStep = ({
-  travelerIndex,
-  travelerData,
-  updateCurrentTravelerData,
-  onComplete,
-  loading,
-  setLoading,
-  applicationId,
-  travelersData,
-  numberOfTravelers,
-  parentVisaApplication,
-}) => {
-  const [paymentData, setPaymentData] = useState({
-    appointmentFees: 2060,
-    teleportFee: 1524.6,
-    cgst: 137.2,
-    sgst: 137.2,
-    grandTotal: 3859,
-    paymentStatus: "pending",
-    paymentMethod: "",
-    couponCode: "",
-    discountAmount: 0,
-  });
-
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("full_payment");
-  const [couponCode, setCouponCode] = useState("");
-  const [couponError, setCouponError] = useState("");
-  const [couponSuccess, setCouponSuccess] = useState("");
-  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
-  const [paymentError, setPaymentError] = useState("");
-
-  // Use the payment hook
-  const { handleCreateDynamicCheckoutSession, cretingDynamicCheckout } =
-    useCreateDynamicCheckoutSession();
-
-  // Calculate fees in Euro using currency utilities
-  const euroFees = useMemo(() => {
-    const appointmentFeesEUR = calculatePaymentFees(2060, "INR", "EUR");
-    const teleportFeeEUR = calculatePaymentFees(1524.6, "INR", "EUR");
-    const cgstEUR = calculatePaymentFees(137.2, "INR", "EUR");
-    const sgstEUR = calculatePaymentFees(137.2, "INR", "EUR");
-    const grandTotalEUR = calculatePaymentFees(
-      paymentData.grandTotal,
-      "INR",
-      "EUR"
-    );
-
-    return {
-      appointmentFees: appointmentFeesEUR,
-      teleportFee: teleportFeeEUR,
-      cgst: cgstEUR,
-      sgst: sgstEUR,
-      grandTotal: grandTotalEUR,
-    };
-  }, [paymentData.grandTotal]);
-
-  const handlePaymentMethodChange = (method) => {
-    setSelectedPaymentMethod(method);
-    const updatedPaymentData = { ...paymentData, paymentMethod: method };
-    setPaymentData(updatedPaymentData);
-    updateCurrentTravelerData("payment", updatedPaymentData);
-  };
-
-  const handleCouponApply = async () => {
-    const code = (couponCode || "").trim().toUpperCase();
-
-    if (!code) {
-      setCouponError("Please enter a coupon code");
-      setCouponSuccess("");
-      return;
-    }
-
-    setIsApplyingCoupon(true);
-    setCouponError("");
-    setCouponSuccess("");
-
-    try {
-      // Validate coupon using API
-      const validationResult = await validateCouponCode(code);
-
-      if (!validationResult.valid) {
-        setCouponError(validationResult.message || "Invalid coupon code");
-        return;
-      }
-
-      // Apply coupon discount
-      const discountAmount = applyCouponDiscount(euroFees.grandTotal, code);
-      const finalTotal = Math.max(0, euroFees.grandTotal - discountAmount);
-
-      const updatedPaymentData = {
-        ...paymentData,
-        couponCode: code,
-        discountAmount: discountAmount,
-        grandTotal: finalTotal,
-      };
-
-      setPaymentData(updatedPaymentData);
-      updateCurrentTravelerData("payment", updatedPaymentData);
-      setCouponSuccess(
-        `Coupon applied! You saved €${formatCurrency(discountAmount, "EUR")}`
-      );
-    } catch (error) {
-      console.error("Coupon validation error:", error);
-      setCouponError("Failed to validate coupon. Please try again.");
-    } finally {
-      setIsApplyingCoupon(false);
-    }
-  };
-
-  const handlePayment = async () => {
-    if (!selectedPaymentMethod) {
-      setPaymentError("Please select a payment method.");
-      return;
-    }
-
-    setPaymentError("");
-
-    try {
-      // PAYMENT FLOW EXPLANATION:
-      // 1. Display amounts to user in EUR (converted from INR)
-      // 2. For payment processing, convert EUR back to INR
-      // 3. Send INR amount to payment gateway (in paisa)
-      // 4. This allows user to see EUR pricing while backend processes INR
-      
-      // Prepare payment payload
-      const currentTraveler = travelersData[travelerIndex] || travelersData[0];
-      const userEmail =
-        currentTraveler?.basicDetails?.email ||
-        localStorageGateway("userEmail", localStorageEnums.GET) ||
-        "test@123.com"; // fallback
-
-      // Store payment metadata for success page handling
-      const paymentMetadata = {
-        applicationId: applicationId,
-        travelerIndex: travelerIndex,
-        paymentType: "application_creation",
-        amount: euroFees.grandTotal, // Display amount in EUR
-        amountINR: paymentData.grandTotal, // Original INR amount
-        currency: "EUR", // Display currency
-        paymentCurrency: "INR", // Actual payment currency
-        email: userEmail,
-        timestamp: Date.now(),
-      };
-      localStorage.setItem("paymentMetadata", JSON.stringify(paymentMetadata));
-
-      console.log("Payment metadata stored:", paymentMetadata);
-      console.log("Amount conversion debug:");
-      console.log("- Original INR amount:", paymentData.grandTotal);
-      console.log("- Converted EUR amount:", euroFees.grandTotal);
-      console.log("- Converting EUR back to INR for payment system");
-      
-      // Convert EUR back to INR for payment system (current exchange rate as of 2024)
-      // You might want to get this from a live API or environment config
-      const eurToInrRate = 91.5; // Current approximate rate: 1 EUR = 91.5 INR
-      const inrAmountForPayment = Math.round(euroFees.grandTotal * eurToInrRate);
-      
-      console.log("- INR amount for payment system:", inrAmountForPayment);
-      console.log("- INR amount in paisa (for payment):", inrAmountForPayment * 100);
-
-      // Use the hook to create checkout session
-      const response = await handleCreateDynamicCheckoutSession({
-        email: userEmail,
-        amount: (inrAmountForPayment * 100).toString(), // Send amount in INR paisa
-        travellers: numberOfTravelers.toString(),
-        country: parentVisaApplication?.country || "Croatia",
-        insurance:
-          currentTraveler?.insurance?.insurance === "true" ||
-          currentTraveler?.insurance?.insurance === "purchase"
-            ? (468 * 100).toString() // Insurance in INR paisa
-            : "0",
-        applicationId: applicationId || "",
-        travelerIndex: travelerIndex.toString(),
-        paymentType: "application_creation",
-        visaTypeId: parentVisaApplication?.visaTypeId || "",
-        currency: "INR", // Change back to INR for payment processing
-      });
-
-      console.log("Payment API response:", response);
-      console.log("Response structure debug:");
-      console.log("- response.data:", response?.data);
-      console.log("- response.data.data:", response?.data?.data);
-      console.log(
-        "- response.data.data.results:",
-        response?.data?.data?.results
-      );
-      console.log(
-        "- response.data.data.results.url:",
-        response?.data?.data?.results?.url
-      );
-
-      if (
-        (response?.data?.status === "success" &&
-          response?.data?.data?.results?.url) ||
-        response?.data?.results?.url
-      ) {
-        // Handle successful payment session creation
-        const results =
-          response?.data?.data?.results || response?.data?.results;
-        const { url: checkoutUrl, token, message } = results;
-
-        console.log("Payment session created successfully:", {
-          checkoutUrl,
-          token,
-          message,
-        });
-
-        // Store the token if provided
-        if (token) {
-          localStorageGateway("token", localStorageEnums.SET, token);
-          console.log("Authentication token stored successfully");
-        }
-
-        // Update application with payment initiation - similar to other steps
-        try {
-          await onComplete({
-            paymentStatus: "processing",
-            paymentMethod: selectedPaymentMethod,
-            couponCode: couponCode || "",
-            amount: euroFees.grandTotal, // Use converted EUR amount
-            currency: "EUR",
-            stripeSessionId: results.sessionId || "",
-            travelerIndex: travelerIndex,
-          });
-        } catch (updateError) {
-          console.warn(
-            "Failed to update application status, but proceeding with payment:",
-            updateError
-          );
-        }
-
-        // Show success message
-        console.log("Redirecting to Stripe checkout:", checkoutUrl);
-
-        // Redirect to Stripe checkout
-        window.location.href = checkoutUrl;
-      } else {
-        // Handle API error
-        const errorMessage =
-          response?.data?.data?.results?.statusCode === 400
-            ? "Invalid payment details. Please check your information and try again."
-            : response?.data?.data?.results?.error ||
-              response?.data?.message ||
-              response?.message ||
-              "Failed to initiate payment. Please try again.";
-        setPaymentError(errorMessage);
-        console.error("Payment initiation failed:", response);
-      }
-    } catch (error) {
-      console.error("Payment error:", error);
-
-      // Handle different types of errors
-      let errorMessage = "Something went wrong. Please try again.";
-
-      if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-
-      setPaymentError(errorMessage);
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      {/* Main Content Container */}
-      <div className="flex gap-6">
-        {/* Left Side - Payment Method Selection */}
-        <div className="flex-1">
-          <div className="bg-[#23232B] border border-[#423577] rounded-lg p-6">
-            <h4 className="text-white font-gilroy-bold text-lg mb-4">
-              Select a payment method
-            </h4>
-
-            <div className="space-y-3">
-              {/* Direct Payment Option */}
-              <div
-                className={`border-2 rounded-lg p-6 cursor-pointer transition-all ${
-                  selectedPaymentMethod === "full_payment"
-                    ? "border-[#7350FF] bg-[#7350FF]/8"
-                    : "border-[#423577] hover:border-[#7350FF]/50"
-                }`}
-                onClick={() => handlePaymentMethodChange("full_payment")}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div
-                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                        selectedPaymentMethod === "full_payment"
-                          ? "border-[#7350FF]"
-                          : "border-gray-400"
-                      }`}
-                    >
-                      {selectedPaymentMethod === "full_payment" && (
-                        <div className="w-4 h-4 bg-[#7350FF] rounded-full"></div>
-                      )}
-                    </div>
-                    <div>
-                      <div className="text-white font-gilroy-bold text-xl">
-                        Full payment
-                      </div>
-                      <div className="text-2xl font-gilroy-bold text-white mt-1">
-                        €{euroFees.grandTotal.toFixed(2)}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <svg 
-                      className="w-5 h-5 text-green-400" 
-                      fill="currentColor" 
-                      viewBox="0 0 20 20"
-                    >
-                      <path 
-                        fillRule="evenodd" 
-                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" 
-                        clipRule="evenodd" 
-                      />
-                    </svg>
-                    <span className="text-green-400 font-medium">Pay nothing later</span>
+          {!travelerData?.insurance?.insurancePaymentCompleted ? (
+            <div className="bg-[#23232B] border border-[#423577] rounded-lg p-6">
+              <div className="text-sm text-gray-300 mb-4">
+                Complete your insurance purchase to continue
+              </div>
+              <div className="space-y-3 mb-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-300">Travel days</span>
+                  <span className="text-white font-medium">{calculateInsuranceDays()} day(s)</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-300">Price per day</span>
+                  <span className="text-white font-medium">£2.00</span>
+                </div>
+                <div className="border-t border-gray-600 pt-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-white font-semibold">Total amount</span>
+                    <span className="text-white font-semibold">£{(calculateInsuranceDays() * 2).toFixed(2)}</span>
                   </div>
                 </div>
               </div>
+              
+              {paymentError && (
+                <p className="text-red-400 text-sm mb-4">{paymentError}</p>
+              )}
+              
+              <button
+                onClick={handleInsurancePay}
+                disabled={isPaying || cretingDynamicCheckout}
+                className="w-full bg-[#28A745] text-white py-3 px-4 rounded-md hover:bg-[#218838] disabled:opacity-60 font-medium"
+              >
+                {isPaying || cretingDynamicCheckout
+                  ? "Redirecting to Payment..."
+                  : `Pay Insurance (£${(calculateInsuranceDays() * 2).toFixed(2)})`}
+              </button>
             </div>
-          </div>
-        </div>
-
-        {/* Right Side - Payment Summary */}
-        <div className="w-80">
-          <div className="bg-[#23232B] border border-[#423577] rounded-lg p-6">
-            <h4 className="text-white font-gilroy-bold text-lg mb-4">
-              Payment Summary
-            </h4>
-
-            {/* Coupon Code Section */}
-            <div className="mb-6">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Enter coupon code"
-                  value={couponCode}
-                  onChange={(e) => {
-                    setCouponCode(e.target.value.toUpperCase());
-                    setCouponError("");
-                    setCouponSuccess("");
-                  }}
-                  className="flex-1 bg-[#292933] border border-[#423577] text-white px-3 py-2 rounded-lg focus:outline-none focus:border-[#6366F1] placeholder-gray-400"
-                />
+          ) : (
+            <div className="bg-green-900/20 border border-green-600 rounded-lg p-6">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-6 h-6 bg-green-600 rounded-full flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <h4 className="text-white font-semibold">Payment Complete</h4>
+              </div>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-300">Order ID:</span>
+                  <span className="text-white font-medium">{travelerData?.insurance?.orderId}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-300">Amount paid:</span>
+                  <span className="text-white font-medium">£{travelerData?.insurance?.paymentAmount}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-300">Payment date:</span>
+                  <span className="text-white font-medium">
+                    {travelerData?.insurance?.paymentDate ? new Date(travelerData.insurance.paymentDate).toLocaleDateString() : 'N/A'}
+                  </span>
+                </div>
+              </div>
+              <div className="mt-4 flex justify-end">
                 <button
-                  onClick={handleCouponApply}
-                  disabled={isApplyingCoupon}
-                  className="bg-[#423577] border border-[#423577] text-white px-4 py-2 rounded-lg hover:bg-[#353540] transition-colors disabled:opacity-50"
+                  onClick={handleSave}
+                  disabled={loading}
+                  className="bg-[#7350FF] text-white px-4 py-2 rounded hover:bg-[#7350FF] disabled:bg-[#7350FF]/30"
                 >
-                  {isApplyingCoupon ? "Applying..." : "Apply"}
+                  {loading ? "Saving..." : "Continue"}
                 </button>
               </div>
-              {couponError && (
-                <p className="text-red-400 text-sm mt-2">{couponError}</p>
-              )}
-              {couponSuccess && (
-                <p className="text-green-400 text-sm mt-2">{couponSuccess}</p>
-              )}
             </div>
-
-            {/* Fee Breakdown */}
-            <div className="space-y-3 mb-6">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-300 font-medium">
-                  Appointment fees
-                </span>
-                <span className="text-white font-medium">
-                  {formatCurrency(euroFees.appointmentFees, "EUR")}
-                </span>
-              </div>
-
-              <div className="border-t border-[#423577] pt-3">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-300 font-medium">Service fee</span>
-                  <span className="text-white font-medium">
-                    {formatCurrency(
-                      euroFees.teleportFee + euroFees.cgst + euroFees.sgst,
-                      "EUR"
-                    )}
-                  </span>
-                </div>
-                <div className="ml-4 space-y-1 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Base fee</span>
-                    <span className="text-gray-300">
-                      {formatCurrency(euroFees.teleportFee, "EUR")}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">VAT (18%)</span>
-                    <span className="text-gray-300">
-                      {formatCurrency(euroFees.cgst + euroFees.sgst, "EUR")}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {paymentData.discountAmount > 0 && (
-                <div className="flex justify-between items-center text-green-400 border-t border-[#423577] pt-3">
-                  <span>Discount ({paymentData.couponCode})</span>
-                  <span>
-                    -{formatCurrency(paymentData.discountAmount, "EUR")}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Grand Total */}
-            <div className="border-t border-[#423577] pt-4 mb-6">
-              <div className="flex justify-between items-center">
-                <span className="text-white font-gilroy-bold text-lg">
-                  Total Amount
-                </span>
-                <span className="text-white font-gilroy-bold text-lg">
-                  €{euroFees.grandTotal.toFixed(2)}
-                </span>
-              </div>
-            </div>
-
-            {/* Payment Button */}
-            {paymentError && (
-              <p className="text-red-400 text-sm mb-2">{paymentError}</p>
-            )}
-            <button
-              onClick={() => {
-                setPaymentError("");
-                handlePayment();
-              }}
-              disabled={cretingDynamicCheckout}
-              className="w-full bg-[#7350FF] text-white py-3 px-4 rounded-md hover:bg-[#6350E5] disabled:bg-[#7350FF]/30 font-medium text-lg"
-            >
-              {cretingDynamicCheckout
-                ? "Processing..."
-                : `Pay €${euroFees.grandTotal.toFixed(2)}`}
-            </button>
-
-          </div>
+          )}
         </div>
-      </div>
+      )}
+
+      {/* Show message if no insurance option selected */}
+      {!travelerData?.insurance?.insurance && (
+        <div className="text-center py-8">
+          <p className="text-gray-400">Please select an insurance option above to continue.</p>
+        </div>
+      )}
     </div>
   );
-};
-
-/* Small Icon Components */
+};/* Small Icon Components */
 const LockIcon = () => (
   <svg
     className="w-5 h-5 text-gray-300"

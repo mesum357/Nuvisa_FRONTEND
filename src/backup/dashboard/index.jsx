@@ -301,19 +301,15 @@ function ApplicationCard({ app, type }) {
         </div>
       )}
 
-      <div className="mt-4 flex justify-between items-center">
-        <button className="text-gray-500 hover:text-red-500 transition">
-          <Trash2 size={18} />
-        </button>
-
-        <button
-          onClick={() => handleContinueApplication(app.id)}
-          className="flex items-center gap-2 bg-[#7350FF] hover:bg-[#6247D3] text-white text-sm px-4 py-2 rounded-lg transition cursor-pointer"
-        >
-          {type === "draft" ? "Continue" : "View"} application
-          <FaChevronRight size={12} />
-        </button>
-      </div>
+        <div className="mt-4 flex justify-end items-center">
+          <button
+            onClick={() => handleContinueApplication(app.id)}
+            className="flex items-center gap-2 bg-[#7350FF] hover:bg-[#6247D3] text-white text-sm px-4 py-2 rounded-lg transition cursor-pointer"
+          >
+            {type === "draft" ? "Continue" : "View"} application
+            <FaChevronRight size={12} />
+          </button>
+        </div>
     </motion.div>
   );
 }

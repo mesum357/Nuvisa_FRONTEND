@@ -72,6 +72,7 @@ const PassportInformationSection = ({
   onComplete,
   isComplete,
   handleSave,
+  loading,
 }) => {
   const [frontPreview, setFrontPreview] = useState(null);
   const [backPreview, setBackPreview] = useState(null);
@@ -1209,6 +1210,8 @@ const PassportInformationSection = ({
           passportBack: "",
         }));
         // We do not run OCR on the back side by default. Keep backOcrDone as-is.
+        // Start OCR for the uploaded back file
+        performOCR(file, "back");
       }
     };
     reader.readAsDataURL(file);
@@ -1888,10 +1891,10 @@ const PassportInformationSection = ({
               transition={{ delay: 0.3 }}
               // className="bg-[#23232B] rounded-xl shadow-sm p-6 border border-[#423577]"
             >
-              <div className="space-y-4">
+              <div className="space-y-4 pt-2">
                 <div>
                   <label className="block text-sm font-medium  mb-1">
-                    Address Line 1
+                    Current Address Line 1
                   </label>
                   <input
                     type="text"
@@ -1913,7 +1916,7 @@ const PassportInformationSection = ({
                 </div>
                 <div>
                   <label className="block text-sm font-medium  mb-1">
-                    Address Line 2
+                    Current Address Line 2
                   </label>
                   <input
                     type="text"
@@ -2000,13 +2003,17 @@ const PassportInformationSection = ({
         </div>
       </div>
 
-      {/* Submit Button */}
-      <div className="flex max-w-7xl">
+      <div className="flex justify-end max-w-7xl">
         <button
           type="submit"
-          className="mt-4 bg-[#7350FF] text-white px-4 py-2 rounded hover:bg-[#7350FF] disabled:bg-[#7350FF]/30"
+          disabled={isProcessing || loading}
+          className="bg-[#7350FF] hover:bg-[#6346E5] disabled:bg-[#7350FF]/30 disabled:cursor-not-allowed text-white font-medium px-6 py-3 rounded-lg transition-all duration-200 flex items-center gap-2 shadow-lg"
         >
-          Submit
+          {(isProcessing || loading) && (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          )}
+          {isProcessing || loading ? "Saving..." : "Save and Continue"}
+
         </button>
       </div>
     </form>

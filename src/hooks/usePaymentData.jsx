@@ -82,6 +82,10 @@ const usePaymentData = () => {
         "insurancePayment",
         localStorageEnums.GET
       );
+      const insuranceSelected = await localStorageGateway(
+        "insuranceSelected",
+        localStorageEnums.GET
+      );
       const travelers = await localStorageGateway(
         "travelers",
         localStorageEnums.GET
@@ -95,6 +99,7 @@ const usePaymentData = () => {
         email,
         selectedCountry: country || visaState.selectedCountry,
         insurancePayment: insurance,
+        insuranceSelected: insuranceSelected,
         travelers: travelers || visaState.travelers,
         totalAmount: amount,
         arrivalDate: visaState.arrivalDate,
@@ -132,6 +137,7 @@ const usePaymentData = () => {
       await localStorageGateway("lastPaymentData", localStorageEnums.REMOVE);
       await localStorageGateway("selectedCountry", localStorageEnums.REMOVE);
       await localStorageGateway("insurancePayment", localStorageEnums.REMOVE);
+      await localStorageGateway("insuranceSelected", localStorageEnums.REMOVE);
       await localStorageGateway("travelers", localStorageEnums.REMOVE);
       await localStorageGateway("paymentAmount", localStorageEnums.REMOVE);
       setLastPayment(null);

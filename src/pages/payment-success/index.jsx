@@ -51,6 +51,8 @@ const PaymentSuccess = () => {
         let travelerIndex = searchParams.get("traveler_index");
 
         // If URL parameters are missing, check for stored insurance payment metadata
+        // Keep a copy of the used stored metadata so we can include orderId/paymentAmount
+        let usedStoredInsuranceMetadata = null;
         if (!paymentTypeParam || !applicationId) {
           try {
             const storedMetadata = localStorage.getItem(
@@ -63,6 +65,7 @@ const PaymentSuccess = () => {
                 paymentTypeParam = paymentTypeParam || metadata.paymentType;
                 applicationId = applicationId || metadata.applicationId;
                 travelerIndex = travelerIndex || metadata.travelerIndex;
+                usedStoredInsuranceMetadata = metadata; // preserve for later POST
                 console.log(
                   "Using stored insurance payment metadata:",
                   metadata
@@ -109,6 +112,17 @@ const PaymentSuccess = () => {
           );
 
           try {
+            // Determine amount and orderId to send to backend.
+            // Prefer values from stored insurance metadata (if present),
+            // otherwise fall back to current payment data.
+            const postAmount =
+              (usedStoredInsuranceMetadata && usedStoredInsuranceMetadata.paymentAmount) ||
+              currentData.totalAmount ||
+              "490";
+            const postOrderId =
+              (usedStoredInsuranceMetadata && usedStoredInsuranceMetadata.orderId) ||
+              undefined;
+
             // Manually call the insurance update API since webhooks don't work in localhost
             const insuranceUpdateResponse = await fetch(
               `${process.env.NEXT_PUBLIC_API_URL}/stripe_payment/test-insurance-payment`,
@@ -122,7 +136,8 @@ const PaymentSuccess = () => {
                   travelerIndex: travelerIndex,
                   applicationId: finalApplicationId,
                   email: currentData.email,
-                  amount: currentData.totalAmount || "490",
+                  amount: postAmount,
+                  orderId: postOrderId,
                 }),
               }
             );
@@ -212,7 +227,11 @@ const PaymentSuccess = () => {
 
         // Initialize travelers data with insurance set for each initial traveler
         const numberOfTravelers = Number(currentData.travelers) || 1;
-        const hasInsurance = currentData.insurancePayment ? "true" : "false";
+        
+        // Use the actual insurance selection boolean, fallback to fee check for backward compatibility
+        const hasInsurance = currentData.insuranceSelected === "true" || 
+                           (currentData.insuranceSelected === undefined && Number(currentData.insurancePayment) > 0) 
+                           ? "true" : "false";
 
         const initialTravelersData = Array.from(
           { length: numberOfTravelers },

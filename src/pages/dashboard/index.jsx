@@ -384,11 +384,35 @@ function ApplicationCard({ app, type, onArchive }) {
           </p>
         </div>
 
-        <span className="text-xs text-white/60">
-          <ClientOnly fallback="Loading...">
-            {daysAgo} day{daysAgo !== 1 ? "s" : ""} ago
-          </ClientOnly>
-        </span>
+        {/* Enhanced status display for submitted applications */}
+        {type === "submitted" && (
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+              <span className="text-xs text-green-400 font-medium">
+                {app?.paymentStatus === "completed" ? "Payment Completed" : "Processing"}
+              </span>
+            </div>
+            <div className="text-xs text-white/60">
+              {app?.orderId && (
+                <span className="mr-2">Order: {app.orderId}</span>
+              )}
+              Status: Under Review
+            </div>
+            <div className="text-xs text-blue-400">
+              Est. completion: Within 24 business hours
+            </div>
+          </div>
+        )}
+
+        {/* Standard display for other types */}
+        {type !== "submitted" && (
+          <span className="text-xs text-white/60">
+            <ClientOnly fallback="Loading...">
+              {daysAgo} day{daysAgo !== 1 ? "s" : ""} ago
+            </ClientOnly>
+          </span>
+        )}
       </div>
 
       {/* Right side - Action button and archive */}
@@ -407,10 +431,11 @@ function ApplicationCard({ app, type, onArchive }) {
         </motion.button>
       </div>
 
-      {type !== "archived" && (
+      {/* Archive button - only show for draft applications, not submitted */}
+      {type === "draft" && (
         <button
           onClick={() => handleArchiveApplication(app?.id)}
-          className="text-white transition-colors"
+          className="text-white transition-colors hover:text-red-400"
           title="Archive application"
         >
           <Archive size={24} strokeWidth={1.5} />

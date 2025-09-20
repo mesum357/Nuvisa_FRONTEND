@@ -165,6 +165,7 @@ const CountrySlider = () => {
   const [couponCode, setCouponCode] = useState("");
   const [couponError, setCouponError] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState(null);
+  const [groupAutoApplied, setGroupAutoApplied] = useState(false);
   const [showStudentModal, setShowStudentModal] = useState(false);
   const [pendingCheckoutQuery, setPendingCheckoutQuery] = useState(null);
   const [studentEmail, setStudentEmail] = useState("");
@@ -348,20 +349,40 @@ const CountrySlider = () => {
     }
   }, [selectedVisaType, arrivalDate, departureDate]);
 
-  // Required Documents checkboxes state
-  const [requiredDocuments, setRequiredDocuments] = useState({
-    passport: false,
-    ukVisa: false,
-    photos: false,
-    bankStatements: false,
-    employmentProof: false,
-    insurance: false,
+  // Required Documents checkboxes state (persisted to localStorage so selections survive refresh)
+  const [requiredDocuments, setRequiredDocuments] = useState(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const saved = localStorage.getItem("nuvisa_required_documents");
+        if (saved) return JSON.parse(saved);
+      }
+    } catch (e) {
+      // ignore and fall back to defaults
+    }
+    return {
+      passport: false,
+      ukVisa: false,
+      photos: false,
+      bankStatements: false,
+      employmentProof: false,
+      insurance: false,
+    };
   });
 
-  // Recommended items checkboxes state
-  const [recommendedItems, setRecommendedItems] = useState({
-    insuranceCertificate: false,
-    giftCard: false,
+  // Recommended items checkboxes state (persisted)
+  const [recommendedItems, setRecommendedItems] = useState(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const saved = localStorage.getItem("nuvisa_recommended_items");
+        if (saved) return JSON.parse(saved);
+      }
+    } catch (e) {
+      // ignore
+    }
+    return {
+      insuranceCertificate: false,
+      giftCard: false,
+    };
   });
 
   // Handle pre-selected country from URL parameters
@@ -421,10 +442,20 @@ const CountrySlider = () => {
   }, [arrivalDate, departureDate, dispatch]);
 
   const toggleRequiredDocument = (documentKey) => {
-    setRequiredDocuments((prev) => ({
-      ...prev,
-      [documentKey]: !prev[documentKey],
-    }));
+    setRequiredDocuments((prev) => {
+      const next = { ...prev, [documentKey]: !prev[documentKey] };
+      try {
+        if (typeof window !== "undefined") {
+          localStorage.setItem(
+            "nuvisa_required_documents",
+            JSON.stringify(next)
+          );
+        }
+      } catch (e) {
+        // ignore storage errors
+      }
+      return next;
+    });
     // Clear validation error when document is checked
     if (!requiredDocuments[documentKey]) {
       setValidationErrors((prev) => {
@@ -436,10 +467,20 @@ const CountrySlider = () => {
   };
 
   const toggleRecommendedItem = (itemKey) => {
-    setRecommendedItems((prev) => ({
-      ...prev,
-      [itemKey]: !prev[itemKey],
-    }));
+    setRecommendedItems((prev) => {
+      const next = { ...prev, [itemKey]: !prev[itemKey] };
+      try {
+        if (typeof window !== "undefined") {
+          localStorage.setItem(
+            "nuvisa_recommended_items",
+            JSON.stringify(next)
+          );
+        }
+      } catch (e) {
+        // ignore
+      }
+      return next;
+    });
     // If unchecking insurance certificate, reset days to 0
     if (itemKey === "insuranceCertificate" && recommendedItems[itemKey]) {
       setInsuranceDays(0);
@@ -498,46 +539,6 @@ const CountrySlider = () => {
       setTravelersLocal(newValue);
       dispatch(setReduxTravelers(Number(newValue)));
     }
-  };
-
-  // Handle visa type selection from VisaTypeSelector
-  const handleVisaTypeSelect = (visaType) => {
-    // Create a serializable copy of the visa type with sanitized data
-    const serializableVisaType = {
-      id: String(visaType.id || ""),
-      name: String(visaType.name || ""),
-      type: String(visaType.type || visaType.name || ""),
-      subType: visaType.subType ? String(visaType.subType) : null,
-      price: Number(visaType.price || 0),
-      priceGBP: Number(visaType.priceGBP || 0),
-      currency: String(visaType.currency || "INR"),
-      purpose: Array.isArray(visaType.purpose)
-        ? visaType.purpose.map((p) => String(p)).filter(Boolean)
-        : [],
-      country_symbol: String(visaType.country_symbol || ""),
-      processing_time: String(visaType.processing_time || ""),
-      validity: sanitizeDurationString(visaType.validity),
-      validity_period: sanitizeDurationString(visaType.validity_period),
-      duration_permitted: sanitizeDurationString(visaType.duration_permitted),
-      entries_permitted: String(visaType.entries_permitted || ""),
-    };
-
-    setSelectedVisaType(serializableVisaType);
-
-    // Update Redux with the new visa fees from selected visa type
-    // Use GBP price if available, otherwise convert from INR
-    const visaFeesInGBP = visaType.priceGBP
-      ? Number(visaType.priceGBP)
-      : Math.round(Number(visaType.price || 0) / 100);
-    dispatch(setVisaFees(Number(visaFeesInGBP)));
-
-    console.log("Original visa type data:", {
-      duration_permitted: visaType.duration_permitted,
-      validity: visaType.validity,
-      validity_period: visaType.validity_period,
-    });
-    console.log("Sanitized visa type:", serializableVisaType);
-    console.log("Updated visa fees to:", visaFeesInGBP);
   };
 
   const selectCountry = (country) => {
@@ -661,30 +662,7 @@ const CountrySlider = () => {
     return emailRegex.test(email);
   };
 
-  const validateUserEmail = () => {
-    if (!userEmail.trim()) {
-      setEmailError("Email is required");
-      return false;
-    }
-    if (!validateEmail(userEmail)) {
-      setEmailError("Please enter a valid email address");
-      return false;
-    }
-    setEmailError("");
-    // Email verification state removed — validation passes
-    return true;
-  };
-
-  const handlePaymentMethodSelect = (method) => {
-    setSelectedPaymentMethod(method);
-    if (method === "apple" || method === "google") {
-      setEmailError("");
-    }
-
-    // Clear any previous validation errors when switching payment methods
-    setEmailError("");
-    setValidationErrors(new Set());
-  };
+  
 
   const calculateFinalPrice = () => {
     const currentBaseFee =
@@ -752,8 +730,25 @@ const CountrySlider = () => {
     }
 
     // Apply immediately
-    setAppliedDiscount(discount);
+    const currentBaseFee = selectedVisaType && selectedVisaType.priceGBP
+      ? Number(selectedVisaType.priceGBP)
+      : selectedVisaType && selectedVisaType.price
+      ? Math.round(Number(selectedVisaType.price) / 100)
+      : 159; // baseFee
+    const currentVisaFees = currentBaseFee * travelers;
+    const calculatedDiscountAmount = (currentVisaFees * discount.percentage) / 100;
+    
+    const discountWithAmount = {
+      ...discount,
+      discountAmount: Math.round(calculatedDiscountAmount),
+    };
+    
+    setAppliedDiscount(discountWithAmount);
     setCouponError("");
+    // If user manually applied GROUP20, mark it as manual (not auto-applied)
+    if (couponCode.toUpperCase() === 'GROUP20') {
+      setGroupAutoApplied(false);
+    }
 
     // If student discount, auto-check local verified email and set UI so user isn't asked again
     if (discount && discount.description.toLowerCase().includes('student')) {
@@ -785,6 +780,55 @@ const CountrySlider = () => {
     setCouponError("");
     // email verification reset not required
   };
+
+  // Auto-apply or remove GROUP20 when traveler count changes
+  useEffect(() => {
+    try {
+      const currentCode = (couponCode || "").toUpperCase();
+      const isGroupApplied =
+        appliedDiscount &&
+        appliedDiscount.percentage === 20 &&
+        (appliedDiscount.description || "").toLowerCase().includes("group");
+
+      if (travelers >= 3) {
+        // Only auto-apply if there is no coupon currently applied
+        if (!appliedDiscount) {
+          // Calculate the discount amount based on current visa fees
+          const currentBaseFee = selectedVisaType && selectedVisaType.priceGBP
+            ? Number(selectedVisaType.priceGBP)
+            : selectedVisaType && selectedVisaType.price
+            ? Math.round(Number(selectedVisaType.price) / 100)
+            : 159; // baseFee
+          const currentVisaFees = currentBaseFee * travelers;
+          const calculatedDiscountAmount = (currentVisaFees * 20) / 100;
+          
+          const groupDiscount = {
+            description: "Group discount (3+ travellers)",
+            percentage: 20,
+            requiresMinTravellers: 3,
+            discountAmount: Math.round(calculatedDiscountAmount),
+          };
+          setAppliedDiscount(groupDiscount);
+          setCouponCode("GROUP20");
+          setCouponError("");
+          setGroupAutoApplied(true);
+          showSuccess && showSuccess("Group-20 applied — 20% off for 3+ travellers");
+        }
+      } else {
+        // If travelers dropped below 3 and we auto-applied the group discount, remove it
+        if (groupAutoApplied) {
+          setAppliedDiscount(null);
+          // Only clear couponCode if it was the auto-applied GROUP20
+          if (currentCode === "GROUP20") setCouponCode("");
+          setGroupAutoApplied(false);
+          showSuccess && showSuccess("Group-20 removed — fewer than 3 travellers");
+        }
+        // If the user manually had GROUP20 applied but now travelers < 3, show an error when they try to proceed (existing validation handles this)
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, [travelers]);
 
   useEffect(() => {
     if (arrivalDate && departureDate) {
@@ -838,6 +882,30 @@ const CountrySlider = () => {
     if (missingDocs.length > 0 && !hasOnlyInsurance) {
       setValidationErrors(new Set(missingDocs));
       return;
+    }
+
+    // If a student discount is applied, require email verification before proceeding
+    if (
+      appliedDiscount &&
+      appliedDiscount.description &&
+      appliedDiscount.description.toLowerCase().includes("student") &&
+      !studentVerified
+    ) {
+      if (!userEmail || !validateEmail(userEmail)) {
+        setEmailError("Please enter a valid student email before proceeding to checkout");
+        return;
+      }
+
+      const verificationSent = await sendStudentVerification(userEmail);
+      if (verificationSent) {
+        // Store pending checkout query to continue after verification
+        setPendingCheckoutQuery(getCheckoutQueryString());
+        setSelectedPaymentMethod("stripe");
+        // Polling/verification effect will handle redirect after verification
+        return;
+      } else {
+        return; // sendStudentVerification will have shown error
+      }
     }
 
     // Use selected visa type fees if available, otherwise fallback to baseFee
@@ -971,6 +1039,23 @@ const CountrySlider = () => {
     const giftCardFees = recommendedItems.giftCard ? 188 * giftCardCount : 0;
 
     const totalAmount = Math.round(visaFees + insuranceFees + giftCardFees);
+
+    // Get the country name from the selected country object
+    const countryName = selectedCountry?.name || selectedCountry || "Germany";
+
+    // Determine if this is an insurance-only checkout
+    const requiredFields = [
+      "passport",
+      "ukVisa",
+      "photos",
+      "bankStatements",
+      "employmentProof",
+    ];
+    const missingDocs = requiredFields.filter((field) => !requiredDocuments[field]);
+    const hasOnlyInsurance =
+      recommendedItems.insuranceCertificate &&
+      !recommendedItems.giftCard &&
+      missingDocs.length === requiredFields.length;
 
     const queryParams = new URLSearchParams({
       visaFees: Math.round(visaFees).toString(),
@@ -1957,7 +2042,8 @@ const CountrySlider = () => {
 </div>
 
         {/* Required Documents */}
-        <div className="mb-6">
+        <ClientOnly>
+          <div className="mb-6">
           <h2 className="text-xl font-gilroy-bold mb-4">Required Documents:</h2>
           <div className="grid grid-cols-2 gap-3">
             <div
@@ -2126,11 +2212,7 @@ const CountrySlider = () => {
             </div>
           </div>
         </div>
-        {/* <div className="px-5 mb-10 pt-5 w-full flex items-center justify-center">
-          <div className="max-w-[88rem] w-full">
-            <VisaTypeSelector onVisaTypeSelect={handleVisaTypeSelect} />
-          </div>
-        </div> */}
+        </ClientOnly>
 
         {/* Recommended */}
         <div className="mb-6">
@@ -2518,11 +2600,15 @@ const CountrySlider = () => {
               )}
 
               <div className="text-xs text-gray-400">
-                <p>Available discounts:</p>
-                <p>
-                  • <span className="font-semibold">STUDENT10</span> - 10%
-                  student discount
-                </p>
+                <p className="font-medium text-gray-300">Available discounts:</p>
+                <ul className="list-none mt-1 space-y-1">
+                  <li>
+                    • <span className="font-semibold">STUDENT10</span> - 10% student discount (requires student email verification)
+                  </li>
+                  <li>
+                    • <span className="font-semibold">GROUP20</span> - 20% group discount (automatically applied when 3 or more travellers are added)
+                  </li>
+                </ul>
               </div>
             </div>
           </div>
@@ -2601,24 +2687,48 @@ const CountrySlider = () => {
                 - Quick setup with saved payment methods
               </div>
 
-              {/* Apple Pay Button */}
-              <button
-                onClick={handleApplePayClick}
-                className="w-full bg-black text-white rounded-md p-3 hover:bg-gray-900 transition-all flex items-center justify-center space-x-2"
-                style={{ backgroundColor: '#000' }}
-              >
-                <FaApple className="text-lg" />
-                <span className="text-sm font-medium">Pay with Apple Pay</span>
-              </button>
+              {/* Apple Pay & Google Pay - Official Branded Buttons */}
+              <div className="grid grid-cols-2 gap-3">
+                {/* Apple Pay Button - Official Style */}
+                <button
+                  onClick={handleApplePayClick}
+                  className="group relative flex items-center justify-center bg-black text-white rounded-lg px-6 py-3 text-sm font-medium hover:opacity-90 transition-all duration-200 shadow-sm"
+                  style={{ 
+                    backgroundColor: '#000',
+                    minHeight: '44px',
+                    border: '1px solid rgba(255,255,255,0.1)'
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <FaApple className="text-lg" />
+                    <span className="font-medium tracking-wide">Pay</span>
+                  </div>
+                  <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-5 rounded-lg transition-opacity duration-200"></div>
+                </button>
 
-              {/* Google Pay Button */}
-              <button
-                onClick={handleGooglePayClick}
-                className="w-full bg-white text-black rounded-md p-3 hover:bg-gray-100 transition-all flex items-center justify-center space-x-2 border border-gray-300"
-              >
-                <FaGoogle className="text-lg text-blue-500" />
-                <span className="text-sm font-medium">Pay with Google Pay</span>
-              </button>
+                {/* Google Pay Button - Official Style */}
+                <button
+                  onClick={handleGooglePayClick}
+                  className="group relative flex items-center justify-center bg-white text-gray-800 rounded-lg px-6 py-3 text-sm font-medium hover:shadow-md transition-all duration-200 shadow-sm border border-gray-200"
+                  style={{ 
+                    minHeight: '44px',
+                    background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)'
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <svg width="18" height="18" viewBox="0 0 18 18" className="flex-shrink-0">
+                      <g fill="none" fillRule="evenodd">
+                        <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/>
+                        <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/>
+                        <path fill="#FBBC05" d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"/>
+                        <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/>
+                      </g>
+                    </svg>
+                    <span className="font-medium tracking-wide text-gray-700">Pay</span>
+                  </div>
+                  <div className="absolute inset-0 bg-gray-50 opacity-0 group-hover:opacity-30 rounded-lg transition-opacity duration-200"></div>
+                </button>
+              </div>
             </div>
           </div>
 
