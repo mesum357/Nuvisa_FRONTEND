@@ -14,11 +14,9 @@ import {
 import { motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
 
-// The full application component including the form, state management, and all sections.
 export default function App({ passportData, setPassportData, handleSave }) {
   const [isComplete, setIsComplete] = useState(false);
 
-  // onComplete function to simulate a successful form submission
   const onComplete = () => {
     setIsComplete(true);
     setTimeout(() => setIsComplete(false), 3000); // Reset for demonstration
@@ -27,31 +25,7 @@ export default function App({ passportData, setPassportData, handleSave }) {
   return (
     <div className=" min-h-screen antialiased text-white">
       <div className="max-w-7xl mx-auto">
-        {/* <div className="flex items-center justify-between p-4 mb-4 bg-[#23232B] rounded-xl shadow-sm border border-[#423577]">
-          <h2 className="text-xl font-semibold flex items-center">
-            <User className="text-[#7350FF] mr-2" size={24} />
-            Passport Information
-            {isComplete && (
-              <motion.span
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="ml-3 text-green-500"
-              >
-                <CheckCircle size={24} />
-              </motion.span>
-            )}
-          </h2>
-          <motion.div
-            className={`flex items-center transition-opacity ${
-              isComplete ? "opacity-100" : "opacity-0"
-            }`}
-          >
-            <span className="text-sm font-medium text-green-600 mr-2">
-              Successfully Submitted!
-            </span>
-            <ChevronRight className="text-gray-400" />
-          </motion.div>
-        </div> */}
+        
         <PassportInformationSection
           passportData={passportData}
           setPassportData={setPassportData}
@@ -64,7 +38,6 @@ export default function App({ passportData, setPassportData, handleSave }) {
   );
 }
 
-// The main form component with validation logic
 const PassportInformationSection = ({
   passportData,
   setPassportData,
@@ -99,7 +72,6 @@ const PassportInformationSection = ({
     passportData.passportFront || passportData.passportBack;
   const hasBothImages = passportData.passportFront && passportData.passportBack;
 
-  // useEffect to handle loading saved images only when switching travelers
   useEffect(() => {
     if (passportData.passportFront) {
       if (
@@ -131,7 +103,6 @@ const PassportInformationSection = ({
       setBackPreview(null);
     }
 
-    // Hide upload card when both images are uploaded and processed
     if (hasBothImages && frontOcrDone && backOcrDone) {
       setShowUploadCard(false);
     }
@@ -144,27 +115,22 @@ const PassportInformationSection = ({
     backOcrDone,
   ]);
 
-  // Separate useEffect to clear file inputs only when traveler changes
   useEffect(() => {
-    // Clear file inputs when traveler changes
     if (frontInputRef.current) frontInputRef.current.value = "";
     if (backInputRef.current) backInputRef.current.value = "";
   }, [travelerIndex]);
 
-  // Handles changes to text/select inputs
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setPassportData((prev) => ({
       ...prev,
       [name]: value,
     }));
-    // Clear the error for the changed field
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
   };
 
-  // OCR processing function
   const performOCR = async (file, side) => {
     if (side === "front") {
       setFrontOcrLoading(true);
@@ -202,11 +168,9 @@ const PassportInformationSection = ({
     }, 800);
 
     try {
-      // Create FormData to send file to API
       const formData = new FormData();
       formData.append("file", file);
 
-      // Send to Mindee API route
       const response = await fetch("/api/extract-passport", {
         method: "POST",
         body: formData,
@@ -223,9 +187,6 @@ const PassportInformationSection = ({
       setExtractionProgress(100);
       setExtractionStep("Data extracted successfully!");
 
-      // The backend returns { raw, extractedFields, simpleFields }.
-      // Prefer `extractedFields` (already mapped), fall back to `simpleFields` (flat raw values),
-      // and finally try to read values from `raw.rawHttp.inference.result.fields`.
       const mapped = data.extractedFields || {};
       const simple = data.simpleFields || {};
       const rawFields =
@@ -409,12 +370,10 @@ const PassportInformationSection = ({
       }
       setShowManualFallback(true);
 
-      // Hide autofill animation on error
       setShowAutofillAnimation(false);
       setExtractionProgress(0);
       setExtractionStep("");
     } finally {
-      // Clear loading states based on side
       if (side === "front") {
         setFrontOcrLoading(false);
       } else {
@@ -423,7 +382,6 @@ const PassportInformationSection = ({
     }
   };
 
-  // Function to extract passport data from Mindee inference
   const extractPassportDataFromMindee = (inference, side) => {
     const extractedData = {
       passportNumber: null,
@@ -570,596 +528,13 @@ const PassportInformationSection = ({
     return extractedData;
   };
 
-  // Function to extract passport data from OCR text
-  const extractPassportData = (text, side = "front") => {
-    const extractedData = {
-      passportNumber: null,
-      firstName: null,
-      lastName: null,
-      dateOfBirth: null,
-      sex: null,
-      expiryDate: null,
-      issueDate: null,
-      placeOfBirth: null,
-      nationality: null,
-      foundFields: 0,
-    };
 
-    console.log("Processing OCR text:", text);
+  
 
-    // Split text into lines for better parsing
-    const lines = text
-      .split("\n")
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0);
-    const normalizedText = text.replace(/\n/g, " ").replace(/\s+/g, " ").trim();
-
-    // Enhanced Passport Number patterns for Indian and UK passports
-    const passportPatterns = [
-      // Indian format (L8765432, J8369854)
-      /\b([A-Z]\d{7,8})\b/g,
-      // UK format (987654321)
-      /\b(\d{9})\b/g,
-      // With passport label
-      /(?:Passport\s*(?:No|Number|Code)\.?\s*[:\-]?\s*)([A-Z]?\d{7,9})/i,
-      /(?:Code\s*[:\-]?\s*)([A-Z]?\d{7,9})/i,
-      // MRZ format - extract from MRZ line
-      /P<[A-Z]{3}([A-Z\d]{1,9})</,
-      // General alphanumeric passport format
-      /\b([A-Z]{1,2}\d{6,9})\b/g,
-    ];
-
-    for (const pattern of passportPatterns) {
-      const matches = normalizedText.match(pattern);
-      if (matches) {
-        // Filter out obvious non-passport numbers
-        for (const match of matches) {
-          const passportNum = typeof match === "string" ? match : match[1];
-          if (
-            passportNum &&
-            passportNum.length >= 7 &&
-            passportNum.length <= 9
-          ) {
-            extractedData.passportNumber = passportNum.replace(/\s/g, "");
-            extractedData.foundFields++;
-            break;
-          }
-        }
-        if (extractedData.passportNumber) break;
-      }
-    }
-
-    // Enhanced Name extraction for Indian and UK passports
-    // Look for Surname first
-    const surnamePatterns = [
-      /(?:Surname\s*[:\-]?\s*)([A-Z][A-Z\s]{2,30})/i,
-      /(?:Sumame\s*[:\-]?\s*)([A-Z][A-Z\s]{2,30})/i, // Handle OCR typo
-      // Line-based detection - often surname appears after passport number
-      /[A-Z]?\d{7,9}\s+[A-Z]*\s*([A-Z]{4,25})\s*(?:To|Given|ven|[A-Z]{2,})/i,
-      // Look for pattern - single word in caps after passport details
-      /\b([A-Z]{4,25})\b(?=\s*(?:To|Given|ven|[A-Z]{2,}|\n))/,
-      // Direct line match for names like KUMAR, RAMADUGULA
-      /^([A-Z]{4,25})$/m,
-    ];
-
-    // Look for Given Names
-    const givenNamePatterns = [
-      /(?:Given\s*Names?\s*[:\-]?\s*)([A-Z][A-Z\s]{2,40})/i,
-      /(?:ven\s*Names?\s*[:\-]?\s*)([A-Z][A-Z\s]{2,40})/i, // Handle OCR typo "ven" instead of "Given"
-      // Multiple word given names like "ANJALI RAJESH" or "DAVID ROBERT"
-      /(?:Given\s*Names?\s*[:\-]?\s*)([A-Z\s]{2,40})(?:\s*[A-Z]*\s*[MF]\s|\s*INDIAN|\s*BRITISH|\n|$)/i,
-      /(?:ven\s*Names?\s*[:\-]?\s*)([A-Z\s]{2,40})(?:\s*[A-Z]*\s*[MF]\s|\s*INDIAN|\s*BRITISH|\n|$)/i,
-      // Pattern after "To" or similar - handles "To vn ow Given Name(s) SITA MAHA LAKSHNI"
-      /(?:To|Given|ven)[\s\w]*\s+([A-Z][A-Z\s]{2,40})(?=\s*[A-Z]*\s*[MF]\s|\s*INDIAN|\s*BRITISH)/i,
-    ];
-
-    // Try to extract surname - improved logic
-    for (const pattern of surnamePatterns) {
-      const match = normalizedText.match(pattern);
-      if (match && match[1]) {
-        let surname = match[1].trim();
-        // Clean and validate surname
-        surname = surname.replace(/\s+/g, " ").trim();
-
-        if (
-          surname.length > 2 &&
-          !surname.includes("REPUBLIC") &&
-          !surname.includes("INDIA") &&
-          !surname.includes("PASSPORT") &&
-          !surname.includes("HIRE") &&
-          !surname.includes("GIVEN") &&
-          !surname.includes("NAME") &&
-          !/\d/.test(surname)
-        ) {
-          // No digits
-          extractedData.lastName = surname;
-          extractedData.foundFields++;
-          console.log("Found surname:", surname);
-          break;
-        }
-      }
-    }
-
-    // Try to extract given names - improved logic
-    for (const pattern of givenNamePatterns) {
-      const match = normalizedText.match(pattern);
-      if (match && match[1]) {
-        let givenNames = match[1].trim();
-        // Clean up given names
-        givenNames = givenNames.replace(/\s+/g, " ").trim();
-
-        // Take first name only
-        const firstName = givenNames.split(/\s+/)[0];
-        if (
-          firstName &&
-          firstName.length > 1 &&
-          !firstName.includes("REPUBLIC") &&
-          !firstName.includes("INDIA") &&
-          !firstName.includes("INDIAN") &&
-          !firstName.includes("BRITISH") &&
-          !firstName.includes("PASSPORT") &&
-          !/\d/.test(firstName)
-        ) {
-          extractedData.firstName = firstName;
-          extractedData.foundFields++;
-          console.log("Found given name:", firstName);
-          break;
-        }
-      }
-    }
-
-    // Enhanced MRZ parsing for names (handles "P<INDRAMADUGULA<<SITA<MAHA<LAKSHMI")
-    const mrzNamePattern = /P<IND([A-Z]+)<<([A-Z<\s]+)/;
-    const mrzMatch = normalizedText.match(mrzNamePattern);
-    if (mrzMatch && (!extractedData.lastName || !extractedData.firstName)) {
-      // Extract surname from MRZ if not found
-      if (!extractedData.lastName && mrzMatch[1]) {
-        const mrzSurname = mrzMatch[1].replace(/</g, "").trim();
-        if (mrzSurname.length > 2) {
-          extractedData.lastName = mrzSurname;
-          extractedData.foundFields++;
-          console.log("Extracted surname from MRZ:", mrzSurname);
-        }
-      }
-
-      // Extract given names from MRZ if not found
-      if (!extractedData.firstName && mrzMatch[2]) {
-        const mrzGivenNames = mrzMatch[2]
-          .replace(/</g, " ")
-          .replace(/\s+/g, " ")
-          .trim();
-        const firstNameFromMRZ = mrzGivenNames.split(/\s+/)[0];
-        if (firstNameFromMRZ && firstNameFromMRZ.length > 1) {
-          extractedData.firstName = firstNameFromMRZ;
-          extractedData.foundFields++;
-          console.log("Extracted first name from MRZ:", firstNameFromMRZ);
-        }
-      }
-    }
-
-    // If standard patterns don't work, try specific parsing for the format shown
-    if (!extractedData.lastName || !extractedData.firstName) {
-      // Try to find lines and parse them
-      const cleanLines = lines.filter(
-        (line) =>
-          line.length > 3 &&
-          !line.includes("REPUBLIC") &&
-          !line.includes("INDIA") &&
-          !line.includes("Passport") &&
-          !line.includes("Country")
-      );
-
-      // Look for surname line (usually after passport number)
-      for (let i = 0; i < cleanLines.length; i++) {
-        const line = cleanLines[i];
-        if (/^[A-Z]{4,25}$/.test(line) && !extractedData.lastName) {
-          extractedData.lastName = line.trim();
-          extractedData.foundFields++;
-          console.log("Found surname from line parsing:", line);
-          break;
-        }
-      }
-
-      // Look for given names line
-      for (let i = 0; i < cleanLines.length; i++) {
-        const line = cleanLines[i];
-        if (
-          /^[A-Z][A-Z\s]{5,40}$/.test(line) &&
-          line !== extractedData.lastName &&
-          !extractedData.firstName
-        ) {
-          const firstName = line.trim().split(/\s+/)[0];
-          extractedData.firstName = firstName;
-          extractedData.foundFields++;
-          console.log("Found given name from line parsing:", firstName);
-          break;
-        }
-      }
-    }
-
-    // Enhanced Date of Birth patterns for Indian and UK format (DD/MM/YYYY)
-    const dobPatterns = [
-      // Standard DD/MM/YYYY format - look for birth date pattern
-      /(\d{2}\/\d{2}\/\d{4})/g,
-      // With labels
-      /(?:Date\s*of\s*Birth\s*[:\-]?\s*)(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{4})/i,
-      /(?:DOB\s*[:\-]?\s*)(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{4})/i,
-      // Handle OCR typos like "Daeof Binh"
-      /(?:Date?\s*of?\s*Bi[nr]th?\s*[:\-]?\s*)(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{4})/i,
-      // MRZ format extraction (YYMMDD)
-      /[MF](\d{6})/,
-    ];
-
-    // Special handling for dates - find all dates and determine which is birth vs expiry
-    const allDates = normalizedText.match(/\d{2}\/\d{2}\/\d{4}/g);
-    if (allDates && allDates.length >= 1) {
-      // Sort dates and assume first one is DOB (usually appears first)
-      const sortedDates = allDates
-        .map((date) => {
-          const parts = date.split("/");
-          return {
-            original: date,
-            year: parseInt(parts[2]),
-            sortKey:
-              parseInt(parts[2]) * 10000 +
-              parseInt(parts[1]) * 100 +
-              parseInt(parts[0]),
-          };
-        })
-        .sort((a, b) => a.sortKey - b.sortKey);
-
-      // Birth date should be older (smaller year), expiry should be newer
-      for (const dateObj of sortedDates) {
-        if (
-          dateObj.year >= 1920 &&
-          dateObj.year <= 2010 &&
-          !extractedData.dateOfBirth
-        ) {
-          // This looks like a birth date
-          const dateParts = dateObj.original.split("/");
-          const day = dateParts[0].padStart(2, "0");
-          const month = dateParts[1].padStart(2, "0");
-          const year = dateParts[2];
-          extractedData.dateOfBirth = `${year}-${month}-${day}`;
-          extractedData.foundFields++;
-          console.log("Found DOB:", dateObj.original);
-          break;
-        }
-      }
-
-      // Find expiry date (should be in the future)
-      for (const dateObj of sortedDates) {
-        if (
-          dateObj.year >= 2015 &&
-          dateObj.year <= 2040 &&
-          !extractedData.expiryDate
-        ) {
-          const dateParts = dateObj.original.split("/");
-          const day = dateParts[0].padStart(2, "0");
-          const month = dateParts[1].padStart(2, "0");
-          const year = dateParts[2];
-          extractedData.expiryDate = `${year}-${month}-${day}`;
-          extractedData.foundFields++;
-          console.log("Found expiry date:", dateObj.original);
-          break;
-        }
-      }
-    }
-
-    // Fallback to pattern matching if date extraction above didn't work
-    if (!extractedData.dateOfBirth) {
-      for (const pattern of dobPatterns) {
-        const matches = normalizedText.match(pattern);
-        if (matches) {
-          for (const match of matches) {
-            const dateStr = typeof match === "string" ? match : match[1];
-
-            if (dateStr.length === 6) {
-              // MRZ format YYMMDD
-              const year = parseInt(dateStr.substring(0, 2));
-              const month = dateStr.substring(2, 4);
-              const day = dateStr.substring(4, 6);
-              const fullYear = year > 50 ? 1900 + year : 2000 + year; // Assume 1950-2049 range
-              extractedData.dateOfBirth = `${fullYear}-${month}-${day}`;
-              extractedData.foundFields++;
-              break;
-            } else if (
-              dateStr.includes("/") ||
-              dateStr.includes("-") ||
-              dateStr.includes(".")
-            ) {
-              // Standard date format
-              const dateParts = dateStr.split(/[\/\-\.]/);
-              if (dateParts.length === 3) {
-                // Assume DD/MM/YYYY format for Indian passports
-                const day = dateParts[0].padStart(2, "0");
-                const month = dateParts[1].padStart(2, "0");
-                const year = dateParts[2];
-
-                // Validate year (birth date)
-                const yearNum = parseInt(year);
-                if (yearNum >= 1920 && yearNum <= 2010) {
-                  extractedData.dateOfBirth = `${year}-${month}-${day}`;
-                  extractedData.foundFields++;
-                  break;
-                }
-              }
-            }
-          }
-          if (extractedData.dateOfBirth) break;
-        }
-      }
-    }
-
-    // Enhanced Sex/Gender patterns
-    const sexPatterns = [
-      // Look for single M or F
-      /\b(M|F)\b(?!\d)/g,
-      // With labels
-      /(?:Sex\s*[:\-]?\s*)(M|F|Male|Female)/i,
-      /(?:Gender\s*[:\-]?\s*)(M|F|Male|Female)/i,
-      // MRZ format
-      /\d{7}([MF])\d{7}/,
-    ];
-
-    for (const pattern of sexPatterns) {
-      const matches = normalizedText.match(pattern);
-      if (matches) {
-        for (const match of matches) {
-          const sex = typeof match === "string" ? match : match[1];
-          if (sex) {
-            const sexUpper = sex.toUpperCase();
-            if (sexUpper === "M" || sexUpper === "MALE") {
-              extractedData.sex = "Male";
-              extractedData.foundFields++;
-              break;
-            } else if (sexUpper === "F" || sexUpper === "FEMALE") {
-              extractedData.sex = "Female";
-              extractedData.foundFields++;
-              break;
-            }
-          }
-        }
-        if (extractedData.sex) break;
-      }
-    }
-
-    // Enhanced Expiry Date patterns (fallback if not found in date analysis above)
-    if (!extractedData.expiryDate) {
-      const expiryPatterns = [
-        // With labels
-        /(?:Date\s*of\s*Expiry\s*[:\-]?\s*)(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{4})/i,
-        /(?:Expiry\s*[:\-]?\s*)(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{4})/i,
-        // Look for second date in sequence
-        /\d{2}\/\d{2}\/\d{4}\s+(\d{2}\/\d{2}\/\d{4})/,
-      ];
-
-      for (const pattern of expiryPatterns) {
-        const match = normalizedText.match(pattern);
-        if (match && match[1]) {
-          const dateStr = match[1];
-          if (
-            dateStr.includes("/") ||
-            dateStr.includes("-") ||
-            dateStr.includes(".")
-          ) {
-            const dateParts = dateStr.split(/[\/\-\.]/);
-            if (dateParts.length === 3) {
-              const day = dateParts[0].padStart(2, "0");
-              const month = dateParts[1].padStart(2, "0");
-              const year = dateParts[2];
-
-              // Validate it's a future date (expiry should be in future or recent past)
-              const yearNum = parseInt(year);
-              if (yearNum >= 2015 && yearNum <= 2040) {
-                extractedData.expiryDate = `${year}-${month}-${day}`;
-                extractedData.foundFields++;
-                break;
-              }
-            }
-          }
-        }
-      }
-    }
-
-    // Enhanced Issue Date patterns
-    if (!extractedData.issueDate) {
-      const issueDatePatterns = [
-        // With labels - handle OCR typos
-        /(?:Date\s*of\s*Issue\s*[:\-]?\s*)(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{4})/i,
-        /(?:Dace\s*of\s*Issue\s*[:\-]?\s*)(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{4})/i, // OCR typo
-        /(?:Date\s*of[lt]ssue\s*[:\-]?\s*)(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{4})/i, // OCR typo "l" or "t" instead of "I"
-        /(?:Dsteofiesue\s*[:\-]?\s*)(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{4})/i, // OCR typo from your sample
-        /(?:Issue\s*[:\-]?\s*)(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{4})/i,
-        // Pattern: Date pairs - first is usually issue, second is expiry
-        /(\d{2}\/\d{2}\/\d{4})\s+\d{2}\/\d{2}\/\d{4}/,
-        // Look for date patterns between sex/nationality and expiry
-        /(?:[MF]|\bINDIAN\b|\bBRITISH\b).*?(\d{2}\/\d{2}\/\d{4}).*?(?:Date|Expiry|\d{2}\/\d{2}\/\d{4})/i,
-      ];
-
-      for (const pattern of issueDatePatterns) {
-        const match = normalizedText.match(pattern);
-        if (match && match[1]) {
-          const dateStr = match[1];
-          if (
-            dateStr.includes("/") ||
-            dateStr.includes("-") ||
-            dateStr.includes(".")
-          ) {
-            const dateParts = dateStr.split(/[\/\-\.]/);
-            if (dateParts.length === 3) {
-              const day = dateParts[0].padStart(2, "0");
-              const month = dateParts[1].padStart(2, "0");
-              const year = dateParts[2];
-
-              // Validate it's a reasonable issue date (past date, not too old)
-              const yearNum = parseInt(year);
-              if (yearNum >= 2000 && yearNum <= 2024) {
-                extractedData.issueDate = `${year}-${month}-${day}`;
-                extractedData.foundFields++;
-                break;
-              }
-            }
-          }
-        }
-      }
-    }
-
-    // Extract Nationality
-    if (normalizedText.includes("INDIAN") || normalizedText.includes("IND")) {
-      extractedData.nationality = "Indian";
-      extractedData.foundFields++;
-    } else if (
-      normalizedText.includes("BRITISH") ||
-      normalizedText.includes("GBR") ||
-      normalizedText.includes("UNITED KINGDOM")
-    ) {
-      extractedData.nationality = "British";
-      extractedData.foundFields++;
-    }
-
-    // Extract Place of Birth (bonus field)
-    const birthPlacePatterns = [
-      /(?:Place\s*of\s*Birth\s*[:\-]?\s*)([A-Z][A-Z\s]{2,30})/i,
-      /(?:Daeof\s*Binh\s*[:\-]?\s*)([A-Z][A-Z\s]{2,30})/i, // Handle OCR typo from your sample
-      // Look for city names after dates and before other passport data
-      /\d{4}\s+([A-Z]{3,20})\s+(?:[A-Z]{2}|INDIAN|BRITISH|[MF])/,
-      // Direct pattern matching for NEW DELHI, LONDON, etc.
-      /\b(NEW\s+DELHI|LONDON|MUMBAI|DELHI|BANGALORE|CHENNAI)\b/i,
-      // General place pattern
-      /\b([A-Z]{4,20})\b(?=\s*[A-Z]{2}\s*(?:INDIAN|BRITISH)|\s*(?:INDIAN|BRITISH))/,
-    ];
-
-    for (const pattern of birthPlacePatterns) {
-      const match = normalizedText.match(pattern);
-      if (match && match[1]) {
-        let place = match[1].trim();
-        // Clean up the place name
-        place = place.replace(/\s+/g, " ").trim();
-
-        if (
-          place &&
-          place.length > 3 &&
-          !place.includes("REPUBLIC") &&
-          !place.includes("PASSPORT") &&
-          place !== extractedData.lastName &&
-          place !== extractedData.firstName
-        ) {
-          // Add country based on passport type
-          let fullPlace = place;
-          if (
-            extractedData.nationality === "Indian" ||
-            normalizedText.includes("INDIAN")
-          ) {
-            fullPlace = `${place}, India`;
-          } else if (
-            extractedData.nationality === "British" ||
-            normalizedText.includes("BRITISH")
-          ) {
-            fullPlace = `${place}, United Kingdom`;
-          } else {
-            // Default case - just use the place name
-            fullPlace = place;
-          }
-
-          extractedData.placeOfBirth = fullPlace;
-          extractedData.foundFields++;
-          console.log("Found place of birth:", fullPlace);
-          break;
-        }
-      }
-    }
-
-    // Handle back side specific extraction
-    if (side === "back") {
-      console.log("Processing back side of passport...");
-
-      // Extract address information
-      const addressPatterns = [
-        /(?:Address|Permanent\s*Address|Current\s*Address)[:\-\s]*([A-Z0-9\s,\.\-\/]+)/i,
-        /(?:Addr)[:\-\s]*([A-Z0-9\s,\.\-\/]+)/i,
-      ];
-
-      for (const pattern of addressPatterns) {
-        const match = normalizedText.match(pattern);
-        if (match) {
-          let address = match[1].trim();
-          // Clean up address
-          address = address.replace(/\s+/g, " ").trim();
-          // Limit to reasonable length
-          if (address.length > 200) {
-            address = address.substring(0, 200) + "...";
-          }
-          extractedData.currentAddress = address;
-          extractedData.foundFields++;
-          console.log("Address found:", address);
-          break;
-        }
-      }
-
-      // Extract emergency contact information
-      const emergencyPatterns = [
-        /(?:Emergency\s*Contact|In\s*Case\s*of\s*Emergency)[:\-\s]*([A-Z\s]+)/i,
-        /(?:Contact\s*Person)[:\-\s]*([A-Z\s]+)/i,
-      ];
-
-      for (const pattern of emergencyPatterns) {
-        const match = normalizedText.match(pattern);
-        if (match) {
-          const contact = match[1].trim();
-          extractedData.emergencyContact = contact;
-          extractedData.foundFields++;
-          console.log("Emergency Contact found:", contact);
-          break;
-        }
-      }
-
-      // Sometimes passport numbers or additional info might be on back side
-      if (!extractedData.passportNumber) {
-        const backPassportMatch = normalizedText.match(/([A-Z]\d{7}|\d{9})/);
-        if (backPassportMatch) {
-          extractedData.passportNumber = backPassportMatch[1];
-          extractedData.foundFields++;
-          console.log("Passport Number found on back:", backPassportMatch[1]);
-        }
-      }
-    }
-
-    console.log(`Extracted data from ${side} side:`, extractedData);
-    return extractedData;
-  };
-
-  // Retry OCR function
-  const retryOCR = (side = "front") => {
-    // Clear errors for the specific side
-    if (side === "front") {
-      setFrontOcrError(null);
-    } else {
-      setBackOcrError(null);
-    }
-    setShowManualFallback(false);
-
-    const preview = side === "front" ? frontPreview : backPreview;
-
-    if (preview) {
-      // Convert preview back to file and retry
-      fetch(preview)
-        .then((res) => res.blob())
-        .then((blob) => {
-          const file = new File([blob], `passport-${side}.jpg`, {
-            type: "image/jpeg",
-          });
-          performOCR(file, side);
-        });
-    }
-  };
-
-  // Handles file uploads and sets the preview state
   const handleFileUpload = (e, side) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Check file size (MAX. 5MB)
     if (file.size > 5 * 1024 * 1024) {
       setErrors((prev) => ({
         ...prev,
@@ -1169,7 +544,6 @@ const PassportInformationSection = ({
       return;
     }
 
-    // Clear previous error
     setErrors((prev) => ({
       ...prev,
       [side === "front" ? "passportFront" : "passportBack"]: "",
@@ -1191,9 +565,7 @@ const PassportInformationSection = ({
           ...prev,
           passportFront: "",
         }));
-        // Ensure front OCR runs for this newly uploaded file
         setFrontOcrDone(false);
-        // Start OCR for the uploaded front file
         performOCR(file, "front");
       } else {
         setBackPreview(reader.result);
@@ -1209,15 +581,12 @@ const PassportInformationSection = ({
           ...prev,
           passportBack: "",
         }));
-        // We do not run OCR on the back side by default. Keep backOcrDone as-is.
-        // Start OCR for the uploaded back file
         performOCR(file, "back");
       }
     };
     reader.readAsDataURL(file);
   };
 
-  // Handles removing uploaded images and clearing the state
   const handleRemoveImage = (side) => {
     if (side === "front") {
       setFrontPreview(null);
@@ -1226,7 +595,6 @@ const PassportInformationSection = ({
         passportFront: null,
       }));
       if (frontInputRef.current) frontInputRef.current.value = "";
-      // Reset OCR-done flag when front image removed
       setFrontOcrDone(false);
     } else {
       setBackPreview(null);
@@ -1235,12 +603,10 @@ const PassportInformationSection = ({
         passportBack: null,
       }));
       if (backInputRef.current) backInputRef.current.value = "";
-      // Reset OCR-done flag when back image removed
       setBackOcrDone(false);
     }
   };
 
-  // Validation logic
   const validate = () => {
     const newErrors = {};
     const {
@@ -1261,7 +627,6 @@ const PassportInformationSection = ({
       passportBack,
     } = passportData;
 
-    // Personal Information Validation
     if (!passportNumber)
       newErrors.passportNumber = "Passport number is required.";
     if (!firstName) newErrors.firstName = "First name is required.";
@@ -1272,20 +637,17 @@ const PassportInformationSection = ({
       newErrors.dateOfBirth = "Date of birth cannot be in the future.";
     if (!placeOfBirth) newErrors.placeOfBirth = "Place of birth is required.";
 
-    // Mobile number validation (UK mobile formats)
     if (!mobileNumber) {
       newErrors.mobileNumber = "Mobile number is required.";
     } else {
       const s = String(mobileNumber).trim();
       const digits = s.replace(/[\s()\-]/g, "");
-      // Accept +447XXXXXXXXX, 447XXXXXXXXX, 07XXXXXXXXX formats
       const ukPhoneRegex = /^(?:\+447\d{9}|447\d{9}|07\d{9})$/;
       if (!ukPhoneRegex.test(digits)) {
         newErrors.mobileNumber = "Please enter a valid UK mobile number (e.g. +447123456789 or 07123456789).";
       }
     }
 
-    // Passport Details Validation
     if (!passportIssuePlace)
       newErrors.passportIssuePlace = "Passport issue place is required.";
     if (!passportIssueDate)
@@ -1295,27 +657,22 @@ const PassportInformationSection = ({
     else if (new Date(passportExpiryDate) < new Date(passportIssueDate))
       newErrors.passportExpiryDate = "Expiry date must be after issue date.";
 
-    // Current Address Validation
     if (!currentAddress1)
       newErrors.currentAddress1 = "Address Line 1 is required.";
-    // State removed for UK addresses per requirements
     if (!city) newErrors.city = "City is required.";
     if (!pincode) newErrors.pincode = "Postcode is required.";
     else {
-      // UK postcode validation (allows with or without space, case-insensitive)
       const ukPostcodeRegex = /^([A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}|GIR\s?0AA)$/i;
       if (!ukPostcodeRegex.test(String(pincode).trim())) {
         newErrors.pincode = "Please enter a valid UK postcode.";
       }
     }
 
-    // Travel Dates Validation
     if (!passportData.travelStartDate)
       newErrors.travelStartDate = "Travel start date is required.";
     if (!passportData.travelEndDate)
       newErrors.travelEndDate = "Travel end date is required.";
 
-    // Date logic validation
     if (passportData.travelStartDate && passportData.travelEndDate) {
       const startDate = new Date(passportData.travelStartDate);
       const endDate = new Date(passportData.travelEndDate);
@@ -1329,7 +686,6 @@ const PassportInformationSection = ({
         newErrors.travelEndDate = "Travel end date must be after start date.";
       }
 
-      // Check if trip duration is reasonable (not more than 1 year)
       const diffTime = Math.abs(endDate - startDate);
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       if (diffDays > 365) {
@@ -1337,7 +693,6 @@ const PassportInformationSection = ({
       }
     }
 
-    // Passport Upload Validation - check both passportData and preview states
     if (!passportFront && !frontPreview) {
       newErrors.passportFront = "Passport front page is required.";
     }
@@ -1349,25 +704,19 @@ const PassportInformationSection = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  // Handles form submission
   const handleSubmit = (e) => {
     e.preventDefault();
     if (validate()) {
-      // Form is valid, call the handleSave handler from parent
       if (handleSave) {
         handleSave();
       } else {
         onComplete();
       }
-      console.log("Form submitted successfully!", passportData);
-    } else {
-      console.log("Form has validation errors.");
-    }
+    } 
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Travel Dates Section */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}

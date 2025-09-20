@@ -970,21 +970,9 @@ const CountrySlider = () => {
       );
     }
 
-    console.log("Visa Fees :::", visaFees);
-    console.log("Insurance Fees :::", insuranceFees);
-    console.log("Gift Card Fees :::", giftCardFees);
-    console.log("travelers ::: ", travelers);
-    console.log("selectedCountry ::: ", selectedCountry);
-    console.log("arrivalDate ::: ", arrivalDate);
-    console.log("departureDate ::: ", departureDate);
-    console.log("requiredDocuments ::: ", requiredDocuments);
-    console.log("recommendedItems ::: ", recommendedItems);
 
-    // Calculate total amount for payment processing
     const totalAmount = Math.round(visaFees + insuranceFees + giftCardFees);
 
-    // Build checkout query params
-    console.log(`Preparing checkout for ${selectedPaymentMethod || "default"} payment...`);
 
     const queryParams = new URLSearchParams({
       visaFees: Math.round(visaFees).toString(),

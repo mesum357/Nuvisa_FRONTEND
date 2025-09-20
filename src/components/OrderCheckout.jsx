@@ -125,17 +125,14 @@ const VisaCheckout = () => {
     const discountDescriptionFromParams = sp.get("discountDescription");
     const discountAmountFromParams = sp.get("discountAmount");
 
-    // Pre-fill email if coming from express payment flow (only if current email is empty)
     if (userEmailFromParams && !email) {
       setEmail(userEmailFromParams);
     }
 
-    // Set payment method if coming from express payment flow (only if not already set)
     if (paymentMethodFromParams && selectedPaymentMethod === "stripe") {
       setSelectedPaymentMethod(paymentMethodFromParams);
     }
 
-    // Apply discount if coming from discount flow (only if no discount currently applied)
     if (discountCodeFromParams && discountPercentageFromParams && !appliedDiscount) {
       setCouponCode(discountCodeFromParams);
       setAppliedDiscount({
@@ -146,7 +143,6 @@ const VisaCheckout = () => {
       });
     }
 
-    // Update Redux store with URL parameters (only if different)
     if (visaFeesFromParams && visaFeesFromParams !== visaState.visaFees) {
       dispatch(setVisaFees(visaFeesFromParams));
     }
