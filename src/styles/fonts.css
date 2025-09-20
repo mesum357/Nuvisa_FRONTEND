@@ -1,0 +1,70 @@
+@font-face {
+  font-family: "GilroyBold";
+  src: url("/fonts/gilroy-bold/Gilroy-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "GilroyRegular";
+  src: url("/fonts/gilroy-bold/Gilroy-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "GilroyMedium";
+  src: url("/fonts/gilroy-bold/Gilroy-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "GilroyLight";
+  src: url("/fonts/gilroy-bold/Gilroy-Light.ttf") format("truetype");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "GilroyHeavy";
+  src: url("/fonts/gilroy-bold/Gilroy-Heavy.ttf") format("truetype");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Utility classes for Gilroy fonts */
+.font-gilroy-light {
+  font-family: "GilroyLight", -apple-system, BlinkMacSystemFont, Roboto,
+    Helvetica Neue, Arial, sans-serif;
+  font-weight: 300;
+}
+
+.font-gilroy-regular {
+  font-family: "GilroyRegular", -apple-system, BlinkMacSystemFont, Roboto,
+    Helvetica Neue, Arial, sans-serif;
+  font-weight: 400;
+}
+
+.font-gilroy-medium {
+  font-family: "GilroyMedium", -apple-system, BlinkMacSystemFont, Roboto,
+    Helvetica Neue, Arial, sans-serif;
+  font-weight: 500;
+}
+
+.font-gilroy-bold {
+  font-family: "GilroyBold", -apple-system, BlinkMacSystemFont, Roboto,
+    Helvetica Neue, Arial, sans-serif;
+  font-weight: 700;
+}
+
+.font-gilroy-heavy {
+  font-family: "GilroyHeavy", -apple-system, BlinkMacSystemFont, Roboto,
+    Helvetica Neue, Arial, sans-serif;
+  font-weight: 900;
+}
