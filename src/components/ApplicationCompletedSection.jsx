@@ -28,21 +28,16 @@ const ApplicationCompletedSection = ({
   onUploadDocument = null,
   applicationId = null
 }) => {
-  // Helper to format Application ID as AI######
   const formatApplicationId = (id) => {
     if (!id) return null;
-    // If already matches AI followed by digits, return as is
     if (/^AI\d{6}$/.test(id)) return id;
-    // Try to extract digits from existing id
     const digits = (id + "").replace(/\D/g, "").slice(0, 6).padEnd(6, "0");
     return `AI${digits}`;
   };
 
-  // Helper to format Order ID as ORD######
   const formatOrderId = (orderId, fallbackId) => {
     if (orderId && /^ORD\d{6}$/.test(orderId)) return orderId;
     if (orderId && /^ORD-?\d+$/i.test(orderId)) {
-      // Normalize ORD-123 -> ORD123 and pad
       const digits = orderId.replace(/\D/g, "").slice(0, 6).padEnd(6, "0");
       return `ORD${digits}`;
     }
@@ -50,7 +45,6 @@ const ApplicationCompletedSection = ({
       const digits = (fallbackId + "").replace(/\D/g, "").slice(0, 6).padEnd(6, "0");
       return `ORD${digits}`;
     }
-    // default demo
     return null;
   };
   const [referenceNumber, setReferenceNumber] = useState("UKV-2023-XXXX");
@@ -66,7 +60,6 @@ const ApplicationCompletedSection = ({
     const appId = applicationId || parentVisaApplication?.id;
     
     if (!appId) {
-      // Generate demo data if no application ID
       setTimeout(() => {
         const randomNum = Math.floor(Math.random() * 10000);
         setApplicationStatus({

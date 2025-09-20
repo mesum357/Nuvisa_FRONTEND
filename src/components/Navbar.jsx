@@ -1,9 +1,14 @@
 import GetTheVisaButton from "@/components/layout/GetTheVisaButton";
 import Image from "next/image";
 import Link from "next/link";
+import { useAppSelector } from "@/store";
+import ClientOnly from "./ClientOnly";
 
 const Navbar = () => {
+  const isAuthenticated = useAppSelector((state) => state.auth.authState);
+
   return (
+    <ClientOnly>
     <div className="text-white">
       <div className="sec_bg px-4 py-2.5 text-center border-[#423577] border-b text-sm rounded-b-[23px]">
         <span className="font-medium md:font-semibold">
@@ -40,19 +45,28 @@ const Navbar = () => {
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
           <div className="max-sm:hidden">
             <GetTheVisaButton removeArrow={true} />
           </div>
 
-          <Link href={"/login"} className="cursor-pointer">
-            <button className="border border-white hover:border-neutral-500 px-[16px] py-[7px] rounded-full font-medium transition-colors cursor-pointer">
-              Login
-            </button>
-          </Link>
+          {isAuthenticated  ? (
+            <Link href="/dashboard" className="cursor-pointer">
+              <button className="border border-white hover:border-neutral-500 px-[16px] py-[7px] rounded-full font-medium transition-colors cursor-pointer">
+                My Applications
+              </button>
+            </Link>
+          ) : (
+            <Link href="/login" className="cursor-pointer">
+              <button className="border border-white hover:border-neutral-500 px-[16px] py-[7px] rounded-full font-medium transition-colors cursor-pointer">
+                Login
+              </button>
+            </Link>
+          )}
         </div>
       </nav>
     </div>
+    </ClientOnly>
   );
 };
 

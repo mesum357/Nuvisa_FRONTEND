@@ -39,6 +39,7 @@ const CountrySlider = () => {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const visaState = useAppSelector((state) => state.visa);
+  const isAuthenticated = useAppSelector((state) => state.auth?.authState);
   const { showError, showSuccess } = useToast();
   const handleCountrySelect = (countryName) => {
     // Extract just the country name from "City, Country" format
@@ -860,7 +861,10 @@ const CountrySlider = () => {
   ]);
 
   const handleGetVisa = async () => {
-    // Validate required documents (except insurance which is optional)
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
+    }
     const requiredFields = [
       "passport",
       "ukVisa",
@@ -1265,6 +1269,11 @@ const CountrySlider = () => {
 
   // Apple Pay click handler
   const handleApplePayClick = async () => {
+    // Require authentication before Apple Pay
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
+    }
     // Validate required documents for express payment
     if (!validateRequiredDocuments()) return;
 
@@ -1516,6 +1525,11 @@ const CountrySlider = () => {
 
   // Google Pay click handler
   const handleGooglePayClick = async () => {
+    // Require authentication before Google Pay
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
+    }
     // Validate required documents for express payment
     if (!validateRequiredDocuments()) return;
 

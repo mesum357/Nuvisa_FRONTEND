@@ -291,9 +291,9 @@ function ApplicationCard({ app, type, onArchive }) {
   }, [app?.createdAt]);
 
   return (
-    <div className="flex max-md:flex-wrap max-md:gap-5 items-center justify-between p-2 pl-0 border-none border-[#423577] rounded-lg  transition-colors">
+    <div className="flex items-center justify-between p-4 border-none border-[#423577] rounded-lg transition-colors min-h-[72px]">
       {/* Left side - Flag and country info */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 flex-shrink-0">
         <div className="flex items-center justify-center w-12 h-8 rounded border border-[#423577] overflow-hidden bg-gray-800">
           {schengenCountries[app?.country] ? (
             <img
@@ -309,19 +309,19 @@ function ApplicationCard({ app, type, onArchive }) {
             </span>
           )}
         </div>
-        <div>
-          <h4 className="font-medium">{app?.country}</h4>
-          <p className="text-sm text-white/60">
+        <div className="min-w-0">
+          <h4 className="font-medium text-white truncate">{app?.country}</h4>
+          <p className="text-sm text-white/60 truncate">
             {app?.code || "#" + app?.id?.slice(0, 6)}
           </p>
         </div>
       </div>
 
       {/* Center - Status indicator */}
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-2">
-          <div className="relative w-5 h-5">
-            <p className="text-xs absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-semibold">
+      <div className="flex items-center gap-4 flex-1 justify-center min-w-0 px-4">
+        <div className="flex items-center gap-3">
+          <div className="relative w-5 h-5 flex-shrink-0">
+            <p className="text-xs absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-semibold text-white z-10">
               {(() => {
                 // Extract first traveler's name from travelersData
                 if (
@@ -346,7 +346,7 @@ function ApplicationCard({ app, type, onArchive }) {
                     }
                   } catch (e) {}
                 }
-                return "";
+                return "?";
               })()}
             </p>
             {type === "draft" && (
@@ -360,68 +360,53 @@ function ApplicationCard({ app, type, onArchive }) {
             )}
           </div>
 
-          <p className="text-xs">
-            {(() => {
-              // Extract first traveler's name from travelersData
-              if (
-                app?.travelersData &&
-                Array.isArray(app.travelersData) &&
-                app.travelersData[0]?.basicDetails?.firstName
-              ) {
-                return app.travelersData[0].basicDetails.firstName;
-              }
-              // Try parsing if it's a JSON string
-              if (app?.travelersData && typeof app.travelersData === "string") {
-                try {
-                  const parsed = JSON.parse(app.travelersData);
-                  if (parsed[0]?.basicDetails?.firstName) {
-                    return parsed[0].basicDetails.firstName;
-                  }
-                } catch (e) {}
-              }
-              return "Unknown";
-            })()}
-          </p>
-        </div>
+          <div className="flex flex-col justify-center min-w-0">
+            <p className="text-sm font-medium text-white truncate">
+              {(() => {
+                if (
+                  app?.travelersData &&
+                  Array.isArray(app.travelersData) &&
+                  app.travelersData[0]?.basicDetails?.firstName
+                ) {
+                  return app.travelersData[0].basicDetails.firstName;
+                }
+                if (app?.travelersData && typeof app.travelersData === "string") {
+                  try {
+                    const parsed = JSON.parse(app.travelersData);
+                    if (parsed[0]?.basicDetails?.firstName) {
+                      return parsed[0].basicDetails.firstName;
+                    }
+                  } catch (e) {}
+                }
+                return "Unknown";
+              })()}
+            </p>
 
-        {/* Enhanced status display for submitted applications */}
-        {type === "submitted" && (
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-              <span className="text-xs text-green-400 font-medium">
-                {app?.paymentStatus === "completed" ? "Payment Completed" : "Processing"}
+            {type === "submitted" ? (
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                <span className="text-xs text-green-400 font-medium">
+                  {app?.paymentStatus === "completed" ? "Payment Completed" : "Processing"}
+                </span>
+              </div>
+            ) : (
+              <span className="text-xs text-white/60">
+                <ClientOnly fallback="Loading...">
+                  {daysAgo} day{daysAgo !== 1 ? "s" : ""} ago
+                </ClientOnly>
               </span>
-            </div>
-            <div className="text-xs text-white/60">
-              {app?.orderId && (
-                <span className="mr-2">Order: {app.orderId}</span>
-              )}
-              Status: Under Review
-            </div>
-            <div className="text-xs text-blue-400">
-              Est. completion: Within 24 business hours
-            </div>
+            )}
           </div>
-        )}
-
-        {/* Standard display for other types */}
-        {type !== "submitted" && (
-          <span className="text-xs text-white/60">
-            <ClientOnly fallback="Loading...">
-              {daysAgo} day{daysAgo !== 1 ? "s" : ""} ago
-            </ClientOnly>
-          </span>
-        )}
+        </div>
       </div>
 
       {/* Right side - Action button and archive */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-shrink-0">
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => handleContinueApplication(app?.id)}
-          className="bg-[#7350FF] text-white px-3 md:px-6 py-2 rounded-lg text-sm font-bold transition-colors"
+          className="bg-[#7350FF] hover:bg-[#6247D3] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
         >
           {type === "draft"
             ? "Resume application"
@@ -429,18 +414,18 @@ function ApplicationCard({ app, type, onArchive }) {
             ? "View application"
             : "View application"}
         </motion.button>
-      </div>
 
-      {/* Archive button - only show for draft applications, not submitted */}
-      {type === "draft" && (
-        <button
-          onClick={() => handleArchiveApplication(app?.id)}
-          className="text-white transition-colors hover:text-red-400"
-          title="Archive application"
-        >
-          <Archive size={24} strokeWidth={1.5} />
-        </button>
-      )}
+        {/* Archive button - only show for draft applications, not submitted */}
+        {type === "draft" && (
+          <button
+            onClick={() => handleArchiveApplication(app?.id)}
+            className="text-white/60 hover:text-red-400 transition-colors p-1"
+            title="Archive application"
+          >
+            <Archive size={20} strokeWidth={1.5} />
+          </button>
+        )}
+      </div>
     </div>
   );
 }
