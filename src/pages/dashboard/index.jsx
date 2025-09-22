@@ -10,24 +10,20 @@ import {
   Archive,
   FileText,
   ChevronDown,
-  Eye,
   Download,
   Phone,
   CheckCircle2,
   CalendarDays,
   Building2,
   CircleDollarSign,
-  Circle,
-  Clock,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
 export default function HeaderSearchSection() {
-  const router = useRouter();
   const token = localStorageGateway("token", localStorageEnums.GET);
   const [activeTab, setActiveTab] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, _setSearchQuery] = useState("");
   const [userApplications, setUserApplications] = useState([]);
   const [archivedApplications, setArchivedApplications] = useState([]);
  
@@ -258,7 +254,13 @@ function ApplicationCard({ app, type, onArchive }) {
     >
       <div
         className="flex items-center justify-between p-4 cursor-pointer"
-        onClick={() => setIsExpanded(!isExpanded)}
+        onClick={() => {
+          if (type === 'draft') {
+            handleViewApplication(app.id);
+          } else {
+            setIsExpanded(!isExpanded);
+          }
+        }}
       >
         <div className="flex items-center gap-3 w-1/4">
           <div className="flex items-center justify-center w-10 h-7 rounded-sm border border-[#454553] overflow-hidden bg-gray-800">
@@ -297,15 +299,17 @@ function ApplicationCard({ app, type, onArchive }) {
             </div>
             {statusInfo.timestamp && <p className="text-xs text-white/60 mt-1">{statusInfo.timestamp}</p>}
           </div>
-          <button className="flex items-center text-white/80 hover:text-white">
-            {isExpanded ? "Close" : ""}
-            <motion.div
-                animate={{ rotate: isExpanded ? 180 : 0 }}
-                transition={{ duration: 0.3 }}
-            >
-                <ChevronDown size={24} />
-            </motion.div>
-          </button>
+          {type === 'submitted' && (
+            <button className="flex items-center text-white/80 hover:text-white">
+              {isExpanded ? "Close" : ""}
+              <motion.div
+                  animate={{ rotate: isExpanded ? 180 : 0 }}
+                  transition={{ duration: 0.3 }}
+              >
+                  <ChevronDown size={24} />
+              </motion.div>
+            </button>
+          )}
         </div>
       </div>
 

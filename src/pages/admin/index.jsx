@@ -229,6 +229,11 @@ export default function AdminDashboard() {
               transition={{ duration: 0.2 }}
             >
               <DocumentsList documents={documents}
+              onView={
+                (doc) => {
+                  window.open(doc?.previewUrl || doc?.downloadUrl, '_blank', 'noopener,noreferrer');
+                }
+              }
 
                 />
             </motion.div>

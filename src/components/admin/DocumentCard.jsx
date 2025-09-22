@@ -11,24 +11,6 @@ export default function DocumentCard({ document, onView }) {
     return `${base}${app}`.replace(/\s+/g, '_');
   };
 
-  const dataUrlToBlobUrl = (dataUrl) => {
-    try {
-      const arr = dataUrl.split(',');
-      const mimeMatch = arr[0].match(/:(.*?);/);
-      const mime = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
-      const bstr = atob(arr[1] || '');
-      let n = bstr.length;
-      const u8arr = new Uint8Array(n);
-      while (n--) {
-        u8arr[n] = bstr.charCodeAt(n);
-      }
-      const blob = new Blob([u8arr], { type: mime });
-      return URL.createObjectURL(blob);
-    } catch (e) {
-      return undefined;
-    }
-  };
-
   const handleView = () => {
     if (document?.travelerId !== undefined) saveTravelerId(document.travelerId);
     if (onView) {
@@ -36,34 +18,19 @@ export default function DocumentCard({ document, onView }) {
       return;
     }
     if (typeof window !== 'undefined') {
-      let target = document?.previewUrl || document?.downloadUrl;
-      if (!target) return;
-      if (typeof target === 'string' && target.startsWith('data:')) {
-        const blobUrl = dataUrlToBlobUrl(target);
-        if (blobUrl) target = blobUrl;
+      const target = document?.previewUrl || document?.downloadUrl;
+      if (target) {
+        window.open(target, '_blank', 'noopener,noreferrer');
       }
-      window.open(target, '_blank', 'noopener,noreferrer');
     }
   };
 
   const handleDownload = (e) => {
     e?.preventDefault?.();
     if (typeof window === 'undefined') return;
-    let href = document?.downloadUrl || document?.previewUrl;
+    const href = document?.downloadUrl || document?.previewUrl;
     if (!href) return;
-    let filename = buildFilename();
-
-    if (href.startsWith('data:')) {
-      const blobUrl = dataUrlToBlobUrl(href);
-      if (blobUrl) {
-        href = blobUrl;
-        const mimeMatch = (document?.downloadUrl || document?.previewUrl || '').match(/^data:(.*?);/);
-        const mime = mimeMatch ? mimeMatch[1] : '';
-        if (mime.includes('pdf')) filename += '.pdf';
-        else if (mime.includes('png')) filename += '.png';
-        else if (mime.includes('jpeg') || mime.includes('jpg')) filename += '.jpg';
-      }
-    }
+    const filename = buildFilename();
 
     const a = (typeof window !== 'undefined' && window.document?.createElement)
       ? window.document.createElement('a')

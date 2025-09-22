@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from "react";
+import { uploadFile } from "@/api/upload";
 import {
   Upload,
   X,
@@ -83,6 +84,11 @@ const PassportInformationSection = ({
         const reader = new FileReader();
         reader.onloadend = () => setFrontPreview(reader.result);
         reader.readAsDataURL(passportData.passportFront);
+      } else if (
+        typeof passportData.passportFront === "string" &&
+        !passportData.passportFront.startsWith("data:")
+      ) {
+        setFrontPreview(passportData.passportFront);
       }
     } else {
       setFrontPreview(null);
@@ -98,6 +104,11 @@ const PassportInformationSection = ({
         const reader = new FileReader();
         reader.onloadend = () => setBackPreview(reader.result);
         reader.readAsDataURL(passportData.passportBack);
+      } else if (
+        typeof passportData.passportBack === "string" &&
+        !passportData.passportBack.startsWith("data:")
+      ) {
+        setBackPreview(passportData.passportBack);
       }
     } else {
       setBackPreview(null);
@@ -131,7 +142,7 @@ const PassportInformationSection = ({
     }
   };
 
-  const performOCR = async (file, side) => {
+  const performOCR = async (file, url, side) => {
     if (side === "front") {
       setFrontOcrLoading(true);
       setFrontOcrError(null);
@@ -305,10 +316,10 @@ const PassportInformationSection = ({
           const finalUpdate = { ...prev, ...updates };
           // Preserve file refs and set the side file
           if (side === "front") {
-            finalUpdate.passportFront = file;
+            finalUpdate.passportFront = url;
           }
           if (side === "back") {
-            finalUpdate.passportBack = file;
+            finalUpdate.passportBack = url;
           }
 
           return finalUpdate;
@@ -382,156 +393,18 @@ const PassportInformationSection = ({
     }
   };
 
-  const extractPassportDataFromMindee = (inference, side) => {
-    const extractedData = {
-      passportNumber: null,
-      firstName: null,
-      lastName: null,
-      dateOfBirth: null,
-      sex: null,
-      expiryDate: null,
-      issueDate: null,
-      placeOfBirth: null,
-      nationality: null,
-      currentAddress: null,
-      emergencyContact: null,
-      foundFields: 0,
-    };
-
-    try {
-      console.log("Processing Mindee inference:", inference);
-
-      // Check if we have prediction data
-      if (!inference || !inference.prediction) {
-        console.log("No prediction data in inference");
-        return extractedData;
-      }
-
-      const prediction = inference.prediction;
-
-      // Extract passport number
-      if (prediction.passport_number && prediction.passport_number.value) {
-        extractedData.passportNumber = prediction.passport_number.value;
-        extractedData.foundFields++;
-        console.log("Found passport number:", extractedData.passportNumber);
-      }
-
-      // Extract names
-      if (prediction.given_names && prediction.given_names.length > 0) {
-        extractedData.firstName = prediction.given_names[0].value;
-        extractedData.foundFields++;
-        console.log("Found first name:", extractedData.firstName);
-      }
-
-      if (prediction.surname && prediction.surname.value) {
-        extractedData.lastName = prediction.surname.value;
-        extractedData.foundFields++;
-        console.log("Found last name:", extractedData.lastName);
-      }
-
-      // Extract dates
-      if (prediction.birth_date && prediction.birth_date.value) {
-        // Convert from DD/MM/YYYY to YYYY-MM-DD format
-        const dateParts = prediction.birth_date.value.split("/");
-        if (dateParts.length === 3) {
-          const day = dateParts[0].padStart(2, "0");
-          const month = dateParts[1].padStart(2, "0");
-          const year = dateParts[2];
-          extractedData.dateOfBirth = `${year}-${month}-${day}`;
-          extractedData.foundFields++;
-          console.log("Found date of birth:", extractedData.dateOfBirth);
-        }
-      }
-
-      if (prediction.expiry_date && prediction.expiry_date.value) {
-        // Convert from DD/MM/YYYY to YYYY-MM-DD format
-        const dateParts = prediction.expiry_date.value.split("/");
-        if (dateParts.length === 3) {
-          const day = dateParts[0].padStart(2, "0");
-          const month = dateParts[1].padStart(2, "0");
-          const year = dateParts[2];
-          extractedData.expiryDate = `${year}-${month}-${day}`;
-          extractedData.foundFields++;
-          console.log("Found expiry date:", extractedData.expiryDate);
-        }
-      }
-
-      if (prediction.issuance_date && prediction.issuance_date.value) {
-        // Convert from DD/MM/YYYY to YYYY-MM-DD format
-        const dateParts = prediction.issuance_date.value.split("/");
-        if (dateParts.length === 3) {
-          const day = dateParts[0].padStart(2, "0");
-          const month = dateParts[1].padStart(2, "0");
-          const year = dateParts[2];
-          extractedData.issueDate = `${year}-${month}-${day}`;
-          extractedData.foundFields++;
-          console.log("Found issue date:", extractedData.issueDate);
-        }
-      }
-
-      // Extract gender
-      if (prediction.gender && prediction.gender.value) {
-        const gender = prediction.gender.value.toLowerCase();
-        if (gender === "m" || gender === "male") {
-          extractedData.sex = "Male";
-          extractedData.foundFields++;
-        } else if (gender === "f" || gender === "female") {
-          extractedData.sex = "Female";
-          extractedData.foundFields++;
-        }
-        console.log("Found gender:", extractedData.sex);
-      }
-
-      // Extract nationality
-      if (prediction.nationality && prediction.nationality.value) {
-        extractedData.nationality = prediction.nationality.value;
-        extractedData.foundFields++;
-        console.log("Found nationality:", extractedData.nationality);
-      }
-
-      // Extract place of birth
-      if (prediction.birth_place && prediction.birth_place.value) {
-        extractedData.placeOfBirth = prediction.birth_place.value;
-        extractedData.foundFields++;
-        console.log("Found place of birth:", extractedData.placeOfBirth);
-      }
-
-      // For back side specific fields (if available in the model)
-      if (side === "back") {
-        // These fields might be available depending on the custom model
-        if (prediction.address && prediction.address.value) {
-          extractedData.currentAddress = prediction.address.value;
-          extractedData.foundFields++;
-          console.log("Found address:", extractedData.currentAddress);
-        }
-
-        if (
-          prediction.emergency_contact &&
-          prediction.emergency_contact.value
-        ) {
-          extractedData.emergencyContact = prediction.emergency_contact.value;
-          extractedData.foundFields++;
-          console.log(
-            "Found emergency contact:",
-            extractedData.emergencyContact
-          );
-        }
-      }
-    } catch (error) {
-      console.error("Error extracting data from Mindee inference:", error);
-    }
-
     console.log(
-      `Extracted ${extractedData.foundFields} fields from ${side} side:`,
-      extractedData
+      "Rendering PassportInformationSection with data:",
+      passportData,
+      
     );
-    return extractedData;
-  };
+
+
 
 
   
 
-  const handleFileUpload = (e, side) => {
+  const handleFileUpload = async (e, side) => {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -550,38 +423,65 @@ const PassportInformationSection = ({
     }));
 
     const reader = new FileReader();
-    reader.onloadend = () => {
+    reader.onloadend = async () => {
       if (side === "front") {
         setFrontPreview(reader.result);
 
-        setPassportData((prev) => {
-          const newData = {
-            ...prev,
-            passportFront: file,
-          };
-          return newData;
-        });
-        setErrors((prev) => ({
+        // store file reference for OCR and also upload to backend
+        setPassportData((prev) => ({
           ...prev,
-          passportFront: "",
+          passportFront: file, // temporary
         }));
+        setErrors((prev) => ({ ...prev, passportFront: "" }));
         setFrontOcrDone(false);
-        performOCR(file, "front");
+
+        // Upload file to backend and store returned URL
+        try {
+          const res = await uploadFile(file);
+          if (res && res.url) {
+            setPassportData((prev) => ({ ...prev, passportFront: res.url }));
+            console.log("Front upload successful:", res.url);
+            performOCR(file, res.url, "front");
+          }
+        } catch (err) {
+          console.error("Front upload failed:", err);
+          let errorMessage = "Upload failed. Please try again.";
+          if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+            errorMessage = "Upload timed out. Please check your connection and try again.";
+          } else if (err.response?.status === 500) {
+            errorMessage = "Server error during upload. Please try again later.";
+          }
+          setErrors((prev) => ({ ...prev, passportFront: errorMessage }));
+          setPassportData((prev) => ({ ...prev, passportFront: null }));
+        }
       } else {
         setBackPreview(reader.result);
 
-        setPassportData((prev) => {
-          const newData = {
-            ...prev,
-            passportBack: file,
-          };
-          return newData;
-        });
-        setErrors((prev) => ({
+        setPassportData((prev) => ({
           ...prev,
-          passportBack: "",
+          passportBack: file, // temporary
         }));
-        performOCR(file, "back");
+        setErrors((prev) => ({ ...prev, passportBack: "" }));
+
+        // Upload file to backend and store returned URL
+        try {
+          const res = await uploadFile(file);
+          if (res && res.url) {
+            setPassportData((prev) => ({ ...prev, passportBack: res.url }));
+            console.log("Back upload successful:", res.url);
+            performOCR(file, res.url, "back");
+          }
+        } catch (err) {
+          console.error("Back upload failed:", err);
+          let errorMessage = "Upload failed. Please try again.";
+          if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+            errorMessage = "Upload timed out. Please check your connection and try again.";
+          } else if (err.response?.status === 500) {
+            errorMessage = "Server error during upload. Please try again later.";
+          }
+          setErrors((prev) => ({ ...prev, passportBack: errorMessage }));
+          setPassportData((prev) => ({ ...prev, passportBack: null }));
+        }
       }
     };
     reader.readAsDataURL(file);
@@ -641,7 +541,7 @@ const PassportInformationSection = ({
       newErrors.mobileNumber = "Mobile number is required.";
     } else {
       const s = String(mobileNumber).trim();
-      const digits = s.replace(/[\s()\-]/g, "");
+      const digits = s.replace(/[\s()\\-]/g, "");
       const ukPhoneRegex = /^(?:\+447\d{9}|447\d{9}|07\d{9})$/;
       if (!ukPhoneRegex.test(digits)) {
         newErrors.mobileNumber = "Please enter a valid UK mobile number (e.g. +447123456789 or 07123456789).";
@@ -848,6 +748,9 @@ const PassportInformationSection = ({
                     >
                       <X size={16} />
                     </button>
+                    {passportData.passportFrontUrl && (
+                      <p className="text-xs text-gray-400 mt-2">Uploaded URL: {passportData.passportFrontUrl}</p>
+                    )}
                   </div>
                 ) : (
                   <div className="flex items-center justify-center w-full">
@@ -923,6 +826,9 @@ const PassportInformationSection = ({
                     >
                       <X size={16} />
                     </button>
+                    {passportData.passportBackUrl && (
+                      <p className="text-xs text-gray-400 mt-2">Uploaded URL: {passportData.passportBackUrl}</p>
+                    )}
                   </div>
                 ) : (
                   <div className="flex items-center justify-center w-full">

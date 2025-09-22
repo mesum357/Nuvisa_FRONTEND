@@ -1,10 +1,10 @@
 import { CloudCog } from "lucide-react";
 import { Upload, Check, Eye, Download, Trash2 } from "lucide-react";
-import { useState, useRef } from "react";
+import { useRef } from "react";
+import { uploadFile } from "@/api/upload";
 
 const DocumentUploadSection = ({ documents, setDocuments, onUploadSuccess, onUploadError }) => {
   const fileInputRefs = useRef({});
-  const [uploadProgress, setUploadProgress] = useState(0);
 
   const documentTypes = [
     {
@@ -47,18 +47,17 @@ const DocumentUploadSection = ({ documents, setDocuments, onUploadSuccess, onUpl
     },
   ];
 
-  const handleFileUpload = (e, docId) => {
+  const handleFileUpload = async (e, docId) => {
     const file = e.target.files[0];
     if (!file) return;
 
     try {
-      setUploadProgress((prev) => Math.min(prev + 1, documentTypes.length));
-
-      const reader = new FileReader();
-      reader.onloadend = () => {
+      // Upload file to backend and get URL
+      const uploadResult = await uploadFile(file);
+      if (uploadResult && uploadResult.url) {
         const documentData = {
           file,
-          preview: reader.result,
+          preview: uploadResult.url,
           name: file.name,
           type: file.type,
           size: file.size,
@@ -73,15 +72,10 @@ const DocumentUploadSection = ({ documents, setDocuments, onUploadSuccess, onUpl
         if (onUploadSuccess) {
           onUploadSuccess(documentData, docId);
         }
-      };
-      reader.onerror = () => {
-        const errorMessage = "Failed to read file. Please try again.";
-        if (onUploadError) {
-          onUploadError(errorMessage);
-        }
-      };
-      reader.readAsDataURL(file);
-    } catch (error) {
+      } else {
+        throw new Error("Upload failed");
+      }
+    } catch {
       const errorMessage = "Failed to upload file. Please try again.";
       if (onUploadError) {
         onUploadError(errorMessage);
@@ -95,7 +89,6 @@ const DocumentUploadSection = ({ documents, setDocuments, onUploadSuccess, onUpl
       delete newDocs[docId];
       return newDocs;
     });
-    setUploadProgress((prev) => Math.max(prev - 1, 0));
     if (fileInputRefs.current[docId]) {
       fileInputRefs.current[docId].value = "";
     }
