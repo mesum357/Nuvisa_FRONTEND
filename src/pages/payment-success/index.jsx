@@ -299,9 +299,8 @@ const PaymentSuccess = () => {
           amountPaid: currentData.totalAmount?.toString(),
           numberOfTravellers: numberOfTravelers,
           travelersData: initialTravelersData, // Pass initialized travelers data
-          visaTypeId: visaState.visaTypeId || visaTypeIdFromStorage || "", // Add visa type ID from Redux or localStorage
-          selectedVisaType:
-            visaState.selectedVisaType || visaTypeFromStorage || null, // Add selected visa type from Redux or localStorage
+          visaTypeId: "66755c9f11e8e79f4c31d9e4", // Add visa type ID from Redux or localStorage
+          selectedVisaType: "66755c9f11e8e79f4c31d9e4", // Add selected visa type from Redux or localStorage
           // Add arrival and departure dates from Redux store for SMV order creation
           arrivalDate: visaState.arrivalDate,
           departureDate: visaState.departureDate,
