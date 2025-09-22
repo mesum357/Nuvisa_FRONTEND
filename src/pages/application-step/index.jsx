@@ -1652,8 +1652,8 @@ const PassportStep = ({
         return;
       }
 
-      if (typeof file === "string" && file.startsWith("data:")) {
-        resolve(file);
+      if (typeof file === "string") {
+        resolve(file); // already URL or base64
         return;
       }
 
@@ -1685,8 +1685,6 @@ const PassportStep = ({
 
       const updatedBasicDetails = {
         ...basicDetails,
-        passportFront: passportFrontBase64,
-        passportBack: passportBackBase64,
       };
 
       const updatedTravelersData = travelersData.map((traveler, index) =>

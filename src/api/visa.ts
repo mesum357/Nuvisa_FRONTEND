@@ -56,9 +56,12 @@ export const createApplication = async (payload) => {
       const orderResponse = await createVisaOrder(orderData);
       console.log("SMV API response:", orderResponse);
 
-      if (orderResponse?.success && orderResponse?.data) {
+      if (
+        orderResponse?.data?.status?.data?.success &&
+        orderResponse?.data?.status?.data
+      ) {
         // Handle both mock response and real API response (both use order_id)
-        orderId = orderResponse.data.order_id;
+        orderId = orderResponse.data.status.data.data.order_id;
         console.log("SMV order created successfully:", orderId);
       } else {
         console.warn(
