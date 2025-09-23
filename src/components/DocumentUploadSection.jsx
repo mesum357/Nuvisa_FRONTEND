@@ -1,9 +1,13 @@
-import { CloudCog } from "lucide-react";
 import { Upload, Check, Eye, Download, Trash2 } from "lucide-react";
 import { useRef } from "react";
 import { uploadFile } from "@/api/upload";
 
-const DocumentUploadSection = ({ documents, setDocuments, onUploadSuccess, onUploadError }) => {
+const DocumentUploadSection = ({
+  documents,
+  setDocuments,
+  onUploadSuccess,
+  onUploadError,
+}) => {
   const fileInputRefs = useRef({});
 
   const documentTypes = [
@@ -115,6 +119,10 @@ const DocumentUploadSection = ({ documents, setDocuments, onUploadSuccess, onUpl
 
   const completedCount = Object.keys(documents).length;
   const totalCount = documentTypes.length;
+  const requiredCount = documentTypes.filter((doc) => doc.required).length;
+  const completedRequiredCount = documentTypes.filter(
+    (doc) => doc.required && documents[doc.id]
+  ).length;
 
   return (
     <div className="space-y-4">
@@ -128,7 +136,8 @@ const DocumentUploadSection = ({ documents, setDocuments, onUploadSuccess, onUpl
             Upload your documents
           </h3>
           <span className="text-sm text-gray-500">
-            {completedCount} / {totalCount}
+            {completedCount} / {totalCount} total ({completedRequiredCount} /{" "}
+            {requiredCount} required)
           </span>
         </div>
       </div>
@@ -139,24 +148,34 @@ const DocumentUploadSection = ({ documents, setDocuments, onUploadSuccess, onUpl
           const isUploaded = documents[docType.id];
 
           return (
-            <div
-              key={docType.id}
-              className="p-6 border   dark:border-gray-700"
-            >
+            <div key={docType.id} className="p-6 border   dark:border-gray-700">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4  ">
                   <div className="flex items-center gap-4 max-w-56 w-full">
-                    <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                      isUploaded ? 'bg-green-600 dark:bg-green-900/50' : 'bg-gray-400 dark:bg-gray-600'
-                    }`}>
+                    <div
+                      className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                        isUploaded
+                          ? "bg-green-600 dark:bg-green-900/50"
+                          : "bg-gray-400 dark:bg-gray-600"
+                      }`}
+                    >
                       {isUploaded ? (
                         <Check className="w-5 h-5 text-white dark:text-green-400" />
                       ) : (
                         <div className="w-2 h-2 bg-white dark:bg-gray-300 rounded-full"></div>
                       )}
                     </div>
-                    <h4 className="text-base font-semibold text-gray-900 dark:text-gray-100 w-full ">
+                    <h4 className="text-base font-semibold text-gray-900 dark:text-gray-100 w-full flex items-center gap-2">
                       {docType.title}
+                      <span
+                        className={`text-xs font-medium px-2 py-1 rounded-full ${
+                          docType.required
+                            ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                            : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
+                        }`}
+                      >
+                        {docType.required ? "Required" : "Optional"}
+                      </span>
                     </h4>
                   </div>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">

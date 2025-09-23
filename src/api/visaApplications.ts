@@ -53,3 +53,25 @@ export const getVisaApplication = async (token, payload) => {
     payload,
   });
 };
+
+export const archiveVisaApplication = async (token, payload) => {
+  return apigateway({
+    endpoint: backendApiEnums.ENDPOINTS.VISA_APPLICATION.ARCHIVE_APPLICATION,
+    method: backendApiEnums.METHODS.POST,
+    token: token,
+    payload,
+    isDisplayResponsePopUp: true,
+    successMessage: "Application archived",
+  });
+};
+
+export const unarchiveVisaApplication = async (token, payload) => {
+  return apigateway({
+    endpoint: backendApiEnums.ENDPOINTS.VISA_APPLICATION.UNARCHIVE_APPLICATION,
+    method: backendApiEnums.METHODS.POST,
+    token: token,
+    payload,
+    isDisplayResponsePopUp: true,
+    successMessage: "Application restored",
+  });
+};

@@ -1,3 +1,4 @@
+import ClientOnly from "../ClientOnly";
 import ComparisonSection from "../ComparisonSection";
 import FAQSection from "../Faqs";
 import Footer from "../Footer";
@@ -12,7 +13,9 @@ const VisaInformation = () => {
     <div className="bg-[#1E1E27] text-white">
       <Navbar />
       <div className=" mx-auto flex-col gap-0 flex items-center justify-center mt-5">
-        <CountrySlider />
+        <ClientOnly>
+          <CountrySlider />
+        </ClientOnly>
 
         {/* Visa Type Selection */}
 

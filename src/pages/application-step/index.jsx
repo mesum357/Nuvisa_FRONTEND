@@ -25,9 +25,7 @@ import { useEffect, useState } from "react";
 import { ChevronLeft } from "lucide-react";
 import { useToast } from "@/contexts/ToastContext";
 import BookingAppointment from "@/components/BookingAppointment";
-import {
-  calculatePaymentFees,
-} from "@/utils/currency";
+import { calculatePaymentFees } from "@/utils/currency";
 import useCreateDynamicCheckoutSession from "@/hooks/useCreateDynamicCheckoutSession";
 
 const MultiStepAccordion = () => {
@@ -692,22 +690,38 @@ const MultiStepAccordion = () => {
   };
 
   const toggleStep = (stepId) => {
-    const stepIndex = steps.findIndex((step) => step.id === stepId);
-    const allPreviousCompleted = steps
-      .slice(0, stepIndex)
-      .every((s) => s.completed);
+    const visible = getVisibleSteps();
+    const visibleIndex = visible.findIndex((s) => s.id === stepId);
 
-    // Allow opening the first step or if all previous steps are completed
-    if (!allPreviousCompleted && stepId !== 1) {
-      // For manual navigation, be more permissive - allow opening next step if at least the immediately previous step is completed
-      const previousStep = steps[stepIndex - 1];
-      if (!previousStep?.completed) return;
+    if (visibleIndex === -1) return;
+
+    const targetStep = visible[visibleIndex];
+
+    if (targetStep.open) {
+      setSteps((prev) =>
+        prev.map((step) => ({
+          ...step,
+          open: step.id === stepId ? !step.open : false,
+        }))
+      );
+      return;
     }
 
+    const allPreviousCompleted = visible
+      .slice(0, visibleIndex)
+      .every((s) => s.completed === true);
+
+    if (!allPreviousCompleted) {
+      if (showError)
+        showError("Please complete previous steps before proceeding.");
+      return;
+    }
+
+    // Open the target step and close others
     setSteps((prev) =>
       prev.map((step) => ({
         ...step,
-        open: step.id === stepId ? !step.open : false,
+        open: step.id === stepId ? true : false,
       }))
     );
   };
@@ -910,7 +924,14 @@ const MultiStepAccordion = () => {
 
         console.log("=== STEP NAVIGATION DEBUG ===");
         console.log("Current step ID:", step.id);
-        console.log("Visible steps:", visible.map(s => ({ id: s.id, type: s.stepType, completed: s.completed })));
+        console.log(
+          "Visible steps:",
+          visible.map((s) => ({
+            id: s.id,
+            type: s.stepType,
+            completed: s.completed,
+          }))
+        );
         console.log("Current visible index:", currentVisibleIndex);
         console.log("=== END STEP NAVIGATION DEBUG ===");
 
@@ -922,9 +943,14 @@ const MultiStepAccordion = () => {
           const nextVisibleStep = visible[currentVisibleIndex + 1];
           if (nextVisibleStep) {
             console.log("=== OPENING NEXT STEP ===");
-            console.log("Next step:", nextVisibleStep.stepType, "ID:", nextVisibleStep.id);
+            console.log(
+              "Next step:",
+              nextVisibleStep.stepType,
+              "ID:",
+              nextVisibleStep.id
+            );
             console.log("=== END OPENING NEXT STEP ===");
-            
+
             // Force open the next step regardless of previous completion checks
             setSteps((prevSteps) =>
               prevSteps.map((s) => ({
@@ -1026,7 +1052,7 @@ const MultiStepAccordion = () => {
   const validateDocuments = () => {
     const currentTraveler = getCurrentTravelerData();
     const documents = currentTraveler.documents?.documents || {};
-    const requiredDocIds = [1, 2, 5];
+    const requiredDocIds = [1, 2, 3, 5]; // Documents 1, 2, 3, and 5 are required
     return requiredDocIds.every((id) => documents[id]);
   };
 
@@ -1367,17 +1393,58 @@ const MultiStepAccordion = () => {
               </h3>
               <div className="flex flex-wrap gap-2">
                 {Array.from({ length: numberOfTravelers }, (_, index) => {
+                  const traveler = travelersData[index] || {};
                   const travelerStepInfo =
-                    travelersStepInfo[travelersData[index]?.id] ||
-                    travelersData[index]?.stepInfo;
+                    travelersStepInfo[traveler?.id] || traveler?.stepInfo || {};
+
+                  const travelerInsuranceObj = traveler?.insurance || {};
+
+                  const insuranceFlagTrue =
+                    travelerInsuranceObj.insurance === "true" ||
+                    travelerInsuranceObj.insurance === true;
+                  const insuranceDetailsSelected =
+                    travelerInsuranceObj.insuranceDetails?.selected === true ||
+                    travelerInsuranceObj.insuranceDetails?.hasOwnInsurance ===
+                      true;
+                  const insuranceSelectedPurchaseOrOwn =
+                    travelerInsuranceObj.insurance === "purchase" ||
+                    travelerInsuranceObj.insurance === "own";
+
+                  const computedRequiresInsurance =
+                    insuranceFlagTrue ||
+                    insuranceDetailsSelected ||
+                    insuranceSelectedPurchaseOrOwn;
+
+                  const showInsuranceStep =
+                    travelerInsuranceObj.insurance !== "true" &&
+                    (travelerInsuranceObj.insurance === "own" ||
+                      (travelerInsuranceObj.insurance === "purchase" &&
+                        !travelerInsuranceObj.insurancePaymentCompleted) ||
+                      travelerInsuranceObj.insurance === "false" ||
+                      !travelerInsuranceObj.insurance ||
+                      travelerInsuranceObj.insurance === "");
+
+                  let visibleStepsForTraveler = [...steps];
+                  if (!showInsuranceStep) {
+                    visibleStepsForTraveler = visibleStepsForTraveler.filter(
+                      (s) => s.stepType !== "insurance"
+                    );
+                  }
+
+                  const totalSteps = visibleStepsForTraveler.length;
+
+                  const completedSteps = travelerStepInfo?.completedSteps || [];
+                  const completedStepsCount = completedSteps.filter((cs) =>
+                    visibleStepsForTraveler.some((vs) => vs.stepType === cs)
+                  ).length;
+
                   const isCompleted = travelerStepInfo?.isCompleted || false;
-                  const completedStepsCount =
-                    travelerStepInfo?.completedSteps?.length || 0;
-                  const totalSteps = travelerStepInfo?.totalSteps || 4;
                   const isAdditionalTraveler =
                     travelerStepInfo?.isAdditionalTraveler || false;
                   const requiresInsurance =
-                    travelerStepInfo?.requiresInsurance || false;
+                    travelerStepInfo?.requiresInsurance ||
+                    computedRequiresInsurance ||
+                    false;
                   const hasInsurance = travelerStepInfo?.hasInsurance || false;
 
                   return (
@@ -1554,6 +1621,7 @@ const MultiStepAccordion = () => {
                         validatePassportData={validatePassportData}
                         onComplete={(data) => handleCompleteStep(step.id, data)}
                         loading={loading}
+                        showError={showError}
                       />
                     )}
 
@@ -1567,6 +1635,7 @@ const MultiStepAccordion = () => {
                         setParentVisaApplication={setParentVisaApplication}
                         onComplete={(data) => handleCompleteStep(step.id, data)}
                         loading={loading}
+                        showError={showError}
                       />
                     )}
 
@@ -1588,6 +1657,7 @@ const MultiStepAccordion = () => {
                         validateDocuments={validateDocuments}
                         onComplete={(data) => handleCompleteStep(step.id, data)}
                         loading={loading}
+                        showError={showError}
                       />
                     )}
 
@@ -1599,6 +1669,7 @@ const MultiStepAccordion = () => {
                         onComplete={(data) => handleCompleteStep(step.id, data)}
                         loading={loading}
                         parentVisaApplication={parentVisaApplication}
+                        showError={showError}
                       />
                     )}
 
@@ -1644,6 +1715,7 @@ const PassportStep = ({
   validatePassportData,
   onComplete,
   loading,
+  showError,
 }) => {
   const fileToBase64 = (file) => {
     return new Promise((resolve, reject) => {
@@ -1757,6 +1829,7 @@ const VisitStep = ({
   parentVisaApplication,
   setParentVisaApplication,
   loading,
+  showError,
 }) => {
   const visitData = travelerData?.visitDetails || {};
 
@@ -1769,6 +1842,17 @@ const VisitStep = ({
   };
 
   const handleSave = () => {
+    const isValid = validateVisitData();
+    if (!isValid) {
+      console.error("Visit details validation failed");
+      if (showError) {
+        showError(
+          "Please fill in all required visit details before continuing."
+        );
+      }
+      return;
+    }
+
     const stepData = {
       visitingOtherSchengenCountries:
         visitData.visitingOtherSchengenCountries || [],
@@ -1826,6 +1910,7 @@ const DocumentStep = ({
   validateDocuments,
   onComplete,
   loading,
+  showError,
 }) => {
   const documents = travelerData.documents?.documents || {};
 
@@ -1846,6 +1931,22 @@ const DocumentStep = ({
   };
 
   const handleSave = () => {
+    const isValid = validateDocuments();
+    if (!isValid) {
+      const requiredDocIds = [1, 2, 3, 5];
+      const missingDocs = requiredDocIds.filter((id) => !documents[id]);
+
+      console.error("Missing required documents:", missingDocs);
+      if (showError) {
+        showError(
+          `Please upload all required documents before continuing. Missing: Document(s) ${missingDocs.join(
+            ", "
+          )}`
+        );
+      }
+      return;
+    }
+
     const documentsForBackend = {};
 
     Object.keys(documents).forEach((docId) => {
@@ -1897,6 +1998,8 @@ const InsuranceStep = ({
   onComplete,
   loading,
   parentVisaApplication,
+  showError,
+  validateInsurance,
 }) => {
   const [uploadedCertificate, setUploadedCertificate] = useState(
     travelerData?.insurance?.insuranceCertificate || null
@@ -2007,6 +2110,33 @@ const InsuranceStep = ({
   const handleSave = () => {
     setInsuranceError("");
 
+    const isValid =
+      typeof validateInsurance === "function"
+        ? validateInsurance()
+        : (() => {
+            const ins = travelerData?.insurance || {};
+            if (!ins.insurance) return false;
+            if (ins.insurance === "own") {
+              return !!uploadedCertificate || !!ins.insuranceCertificate;
+            }
+            if (ins.insurance === "purchase") {
+              return (
+                !!ins.insurancePaymentCompleted ||
+                (!!ins.orderId && !!ins.paymentAmount)
+              );
+            }
+            return true;
+          })();
+    if (!isValid) {
+      console.error("Insurance validation failed");
+      if (showError) {
+        showError(
+          "Please complete your insurance selection and upload certificate (if required) before continuing."
+        );
+      }
+      return;
+    }
+
     const currentInsurance = travelerData?.insurance || {};
 
     if (currentInsurance.insurance === "own" && !uploadedCertificate) {
@@ -2094,14 +2224,16 @@ const InsuranceStep = ({
 
       const paymentResponse = await handleCreateDynamicCheckoutSession({
         email: userEmail,
-        amount: calculatePaymentFees(totalWithFee, "EUR", "INR")?.toString(), // Convert to string for API (Stripe currency)
-        amountGBP: totalWithFee.toString(), 
-        travellers: "1", 
+        // amount should be provided in the major currency unit that matches `currency` (GBP)
+        // backend expects a string like "12.34" and will convert to minor units (pence) by *100
+        amount: totalWithFee.toString(),
+        amountGBP: totalWithFee.toString(),
+        travellers: "1",
         country: parentVisaApplication?.country || "United Kingdom",
         insurance: "purchase",
         applicationId: parentVisaApplication?.id || "",
         travelerIndex: travelerIndex.toString(),
-        paymentType: "traveler_insurance", 
+        paymentType: "traveler_insurance",
         visaTypeId: parentVisaApplication?.visaTypeId || "",
         currency: "GBP",
       });
