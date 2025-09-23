@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
+import UK_CITIES from "@/constants/ukCities";
 
 export default function App({ passportData, setPassportData, handleSave }) {
   const [isComplete, setIsComplete] = useState(false);
@@ -1200,10 +1201,11 @@ const PassportInformationSection = ({
                       }`}
                     />
                     <datalist id="city-options">
-                      <option value="London" />
-                      <option value="Manchester" />
-                      <option value="Birmingham" />
-                      <option value="Edinburgh" />
+                      {UK_CITIES && UK_CITIES.length > 0
+                        ? UK_CITIES.map((c) => (
+                            <option key={c} value={c} />
+                          ))
+                        : null}
                     </datalist>
                     {errors.city && (
                       <p className="text-red-500 text-xs mt-1">{errors.city}</p>

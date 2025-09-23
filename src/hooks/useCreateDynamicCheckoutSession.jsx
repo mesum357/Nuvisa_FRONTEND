@@ -36,7 +36,6 @@ const useCreateDynamicCheckoutSession = () => {
     let successUrl = "/payment-success";
 
     if (paymentType === "application_creation") {
-   
       if (applicationId) {
         successUrl = `/application-step?application_id=${encodeURIComponent(
           applicationId
@@ -81,7 +80,8 @@ const useCreateDynamicCheckoutSession = () => {
       travelerIndex,
       paymentType,
       visaTypeId,
-      currency,
+      // Ensure currency is passed to backend (default to EUR)
+      currency: (currency || "EUR").toString(),
     };
 
     console.log("Final payload being sent to API:", payload);

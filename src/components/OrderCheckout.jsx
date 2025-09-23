@@ -9,6 +9,7 @@ import {
   setVisaFees,
   setTravelers as setReduxTravelers,
   setInsuranceFees,
+  setSelectedCountry,
   setVisaTypeId,
   setSelectedVisaType,
 } from "@/store/visaSlice";
@@ -33,14 +34,16 @@ import {
   validateCouponCode,
   applyCouponDiscount,
 } from "@/utils/currency";
-import { validateCouponCode as apiValidateCoupon } from "@/api/coupon";
 import ClientOnly from "./ClientOnly";
+import { useRouter } from "next/router";
 
 const VisaCheckout = () => {
   const dispatch = useAppDispatch();
   const searchParams = useSearchParams();
   const { handleCreateDynamicCheckoutSession, cretingDynamicCheckout } =
     useCreateDynamicCheckoutSession();
+  const router = useRouter();
+  const query = router.query;
 
   // Get data from Redux store first, fallback to URL params if not available
   const visaState = useAppSelector((state) => state.visa);
@@ -53,21 +56,35 @@ const VisaCheckout = () => {
       ? Math.round(Number(visaState.selectedVisaType.price) / 100)
       : 159; // Default base fee per traveler
 
-  // Use dynamic insurance fee from Redux store, fallback to URL params
-  const baseInsuranceFee =
-    visaState.insuranceFees || Number(searchParams.get("insuranceFees")) || 400;
-
-  const initialVisaFees = searchParams.get("visaFees") || visaState.visaFees;
+  const initialVisaFees =
+    (query?.visaFees ?? searchParams.get("visaFees")) || visaState.visaFees;
   const initialInsuranceFees =
-    searchParams.get("insuranceFees") || visaState.insuranceFees;
-  const initialTravelers = searchParams.get("travelers") || visaState.travelers;
+    (query?.insuranceFees ?? searchParams.get("insuranceFees")) ||
+    visaState.insuranceFees;
+  const initialTravelers =
+    (query?.travelers ?? searchParams.get("travelers")) || visaState.travelers;
   const selectedCountry =
-    searchParams.get("selectedCountry") || visaState.selectedCountry;
+    (query?.selectedCountry ?? searchParams.get("selectedCountry")) ||
+    visaState.selectedCountry;
   const selectedVisaType = visaState.selectedVisaType;
   const visaTypeId = visaState.visaTypeId;
 
-  const [travelers, setTravelers] = useState(1); // Always start with 1 to avoid hydration mismatch
-  const [includeInsurance, setIncludeInsurance] = useState(false); // Insurance should be unchecked by default
+  const [travelers, setTravelers] = useState(1);
+  const insuranceFeesFromQuery = query?.insuranceFees
+    ? Number(query.insuranceFees)
+    : Number(searchParams.get("insuranceFees"));
+  const insuranceFeesPerTravellerFromRedux = Number(visaState.insuranceFees);
+  const insurancePerTraveller =
+    !isNaN(insuranceFeesFromQuery) && insuranceFeesFromQuery > 0
+      ? insuranceFeesFromQuery
+      : !isNaN(insuranceFeesPerTravellerFromRedux) &&
+        insuranceFeesPerTravellerFromRedux > 0
+      ? insuranceFeesPerTravellerFromRedux
+      : 0;
+  const insuranceFeesTotal = insurancePerTraveller * travelers;
+  const [includeInsurance, setIncludeInsurance] = useState(
+    query.insuranceFees > 0 ? true : false
+  ); // Insurance should be unchecked by default
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState("");
   const [phone, setPhone] = useState("");
@@ -103,17 +120,23 @@ const VisaCheckout = () => {
   const searchParamsString = searchParams ? searchParams.toString() : "";
 
   useEffect(() => {
-    const sp = new URLSearchParams(searchParamsString);
-    const travelersFromParams = Number(sp.get("travelers")) || 1;
+    const travelersFromQuery = query?.travelers
+      ? Number(query.travelers)
+      : null;
+    const travelersFromParams =
+      travelersFromQuery ??
+      (searchParams ? Number(searchParams.get("travelers")) : null) ??
+      1;
     if (travelersFromParams !== travelers) {
       setTravelers(travelersFromParams);
     }
-  }, []);
+  }, [query, searchParams]);
 
   // Initialize Redux store with URL parameters if they exist (run only when params change)
   useEffect(() => {
     const sp = new URLSearchParams(searchParamsString);
     const visaFeesFromParams = Number(sp.get("visaFees"));
+    const selectedCountryFromParams = sp.get("selectedCountry");
     const insuranceFeesFromParams = Number(sp.get("insuranceFees"));
     const travelersFromParams = Number(sp.get("travelers"));
     const visaTypeIdFromParams = sp.get("visaTypeId");
@@ -133,7 +156,11 @@ const VisaCheckout = () => {
       setSelectedPaymentMethod(paymentMethodFromParams);
     }
 
-    if (discountCodeFromParams && discountPercentageFromParams && !appliedDiscount) {
+    if (
+      discountCodeFromParams &&
+      discountPercentageFromParams &&
+      !appliedDiscount
+    ) {
       setCouponCode(discountCodeFromParams);
       setAppliedDiscount({
         code: discountCodeFromParams,
@@ -151,6 +178,12 @@ const VisaCheckout = () => {
       insuranceFeesFromParams !== visaState.insuranceFees
     ) {
       dispatch(setInsuranceFees(insuranceFeesFromParams));
+    }
+    if (
+      selectedCountryFromParams &&
+      selectedCountryFromParams !== visaState.selectedCountry
+    ) {
+      dispatch(setSelectedCountry(String(selectedCountryFromParams)));
     }
     if (travelersFromParams && travelersFromParams !== visaState.travelers) {
       dispatch(setReduxTravelers(travelersFromParams));
@@ -170,12 +203,14 @@ const VisaCheckout = () => {
       return;
     }
 
-    // Calculate subtotal in GBP first
-    const currentSubtotal = baseVisaFee * travelers + (includeInsurance ? baseInsuranceFee * travelers : 0);
+    const currentSubtotal =
+      baseVisaFee * travelers + (includeInsurance ? insuranceFeesTotal : 0);
 
     try {
       // Validate coupon using API
-      const validationResult = await validateCouponCode(couponCode.toUpperCase());
+      const validationResult = await validateCouponCode(
+        couponCode.toUpperCase()
+      );
 
       if (!validationResult.valid) {
         setCouponError(validationResult.message || "Invalid coupon code");
@@ -183,15 +218,21 @@ const VisaCheckout = () => {
       }
 
       // Apply coupon discount
-      const discountAmountEUR = applyCouponDiscount(calculatePaymentFees(currentSubtotal, 'GBP', 'EUR'), couponCode.toUpperCase());
-      const finalTotalEUR = Math.max(0, calculatePaymentFees(currentSubtotal, 'GBP', 'EUR') - discountAmountEUR);
+      const discountAmountEUR = applyCouponDiscount(
+        calculatePaymentFees(currentSubtotal, "GBP", "EUR"),
+        couponCode.toUpperCase()
+      );
+      const finalTotalEUR = Math.max(
+        0,
+        calculatePaymentFees(currentSubtotal, "GBP", "EUR") - discountAmountEUR
+      );
 
       setAppliedDiscount({
         code: couponCode.toUpperCase(),
         percentage: validationResult.discount || 10,
         description: validationResult.description || "Applied Discount",
         discountAmount: discountAmountEUR,
-        finalTotal: finalTotalEUR
+        finalTotal: finalTotalEUR,
       });
       setCouponError("");
     } catch (error) {
@@ -249,7 +290,8 @@ const VisaCheckout = () => {
 
     const withSpace = normalized.slice(0, -3) + " " + normalized.slice(-3);
 
-    const re = /^([Gg][Ii][Rr]0[Aa]{2})|((?:[A-PR-UWYZ][0-9]{1,2}|[A-PR-UWYZ][A-HK-Y][0-9]{1,2}|[A-PR-UWYZ][0-9][A-HJKPSTUW]|[A-PR-UWYZ][A-HK-Y][0-9][ABEHMNPRVWXY])\s?[0-9][ABD-HJLNP-UW-Z]{2})$/i;
+    const re =
+      /^([Gg][Ii][Rr]0[Aa]{2})|((?:[A-PR-UWYZ][0-9]{1,2}|[A-PR-UWYZ][A-HK-Y][0-9]{1,2}|[A-PR-UWYZ][0-9][A-HJKPSTUW]|[A-PR-UWYZ][A-HK-Y][0-9][ABEHMNPRVWXY])\s?[0-9][ABD-HJLNP-UW-Z]{2})$/i;
 
     return re.test(withSpace) || re.test(v) || re.test(normalized);
   };
@@ -297,7 +339,8 @@ const VisaCheckout = () => {
         if (!billingPostcode.trim()) {
           errors.billingPostcode = "Postcode is required";
         } else if (!isValidUKPostcode(billingPostcode)) {
-          errors.billingPostcode = "Please enter a valid UK postcode (e.g. SW1A 1AA)";
+          errors.billingPostcode =
+            "Please enter a valid UK postcode (e.g. SW1A 1AA)";
         }
       }
     }
@@ -306,28 +349,40 @@ const VisaCheckout = () => {
     return Object.keys(errors).length === 0;
   };
 
-  // Calculate dynamic values based on user selections in GBP first
-  const visaFees = baseVisaFee * travelers;
-  const insuranceFees = includeInsurance ? baseInsuranceFee * travelers : 0;
+  // Resolve visa fees: prefer values passed in the URL (from the slider) then fall back to selected visa type calculation
+  const visaFeesFromQuery = query?.visaFees
+    ? Number(query.visaFees)
+    : Number(searchParams.get("visaFees"));
+
+  const visaFeesTotal =
+    !isNaN(visaFeesFromQuery) && visaFeesFromQuery > 0
+      ? visaFeesFromQuery * travelers
+      : baseVisaFee * travelers;
+
+  const insuranceFees = includeInsurance ? insuranceFeesTotal : 0;
   const eVisaFees = 0; // Currently free
-  const subtotal = visaFees + insuranceFees + eVisaFees;
+  const subtotal = visaFeesTotal + insuranceFees + eVisaFees;
 
   // Calculate original price and savings (for display purposes)
   const originalPrice = baseVisaFee * travelers; // Original price without any discounts
-  const savings = originalPrice - visaFees; // Any savings from discounts
+  const savings = originalPrice - visaFeesTotal; // Any savings from discounts
 
   // Calculate dynamic values based on user selections in EUR
-  const visaFeesEUR = calculatePaymentFees(baseVisaFee * travelers, 'GBP', 'EUR');
-  const insuranceFeesEUR = includeInsurance ? calculatePaymentFees(baseInsuranceFee * travelers, 'GBP', 'EUR') : 0;
+  const visaFeesEUR = calculatePaymentFees(visaFeesTotal, "EUR");
+  const insuranceFeesEUR = includeInsurance
+    ? calculatePaymentFees(insuranceFeesTotal, "EUR")
+    : 0;
   const eVisaFeesEUR = 0; // Currently free
-  const subtotalEUR = calculatePaymentFees(subtotal, 'GBP', 'EUR');
+  const subtotalEUR = calculatePaymentFees(subtotal, "EUR");
 
   // Apply discount if coupon is applied
-  const discountAmountEUR = appliedDiscount ? appliedDiscount.discountAmount || 0 : 0;
+  const discountAmountEUR = appliedDiscount
+    ? appliedDiscount.discountAmount || 0
+    : 0;
   const discountedSubtotalEUR = subtotalEUR - discountAmountEUR;
 
-  const originalPriceEUR = calculatePaymentFees(originalPrice, 'GBP', 'EUR');
-  const savingsEUR = calculatePaymentFees(savings, 'GBP', 'EUR');
+  const originalPriceEUR = calculatePaymentFees(originalPrice, "EUR");
+  const savingsEUR = calculatePaymentFees(savings, "EUR");
   const totalAmountEUR = discountedSubtotalEUR;
 
   const handleProceedToCheckout = async () => {
@@ -349,7 +404,9 @@ const VisaCheckout = () => {
 
     // If phone is provided, ensure it's a valid UK phone number
     if (phone && phone.trim() && !isValidUKPhone(phone)) {
-      setPhoneError("Please enter a valid UK phone number (e.g. +44 7XXXXXXXXX or 07XXXXXXXXX)");
+      setPhoneError(
+        "Please enter a valid UK phone number (e.g. +44 7XXXXXXXXX or 07XXXXXXXXX)"
+      );
       return;
     }
 
@@ -470,6 +527,7 @@ const VisaCheckout = () => {
       postcode: postcode,
       paymentMethod: selectedPaymentMethod,
       visaTypeId: visaTypeId || visaState.visaTypeId || "",
+      currency: "EUR",
     });
 
     const results = statusResult.data;
@@ -498,11 +556,13 @@ const VisaCheckout = () => {
   };
 
   useEffect(() => {
-    // Update Redux store when user changes values (ensure all values are serializable primitives)
-    // Only update if values are different to prevent infinite loops
-    const currentVisaFees = Number(visaFees);
+    const perTravellerVisaFee =
+      !isNaN(visaFeesFromQuery) && visaFeesFromQuery > 0
+        ? Number(visaFeesFromQuery)
+        : Number(baseVisaFee);
+    const currentVisaFees = Number(perTravellerVisaFee);
     const currentTravelers = Number(travelers);
-    const currentInsuranceFees = Number(insuranceFees);
+    const currentInsuranceFees = Number(insurancePerTraveller);
 
     if (
       typeof currentVisaFees === "number" &&
@@ -530,762 +590,451 @@ const VisaCheckout = () => {
     if (visaTypeId && visaTypeId !== visaState.visaTypeId) {
       dispatch(setVisaTypeId(String(visaTypeId)));
     }
-  }, [
-
-  ]);
+  }, []);
 
   return (
     <ClientOnly>
-    <div className="min-h-screen bg-white flex flex-col h-full">
-      <div className="p-6 border-b border-neutral-200">
-        <div className="flex items-center justify-between w-full max-w-6xl mx-auto">
-          <div className="space-y-1">
-            <Link href="/" className="">
-              <Image
-                src="/image/logo.png"
-                alt="NUvisa Logo"
-                width={130}
-                height={20}
-                className="object-contain"
-              />
-            </Link>
-            <p className="text-sm text-gray-700">
-              Complete your Schengen visa application
-            </p>
-          </div>
+      <div className="min-h-screen bg-white flex flex-col h-full">
+        <div className="p-6 border-b border-neutral-200">
+          <div className="flex items-center justify-between w-full max-w-6xl mx-auto">
+            <div className="space-y-1">
+              <Link href="/" className="">
+                <Image
+                  src="/image/logo.png"
+                  alt="NUvisa Logo"
+                  width={130}
+                  height={20}
+                  className="object-contain"
+                />
+              </Link>
+              <p className="text-sm text-gray-700">
+                Complete your Schengen visa application
+              </p>
+            </div>
 
-          <Image
-            src="/icons/bag.svg"
-            alt="Shopping bag"
-            width={30}
-            height={20}
-            className="object-contain"
-          />
+            <Image
+              src="/icons/bag.svg"
+              alt="Shopping bag"
+              width={30}
+              height={20}
+              className="object-contain"
+            />
+          </div>
         </div>
-      </div>
 
-      <div className="w-full mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6 h-full grow">
-        <div className="space-y-6 p-6 md:p-10 md:pl-10 xl:pl-40">
-          <div className="space-y-3">
-            <h2 className="font-medium text-lg">Contact Information</h2>
-            <div className="space-y-4">
-              <div>
-                <label
-                  htmlFor="email"
-                  className="block text-sm font-medium mb-1"
-                >
-                  Email *
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@example.com"
-                  className={`w-full border ${
-                    emailError ? "border-red-400" : "border-gray-300"
-                  } rounded-md p-2 text-sm  ${
-                    emailError
-                      ? "outline-none ring-2 ring-red-400"
-                      : "focus:outline-none focus:ring-2 focus:ring-black"
-                  }`}
-                />
-                {emailError && (
-                  <span className="text-sm text-red-400 mt-1">
-                    {emailError}
-                  </span>
-                )}
-              </div>
-
-              <div>
-                <label
-                  htmlFor="phone"
-                  className="block text-sm font-medium mb-1"
-                >
-                  Phone (Optional)
-                </label>
-                <input
-                  type="tel"
-                  id="phone"
-                  value={phone}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setPhone(v);
-                    // Clear error if empty (phone is optional)
-                    if (!v.trim()) {
-                      setPhoneError("");
-                      return;
-                    }
-                    // Validate UK phone and set error message accordingly
-                    if (!isValidUKPhone(v)) {
-                      setPhoneError("Please enter a valid UK phone number (e.g. +44 7XXXXXXXXX or 07XXXXXXXXX)");
-                    } else {
-                      setPhoneError("");
-                    }
-                  }}
-                  placeholder="+44 123 456 7890"
-                  className={`w-full border ${
-                    phoneError ? "border-red-400 outline-none ring-2 ring-red-400" : "border-gray-300 focus:outline-none focus:ring-2 focus:ring-black"
-                  } rounded-md p-2 text-sm`}
-                />
-                {phoneError && (
-                  <span className="text-sm text-red-400 mt-1">{phoneError}</span>
-                )}
-              </div>
-
-              <div>
-                <label
-                  htmlFor="postcode"
-                  className="block text-sm font-medium mb-1"
-                >
-                  Postcode *
-                </label>
-                <input
-                  type="text"
-                  id="postcode"
-                  value={postcode}
-                  onChange={(e) => setPostcode(e.target.value)}
-                  placeholder="SW1A 1AA"
-                  className={`w-full border ${
-                    postcodeError ? "border-red-400" : "border-gray-300"
-                  } rounded-md p-2 text-sm  ${
-                    postcodeError
-                      ? "outline-none ring-2 ring-red-400"
-                      : "focus:outline-none focus:ring-2 focus:ring-black"
-                  }`}
-                />
-                {postcodeError && (
-                  <span className="text-sm text-red-400 mt-1">
-                    {postcodeError}
-                  </span>
-                )}
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="newsletter"
-                  checked={emailNewsOffers}
-                  onChange={(e) => setEmailNewsOffers(e.target.checked)}
-                  className="h-4 w-4 border-gray-300 rounded"
-                />
-                <label htmlFor="newsletter" className="text-sm">
-                  Email me with news and offers
-                </label>
-              </div>
-            </div>
-          </div>
-
-          {/* Express Checkout Section */}
-          <div className="space-y-3">
-            <h2 className="font-medium text-lg">Express Checkout</h2>
-            <div className="space-y-2">
-              <div
-                className={`border rounded-md p-3 cursor-pointer transition-all ${
-                  selectedPaymentMethod === "apple"
-                    ? "border-black bg-gray-50"
-                    : "border-gray-300"
-                }`}
-                onClick={() => setSelectedPaymentMethod("apple")}
-              >
-                <div className="flex items-center space-x-2">
+        <div className="w-full mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6 h-full grow">
+          <div className="space-y-6 p-6 md:p-10 md:pl-10 xl:pl-40">
+            <div className="space-y-3">
+              <h2 className="font-medium text-lg">Contact Information</h2>
+              <div className="space-y-4">
+                <div>
+                  <label
+                    htmlFor="email"
+                    className="block text-sm font-medium mb-1"
+                  >
+                    Email *
+                  </label>
                   <input
-                    type="radio"
-                    name="payment"
-                    value="apple"
-                    checked={selectedPaymentMethod === "apple"}
-                    onChange={(e) => setSelectedPaymentMethod(e.target.value)}
-                    className="h-4 w-4"
-                  />
-                  <FaApple className="text-lg" />
-                  <span className="text-sm font-medium">Apple Pay</span>
-                  {selectedPaymentMethod === "apple" && (
-                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full ml-auto">
-                      Selected
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div
-                className={`border rounded-md p-3 cursor-pointer ${
-                  selectedPaymentMethod === "google"
-                    ? "border-black bg-gray-50"
-                    : "border-gray-300"
-                }`}
-                onClick={() => setSelectedPaymentMethod("google")}
-              >
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="radio"
-                    name="payment"
-                    value="google"
-                    checked={selectedPaymentMethod === "google"}
-                    onChange={(e) => setSelectedPaymentMethod(e.target.value)}
-                    className="h-4 w-4"
-                  />
-                  <FaGoogle className="text-lg" />
-                  <span className="text-sm font-medium">Google Pay</span>
-                  {selectedPaymentMethod === "google" && (
-                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full ml-auto">
-                      Selected
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Divider */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="bg-white px-2 text-gray-500">
-                or pay with card
-              </span>
-            </div>
-          </div>
-
-          {/* Coupon Code Section */}
-          <div className="space-y-3">
-            <h2 className="font-medium text-lg">Discount Code</h2>
-            <div className="space-y-2">
-              <div className="flex space-x-2">
-                <div className="flex-1">
-                  <input
-                    type="text"
-                    value={couponCode}
-                    onChange={(e) =>
-                      setCouponCode(e.target.value.toUpperCase())
-                    }
-                    placeholder="Enter coupon code (e.g., STUDENT10)"
+                    type="email"
+                    id="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="name@example.com"
                     className={`w-full border ${
-                      couponError ? "border-red-400" : "border-gray-300"
-                    } rounded-md p-2 text-sm ${
-                      couponError
+                      emailError ? "border-red-400" : "border-gray-300"
+                    } rounded-md p-2 text-sm  ${
+                      emailError
                         ? "outline-none ring-2 ring-red-400"
                         : "focus:outline-none focus:ring-2 focus:ring-black"
                     }`}
-                    disabled={appliedDiscount}
                   />
+                  {emailError && (
+                    <span className="text-sm text-red-400 mt-1">
+                      {emailError}
+                    </span>
+                  )}
                 </div>
-                {!appliedDiscount ? (
-                  <button
-                    onClick={applyCouponCode}
-                    className="px-4 py-2 bg-black text-white text-sm rounded-md hover:bg-gray-900 transition-colors"
-                  >
-                    Apply
-                  </button>
-                ) : (
-                  <button
-                    onClick={removeCoupon}
-                    className="px-4 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors"
-                  >
-                    Remove
-                  </button>
-                )}
-              </div>
 
-              {couponError && (
-                <span className="text-sm text-red-400">{couponError}</span>
-              )}
-
-              {appliedDiscount && (
-                <div className="flex items-center space-x-2 text-sm text-green-600 bg-green-50 p-2 rounded-md">
-                  <span>
-                    ✓ {appliedDiscount.description} (
-                    {appliedDiscount.percentage}% off) applied!
-                  </span>
+                <div>
+                  <label
+                    htmlFor="phone"
+                    className="block text-sm font-medium mb-1"
+                  >
+                    Phone (Optional)
+                  </label>
+                  <input
+                    type="tel"
+                    id="phone"
+                    value={phone}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setPhone(v);
+                      // Clear error if empty (phone is optional)
+                      if (!v.trim()) {
+                        setPhoneError("");
+                        return;
+                      }
+                      // Validate UK phone and set error message accordingly
+                      if (!isValidUKPhone(v)) {
+                        setPhoneError(
+                          "Please enter a valid UK phone number (e.g. +44 7XXXXXXXXX or 07XXXXXXXXX)"
+                        );
+                      } else {
+                        setPhoneError("");
+                      }
+                    }}
+                    placeholder="+44 123 456 7890"
+                    className={`w-full border ${
+                      phoneError
+                        ? "border-red-400 outline-none ring-2 ring-red-400"
+                        : "border-gray-300 focus:outline-none focus:ring-2 focus:ring-black"
+                    } rounded-md p-2 text-sm`}
+                  />
+                  {phoneError && (
+                    <span className="text-sm text-red-400 mt-1">
+                      {phoneError}
+                    </span>
+                  )}
                 </div>
-              )}
 
-              <div className="text-xs text-gray-600">
-                <p>Available discounts:</p>
-                <p>
-                  • <span className="font-semibold">STUDENT10</span> - 10%
-                  student discount
-                </p>
+                <div>
+                  <label
+                    htmlFor="postcode"
+                    className="block text-sm font-medium mb-1"
+                  >
+                    Postcode *
+                  </label>
+                  <input
+                    type="text"
+                    id="postcode"
+                    value={postcode}
+                    onChange={(e) => setPostcode(e.target.value)}
+                    placeholder="SW1A 1AA"
+                    className={`w-full border ${
+                      postcodeError ? "border-red-400" : "border-gray-300"
+                    } rounded-md p-2 text-sm  ${
+                      postcodeError
+                        ? "outline-none ring-2 ring-red-400"
+                        : "focus:outline-none focus:ring-2 focus:ring-black"
+                    }`}
+                  />
+                  {postcodeError && (
+                    <span className="text-sm text-red-400 mt-1">
+                      {postcodeError}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="newsletter"
+                    checked={emailNewsOffers}
+                    onChange={(e) => setEmailNewsOffers(e.target.checked)}
+                    className="h-4 w-4 border-gray-300 rounded"
+                  />
+                  <label htmlFor="newsletter" className="text-sm">
+                    Email me with news and offers
+                  </label>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="space-y-3">
-            <h2 className="font-medium text-lg">Payment Method</h2>
-            <div className="space-y-2">
-              <div
-                className={`border rounded-md p-3 cursor-pointer ${
-                  selectedPaymentMethod === "stripe"
-                    ? "border-black bg-gray-50"
-                    : "border-gray-300"
-                }`}
-                onClick={() => setSelectedPaymentMethod("stripe")}
-              >
-                <div className="flex items-center justify-between">
+            {/* Express Checkout Section */}
+            <div className="space-y-3">
+              <h2 className="font-medium text-lg">Express Checkout</h2>
+              <div className="space-y-2">
+                <div
+                  className={`border rounded-md p-3 cursor-pointer transition-all ${
+                    selectedPaymentMethod === "apple"
+                      ? "border-black bg-gray-50"
+                      : "border-gray-300"
+                  }`}
+                  onClick={() => setSelectedPaymentMethod("apple")}
+                >
                   <div className="flex items-center space-x-2">
                     <input
                       type="radio"
                       name="payment"
-                      value="stripe"
-                      checked={selectedPaymentMethod === "stripe"}
+                      value="apple"
+                      checked={selectedPaymentMethod === "apple"}
                       onChange={(e) => setSelectedPaymentMethod(e.target.value)}
                       className="h-4 w-4"
                     />
-                    <span className="text-sm font-medium">Credit card</span>
-                  </div>
-
-                  {/* Payment Method Icons */}
-                  <div className="flex items-center space-x-1">
-                    {/* Visa */}
-                    <div className="bg-[#7350FF] text-white px-2 py-1 rounded text-xs font-bold">
-                      VISA
-                    </div>
-                    {/* Maestro */}
-                    <div className="bg-red-500 text-white w-6 h-4 rounded flex items-center justify-center">
-                      <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                      <div className="w-3 h-3 bg-yellow-400 rounded-full -ml-1"></div>
-                    </div>
-                    {/* Mastercard */}
-                    <div className="relative w-6 h-4 flex items-center justify-center">
-                      <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                      <div className="w-3 h-3 bg-yellow-400 rounded-full -ml-1"></div>
-                    </div>
-                    {/* American Express */}
-                    <div className="bg-[#7350FF] text-white px-1 py-1 rounded text-xs font-bold">
-                      AMEX
-                    </div>
-                    {/* +4 more */}
-                    <span className="text-xs text-gray-500 font-medium">
-                      +4
-                    </span>
+                    <FaApple className="text-lg" />
+                    <span className="text-sm font-medium">Apple Pay</span>
+                    {selectedPaymentMethod === "apple" && (
+                      <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full ml-auto">
+                        Selected
+                      </span>
+                    )}
                   </div>
                 </div>
 
-                {selectedPaymentMethod === "stripe" && (
-                  <div className="mt-6 space-y-4 border-t pt-4">
-                    <h3 className="font-medium text-lg">Card Details</h3>
+                <div
+                  className={`border rounded-md p-3 cursor-pointer ${
+                    selectedPaymentMethod === "google"
+                      ? "border-black bg-gray-50"
+                      : "border-gray-300"
+                  }`}
+                  onClick={() => setSelectedPaymentMethod("google")}
+                >
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      name="payment"
+                      value="google"
+                      checked={selectedPaymentMethod === "google"}
+                      onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+                      className="h-4 w-4"
+                    />
+                    <FaGoogle className="text-lg" />
+                    <span className="text-sm font-medium">Google Pay</span>
+                    {selectedPaymentMethod === "google" && (
+                      <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full ml-auto">
+                        Selected
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
 
-                    {/* Card Number */}
-                    <div>
-                      <label
-                        htmlFor="cardNumber"
-                        className="block text-sm font-medium mb-1"
-                      >
-                        Card number
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          id="cardNumber"
-                          value={cardNumber}
-                          onChange={(e) =>
-                            setCardNumber(formatCardNumber(e.target.value))
-                          }
-                          placeholder="1234 5678 9012 3456"
-                          maxLength={19}
-                          className={`w-full border ${
-                            cardErrors.cardNumber
-                              ? "border-red-400"
-                              : "border-gray-300"
-                          } rounded-md p-3 text-sm pr-10 ${
-                            cardErrors.cardNumber
-                              ? "outline-none ring-2 ring-red-400"
-                              : "focus:outline-none focus:ring-2 focus:ring-black"
-                          }`}
-                        />
-                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                          <svg
-                            width="20"
-                            height="20"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            className="text-gray-400"
-                          >
-                            <rect
-                              x="2"
-                              y="6"
-                              width="20"
-                              height="12"
-                              rx="2"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                            />
-                            <path
-                              d="M6 10h12"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                            />
-                          </svg>
-                        </div>
-                      </div>
-                      {cardErrors.cardNumber && (
-                        <span className="text-sm text-red-400 mt-1">
-                          {cardErrors.cardNumber}
-                        </span>
-                      )}
-                    </div>
+            {/* Divider */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="bg-white px-2 text-gray-500">
+                  or pay with card
+                </span>
+              </div>
+            </div>
 
-                    {/* Expiration Date and Security Code Row */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label
-                          htmlFor="expirationDate"
-                          className="block text-sm font-medium mb-1"
-                        >
-                          Expiration date (MM / YY)
-                        </label>
-                        <input
-                          type="text"
-                          id="expirationDate"
-                          value={expirationDate}
-                          onChange={(e) =>
-                            setExpirationDate(
-                              formatExpirationDate(e.target.value)
-                            )
-                          }
-                          placeholder="MM / YY"
-                          maxLength={7}
-                          className={`w-full border ${
-                            cardErrors.expirationDate
-                              ? "border-red-400"
-                              : "border-gray-300"
-                          } rounded-md p-3 text-sm ${
-                            cardErrors.expirationDate
-                              ? "outline-none ring-2 ring-red-400"
-                              : "focus:outline-none focus:ring-2 focus:ring-black"
-                          }`}
-                        />
-                        {cardErrors.expirationDate && (
-                          <span className="text-sm text-red-400 mt-1">
-                            {cardErrors.expirationDate}
-                          </span>
-                        )}
-                      </div>
+            {/* Coupon Code Section */}
+            <div className="space-y-3">
+              <h2 className="font-medium text-lg">Discount Code</h2>
+              <div className="space-y-2">
+                <div className="flex space-x-2">
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      value={couponCode}
+                      onChange={(e) =>
+                        setCouponCode(e.target.value.toUpperCase())
+                      }
+                      placeholder="Enter coupon code (e.g., STUDENT10)"
+                      className={`w-full border ${
+                        couponError ? "border-red-400" : "border-gray-300"
+                      } rounded-md p-2 text-sm ${
+                        couponError
+                          ? "outline-none ring-2 ring-red-400"
+                          : "focus:outline-none focus:ring-2 focus:ring-black"
+                      }`}
+                      disabled={appliedDiscount}
+                    />
+                  </div>
+                  {!appliedDiscount ? (
+                    <button
+                      onClick={applyCouponCode}
+                      className="px-4 py-2 bg-black text-white text-sm rounded-md hover:bg-gray-900 transition-colors"
+                    >
+                      Apply
+                    </button>
+                  ) : (
+                    <button
+                      onClick={removeCoupon}
+                      className="px-4 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
 
-                      <div>
-                        <label
-                          htmlFor="securityCode"
-                          className="block text-sm font-medium mb-1"
-                        >
-                          Security code
-                          <svg
-                            className="inline ml-1 w-4 h-4 text-gray-400"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                        </label>
-                        <input
-                          type="text"
-                          id="securityCode"
-                          value={securityCode}
-                          onChange={(e) =>
-                            setSecurityCode(
-                              e.target.value.replace(/\D/g, "").slice(0, 4)
-                            )
-                          }
-                          placeholder="123"
-                          maxLength={4}
-                          className={`w-full border ${
-                            cardErrors.securityCode
-                              ? "border-red-400"
-                              : "border-gray-300"
-                          } rounded-md p-3 text-sm ${
-                            cardErrors.securityCode
-                              ? "outline-none ring-2 ring-red-400"
-                              : "focus:outline-none focus:ring-2 focus:ring-black"
-                          }`}
-                        />
-                        {cardErrors.securityCode && (
-                          <span className="text-sm text-red-400 mt-1">
-                            {cardErrors.securityCode}
-                          </span>
-                        )}
-                      </div>
-                    </div>
+                {couponError && (
+                  <span className="text-sm text-red-400">{couponError}</span>
+                )}
 
-                    {/* Name on Card */}
-                    <div>
-                      <label
-                        htmlFor="nameOnCard"
-                        className="block text-sm font-medium mb-1"
-                      >
-                        Name on card
-                      </label>
-                      <input
-                        type="text"
-                        id="nameOnCard"
-                        value={nameOnCard}
-                        onChange={(e) => setNameOnCard(e.target.value)}
-                        placeholder="John Doe"
-                        className={`w-full border ${
-                          cardErrors.nameOnCard
-                            ? "border-red-400"
-                            : "border-gray-300"
-                        } rounded-md p-3 text-sm ${
-                          cardErrors.nameOnCard
-                            ? "outline-none ring-2 ring-red-400"
-                            : "focus:outline-none focus:ring-2 focus:ring-black"
-                        }`}
-                      />
-                      {cardErrors.nameOnCard && (
-                        <span className="text-sm text-red-400 mt-1">
-                          {cardErrors.nameOnCard}
-                        </span>
-                      )}
-                    </div>
+                {appliedDiscount && (
+                  <div className="flex items-center space-x-2 text-sm text-green-600 bg-green-50 p-2 rounded-md">
+                    <span>
+                      ✓ {appliedDiscount.description} (
+                      {appliedDiscount.percentage}% off) applied!
+                    </span>
+                  </div>
+                )}
 
-                    {/* Use Shipping Address Checkbox */}
+                <div className="text-xs text-gray-600">
+                  <p>Available discounts:</p>
+                  <p>
+                    • <span className="font-semibold">STUDENT10</span> - 10%
+                    student discount
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h2 className="font-medium text-lg">Payment Method</h2>
+              <div className="space-y-2">
+                <div
+                  className={`border rounded-md p-3 cursor-pointer ${
+                    selectedPaymentMethod === "stripe"
+                      ? "border-black bg-gray-50"
+                      : "border-gray-300"
+                  }`}
+                  onClick={() => setSelectedPaymentMethod("stripe")}
+                >
+                  <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <input
-                        type="checkbox"
-                        id="useShippingAddress"
-                        checked={useShippingAddress}
+                        type="radio"
+                        name="payment"
+                        value="stripe"
+                        checked={selectedPaymentMethod === "stripe"}
                         onChange={(e) =>
-                          setUseShippingAddress(e.target.checked)
+                          setSelectedPaymentMethod(e.target.value)
                         }
-                        className="h-4 w-4 border-gray-300 rounded"
+                        className="h-4 w-4"
                       />
-                      <label htmlFor="useShippingAddress" className="text-sm">
-                        Use shipping address as billing address
-                      </label>
+                      <span className="text-sm font-medium">Credit card</span>
                     </div>
 
-                    {/* Billing Address Section */}
-                    {!useShippingAddress && (
-                      <div className="space-y-4">
-                        <h4 className="font-medium text-lg">Billing address</h4>
+                    {/* Payment Method Icons */}
+                    <div className="flex items-center space-x-1">
+                      {/* Visa */}
+                      <div className="bg-[#7350FF] text-white px-2 py-1 rounded text-xs font-bold">
+                        VISA
+                      </div>
+                      {/* Maestro */}
+                      <div className="bg-red-500 text-white w-6 h-4 rounded flex items-center justify-center">
+                        <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                        <div className="w-3 h-3 bg-yellow-400 rounded-full -ml-1"></div>
+                      </div>
+                      {/* Mastercard */}
+                      <div className="relative w-6 h-4 flex items-center justify-center">
+                        <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                        <div className="w-3 h-3 bg-yellow-400 rounded-full -ml-1"></div>
+                      </div>
+                      {/* American Express */}
+                      <div className="bg-[#7350FF] text-white px-1 py-1 rounded text-xs font-bold">
+                        AMEX
+                      </div>
+                      {/* +4 more */}
+                      <span className="text-xs text-gray-500 font-medium">
+                        +4
+                      </span>
+                    </div>
+                  </div>
 
-                        {/* Country/Region */}
-                        <div>
-                          <label
-                            htmlFor="billingCountry"
-                            className="block text-sm font-medium mb-1"
-                          >
-                            Country/Region
-                          </label>
-                          <select
-                            id="billingCountry"
-                            value={billingCountry}
-                            onChange={(e) => setBillingCountry(e.target.value)}
-                            className="w-full border border-gray-300 rounded-md p-3 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                          >
-                            <option value="United Kingdom">
-                              United Kingdom
-                            </option>
-                            <option value="United States">United States</option>
-                            <option value="Canada">Canada</option>
-                            <option value="Australia">Australia</option>
-                            <option value="Germany">Germany</option>
-                            <option value="France">France</option>
-                            <option value="Spain">Spain</option>
-                            <option value="Italy">Italy</option>
-                          </select>
-                        </div>
+                  {selectedPaymentMethod === "stripe" && (
+                    <div className="mt-6 space-y-4 border-t pt-4">
+                      <h3 className="font-medium text-lg">Card Details</h3>
 
-                        {/* First Name and Last Name Row */}
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label
-                              htmlFor="billingFirstName"
-                              className="block text-sm font-medium mb-1"
-                            >
-                              First name
-                            </label>
-                            <input
-                              type="text"
-                              id="billingFirstName"
-                              value={billingFirstName}
-                              onChange={(e) =>
-                                setBillingFirstName(e.target.value)
-                              }
-                              className={`w-full border ${
-                                cardErrors.billingFirstName
-                                  ? "border-red-400"
-                                  : "border-gray-300"
-                              } rounded-md p-3 text-sm ${
-                                cardErrors.billingFirstName
-                                  ? "outline-none ring-2 ring-red-400"
-                                  : "focus:outline-none focus:ring-2 focus:ring-black"
-                              }`}
-                            />
-                            {cardErrors.billingFirstName && (
-                              <span className="text-sm text-red-400 mt-1">
-                                {cardErrors.billingFirstName}
-                              </span>
-                            )}
-                          </div>
-
-                          <div>
-                            <label
-                              htmlFor="billingLastName"
-                              className="block text-sm font-medium mb-1"
-                            >
-                              Last name
-                            </label>
-                            <input
-                              type="text"
-                              id="billingLastName"
-                              value={billingLastName}
-                              onChange={(e) =>
-                                setBillingLastName(e.target.value)
-                              }
-                              className={`w-full border ${
-                                cardErrors.billingLastName
-                                  ? "border-red-400"
-                                  : "border-gray-300"
-                              } rounded-md p-3 text-sm ${
-                                cardErrors.billingLastName
-                                  ? "outline-none ring-2 ring-red-400"
-                                  : "focus:outline-none focus:ring-2 focus:ring-black"
-                              }`}
-                            />
-                            {cardErrors.billingLastName && (
-                              <span className="text-sm text-red-400 mt-1">
-                                {cardErrors.billingLastName}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Address */}
-                        <div>
-                          <label
-                            htmlFor="billingAddress"
-                            className="block text-sm font-medium mb-1"
-                          >
-                            Address
-                            <svg
-                              className="inline ml-1 w-4 h-4 text-gray-400"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                              />
-                            </svg>
-                          </label>
+                      {/* Card Number */}
+                      <div>
+                        <label
+                          htmlFor="cardNumber"
+                          className="block text-sm font-medium mb-1"
+                        >
+                          Card number
+                        </label>
+                        <div className="relative">
                           <input
                             type="text"
-                            id="billingAddress"
-                            value={billingAddress}
-                            onChange={(e) => setBillingAddress(e.target.value)}
+                            id="cardNumber"
+                            value={cardNumber}
+                            onChange={(e) =>
+                              setCardNumber(formatCardNumber(e.target.value))
+                            }
+                            placeholder="1234 5678 9012 3456"
+                            maxLength={19}
                             className={`w-full border ${
-                              cardErrors.billingAddress
+                              cardErrors.cardNumber
                                 ? "border-red-400"
                                 : "border-gray-300"
-                            } rounded-md p-3 text-sm ${
-                              cardErrors.billingAddress
+                            } rounded-md p-3 text-sm pr-10 ${
+                              cardErrors.cardNumber
                                 ? "outline-none ring-2 ring-red-400"
                                 : "focus:outline-none focus:ring-2 focus:ring-black"
                             }`}
                           />
-                          {cardErrors.billingAddress && (
+                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                            <svg
+                              width="20"
+                              height="20"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              className="text-gray-400"
+                            >
+                              <rect
+                                x="2"
+                                y="6"
+                                width="20"
+                                height="12"
+                                rx="2"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                              />
+                              <path
+                                d="M6 10h12"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                              />
+                            </svg>
+                          </div>
+                        </div>
+                        {cardErrors.cardNumber && (
+                          <span className="text-sm text-red-400 mt-1">
+                            {cardErrors.cardNumber}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Expiration Date and Security Code Row */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label
+                            htmlFor="expirationDate"
+                            className="block text-sm font-medium mb-1"
+                          >
+                            Expiration date (MM / YY)
+                          </label>
+                          <input
+                            type="text"
+                            id="expirationDate"
+                            value={expirationDate}
+                            onChange={(e) =>
+                              setExpirationDate(
+                                formatExpirationDate(e.target.value)
+                              )
+                            }
+                            placeholder="MM / YY"
+                            maxLength={7}
+                            className={`w-full border ${
+                              cardErrors.expirationDate
+                                ? "border-red-400"
+                                : "border-gray-300"
+                            } rounded-md p-3 text-sm ${
+                              cardErrors.expirationDate
+                                ? "outline-none ring-2 ring-red-400"
+                                : "focus:outline-none focus:ring-2 focus:ring-black"
+                            }`}
+                          />
+                          {cardErrors.expirationDate && (
                             <span className="text-sm text-red-400 mt-1">
-                              {cardErrors.billingAddress}
+                              {cardErrors.expirationDate}
                             </span>
                           )}
                         </div>
 
-                        {/* Apartment */}
                         <div>
                           <label
-                            htmlFor="billingApartment"
+                            htmlFor="securityCode"
                             className="block text-sm font-medium mb-1"
                           >
-                            Apartment, suite, etc. (optional)
-                          </label>
-                          <input
-                            type="text"
-                            id="billingApartment"
-                            value={billingApartment}
-                            onChange={(e) =>
-                              setBillingApartment(e.target.value)
-                            }
-                            className="w-full border border-gray-300 rounded-md p-3 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                          />
-                        </div>
-
-                        {/* City and Postcode Row */}
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label
-                              htmlFor="billingCity"
-                              className="block text-sm font-medium mb-1"
-                            >
-                              City
-                            </label>
-                            <input
-                              type="text"
-                              id="billingCity"
-                              value={billingCity}
-                              onChange={(e) => setBillingCity(e.target.value)}
-                              className={`w-full border ${
-                                cardErrors.billingCity
-                                  ? "border-red-400"
-                                  : "border-gray-300"
-                              } rounded-md p-3 text-sm ${
-                                cardErrors.billingCity
-                                  ? "outline-none ring-2 ring-red-400"
-                                  : "focus:outline-none focus:ring-2 focus:ring-black"
-                              }`}
-                            />
-                            {cardErrors.billingCity && (
-                              <span className="text-sm text-red-400 mt-1">
-                                {cardErrors.billingCity}
-                              </span>
-                            )}
-                          </div>
-
-                          <div>
-                            <label
-                              htmlFor="billingPostcode"
-                              className="block text-sm font-medium mb-1"
-                            >
-                              Postcode
-                            </label>
-                            <input
-                              type="text"
-                              id="billingPostcode"
-                              value={billingPostcode}
-                              onChange={(e) =>
-                                setBillingPostcode(e.target.value)
-                              }
-                              className={`w-full border ${
-                                cardErrors.billingPostcode
-                                  ? "border-red-400"
-                                  : "border-gray-300"
-                              } rounded-md p-3 text-sm ${
-                                cardErrors.billingPostcode
-                                  ? "outline-none ring-2 ring-red-400"
-                                  : "focus:outline-none focus:ring-2 focus:ring-black"
-                              }`}
-                            />
-                            {cardErrors.billingPostcode && (
-                              <span className="text-sm text-red-400 mt-1">
-                                {cardErrors.billingPostcode}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Phone */}
-                        <div>
-                          <label
-                            htmlFor="billingPhone"
-                            className="block text-sm font-medium mb-1"
-                          >
-                            Phone (optional)
+                            Security code
                             <svg
                               className="inline ml-1 w-4 h-4 text-gray-400"
                               fill="currentColor"
@@ -1299,213 +1048,553 @@ const VisaCheckout = () => {
                             </svg>
                           </label>
                           <input
-                            type="tel"
-                            id="billingPhone"
-                            value={billingPhone}
-                            onChange={(e) => setBillingPhone(e.target.value)}
-                            className="w-full border border-gray-300 rounded-md p-3 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                            type="text"
+                            id="securityCode"
+                            value={securityCode}
+                            onChange={(e) =>
+                              setSecurityCode(
+                                e.target.value.replace(/\D/g, "").slice(0, 4)
+                              )
+                            }
+                            placeholder="123"
+                            maxLength={4}
+                            className={`w-full border ${
+                              cardErrors.securityCode
+                                ? "border-red-400"
+                                : "border-gray-300"
+                            } rounded-md p-3 text-sm ${
+                              cardErrors.securityCode
+                                ? "outline-none ring-2 ring-red-400"
+                                : "focus:outline-none focus:ring-2 focus:ring-black"
+                            }`}
                           />
+                          {cardErrors.securityCode && (
+                            <span className="text-sm text-red-400 mt-1">
+                              {cardErrors.securityCode}
+                            </span>
+                          )}
                         </div>
                       </div>
-                    )}
+
+                      {/* Name on Card */}
+                      <div>
+                        <label
+                          htmlFor="nameOnCard"
+                          className="block text-sm font-medium mb-1"
+                        >
+                          Name on card
+                        </label>
+                        <input
+                          type="text"
+                          id="nameOnCard"
+                          value={nameOnCard}
+                          onChange={(e) => setNameOnCard(e.target.value)}
+                          placeholder="John Doe"
+                          className={`w-full border ${
+                            cardErrors.nameOnCard
+                              ? "border-red-400"
+                              : "border-gray-300"
+                          } rounded-md p-3 text-sm ${
+                            cardErrors.nameOnCard
+                              ? "outline-none ring-2 ring-red-400"
+                              : "focus:outline-none focus:ring-2 focus:ring-black"
+                          }`}
+                        />
+                        {cardErrors.nameOnCard && (
+                          <span className="text-sm text-red-400 mt-1">
+                            {cardErrors.nameOnCard}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Use Shipping Address Checkbox */}
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="useShippingAddress"
+                          checked={useShippingAddress}
+                          onChange={(e) =>
+                            setUseShippingAddress(e.target.checked)
+                          }
+                          className="h-4 w-4 border-gray-300 rounded"
+                        />
+                        <label htmlFor="useShippingAddress" className="text-sm">
+                          Use shipping address as billing address
+                        </label>
+                      </div>
+
+                      {/* Billing Address Section */}
+                      {!useShippingAddress && (
+                        <div className="space-y-4">
+                          <h4 className="font-medium text-lg">
+                            Billing address
+                          </h4>
+
+                          {/* Country/Region */}
+                          <div>
+                            <label
+                              htmlFor="billingCountry"
+                              className="block text-sm font-medium mb-1"
+                            >
+                              Country/Region
+                            </label>
+                            <select
+                              id="billingCountry"
+                              value={billingCountry}
+                              onChange={(e) =>
+                                setBillingCountry(e.target.value)
+                              }
+                              className="w-full border border-gray-300 rounded-md p-3 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                            >
+                              <option value="United Kingdom">
+                                United Kingdom
+                              </option>
+                              <option value="United States">
+                                United States
+                              </option>
+                              <option value="Canada">Canada</option>
+                              <option value="Australia">Australia</option>
+                              <option value="Germany">Germany</option>
+                              <option value="France">France</option>
+                              <option value="Spain">Spain</option>
+                              <option value="Italy">Italy</option>
+                            </select>
+                          </div>
+
+                          {/* First Name and Last Name Row */}
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label
+                                htmlFor="billingFirstName"
+                                className="block text-sm font-medium mb-1"
+                              >
+                                First name
+                              </label>
+                              <input
+                                type="text"
+                                id="billingFirstName"
+                                value={billingFirstName}
+                                onChange={(e) =>
+                                  setBillingFirstName(e.target.value)
+                                }
+                                className={`w-full border ${
+                                  cardErrors.billingFirstName
+                                    ? "border-red-400"
+                                    : "border-gray-300"
+                                } rounded-md p-3 text-sm ${
+                                  cardErrors.billingFirstName
+                                    ? "outline-none ring-2 ring-red-400"
+                                    : "focus:outline-none focus:ring-2 focus:ring-black"
+                                }`}
+                              />
+                              {cardErrors.billingFirstName && (
+                                <span className="text-sm text-red-400 mt-1">
+                                  {cardErrors.billingFirstName}
+                                </span>
+                              )}
+                            </div>
+
+                            <div>
+                              <label
+                                htmlFor="billingLastName"
+                                className="block text-sm font-medium mb-1"
+                              >
+                                Last name
+                              </label>
+                              <input
+                                type="text"
+                                id="billingLastName"
+                                value={billingLastName}
+                                onChange={(e) =>
+                                  setBillingLastName(e.target.value)
+                                }
+                                className={`w-full border ${
+                                  cardErrors.billingLastName
+                                    ? "border-red-400"
+                                    : "border-gray-300"
+                                } rounded-md p-3 text-sm ${
+                                  cardErrors.billingLastName
+                                    ? "outline-none ring-2 ring-red-400"
+                                    : "focus:outline-none focus:ring-2 focus:ring-black"
+                                }`}
+                              />
+                              {cardErrors.billingLastName && (
+                                <span className="text-sm text-red-400 mt-1">
+                                  {cardErrors.billingLastName}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Address */}
+                          <div>
+                            <label
+                              htmlFor="billingAddress"
+                              className="block text-sm font-medium mb-1"
+                            >
+                              Address
+                              <svg
+                                className="inline ml-1 w-4 h-4 text-gray-400"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth="2"
+                                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                                />
+                              </svg>
+                            </label>
+                            <input
+                              type="text"
+                              id="billingAddress"
+                              value={billingAddress}
+                              onChange={(e) =>
+                                setBillingAddress(e.target.value)
+                              }
+                              className={`w-full border ${
+                                cardErrors.billingAddress
+                                  ? "border-red-400"
+                                  : "border-gray-300"
+                              } rounded-md p-3 text-sm ${
+                                cardErrors.billingAddress
+                                  ? "outline-none ring-2 ring-red-400"
+                                  : "focus:outline-none focus:ring-2 focus:ring-black"
+                              }`}
+                            />
+                            {cardErrors.billingAddress && (
+                              <span className="text-sm text-red-400 mt-1">
+                                {cardErrors.billingAddress}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Apartment */}
+                          <div>
+                            <label
+                              htmlFor="billingApartment"
+                              className="block text-sm font-medium mb-1"
+                            >
+                              Apartment, suite, etc. (optional)
+                            </label>
+                            <input
+                              type="text"
+                              id="billingApartment"
+                              value={billingApartment}
+                              onChange={(e) =>
+                                setBillingApartment(e.target.value)
+                              }
+                              className="w-full border border-gray-300 rounded-md p-3 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                            />
+                          </div>
+
+                          {/* City and Postcode Row */}
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label
+                                htmlFor="billingCity"
+                                className="block text-sm font-medium mb-1"
+                              >
+                                City
+                              </label>
+                              <input
+                                type="text"
+                                id="billingCity"
+                                value={billingCity}
+                                onChange={(e) => setBillingCity(e.target.value)}
+                                className={`w-full border ${
+                                  cardErrors.billingCity
+                                    ? "border-red-400"
+                                    : "border-gray-300"
+                                } rounded-md p-3 text-sm ${
+                                  cardErrors.billingCity
+                                    ? "outline-none ring-2 ring-red-400"
+                                    : "focus:outline-none focus:ring-2 focus:ring-black"
+                                }`}
+                              />
+                              {cardErrors.billingCity && (
+                                <span className="text-sm text-red-400 mt-1">
+                                  {cardErrors.billingCity}
+                                </span>
+                              )}
+                            </div>
+
+                            <div>
+                              <label
+                                htmlFor="billingPostcode"
+                                className="block text-sm font-medium mb-1"
+                              >
+                                Postcode
+                              </label>
+                              <input
+                                type="text"
+                                id="billingPostcode"
+                                value={billingPostcode}
+                                onChange={(e) =>
+                                  setBillingPostcode(e.target.value)
+                                }
+                                className={`w-full border ${
+                                  cardErrors.billingPostcode
+                                    ? "border-red-400"
+                                    : "border-gray-300"
+                                } rounded-md p-3 text-sm ${
+                                  cardErrors.billingPostcode
+                                    ? "outline-none ring-2 ring-red-400"
+                                    : "focus:outline-none focus:ring-2 focus:ring-black"
+                                }`}
+                              />
+                              {cardErrors.billingPostcode && (
+                                <span className="text-sm text-red-400 mt-1">
+                                  {cardErrors.billingPostcode}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Phone */}
+                          <div>
+                            <label
+                              htmlFor="billingPhone"
+                              className="block text-sm font-medium mb-1"
+                            >
+                              Phone (optional)
+                              <svg
+                                className="inline ml-1 w-4 h-4 text-gray-400"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </label>
+                            <input
+                              type="tel"
+                              id="billingPhone"
+                              value={billingPhone}
+                              onChange={(e) => setBillingPhone(e.target.value)}
+                              className="w-full border border-gray-300 rounded-md p-3 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div
+                  className={`border rounded-md p-3 cursor-pointer ${
+                    selectedPaymentMethod === "klarna"
+                      ? "border-black bg-gray-50"
+                      : "border-gray-300"
+                  }`}
+                  onClick={() => setSelectedPaymentMethod("klarna")}
+                >
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      name="payment"
+                      value="klarna"
+                      checked={selectedPaymentMethod === "klarna"}
+                      onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+                      className="h-4 w-4"
+                    />
+                    <SiKlarna className="text-lg text-pink-500" />
+                    <span className="text-sm font-medium">Klarna Pay</span>
                   </div>
-                )}
+                  {selectedPaymentMethod === "klarna" && (
+                    <p className="text-xs text-gray-600 mt-2 ml-6">
+                      Pay in 3 interest-free payments or spread the cost over 24
+                      months
+                    </p>
+                  )}
+                </div>
               </div>
 
-              <div
-                className={`border rounded-md p-3 cursor-pointer ${
-                  selectedPaymentMethod === "klarna"
-                    ? "border-black bg-gray-50"
-                    : "border-gray-300"
+              <button
+                disabled={cretingDynamicCheckout}
+                onClick={handleProceedToCheckout}
+                className={`w-full bg-black text-white py-3 rounded-md font-semibold hover:bg-gray-900 transition-colors ${
+                  cretingDynamicCheckout
+                    ? "cursor-not-allowed opacity-50"
+                    : "cursor-pointer"
                 }`}
-                onClick={() => setSelectedPaymentMethod("klarna")}
               >
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="radio"
-                    name="payment"
-                    value="klarna"
-                    checked={selectedPaymentMethod === "klarna"}
-                    onChange={(e) => setSelectedPaymentMethod(e.target.value)}
-                    className="h-4 w-4"
-                  />
-                  <SiKlarna className="text-lg text-pink-500" />
-                  <span className="text-sm font-medium">Klarna Pay</span>
-                </div>
-                {selectedPaymentMethod === "klarna" && (
-                  <p className="text-xs text-gray-600 mt-2 ml-6">
-                    Pay in 3 interest-free payments or spread the cost over 24
-                    months
+                {cretingDynamicCheckout ? (
+                  "Processing..."
+                ) : selectedPaymentMethod === "apple" ? (
+                  <div className="flex items-center justify-center space-x-2">
+                    <FaApple />
+                    <span>
+                      Pay {formatCurrency(totalAmountEUR, "EUR")} with Apple Pay
+                    </span>
+                  </div>
+                ) : selectedPaymentMethod === "google" ? (
+                  <div className="flex items-center justify-center space-x-2">
+                    <FaGoogle />
+                    <span>
+                      Pay {formatCurrency(totalAmountEUR, "EUR")} with Google
+                      Pay
+                    </span>
+                  </div>
+                ) : selectedPaymentMethod === "klarna" ? (
+                  <div className="flex items-center justify-center space-x-2">
+                    <SiKlarna />
+                    <span>
+                      Pay {formatCurrency(totalAmountEUR, "EUR")} with Klarna
+                    </span>
+                  </div>
+                ) : (
+                  `Complete Order`
+                )}
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-black text-white p-6 md:p-10 md:pr-10 xl:pr-40 space-y-4">
+            <h2 className="font-semibold text-lg" suppressHydrationWarning>
+              Schengen visa from the UK
+            </h2>
+
+            <p className="text-sm text-gray-300" suppressHydrationWarning>
+              {selectedCountry ? `Destination: ${selectedCountry}` : ""}
+            </p>
+
+            {selectedVisaType && (
+              <div className="text-sm text-gray-300">
+                <p suppressHydrationWarning>
+                  Visa Type: {selectedVisaType.name || selectedVisaType.type}
+                </p>
+                {selectedVisaType.subType && (
+                  <p className="text-xs" suppressHydrationWarning>
+                    {selectedVisaType.subType}
                   </p>
                 )}
               </div>
-            </div>
+            )}
 
-            <button
-              disabled={cretingDynamicCheckout}
-              onClick={handleProceedToCheckout}
-              className={`w-full bg-black text-white py-3 rounded-md font-semibold hover:bg-gray-900 transition-colors ${
-                cretingDynamicCheckout
-                  ? "cursor-not-allowed opacity-50"
-                  : "cursor-pointer"
-              }`}
-            >
-              {cretingDynamicCheckout ? (
-                "Processing..."
-              ) : selectedPaymentMethod === "apple" ? (
-                <div className="flex items-center justify-center space-x-2">
-                  <FaApple />
-                  <span>Pay {formatCurrency(totalAmountEUR, 'EUR')} with Apple Pay</span>
-                </div>
-              ) : selectedPaymentMethod === "google" ? (
-                <div className="flex items-center justify-center space-x-2">
-                  <FaGoogle />
-                  <span>Pay {formatCurrency(totalAmountEUR, 'EUR')} with Google Pay</span>
-                </div>
-              ) : selectedPaymentMethod === "klarna" ? (
-                <div className="flex items-center justify-center space-x-2">
-                  <SiKlarna />
-                  <span>Pay {formatCurrency(totalAmountEUR, 'EUR')} with Klarna</span>
-                </div>
-              ) : (
-                `Complete Order`
-              )}
-            </button>
-          </div>
-        </div>
-
-        <div className="bg-black text-white p-6 md:p-10 md:pr-10 xl:pr-40 space-y-4">
-          <h2 className="font-semibold text-lg" suppressHydrationWarning>
-            Schengen visa from the UK
-          </h2>
-
-          <p className="text-sm text-gray-300" suppressHydrationWarning>
-            {selectedCountry ? `Destination: ${selectedCountry}` : ""}
-          </p>
-
-          {selectedVisaType && (
-            <div className="text-sm text-gray-300">
-              <p suppressHydrationWarning>
-                Visa Type: {selectedVisaType.name || selectedVisaType.type}
-              </p>
-              {selectedVisaType.subType && (
-                <p className="text-xs" suppressHydrationWarning>
-                  {selectedVisaType.subType}
-                </p>
-              )}
-            </div>
-          )}
-
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="addTravellers"
-              className="h-4 w-4 border-gray-300 rounded"
-              checked={travelers > 1}
-              onChange={(e) => {
-                if (e.target.checked && travelers === 1) {
-                  setTravelers(2);
-                }
-              }}
-            />
-            <label htmlFor="addTravellers" className="text-sm">
-              Add additional travellers
-            </label>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <FaUser className="text-lg" />
-              <span className="text-sm">Travellers</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setTravelers(Math.max(1, travelers - 1))}
-                className="bg-gray-700 px-2 py-1 rounded text-sm hover:bg-gray-600"
-                disabled={travelers <= 1}
-              >
-                -
-              </button>
-              <span className="min-w-[20px] text-center">{travelers}</span>
-              <button
-                onClick={() => setTravelers(travelers + 1)}
-                className="bg-gray-700 px-2 py-1 rounded text-sm hover:bg-gray-600"
-              >
-                +
-              </button>
-            </div>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="line-through">{formatCurrency(originalPriceEUR, 'EUR')}</span>
-            <span>{formatCurrency(visaFeesEUR, 'EUR')}</span>
-          </div>
-
-          {/* Insurance */}
-          <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <input
                 type="checkbox"
-                id="insurance"
-                checked={includeInsurance}
-                onChange={(e) => setIncludeInsurance(e.target.checked)}
+                id="addTravellers"
                 className="h-4 w-4 border-gray-300 rounded"
+                checked={travelers > 1}
+                onChange={(e) => {
+                  if (e.target.checked && travelers === 1) {
+                    setTravelers(2);
+                  }
+                }}
               />
-              <FaShieldAlt />
-              <span className="text-sm">Insurance certificate</span>
+              <label htmlFor="addTravellers" className="text-sm">
+                Add additional travellers
+              </label>
             </div>
-            <span className="text-sm">{formatCurrency(insuranceFeesEUR, 'EUR')}</span>
-          </div>
-          {includeInsurance && (
-            <p className="text-xs text-gray-400">
-              NEWVOU400 (Included for {travelers} traveler
-              {travelers > 1 ? "s" : ""})
-            </p>
-          )}
 
-          {/* E visa card */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <HiOutlineDeviceMobile />
-              <span className="text-sm">E visa card</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <FaUser className="text-lg" />
+                <span className="text-sm">Travellers</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setTravelers(Math.max(1, travelers - 1))}
+                  className="bg-gray-700 px-2 py-1 rounded text-sm hover:bg-gray-600"
+                  disabled={travelers <= 1}
+                >
+                  -
+                </button>
+                <span className="min-w-[20px] text-center">{travelers}</span>
+                <button
+                  onClick={() => setTravelers(travelers + 1)}
+                  className="bg-gray-700 px-2 py-1 rounded text-sm hover:bg-gray-600"
+                >
+                  +
+                </button>
+              </div>
             </div>
-            <span className="text-sm">{formatCurrency(eVisaFeesEUR, 'EUR')}</span>
-          </div>
-
-          {/* Subtotal */}
-          <div className="flex justify-between text-sm pt-2 border-t border-gray-700">
-            <span>Subtotal</span>
-            <span>{formatCurrency(subtotalEUR, 'EUR')}</span>
-          </div>
-
-          {/* Discount */}
-          {appliedDiscount && (
-            <div className="flex justify-between text-sm text-green-400">
-              <span>
-                {appliedDiscount.description} (-{appliedDiscount.percentage}%)
+            <div className="flex justify-between text-sm">
+              <span className="line-through">
+                {formatCurrency(originalPriceEUR, "EUR")}
               </span>
-              <span>-{formatCurrency(discountAmountEUR, 'EUR')}</span>
+              <span>{formatCurrency(visaFeesEUR, "EUR")}</span>
             </div>
-          )}
 
-          {/* You Save */}
-          <div className="flex justify-between text-sm text-green-400">
-            <span>You save</span>
-            <span>{formatCurrency(savingsEUR, 'EUR')}</span>
-          </div>
+            {/* Insurance */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="insurance"
+                  checked={includeInsurance}
+                  onChange={(e) => setIncludeInsurance(e.target.checked)}
+                  className="h-4 w-4 border-gray-300 rounded"
+                />
+                <FaShieldAlt />
+                <span className="text-sm">Insurance certificate</span>
+              </div>
+              <span className="text-sm">
+                {includeInsurance
+                  ? formatCurrency(insuranceFeesEUR, "EUR")
+                  : formatCurrency(0, "EUR")}
+              </span>
+            </div>
+            {includeInsurance && (
+              <p className="text-xs text-gray-400">
+                NEWVOU400 (Included for {travelers} traveler
+                {travelers > 1 ? "s" : ""})
+              </p>
+            )}
 
-          {/* Total */}
-          <div className="flex justify-between font-gilroy-bold text-xl pt-2 border-t border-gray-700">
-            <span>Total</span>
-            <span>{formatCurrency(totalAmountEUR, 'EUR')} EUR</span>
-          </div>
+            {/* E visa card */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <HiOutlineDeviceMobile />
+                <span className="text-sm">E visa card</span>
+              </div>
+              <span className="text-sm">
+                {formatCurrency(eVisaFeesEUR, "EUR")}
+              </span>
+            </div>
 
-          {/* Risk Free */}
-          <div className="bg-green-600 text-white rounded-md p-3 text-sm text-center font-medium">
-            ✓ 100% risk-free - Get your visa or full refund
+            {/* Subtotal */}
+            <div className="flex justify-between text-sm pt-2 border-t border-gray-700">
+              <span>Subtotal</span>
+              <span>{formatCurrency(subtotalEUR, "EUR")}</span>
+            </div>
+
+            {/* Discount */}
+            {appliedDiscount && (
+              <div className="flex justify-between text-sm text-green-400">
+                <span>
+                  {appliedDiscount.description} (-{appliedDiscount.percentage}%)
+                </span>
+                <span>-{formatCurrency(discountAmountEUR, "EUR")}</span>
+              </div>
+            )}
+
+            {/* You Save */}
+            <div className="flex justify-between text-sm text-green-400">
+              <span>You save</span>
+              <span>{formatCurrency(savingsEUR, "EUR")}</span>
+            </div>
+
+            {/* Total */}
+            <div className="flex justify-between font-gilroy-bold text-xl pt-2 border-t border-gray-700">
+              <span>Total</span>
+              <span>{formatCurrency(totalAmountEUR, "EUR")} EUR</span>
+            </div>
+
+            {/* Risk Free */}
+            <div className="bg-green-600 text-white rounded-md p-3 text-sm text-center font-medium">
+              ✓ 100% risk-free - Get your visa or full refund
+            </div>
           </div>
         </div>
       </div>
-    </div>
     </ClientOnly>
   );
 };

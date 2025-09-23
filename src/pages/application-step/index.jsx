@@ -25,9 +25,7 @@ import { useEffect, useState } from "react";
 import { ChevronLeft } from "lucide-react";
 import { useToast } from "@/contexts/ToastContext";
 import BookingAppointment from "@/components/BookingAppointment";
-import {
-  calculatePaymentFees,
-} from "@/utils/currency";
+import { calculatePaymentFees } from "@/utils/currency";
 import useCreateDynamicCheckoutSession from "@/hooks/useCreateDynamicCheckoutSession";
 
 const MultiStepAccordion = () => {
@@ -910,7 +908,14 @@ const MultiStepAccordion = () => {
 
         console.log("=== STEP NAVIGATION DEBUG ===");
         console.log("Current step ID:", step.id);
-        console.log("Visible steps:", visible.map(s => ({ id: s.id, type: s.stepType, completed: s.completed })));
+        console.log(
+          "Visible steps:",
+          visible.map((s) => ({
+            id: s.id,
+            type: s.stepType,
+            completed: s.completed,
+          }))
+        );
         console.log("Current visible index:", currentVisibleIndex);
         console.log("=== END STEP NAVIGATION DEBUG ===");
 
@@ -922,9 +927,14 @@ const MultiStepAccordion = () => {
           const nextVisibleStep = visible[currentVisibleIndex + 1];
           if (nextVisibleStep) {
             console.log("=== OPENING NEXT STEP ===");
-            console.log("Next step:", nextVisibleStep.stepType, "ID:", nextVisibleStep.id);
+            console.log(
+              "Next step:",
+              nextVisibleStep.stepType,
+              "ID:",
+              nextVisibleStep.id
+            );
             console.log("=== END OPENING NEXT STEP ===");
-            
+
             // Force open the next step regardless of previous completion checks
             setSteps((prevSteps) =>
               prevSteps.map((s) => ({
@@ -2094,14 +2104,16 @@ const InsuranceStep = ({
 
       const paymentResponse = await handleCreateDynamicCheckoutSession({
         email: userEmail,
-        amount: calculatePaymentFees(totalWithFee, "EUR", "INR")?.toString(), // Convert to string for API (Stripe currency)
-        amountGBP: totalWithFee.toString(), 
-        travellers: "1", 
+        // amount should be provided in the major currency unit that matches `currency` (GBP)
+        // backend expects a string like "12.34" and will convert to minor units (pence) by *100
+        amount: totalWithFee.toString(),
+        amountGBP: totalWithFee.toString(),
+        travellers: "1",
         country: parentVisaApplication?.country || "United Kingdom",
         insurance: "purchase",
         applicationId: parentVisaApplication?.id || "",
         travelerIndex: travelerIndex.toString(),
-        paymentType: "traveler_insurance", 
+        paymentType: "traveler_insurance",
         visaTypeId: parentVisaApplication?.visaTypeId || "",
         currency: "GBP",
       });

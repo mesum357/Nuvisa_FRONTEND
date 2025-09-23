@@ -1,4 +1,8 @@
-import { getUserVisaApplications,  } from "@/api/visaApplications";
+import {
+  getUserVisaApplications,
+  archiveVisaApplication,
+  unarchiveVisaApplication,
+} from "@/api/visaApplications";
 import ClientOnly from "@/components/ClientOnly";
 import CountrySelector from "@/components/CountrySelector";
 import { Header } from "@/components/layout/Header";
@@ -26,7 +30,8 @@ export default function HeaderSearchSection() {
   const [searchQuery, _setSearchQuery] = useState("");
   const [userApplications, setUserApplications] = useState([]);
   const [archivedApplications, setArchivedApplications] = useState([]);
- 
+  const [confirmArchiveId, setConfirmArchiveId] = useState(null);
+  const [archiveError, setArchiveError] = useState(null);
 
   const filteredApplications = userApplications.filter(
     (app) =>
@@ -57,6 +62,11 @@ export default function HeaderSearchSection() {
             ...app,
           }));
         setUserApplications(applicationsWithStatus);
+        // load archived from applications that have archivedAt set
+        const archived = applicationsWithStatus.filter((a) => a.archivedAt);
+        const active = applicationsWithStatus.filter((a) => !a.archivedAt);
+        setUserApplications(active);
+        setArchivedApplications(archived);
       }
     } catch (error) {
       console.error("Failed to fetch user applications:", error);
@@ -68,13 +78,53 @@ export default function HeaderSearchSection() {
   }, []);
 
   const handleArchiveApplication = async (id) => {
-    const appToArchive = userApplications.find((app) => app?.id === id);
-    if (appToArchive) {
-      setUserApplications((prev) => prev.filter((app) => app?.id !== id));
-      setArchivedApplications((prev) => [
-        ...prev,
-        { ...appToArchive, archivedAt: new Date().toISOString() },
-      ]);
+    setArchiveError(null);
+    try {
+      const payload = { id };
+      const res = await archiveVisaApplication(token, payload);
+      if (res?.status >= 200 && res?.status < 300) {
+        const appToArchive = userApplications.find((app) => app?.id === id);
+        if (appToArchive) {
+          setUserApplications((prev) => prev.filter((app) => app?.id !== id));
+          setArchivedApplications((prev) => [
+            ...prev,
+            { ...appToArchive, archivedAt: new Date().toISOString() },
+          ]);
+        }
+      } else {
+        setArchiveError("Failed to archive application");
+      }
+    } catch (err) {
+      console.error("Archive API error", err);
+      setArchiveError(err?.message || "Archive request failed");
+    } finally {
+      setConfirmArchiveId(null);
+    }
+  };
+
+  const handleUnarchiveApplication = async (id) => {
+    setArchiveError(null);
+    try {
+      const payload = { id };
+      const res = await unarchiveVisaApplication(token, payload);
+      if (res?.status >= 200 && res?.status < 300) {
+        const appToUnarchive = archivedApplications.find(
+          (app) => app?.id === id
+        );
+        if (appToUnarchive) {
+          setArchivedApplications((prev) =>
+            prev.filter((app) => app?.id !== id)
+          );
+          const restored = { ...appToUnarchive };
+          delete restored.archivedAt;
+          setUserApplications((prev) => [restored, ...prev]);
+        }
+      } else {
+        setArchiveError("Failed to restore application");
+      }
+    } catch (err) {
+      console.error("Unarchive API error", err);
+      setArchiveError(err?.message || "Unarchive request failed");
     }
   };
 
@@ -126,6 +176,7 @@ export default function HeaderSearchSection() {
                   applications={newApplications}
                   type="draft"
                   onArchive={handleArchiveApplication}
+                  requestArchive={setConfirmArchiveId}
                   emptyMessage="No draft applications yet."
                   emptySubMessage="Start a new application to see it here."
                 />
@@ -134,6 +185,7 @@ export default function HeaderSearchSection() {
                   applications={submittedApplications}
                   type="submitted"
                   onArchive={handleArchiveApplication}
+                  requestArchive={setConfirmArchiveId}
                   emptyMessage="No submitted applications."
                   emptySubMessage="Your submitted applications will show up here."
                 />
@@ -146,6 +198,8 @@ export default function HeaderSearchSection() {
                 applications={filteredArchivedApplications}
                 type="archived"
                 onArchive={handleArchiveApplication}
+                onUnarchive={handleUnarchiveApplication}
+                requestArchive={setConfirmArchiveId}
                 emptyMessage="No archived applications."
                 emptySubMessage="Your archived applications will appear here."
               />
@@ -153,41 +207,90 @@ export default function HeaderSearchSection() {
           </div>
         </div>
       </div>
+      {confirmArchiveId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-[#111014] border border-[#423577] rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold text-white mb-2">
+              Confirm archive
+            </h3>
+            <p className="text-sm text-white/70 mb-4">
+              Are you sure you want to archive this application? You can restore
+              it later from Archived.
+            </p>
+            {archiveError && (
+              <p className="text-sm text-red-400 mb-2">{archiveError}</p>
+            )}
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setConfirmArchiveId(null)}
+                className="px-4 py-2 bg-[#2a2a32] rounded"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleArchiveApplication(confirmArchiveId)}
+                className="px-4 py-2 bg-[#7350FF] rounded text-white"
+              >
+                Archive
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-const ApplicationSection = ({ title, applications, type, onArchive, emptyMessage, emptySubMessage }) => (
-    <div className="border border-[#423577] rounded-xl">
-      <h3 className="font-medium text-white mb-6 border-b border-[#423577] p-4 px-6">
-        {title} ({applications.length})
-      </h3>
-      <div className="px-6">
-        {applications.length > 0 ? (
-          <div className="space-y-4 pb-4">
-            {applications.map((app) => (
-              <ApplicationCard
-                key={app.id}
-                app={app}
-                type={type}
-                onArchive={onArchive}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <h4 className="text-lg font-medium text-white mb-2">{emptyMessage}</h4>
-            <p className="text-white/60">{emptySubMessage}</p>
-          </div>
-        )}
-      </div>
+const ApplicationSection = ({
+  title,
+  applications,
+  type,
+  onArchive,
+  onUnarchive,
+  requestArchive,
+  emptyMessage,
+  emptySubMessage,
+}) => (
+  <div className="border border-[#423577] rounded-xl">
+    <h3 className="font-medium text-white mb-6 border-b border-[#423577] p-4 px-6">
+      {title} ({applications.length})
+    </h3>
+    <div className="px-6">
+      {applications.length > 0 ? (
+        <div className="space-y-4 pb-4">
+          {applications.map((app) => (
+            <ApplicationCard
+              key={app.id}
+              app={app}
+              type={type}
+              onArchive={onArchive}
+              onUnarchive={onUnarchive}
+              onRequestArchive={requestArchive}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-12">
+          <h4 className="text-lg font-medium text-white mb-2">
+            {emptyMessage}
+          </h4>
+          <p className="text-white/60">{emptySubMessage}</p>
+        </div>
+      )}
     </div>
+  </div>
 );
 
-function ApplicationCard({ app, type, onArchive }) {
+function ApplicationCard({
+  app,
+  type,
+  onArchive,
+  onRequestArchive,
+  onUnarchive,
+}) {
   const router = useRouter();
   const [isExpanded, setIsExpanded] = useState(false);
-   const [isArchiving, setIsArchiving] = useState(false);
+  const [isArchiving, setIsArchiving] = useState(false);
 
   const handleViewApplication = (id) => {
     router.push(`/application-step?application_id=${id}`);
@@ -195,7 +298,11 @@ function ApplicationCard({ app, type, onArchive }) {
 
   const getApplicantData = () => {
     let traveler = null;
-    if (app?.travelersData && Array.isArray(app.travelersData) && app.travelersData.length > 0) {
+    if (
+      app?.travelersData &&
+      Array.isArray(app.travelersData) &&
+      app.travelersData.length > 0
+    ) {
       traveler = app.travelersData[0];
     } else if (app?.travelersData && typeof app.travelersData === "string") {
       try {
@@ -207,16 +314,40 @@ function ApplicationCard({ app, type, onArchive }) {
         console.error("Failed to parse travelersData", e);
       }
     }
-    
-    const firstName = traveler?.basicDetails?.firstName || '';
-    const lastName = traveler?.basicDetails?.lastName || '';
-    const fullName = `${firstName} ${lastName}`.trim() || 'N. Applicant';
-    const email = traveler?.basicDetails?.email || 'no-email@provided.com';
+
+    const firstName = (traveler?.basicDetails?.firstName || "").trim();
+    const lastName = (traveler?.basicDetails?.lastName || "").trim();
+
+    // Prefer traveler name when available; otherwise derive from application email
+    let fullName = `${firstName} ${lastName}`.trim();
+
+    // fallback: if no name available, show the full email instead of a derived name
+    const email =
+      traveler?.basicDetails?.email || app?.email || "no-email@provided.com";
+    if (!fullName) {
+      fullName = email;
+    }
     const dob = traveler?.basicDetails?.dateOfBirth;
 
-    const initials = fullName.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
-    
-    let age = '';
+    // generate initials: prefer name initials, else use email local-part chars
+    let initials = "";
+    const nameParts = fullName.split(" ").filter(Boolean);
+    if (nameParts.length > 0) {
+      initials = nameParts
+        .slice(0, 2)
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase();
+    }
+    if (!initials) {
+      const localEmail = (email.split("@")[0] || "").replace(
+        /[^a-zA-Z0-9]/g,
+        ""
+      );
+      initials = localEmail.slice(0, 2).toUpperCase() || "AP";
+    }
+
+    let age = "";
     if (dob) {
       const birthDate = new Date(dob);
       const today = new Date();
@@ -255,7 +386,7 @@ function ApplicationCard({ app, type, onArchive }) {
       <div
         className="flex items-center justify-between p-4 cursor-pointer"
         onClick={() => {
-          if (type === 'draft') {
+          if (type === "draft") {
             handleViewApplication(app.id);
           } else {
             setIsExpanded(!isExpanded);
@@ -264,9 +395,11 @@ function ApplicationCard({ app, type, onArchive }) {
       >
         <div className="flex items-center gap-3 w-1/4">
           <div className="flex items-center justify-center w-10 h-7 rounded-sm border border-[#454553] overflow-hidden bg-gray-800">
-             {schengenCountries[app?.country] ? (
+            {schengenCountries[app?.country] ? (
               <img
-                src={`https://flagcdn.com/w80/${schengenCountries[app?.country]}.png`}
+                src={`https://flagcdn.com/w80/${
+                  schengenCountries[app?.country]
+                }.png`}
                 alt={`${app?.country} flag`}
                 className="w-full h-full object-cover"
               />
@@ -280,41 +413,88 @@ function ApplicationCard({ app, type, onArchive }) {
             <h4 className="font-medium text-white truncate">{app?.country}</h4>
             <p className="text-sm text-white/60 truncate">
               #{app?.id?.slice(0, 6)}
+              {app?.orderId && (
+                <span className="text-xs text-white/50 ml-2">
+                  • {app.orderId}
+                </span>
+              )}
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-3 w-1/2 justify-center">
-            <div className="w-8 h-8 rounded-full bg-[#4A3B65] text-[#C1A2F4] flex items-center justify-center font-bold text-sm">
-                {initials}
-            </div>
-            <p className="text-sm font-medium text-white">{fullName}</p>
-            <p className="text-sm text-white/60"><ClientOnly>{Math.floor((new Date() - new Date(app.createdAt)) / (1000 * 60 * 60 * 24))} day ago</ClientOnly></p>
+          <div className="w-8 h-8 rounded-full bg-[#4A3B65] text-[#C1A2F4] flex items-center justify-center font-bold text-sm">
+            {initials}
+          </div>
+          <p className="text-sm font-medium text-white">{fullName}</p>
+          <p className="text-sm text-white/60">
+            <ClientOnly>
+              {Math.floor(
+                (new Date() - new Date(app.createdAt)) / (1000 * 60 * 60 * 24)
+              )}{" "}
+              day ago
+            </ClientOnly>
+          </p>
         </div>
 
         <div className="flex items-center gap-4 w-1/4 justify-end">
           <div className="text-right">
-            <div className={`text-xs font-semibold px-2 py-1 rounded-full ${statusInfo.color}`}>
-              {app?.applicationStatus ? app.applicationStatus.charAt(0).toUpperCase() + app.applicationStatus.slice(1) : statusInfo.message}
+            <div
+              className={`text-xs font-semibold px-2 py-1 rounded-full ${statusInfo.color}`}
+            >
+              {app?.applicationStatus
+                ? app.applicationStatus.charAt(0).toUpperCase() +
+                  app.applicationStatus.slice(1)
+                : statusInfo.message}
             </div>
-            {statusInfo.timestamp && <p className="text-xs text-white/60 mt-1">{statusInfo.timestamp}</p>}
+            {statusInfo.timestamp && (
+              <p className="text-xs text-white/60 mt-1">
+                {statusInfo.timestamp}
+              </p>
+            )}
           </div>
-          {type === 'submitted' && (
+          {type === "submitted" && (
             <button className="flex items-center text-white/80 hover:text-white">
               {isExpanded ? "Close" : ""}
               <motion.div
-                  animate={{ rotate: isExpanded ? 180 : 0 }}
-                  transition={{ duration: 0.3 }}
+                animate={{ rotate: isExpanded ? 180 : 0 }}
+                transition={{ duration: 0.3 }}
               >
-                  <ChevronDown size={24} />
+                <ChevronDown size={24} />
               </motion.div>
+            </button>
+          )}
+
+          {type !== "submitted" && onRequestArchive && type !== "archived" && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onRequestArchive(app.id);
+              }}
+              title="Archive application"
+              className="ml-3 p-2 rounded bg-[#3b2b55] hover:bg-[#4a3768] text-white/90"
+            >
+              <Archive size={16} />
+            </button>
+          )}
+
+          {type === "archived" && onUnarchive && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onUnarchive(app.id);
+              }}
+              title="Unarchive application"
+              className="ml-3 p-2 rounded bg-[#2b553b] hover:bg-[#3b6f4a] text-white/90"
+            >
+              Unarchive
             </button>
           )}
         </div>
       </div>
 
       <AnimatePresence>
-        {isExpanded && type === 'submitted' && (
+        {isExpanded && type === "submitted" && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
@@ -323,43 +503,42 @@ function ApplicationCard({ app, type, onArchive }) {
             className="border-t border-[#423577] overflow-hidden"
           >
             <div className="p-6 space-y-6">
-                <div className="p-4 bg-[#7350FF]/10 border border-[#7350FF]/30 rounded-lg">
-          <p className="font-semibold text-white">Have questions about your application?</p>
-          <p className="text-sm text-white/80">{app?.assignedAgent?.name || 'Support'}, Available 10am-7pm • Mon-Sat</p>
-                </div>
+              <div className="p-4 bg-[#7350FF]/10 border border-[#7350FF]/30 rounded-lg">
+                <p className="font-semibold text-white">
+                  Have questions about your application?
+                </p>
+                <p className="text-sm text-white/80">
+                  {app?.assignedAgent?.name || "Support"}, Available 10am-7pm •
+                  Mon-Sat
+                </p>
+              </div>
 
-                <div className="flex items-center gap-6 text-sm">
-                    <button onClick={() => handleViewApplication(app.id)} className="flex items-center gap-2 text-white font-medium hover:text-[#7350FF] transition-colors">
-                        View application <span className="font-bold">&gt;</span>
-                    </button>
-                    <button className="flex items-center gap-2 text-white font-medium hover:text-[#7350FF] transition-colors">
-                        <Download size={16} /> Invoice
-                    </button>
-                    <button className="flex items-center gap-2 text-white font-medium hover:text-[#7350FF] transition-colors">
-                        <Phone size={16} /> Need help?
-                    </button>
-                    {type !== 'archived' && (
-                      <button
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          setIsArchiving(true);
-                          try {
-                            await onArchive(app.id);
-                          } catch (err) {
-                            console.error('Archive failed', err);
-                          } finally {
-                            setIsArchiving(false);
-                          }
-                        }}
-                        className="ml-2 bg-[#3b2b55] px-3 py-1 rounded text-sm hover:bg-[#4a3768]"
-                      >
-                        {isArchiving ? 'Archiving...' : 'Archive'}
-                      </button>
-                    )}
-                </div>
-                
-                <ProgressTimeline currentStatus={app.progressStatus} applicant={{fullName, age, email, initials}} currentLabel={statusInfo.message} />
+              <div className="flex items-center gap-2 text-sm">
+                <button
+                  onClick={() => handleViewApplication(app.id)}
+                  className="flex items-center gap-2 text-white font-medium hover:text-[#7350FF] transition-colors"
+                >
+                  View application <span className="font-bold">&gt;</span>
+                </button>
 
+                {type !== "archived" && onRequestArchive && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRequestArchive(app.id);
+                    }}
+                    className="ml-2 bg-[#3b2b55] px-3 py-1 rounded text-sm hover:bg-[#4a3768]"
+                  >
+                    {isArchiving ? "Archiving..." : "Archive"}
+                  </button>
+                )}
+              </div>
+
+              <ProgressTimeline
+                currentStatus={app.progressStatus}
+                applicant={{ fullName, age, email, initials }}
+                currentLabel={statusInfo.message}
+              />
             </div>
           </motion.div>
         )}
@@ -368,54 +547,86 @@ function ApplicationCard({ app, type, onArchive }) {
   );
 }
 
-
 const ProgressTimeline = ({ currentStatus, applicant, currentLabel }) => {
-    const steps = [
-        { id: 'under_review', label: 'Under Review', icon: <FileText size={20} /> },
-        { id: 'documents_reviewed', label: 'Documents Reviewed', icon: <CheckCircle2 size={20} /> },
-        { id: 'appointment_booked', label: 'Appointment booked', icon: <CalendarDays size={20} /> },
-        { id: 'at_embassy', label: 'At embassy', icon: <Building2 size={20} /> },
-        { id: 'amount_refunded', label: 'Amount Refunded', icon: <CircleDollarSign size={20} /> },
-    ];
+  const steps = [
+    { id: "under_review", label: "Under Review", icon: <FileText size={20} /> },
+    {
+      id: "documents_reviewed",
+      label: "Documents Reviewed",
+      icon: <CheckCircle2 size={20} />,
+    },
+    {
+      id: "appointment_booked",
+      label: "Appointment booked",
+      icon: <CalendarDays size={20} />,
+    },
+    { id: "at_embassy", label: "At embassy", icon: <Building2 size={20} /> },
+    {
+      id: "amount_refunded",
+      label: "Amount Refunded",
+      icon: <CircleDollarSign size={20} />,
+    },
+  ];
 
-    const currentStepIndex = steps.findIndex(step => step.id === currentStatus);
+  const currentStepIndex = steps.findIndex((step) => step.id === currentStatus);
 
-    return (
-        <div>
-            <div className="flex justify-between items-center">
-                {steps.map((step, index) => {
-                    const isCompleted = index < currentStepIndex;
-                    const isCurrent = index === currentStepIndex;
-                    return (
-                        <div key={step.id} className="flex-1 flex flex-col items-center relative">
-                            {index > 0 && (
-                                <div className={`absolute top-4 right-1/2 w-full h-0.5 ${isCompleted || isCurrent ? 'bg-green-500' : 'bg-[#423577]'}`} />
-                            )}
-                             <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 ${
-                                 isCompleted ? 'bg-green-500 text-white' : 
-                                 isCurrent ? 'bg-green-500 text-white' : 
-                                 'bg-[#4A3B65] text-[#C1A2F4]'
-                             }`}>
-                                 {isCompleted ? <CheckCircle2 size={20} /> : step.icon}
-                             </div>
-                             <p className={`text-xs mt-2 text-center ${isCompleted || isCurrent ? 'text-white' : 'text-white/60'}`}>{step.label}</p>
-                        </div>
-                    );
-                })}
+  return (
+    <div>
+      <div className="flex justify-between items-center">
+        {steps.map((step, index) => {
+          const isCompleted = index < currentStepIndex;
+          const isCurrent = index === currentStepIndex;
+          return (
+            <div
+              key={step.id}
+              className="flex-1 flex flex-col items-center relative"
+            >
+              {index > 0 && (
+                <div
+                  className={`absolute top-4 right-1/2 w-full h-0.5 ${
+                    isCompleted || isCurrent ? "bg-green-500" : "bg-[#423577]"
+                  }`}
+                />
+              )}
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center z-10 ${
+                  isCompleted
+                    ? "bg-green-500 text-white"
+                    : isCurrent
+                    ? "bg-green-500 text-white"
+                    : "bg-[#4A3B65] text-[#C1A2F4]"
+                }`}
+              >
+                {isCompleted ? <CheckCircle2 size={20} /> : step.icon}
+              </div>
+              <p
+                className={`text-xs mt-2 text-center ${
+                  isCompleted || isCurrent ? "text-white" : "text-white/60"
+                }`}
+              >
+                {step.label}
+              </p>
             </div>
+          );
+        })}
+      </div>
 
-            {/* Applicant Details Bar */}
-            <div className="mt-6 flex items-center gap-4 bg-[#2c2c3a] p-3 rounded-lg">
-                <div className="w-8 h-8 rounded-full bg-[#4A3B65] text-[#C1A2F4] flex items-center justify-center font-bold text-sm flex-shrink-0">
-                    {applicant.initials}
-                </div>
-                <div className="text-sm font-medium text-white">{applicant.fullName}</div>
-                <div className="text-sm text-white/60">{applicant.age}</div>
-                <div className="text-sm text-white/60 truncate flex-1">{applicant.email}</div>
+      {/* Applicant Details Bar */}
+      <div className="mt-6 flex items-center gap-4 bg-[#2c2c3a] p-3 rounded-lg">
+        <div className="w-8 h-8 rounded-full bg-[#4A3B65] text-[#C1A2F4] flex items-center justify-center font-bold text-sm flex-shrink-0">
+          {applicant.initials}
+        </div>
+        <div className="text-sm font-medium text-white">
+          {applicant.fullName}
+        </div>
+        <div className="text-sm text-white/60">{applicant.age}</div>
+        <div className="text-sm text-white/60 truncate flex-1">
+          {applicant.email}
+        </div>
         <div className="bg-[#7350FF]/20 text-[#C1A2F4] text-xs font-semibold px-3 py-1 rounded-full">
-          {currentLabel || 'Under Review'}
+          {currentLabel || "Under Review"}
         </div>
-            </div>
-        </div>
-    );
+      </div>
+    </div>
+  );
 };

@@ -24,6 +24,8 @@ export const backendApiEnums = {
       CREATE_OR_UPDATE: "/visa-application/create",
       GET_APPLICATION_BY_ID: "/visa-application/getApplicationById",
       DELETE_APPLICATION: "/visa-application/delete",
+      ARCHIVE_APPLICATION: "/visa-application/archive",
+      UNARCHIVE_APPLICATION: "/visa-application/unarchive",
     },
 
     VISA: {
