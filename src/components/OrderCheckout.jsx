@@ -11,21 +11,13 @@ import {
   setInsuranceFees,
   setSelectedCountry,
   setVisaTypeId,
-  setSelectedVisaType,
 } from "@/store/visaSlice";
 import Cookies from "js-cookie";
-import { ShoppingBag } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import {
-  FaUser,
-  FaShieldAlt,
-  FaApple,
-  FaGoogle,
-  FaCreditCard,
-} from "react-icons/fa";
+import { FaUser, FaShieldAlt, FaApple, FaGoogle } from "react-icons/fa";
 import { HiOutlineDeviceMobile } from "react-icons/hi";
 import { SiKlarna } from "react-icons/si";
 import {
@@ -36,6 +28,7 @@ import {
 } from "@/utils/currency";
 import ClientOnly from "./ClientOnly";
 import { useRouter } from "next/router";
+import QtyInput from "./QtyInput";
 
 const VisaCheckout = () => {
   const dispatch = useAppDispatch();
@@ -1499,22 +1492,12 @@ const VisaCheckout = () => {
                 <FaUser className="text-lg" />
                 <span className="text-sm">Travellers</span>
               </div>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => setTravelers(Math.max(1, travelers - 1))}
-                  className="bg-gray-700 px-2 py-1 rounded text-sm hover:bg-gray-600"
-                  disabled={travelers <= 1}
-                >
-                  -
-                </button>
-                <span className="min-w-[20px] text-center">{travelers}</span>
-                <button
-                  onClick={() => setTravelers(travelers + 1)}
-                  className="bg-gray-700 px-2 py-1 rounded text-sm hover:bg-gray-600"
-                >
-                  +
-                </button>
-              </div>
+
+              <QtyInput
+                onIncrement={(val) => setTravelers(val)}
+                onDecrement={(val) => setTravelers(val)}
+                value={travelers}
+              />
             </div>
             <div className="flex justify-between text-sm">
               <span className="line-through">

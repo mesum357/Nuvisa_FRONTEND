@@ -26,40 +26,16 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
-import DatePicker from "react-datepicker";
+import QtyInput from "./QtyInput";
 import "react-datepicker/dist/react-datepicker.css";
-import VisaTypeSelector from "./VisaTypeSelector";
 import { FaApple } from "react-icons/fa";
 import { useToast } from "@/contexts/ToastContext";
-import { useMemo } from "react";
 
 const CountrySlider = () => {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const visaState = useAppSelector((state) => state.visa);
   const { showError, showSuccess } = useToast();
-  const handleCountrySelect = (countryName) => {
-    // Extract just the country name from "City, Country" format
-    const country = countryName.includes(",")
-      ? countryName.split(", ")[1]
-      : countryName;
 
-    // Get dynamic fees based on selected country
-    const countryConfig = getCountryConfig(country);
-
-    // Store the selected country and dynamic fees in Redux (ensure all values are serializable primitives)
-    dispatch(setReduxSelectedCountry(String(country)));
-    dispatch(setVisaFees(Number(countryConfig.visaFee)));
-    dispatch(setInsuranceFees(Number(countryConfig.insuranceFee)));
-    dispatch(setReduxTravelers(Number(1)));
-
-    // Redirect to checkout with dynamic country information
-    router.push(
-      `/visa-checkout?selectedCountry=${encodeURIComponent(country)}&visaFees=${
-        countryConfig.visaFee
-      }&insuranceFees=${countryConfig.insuranceFee}&travelers=1`
-    );
-  };
   // Sample country data with images and names
   const countries = [
     {
@@ -228,6 +204,7 @@ const CountrySlider = () => {
     console.log(`Parsing duration: "${durationString}" -> ${days} days`);
     return days;
   };
+  const isValidDate = (d) => d instanceof Date && !isNaN(d.getTime());
 
   const getCountryParam = (countryVal) => {
     const raw = countryVal?.name || countryVal || "";
@@ -322,12 +299,13 @@ const CountrySlider = () => {
 
   // Handle date changes with validation and Redux updates
   const handleArrivalDateChange = (date) => {
-    setArrivalDateLocal(date);
-    const dateString = date ? date.toISOString().split("T")[0] : "";
+    const safeDate = isValidDate(date) ? date : null;
+    setArrivalDateLocal(safeDate);
+    const dateString = safeDate ? safeDate.toISOString().split("T")[0] : "";
     dispatch(setArrivalDate(dateString));
 
-    if (date) {
-      const minDeparture = new Date(date);
+    if (safeDate) {
+      const minDeparture = new Date(safeDate);
       minDeparture.setDate(minDeparture.getDate() + 15);
 
       if (!departureDate || departureDate < minDeparture) {
@@ -336,28 +314,28 @@ const CountrySlider = () => {
       }
     }
 
-    const errors = validateDates(date, departureDate, selectedVisaType);
+    const errors = validateDates(safeDate, departureDate, selectedVisaType);
     setDateValidationErrors(errors);
-    if (date && (departureDate || (date && initialDepartureDate))) {
-      const errors2 = validateDates(date, departureDate, selectedVisaType);
+    if (safeDate && (departureDate || (safeDate && initialDepartureDate))) {
+      const errors2 = validateDates(safeDate, departureDate, selectedVisaType);
       setDateValidationErrors(errors2);
     }
 
     if (
       selectedVisaType &&
       selectedVisaType.duration_permitted &&
-      date &&
+      safeDate &&
       departureDate
     ) {
       const maxDays = parseDurationDays(selectedVisaType.duration_permitted);
       const currentTripDays = Math.ceil(
-        (departureDate - date) / (1000 * 60 * 60 * 24)
+        (departureDate - safeDate) / (1000 * 60 * 60 * 24)
       );
 
       // If current trip exceeds limit, adjust departure date to max allowed
       if (maxDays && currentTripDays > maxDays) {
         const newDepartureDate = new Date(
-          date.getTime() + (maxDays - 1) * 24 * 60 * 60 * 1000
+          safeDate.getTime() + (maxDays - 1) * 24 * 60 * 60 * 1000
         );
         setDepartureDateLocal(newDepartureDate);
         dispatch(
@@ -368,17 +346,18 @@ const CountrySlider = () => {
   };
 
   const handleDepartureDateChange = (date) => {
-    setDepartureDateLocal(date);
-    const dateString = date ? date.toISOString().split("T")[0] : "";
+    const safeDate = isValidDate(date) ? date : null;
+    setDepartureDateLocal(safeDate);
+    const dateString = safeDate ? safeDate.toISOString().split("T")[0] : "";
     dispatch(setDepartureDate(dateString));
 
-    const errors = validateDates(arrivalDate, date, selectedVisaType);
+    const errors = validateDates(arrivalDate, safeDate, selectedVisaType);
     setDateValidationErrors(errors);
 
     // Validate dates only if both dates exist
-    if (arrivalDate && date) {
-      const errors = validateDates(arrivalDate, date, selectedVisaType);
-      setDateValidationErrors(errors);
+    if (arrivalDate && safeDate) {
+      const errors2 = validateDates(arrivalDate, safeDate, selectedVisaType);
+      setDateValidationErrors(errors2);
     }
   }; // Revalidate dates when visa type changes
   useEffect(() => {
@@ -2118,11 +2097,6 @@ const CountrySlider = () => {
                 <span className="text-2xl font-gilroy-bold">
                   £{Math.round(calculateFinalPrice())}
                 </span>
-                {appliedDiscount && (
-                  <span className="text-sm text-green-400">
-                    {appliedDiscount.percentage}% discount applied
-                  </span>
-                )}
               </div>
 
               <div className="flex items-center gap-2 shadow-lg shadow-black/20 p-2 rounded-full">
@@ -2130,24 +2104,15 @@ const CountrySlider = () => {
                   <UserIcon className="fill-white" />
                 </div>
                 <span className="text-xs font-gilroy-bold">Travellers</span>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => handleTravelerChange(1)}
-                    className="w-4 h-4 rounded-full border border-white/30 flex items-center justify-center text-sm font-gilroy-bold"
-                  >
-                    +
-                  </button>
-                  <span className="mx-2 text-sm font-gilroy-bold">
-                    {travelers}
-                  </span>
-                  <button
-                    onClick={() => handleTravelerChange(-1)}
-                    disabled={travelers <= 1}
-                    className={`w-4 h-4 rounded-full border border-white/30 flex items-center justify-center text-sm font-gilroy-bold`}
-                  >
-                    -
-                  </button>
-                </div>
+                <QtyInput
+                  value={travelers}
+                  onChange={(next) => {
+                    const n = Number(next);
+                    setTravelersLocal(n);
+                    dispatch(setReduxTravelers(Number(n)));
+                  }}
+                  min={1}
+                />
               </div>
 
               {/* Country Selector */}
@@ -2189,7 +2154,9 @@ const CountrySlider = () => {
                     arrivalDate ? arrivalDate.toISOString().split("T")[0] : ""
                   }
                   onChange={(e) =>
-                    handleArrivalDateChange(new Date(e.target.value))
+                    handleArrivalDateChange(
+                      e.target.value ? new Date(e.target.value) : null
+                    )
                   }
                   min={arrivalMinStr}
                   className={`w-full bg-white/10 backdrop-blur-sm text-white rounded-lg px-4 py-3 font-semibold border-2 transition-all duration-200 [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer ${
@@ -2223,7 +2190,9 @@ const CountrySlider = () => {
                       : ""
                   }
                   onChange={(e) =>
-                    handleDepartureDateChange(new Date(e.target.value))
+                    handleDepartureDateChange(
+                      e.target.value ? new Date(e.target.value) : null
+                    )
                   }
                   min={departureMinStr}
                   className={`w-full bg-white/10 backdrop-blur-sm text-white rounded-lg px-4 py-3 font-semibold border-2 transition-all duration-200 [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer ${
@@ -2443,25 +2412,29 @@ const CountrySlider = () => {
           <h2 className="text-xl font-gilroy-bold mb-4">Recommended</h2>
 
           {/* Insurance Certificate */}
-          <div
-            className="shadow-xl shadow-black/10 rounded-xl p-4 mb-4"
-            onClick={() => toggleRecommendedItem("insuranceCertificate")}
-          >
+          <div className="shadow-xl shadow-black/10 rounded-xl mb-4">
             <div className="flex items-center justify-between mb-3">
-              <div className="cursor-pointer rounded p-1 transition-colors flex-1">
+              <div className="cursor-pointer rounded  transition-colors flex-1">
                 <div className="flex items-center space-x-2">
                   <div
-                    className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black ${
-                      recommendedItems.insuranceCertificate
-                        ? "bg-[#7350FF] border border-transparent"
-                        : "bg-white border border-gray-500"
-                    }`}
+                    onClick={() =>
+                      toggleRecommendedItem("insuranceCertificate")
+                    }
+                    className="flex items-center space-x-2 cursor-pointer"
                   >
-                    {recommendedItems.insuranceCertificate && (
-                      <Check className="w-3.5 h-3.5 text-white" />
-                    )}
+                    <div
+                      className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black ${
+                        recommendedItems.insuranceCertificate
+                          ? "bg-[#7350FF] border border-transparent"
+                          : "bg-white border border-gray-500"
+                      }`}
+                    >
+                      {recommendedItems.insuranceCertificate && (
+                        <Check className="w-3.5 h-3.5 text-white" />
+                      )}
+                    </div>
+                    <span className="font-medium">Insurance certificate</span>
                   </div>
-                  <span className="font-medium">Insurance certificate</span>
                   <ClientOnly
                     fallback={
                       <div className="flex items-center space-x-2 mt-1 ml-6">
@@ -2547,61 +2520,44 @@ const CountrySlider = () => {
                   </p>
                 </div>
               )}
-              <div className="flex items-end gap-8 px-5">
+              <div className="flex items-end gap-8">
                 <div>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleTravelerChange(-1);
-                      }}
-                      disabled={travelers <= 1}
-                      className={`size-4 border border-white/50 text-white bg-transparent rounded-full flex items-center justify-center text-sm font-gilroy-bold ${
-                        travelers <= 1
-                          ? "bg-gray-600 text-gray-400 cursor-not-allowed"
-                          : ""
-                      }`}
-                    >
-                      -
-                    </button>
-                    <span className="mx-2 font-semibold">
-                      {travelers} Traveller{travelers > 1 ? "s" : ""}
-                    </span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleTravelerChange(1);
-                      }}
-                      className="size-4 border border-white/50 bg-transparent rounded-full text-white flex items-center justify-center text-sm font-gilroy-bold"
-                    >
-                      +
-                    </button>
-                  </div>
+                  <QtyInput
+                    value={travelers}
+                    onChange={(next) => {
+                      const n = Number(next);
+                      setTravelersLocal(n);
+                      dispatch(setReduxTravelers(Number(n)));
+                    }}
+                    min={1}
+                  />
                 </div>
               </div>
             </div>
 
-            <div
-              onClick={() => toggleRecommendedItem("giftCard")}
-              className="shadow-xl shadow-black/10 rounded-xl p-4 mb-6"
-            >
+            <div className="shadow-xl shadow-black/10 rounded-xl  mb-6">
               <div className="flex items-center justify-between mb-1">
-                <div className="cursor-pointer rounded p-1 transition-colors flex-1">
+                <div className="cursor-pointer rounded  transition-colors flex-1">
                   <div className="flex items-center space-x-2">
                     <div
-                      className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black ${
-                        recommendedItems.giftCard
-                          ? "bg-[#7350FF] border border-transparent"
-                          : "bg-white border border-gray-500"
-                      }`}
+                      onClick={() => toggleRecommendedItem("giftCard")}
+                      className="flex items-center space-x-2 cursor-pointer"
                     >
-                      {recommendedItems.giftCard && (
-                        <Check className="w-3.5 h-3.5 text-white" />
-                      )}
+                      <div
+                        className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black ${
+                          recommendedItems.giftCard
+                            ? "bg-[#7350FF] border border-transparent"
+                            : "bg-white border border-gray-500"
+                        }`}
+                      >
+                        {recommendedItems.giftCard && (
+                          <Check className="w-3.5 h-3.5 text-white" />
+                        )}
+                      </div>
+                      <span className="font-semibold">
+                        NUvisa digital gift card
+                      </span>
                     </div>
-                    <span className="font-semibold">
-                      NUvisa digital gift card
-                    </span>
                     <div className="flex items-center space-x-2 mt-1 ml-6">
                       <span className="text-lg font-semibold line-through">
                         £{245 * giftCardCount}
@@ -2614,30 +2570,11 @@ const CountrySlider = () => {
                 </div>
               </div>
               <div className="flex items-center space-x-2">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleGiftCardChange(-1);
-                  }}
-                  disabled={giftCardCount <= 1}
-                  className={`size-4 border border-white/50 text-white bg-transparent rounded-full flex items-center justify-center text-sm font-gilroy-bold ${
-                    giftCardCount <= 1
-                      ? "bg-gray-600 text-gray-400 cursor-not-allowed"
-                      : ""
-                  }`}
-                >
-                  -
-                </button>
-                <span className="mx-2 font-semibold">{giftCardCount}</span>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleGiftCardChange(1);
-                  }}
-                  className="size-4 border border-white/50 bg-transparent rounded-full text-white flex items-center justify-center text-sm font-gilroy-bold"
-                >
-                  +
-                </button>
+                <QtyInput
+                  value={giftCardCount}
+                  onIncrement={() => handleGiftCardChange(1)}
+                  onDecrement={() => handleGiftCardChange(-1)}
+                />
               </div>
               <p className="">
                 Give the gift of unforgettable memories this Christmas! Order

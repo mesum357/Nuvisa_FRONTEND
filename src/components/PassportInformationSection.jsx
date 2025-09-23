@@ -1,17 +1,6 @@
 import { useRef, useState, useEffect } from "react";
 import { uploadFile } from "@/api/upload";
-import {
-  Upload,
-  X,
-  User,
-  MapPin,
-  CreditCard,
-  CheckCircle,
-  ChevronRight,
-  Calendar,
-  Loader2,
-  AlertCircle,
-} from "lucide-react";
+import { Upload, X, Calendar, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
 import UK_CITIES from "@/constants/ukCities";
@@ -27,7 +16,6 @@ export default function App({ passportData, setPassportData, handleSave }) {
   return (
     <div className=" min-h-screen antialiased text-white">
       <div className="max-w-7xl mx-auto">
-        
         <PassportInformationSection
           passportData={passportData}
           setPassportData={setPassportData}
@@ -73,6 +61,7 @@ const PassportInformationSection = ({
   const hasPassportImages =
     passportData.passportFront || passportData.passportBack;
   const hasBothImages = passportData.passportFront && passportData.passportBack;
+  const hasSuccessfulUpload = frontOcrDone || backOcrDone || hasPassportImages;
 
   useEffect(() => {
     if (passportData.passportFront) {
@@ -134,6 +123,37 @@ const PassportInformationSection = ({
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+
+    // Check for travel date warnings
+    if (name === "travelStartDate") {
+      if (value) {
+        const selectedDate = new Date(value);
+        const today = new Date();
+        const fifteenDaysFromToday = new Date(today);
+        fifteenDaysFromToday.setDate(today.getDate() + 15);
+
+        if (selectedDate < fifteenDaysFromToday) {
+          setErrors((prev) => ({
+            ...prev,
+            travelStartDateWarning:
+              " Your travel date is within 15 days. Embassy processing typically takes up to 15 days after your appointment. Consider if your dates are flexible.",
+          }));
+        } else {
+          setErrors((prev) => {
+            const newErrors = { ...prev };
+            delete newErrors.travelStartDateWarning;
+            return newErrors;
+          });
+        }
+      } else {
+        setErrors((prev) => {
+          const newErrors = { ...prev };
+          delete newErrors.travelStartDateWarning;
+          return newErrors;
+        });
+      }
+    }
+
     setPassportData((prev) => ({
       ...prev,
       [name]: value,
@@ -155,7 +175,6 @@ const PassportInformationSection = ({
     }
 
     // Start autofill animation when processing begins
-    setShowAutofillAnimation(true);
     setExtractionProgress(0);
     setExtractionStep("Processing document...");
 
@@ -394,16 +413,10 @@ const PassportInformationSection = ({
     }
   };
 
-    console.log(
-      "Rendering PassportInformationSection with data:",
-      passportData,
-      
-    );
+  console.log("Rendering PassportInformationSection with data:", passportData);
 
-
-
-
-  
+  const frontBusy = frontOcrLoading || isProcessing || showAutofillAnimation;
+  const backBusy = backOcrLoading || isProcessing || showAutofillAnimation;
 
   const handleFileUpload = async (e, side) => {
     const file = e.target.files[0];
@@ -442,15 +455,18 @@ const PassportInformationSection = ({
           if (res && res.url) {
             setPassportData((prev) => ({ ...prev, passportFront: res.url }));
             console.log("Front upload successful:", res.url);
+            setShowAutofillAnimation(true);
             performOCR(file, res.url, "front");
           }
         } catch (err) {
           console.error("Front upload failed:", err);
           let errorMessage = "Upload failed. Please try again.";
-          if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
-            errorMessage = "Upload timed out. Please check your connection and try again.";
+          if (err.code === "ECONNABORTED" || err.message?.includes("timeout")) {
+            errorMessage =
+              "Upload timed out. Please check your connection and try again.";
           } else if (err.response?.status === 500) {
-            errorMessage = "Server error during upload. Please try again later.";
+            errorMessage =
+              "Server error during upload. Please try again later.";
           }
           setErrors((prev) => ({ ...prev, passportFront: errorMessage }));
           setPassportData((prev) => ({ ...prev, passportFront: null }));
@@ -470,15 +486,18 @@ const PassportInformationSection = ({
           if (res && res.url) {
             setPassportData((prev) => ({ ...prev, passportBack: res.url }));
             console.log("Back upload successful:", res.url);
+            setShowAutofillAnimation(true);
             performOCR(file, res.url, "back");
           }
         } catch (err) {
           console.error("Back upload failed:", err);
           let errorMessage = "Upload failed. Please try again.";
-          if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
-            errorMessage = "Upload timed out. Please check your connection and try again.";
+          if (err.code === "ECONNABORTED" || err.message?.includes("timeout")) {
+            errorMessage =
+              "Upload timed out. Please check your connection and try again.";
           } else if (err.response?.status === 500) {
-            errorMessage = "Server error during upload. Please try again later.";
+            errorMessage =
+              "Server error during upload. Please try again later.";
           }
           setErrors((prev) => ({ ...prev, passportBack: errorMessage }));
           setPassportData((prev) => ({ ...prev, passportBack: null }));
@@ -489,6 +508,14 @@ const PassportInformationSection = ({
   };
 
   const handleRemoveImage = (side) => {
+    // Prevent removing images while upload/OCR/extraction is in progress
+    const frontBusy = frontOcrLoading || isProcessing || showAutofillAnimation;
+    const backBusy = backOcrLoading || isProcessing || showAutofillAnimation;
+
+    if ((side === "front" && frontBusy) || (side === "back" && backBusy)) {
+      return;
+    }
+
     if (side === "front") {
       setFrontPreview(null);
       setPassportData((prev) => ({
@@ -545,7 +572,8 @@ const PassportInformationSection = ({
       const digits = s.replace(/[\s()\\-]/g, "");
       const ukPhoneRegex = /^(?:\+447\d{9}|447\d{9}|07\d{9})$/;
       if (!ukPhoneRegex.test(digits)) {
-        newErrors.mobileNumber = "Please enter a valid UK mobile number (e.g. +447123456789 or 07123456789).";
+        newErrors.mobileNumber =
+          "Please enter a valid UK mobile number (e.g. +447123456789 or 07123456789).";
       }
     }
 
@@ -563,7 +591,8 @@ const PassportInformationSection = ({
     if (!city) newErrors.city = "City is required.";
     if (!pincode) newErrors.pincode = "Postcode is required.";
     else {
-      const ukPostcodeRegex = /^([A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}|GIR\s?0AA)$/i;
+      const ukPostcodeRegex =
+        /^([A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}|GIR\s?0AA)$/i;
       if (!ukPostcodeRegex.test(String(pincode).trim())) {
         newErrors.pincode = "Please enter a valid UK postcode.";
       }
@@ -613,7 +642,7 @@ const PassportInformationSection = ({
       } else {
         onComplete();
       }
-    } 
+    }
   };
 
   return (
@@ -688,6 +717,11 @@ const PassportInformationSection = ({
             )}
           </div>
         </div>
+        {errors.travelStartDateWarning && (
+          <p className="text-amber-400 text-xs mt-1">
+            {errors.travelStartDateWarning}
+          </p>
+        )}
       </motion.div>
 
       <div className="flex flex-col md:flex-row gap-10">
@@ -745,12 +779,20 @@ const PassportInformationSection = ({
                     <button
                       type="button"
                       onClick={() => handleRemoveImage("front")}
-                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      disabled={frontBusy}
+                      aria-disabled={frontBusy}
+                      className={`absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center transition-opacity ${
+                        frontBusy
+                          ? "opacity-60 pointer-events-none cursor-not-allowed"
+                          : "opacity-0 group-hover:opacity-100"
+                      }`}
                     >
                       <X size={16} />
                     </button>
                     {passportData.passportFrontUrl && (
-                      <p className="text-xs text-gray-400 mt-2">Uploaded URL: {passportData.passportFrontUrl}</p>
+                      <p className="text-xs text-gray-400 mt-2">
+                        Uploaded URL: {passportData.passportFrontUrl}
+                      </p>
                     )}
                   </div>
                 ) : (
@@ -823,12 +865,20 @@ const PassportInformationSection = ({
                     <button
                       type="button"
                       onClick={() => handleRemoveImage("back")}
-                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      disabled={backBusy}
+                      aria-disabled={backBusy}
+                      className={`absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center transition-opacity ${
+                        backBusy
+                          ? "opacity-60 pointer-events-none cursor-not-allowed"
+                          : "opacity-0 group-hover:opacity-100"
+                      }`}
                     >
                       <X size={16} />
                     </button>
                     {passportData.passportBackUrl && (
-                      <p className="text-xs text-gray-400 mt-2">Uploaded URL: {passportData.passportBackUrl}</p>
+                      <p className="text-xs text-gray-400 mt-2">
+                        Uploaded URL: {passportData.passportBackUrl}
+                      </p>
                     )}
                   </div>
                 ) : (
@@ -867,8 +917,7 @@ const PassportInformationSection = ({
 
         {/* Form Section (Right Side) */}
         <div className="w-full md:w-1/2 space-y-6 relative">
-          {/* Blur overlay when no passport uploaded */}
-          {!hasPassportImages && !showAutofillAnimation && (
+          {!hasSuccessfulUpload && !showAutofillAnimation && (
             <div className="absolute inset-0 backdrop-blur-sm rounded-xl z-10 flex items-center justify-center">
               <div className="text-center p-8">
                 <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -886,42 +935,36 @@ const PassportInformationSection = ({
             </div>
           )}
 
-          {/* OCR Processing Animation */}
-          {
-            showAutofillAnimation
-             && (
-              <div className="absolute inset-0 backdrop-blur-sm rounded-xl z-10 flex items-center justify-center">
-                <div className="flex flex-col items-center text-center p-8 space-y-4">
-                  <div className="bg-gradient-to-r from-purple-500 to-blue-500 p-4 rounded-full w-20 h-20 mx-auto flex items-center justify-center relative">
-                    <Sparkles className="w-8 h-8 text-white animate-pulse" />
+          {showAutofillAnimation && (
+            <div className="absolute inset-0 backdrop-blur-sm rounded-xl z-10 flex items-center justify-center">
+              <div className="flex flex-col items-center text-center p-8 space-y-4">
+                <div className="bg-gradient-to-r from-purple-500 to-blue-500 p-4 rounded-full w-20 h-20 mx-auto flex items-center justify-center relative">
+                  <Sparkles className="w-8 h-8 text-white animate-pulse" />
+                </div>
+
+                <div>
+                  <h3 className="text-xl font-semibold text-white mb-2">
+                    Extracting Information
+                  </h3>
+                  <p className="text-gray-300 text-sm mb-4">{extractionStep}</p>
+
+                  {/* Progress Bar */}
+                  <div className="w-64 h-2 bg-gray-700 rounded-full mx-auto overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${extractionProgress}%` }}
+                      transition={{ duration: 0.5, ease: "easeOut" }}
+                      className="h-full bg-gradient-to-r from-purple-500 to-blue-500 rounded-full"
+                    />
                   </div>
 
-                  <div>
-                    <h3 className="text-xl font-semibold text-white mb-2">
-                      Extracting Information
-                    </h3>
-                    <p className="text-gray-300 text-sm mb-4">
-                      {extractionStep}
-                    </p>
-
-                    {/* Progress Bar */}
-                    <div className="w-64 h-2 bg-gray-700 rounded-full mx-auto overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${extractionProgress}%` }}
-                        transition={{ duration: 0.5, ease: "easeOut" }}
-                        className="h-full bg-gradient-to-r from-purple-500 to-blue-500 rounded-full"
-                      />
-                    </div>
-
-                    <div className="mt-2 text-sm text-gray-400">
-                      {extractionProgress}% complete
-                    </div>
+                  <div className="mt-2 text-sm text-gray-400">
+                    {extractionProgress}% complete
                   </div>
                 </div>
               </div>
-            )
-          }
+            </div>
+          )}
 
           {/* Form Content */}
           <div className="rounded-xl p-6 border border-[#423577] shadow-sm">
@@ -1202,9 +1245,7 @@ const PassportInformationSection = ({
                     />
                     <datalist id="city-options">
                       {UK_CITIES && UK_CITIES.length > 0
-                        ? UK_CITIES.map((c) => (
-                            <option key={c} value={c} />
-                          ))
+                        ? UK_CITIES.map((c) => <option key={c} value={c} />)
                         : null}
                     </datalist>
                     {errors.city && (
@@ -1212,24 +1253,24 @@ const PassportInformationSection = ({
                     )}
                   </div>
                   <div>
-                      <label className="block text-sm font-medium  mb-1">
-                        Postcode
-                      </label>
-                      <input
-                        type="text"
-                        name="pincode"
-                        value={passportData.pincode}
-                        onChange={handleInputChange}
-                        placeholder="e.g. SW1A 1AA"
-                        className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
-                          errors.pincode ? "border-red-500" : "border-[#423577]"
-                        }`}
-                      />
-                      {errors.pincode && (
-                        <p className="text-red-500 text-xs mt-1">
-                          {errors.pincode}
-                        </p>
-                      )}
+                    <label className="block text-sm font-medium  mb-1">
+                      Postcode
+                    </label>
+                    <input
+                      type="text"
+                      name="pincode"
+                      value={passportData.pincode}
+                      onChange={handleInputChange}
+                      placeholder="e.g. SW1A 1AA"
+                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
+                        errors.pincode ? "border-red-500" : "border-[#423577]"
+                      }`}
+                    />
+                    {errors.pincode && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {errors.pincode}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="flex flex-col gap-1">
@@ -1270,7 +1311,6 @@ const PassportInformationSection = ({
             <Loader2 className="w-4 h-4 animate-spin" />
           )}
           {isProcessing || loading ? "Saving..." : "Save and Continue"}
-
         </button>
       </div>
     </form>
