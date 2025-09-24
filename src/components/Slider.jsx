@@ -1,14 +1,23 @@
 "use client";
 import { getCountryConfig } from "@/constants/countryConfig";
-import { useAppDispatch, useAppSelector } from "@/store";
+import { useAppDispatch } from "@/store";
 import {
   setInsuranceFees,
   setSelectedCountry as setReduxSelectedCountry,
   setTravelers as setReduxTravelers,
   setVisaFees,
-  setSelectedVisaType as setSelectedVisaTypeDispatch,
+  setSelectedVisaType,
   setArrivalDate,
   setDepartureDate,
+  setRequiredDocuments,
+  setRecommendedItems,
+  setAppliedDiscount,
+  setCouponCode,
+  setUserEmail,
+  setSelectedPaymentMethod,
+  setGiftCardFees,
+  setTotalAmount,
+  setInsuranceOnly,
 } from "@/store/visaSlice";
 import ClientOnly from "./ClientOnly";
 import {
@@ -118,7 +127,7 @@ const CountrySlider = () => {
   ];
 
   const [travelers, setTravelersLocal] = useState(1);
-  const [isCountryOpen, setIsCountryOpen] = useState(false);
+  const [_isCountryOpen, setIsCountryOpen] = useState(false);
   const [selectedCountry, setSelectedCountryLocal] = useState("France");
   const [activeTooltip, setActiveTooltip] = useState(null);
   const [insuranceDays, setInsuranceDays] = useState(0);
@@ -146,33 +155,32 @@ const CountrySlider = () => {
     () => initialDepartureDate
   );
   const [dateValidationErrors, setDateValidationErrors] = useState({});
-  const [selectedOptions, setSelectedOptions] = useState({
+  const [_selectedOptions, setSelectedOptions] = useState({
     approvalRate: true,
     riskFree: true,
     getHelp: true,
   });
   const [validationErrors, setValidationErrors] = useState(new Set());
-  const [selectedVisaType, setSelectedVisaType] = useState(null); // Add state for selected visa type
+  const [selectedVisaType, _setSelectedVisaType] = useState(null); 
+  const [selectedPaymentMethod, setSelectedLocalPaymentMethod] = useState("");
 
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
-
-  const [couponCode, setCouponCode] = useState("");
+const [couponCode, setCouponCodeLocal] = useState("");
   const [couponError, setCouponError] = useState("");
-  const [appliedDiscount, setAppliedDiscount] = useState(null);
+const [appliedDiscount, setAppliedDiscountLocal] = useState(null);
   const [groupAutoApplied, setGroupAutoApplied] = useState(false);
-  const [showStudentModal, setShowStudentModal] = useState(false);
+  const [_showStudentModal, _setShowStudentModal] = useState(false);
   const [pendingCheckoutQuery, setPendingCheckoutQuery] = useState(null);
-  const [studentEmail, setStudentEmail] = useState("");
+  const [_studentEmail, _setStudentEmail] = useState("");
   const [studentVerificationSent, setStudentVerificationSent] = useState(false);
-  const [studentOtp, setStudentOtp] = useState("");
+  const [_studentOtp, _setStudentOtp] = useState("");
   const [studentVerified, setStudentVerified] = useState(false);
   const [isSendingVerification, setIsSendingVerification] = useState(false);
-  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [_isVerifyingOtp, _setIsVerifyingOtp] = useState(false);
 
   // Keep a ref to the polling interval so we can clear it from other places
   const verificationPollRef = useRef(null);
 
-  const [userEmail, setUserEmail] = useState("");
+const [userEmail, setUserEmailLocal] = useState("");
   const [emailError, setEmailError] = useState("");
 
   // Helper function to safely parse duration from visa type
@@ -225,7 +233,7 @@ const CountrySlider = () => {
   };
 
   // Helper function to sanitize duration strings before storing in Redux
-  const sanitizeDurationString = (duration) => {
+  const _sanitizeDurationString = (duration) => {
     if (
       !duration ||
       duration.includes("-1") ||
@@ -245,7 +253,7 @@ const CountrySlider = () => {
     }
 
     const arrivalDate = new Date(arrival);
-    const departureDate = new Date(departure);
+    const _departureDate = new Date(departure);
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -415,38 +423,19 @@ const CountrySlider = () => {
   };
   const departureMinStr = computeDepartureMinStr(arrivalDate);
 
-  const [requiredDocuments, setRequiredDocuments] = useState(() => {
-    try {
-      if (typeof window !== "undefined") {
-        const saved = localStorage.getItem("nuvisa_required_documents");
-        if (saved) return JSON.parse(saved);
-      }
-    } catch {}
-    return {
-      passport: false,
-      ukVisa: false,
-      photos: false,
-      bankStatements: false,
-      employmentProof: false,
-      insurance: false,
-    };
-  });
+  const [requiredDocuments, setRequiredDocumentsLocal] = useState(() => ({
+    passport: false,
+    ukVisa: false,
+    photos: false,
+    bankStatements: false,
+    employmentProof: false,
+    insurance: false,
+  }));
 
-  // Recommended items checkboxes state (persisted)
-  const [recommendedItems, setRecommendedItems] = useState(() => {
-    try {
-      if (typeof window !== "undefined") {
-        const saved = localStorage.getItem("nuvisa_recommended_items");
-        if (saved) return JSON.parse(saved);
-      }
-    } catch (e) {
-      // ignore
-    }
-    return {
-      insuranceCertificate: false,
-      giftCard: false,
-    };
-  });
+  const [recommendedItems, setRecommendedItemsLocal] = useState(() => ({
+    insuranceCertificate: false,
+    giftCard: false,
+  }));
 
   // Handle pre-selected country from URL parameters
   useEffect(() => {
@@ -459,54 +448,11 @@ const CountrySlider = () => {
     }
   }, [router.query.selectedCountry, dispatch]);
 
-  // On mount: read stored verified student email and apply to UI if valid
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("nuvisa.verifiedStudentEmail");
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (
-          parsed &&
-          parsed.email &&
-          parsed.expiresAt &&
-          Date.now() < parsed.expiresAt
-        ) {
-          setUserEmail(parsed.email);
-          setStudentVerified(true);
-          // Auto-fill student coupon and apply discount
-          setCouponCode("STUDENT10");
-          setAppliedDiscount({
-            description: "Student discount",
-            percentage: 10,
-          });
-          try {
-            if (typeof showSuccess === "function")
-              showSuccess("Student discount auto-applied for verified email");
-          } catch (e) {}
-        } else {
-          try {
-            localStorage.removeItem("nuvisa.verifiedStudentEmail");
-          } catch (e) {}
-        }
-      }
-    } catch (e) {
-      // ignore
-    }
-  }, []);
+
 
   const toggleRequiredDocument = (documentKey) => {
-    setRequiredDocuments((prev) => {
+    setRequiredDocumentsLocal((prev) => {
       const next = { ...prev, [documentKey]: !prev[documentKey] };
-      try {
-        if (typeof window !== "undefined") {
-          localStorage.setItem(
-            "nuvisa_required_documents",
-            JSON.stringify(next)
-          );
-        }
-      } catch (e) {
-        // ignore storage errors
-      }
       return next;
     });
     // Clear validation error when document is checked
@@ -520,18 +466,8 @@ const CountrySlider = () => {
   };
 
   const toggleRecommendedItem = (itemKey) => {
-    setRecommendedItems((prev) => {
+    setRecommendedItemsLocal((prev) => {
       const next = { ...prev, [itemKey]: !prev[itemKey] };
-      try {
-        if (typeof window !== "undefined") {
-          localStorage.setItem(
-            "nuvisa_recommended_items",
-            JSON.stringify(next)
-          );
-        }
-      } catch (e) {
-        // ignore
-      }
       return next;
     });
     // If unchecking insurance certificate, reset days to 0
@@ -563,7 +499,7 @@ const CountrySlider = () => {
     }
   };
 
-  const toggleOption = (option) => {
+  const _toggleOption = (option) => {
     setSelectedOptions((prev) => ({
       ...prev,
       [option]: !prev[option],
@@ -589,7 +525,7 @@ const CountrySlider = () => {
       "Multiple entry allows you to enter the country multiple times during the visa validity period without needing to apply for a new visa each time.",
   };
 
-  const handleTravelerChange = (increment) => {
+  const _handleTravelerChange = (increment) => {
     const newValue = travelers + increment;
     if (newValue >= 1) {
       setTravelersLocal(newValue);
@@ -649,7 +585,7 @@ const CountrySlider = () => {
     resetTimer();
   };
 
-  const handleInsuranceChange = (increment) => {
+  const _handleInsuranceChange = (increment) => {
     const newValue = insuranceDays + increment;
 
     // Calculate maximum allowed days based on visa type or dates
@@ -673,12 +609,12 @@ const CountrySlider = () => {
       setInsuranceDays(clampedValue);
       // Update the recommended items state based on days value
       if (clampedValue > 0 && !recommendedItems.insuranceCertificate) {
-        setRecommendedItems((prev) => ({
+        setRecommendedItemsLocal((prev) => ({
           ...prev,
           insuranceCertificate: true,
         }));
       } else if (clampedValue === 0 && recommendedItems.insuranceCertificate) {
-        setRecommendedItems((prev) => ({
+        setRecommendedItemsLocal((prev) => ({
           ...prev,
           insuranceCertificate: false,
         }));
@@ -692,9 +628,9 @@ const CountrySlider = () => {
       setGiftCardCount(newValue);
       // Update the recommended items state
       if (newValue > 0 && !recommendedItems.giftCard) {
-        setRecommendedItems((prev) => ({ ...prev, giftCard: true }));
+  setRecommendedItemsLocal((prev) => ({ ...prev, giftCard: true }));
       } else if (newValue === 0 && recommendedItems.giftCard) {
-        setRecommendedItems((prev) => ({ ...prev, giftCard: false }));
+  setRecommendedItemsLocal((prev) => ({ ...prev, giftCard: false }));
       }
     }
   };
@@ -802,54 +738,20 @@ const CountrySlider = () => {
       discountAmount: Math.round(calculatedDiscountAmount),
     };
 
-    setAppliedDiscount(discountWithAmount);
+  setAppliedDiscountLocal(discountWithAmount);
     setCouponError("");
     // If user manually applied GROUP20, mark it as manual (not auto-applied)
     if (couponCode.toUpperCase() === "GROUP20") {
       setGroupAutoApplied(false);
     }
 
-    // If student discount, auto-check local verified email and set UI so user isn't asked again
     if (discount && discount.description.toLowerCase().includes("student")) {
-      try {
-        const raw = localStorage.getItem("nuvisa.verifiedStudentEmail");
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (
-            parsed &&
-            parsed.email &&
-            parsed.expiresAt &&
-            Date.now() < parsed.expiresAt
-          ) {
-            // If the stored verified email matches the email field (or if email field empty), accept it
-            if (
-              !userEmail ||
-              userEmail.toLowerCase() === parsed.email.toLowerCase()
-            ) {
-              setUserEmail(parsed.email);
-              setStudentVerified(true);
-              showSuccess &&
-                showSuccess(
-                  "Student discount applied — verified email detected"
-                );
-            } else {
-              // Mismatch: inform the user they can either enter the verified email or re-verify
-              showError &&
-                showError(
-                  "A different student email was previously verified. Enter that email to auto-apply the discount, or verify this email."
-                );
-            }
-          }
-        }
-      } catch (e) {
-        // ignore
-      }
     }
   };
 
   const removeCoupon = () => {
-    setAppliedDiscount(null);
-    setCouponCode("");
+    setAppliedDiscountLocal(null);
+    setCouponCodeLocal("");
     setCouponError("");
     // email verification reset not required
   };
@@ -858,7 +760,7 @@ const CountrySlider = () => {
   useEffect(() => {
     try {
       const currentCode = (couponCode || "").toUpperCase();
-      const isGroupApplied =
+      const _isGroupApplied =
         appliedDiscount &&
         appliedDiscount.percentage === 20 &&
         (appliedDiscount.description || "").toLowerCase().includes("group");
@@ -882,8 +784,8 @@ const CountrySlider = () => {
             requiresMinTravellers: 3,
             discountAmount: Math.round(calculatedDiscountAmount),
           };
-          setAppliedDiscount(groupDiscount);
-          setCouponCode("GROUP20");
+          setAppliedDiscountLocal(groupDiscount);
+          setCouponCodeLocal("GROUP20");
           setCouponError("");
           setGroupAutoApplied(true);
           showSuccess &&
@@ -892,16 +794,16 @@ const CountrySlider = () => {
       } else {
         // If travelers dropped below 3 and we auto-applied the group discount, remove it
         if (groupAutoApplied) {
-          setAppliedDiscount(null);
+          setAppliedDiscountLocal(null);
           // Only clear couponCode if it was the auto-applied GROUP20
-          if (currentCode === "GROUP20") setCouponCode("");
+          if (currentCode === "GROUP20") setCouponCodeLocal("");
           setGroupAutoApplied(false);
           showSuccess &&
             showSuccess("Group-20 removed — fewer than 3 travellers");
         }
         // If the user manually had GROUP20 applied but now travelers < 3, show an error when they try to proceed (existing validation handles this)
       }
-    } catch (e) {
+    } catch {
       // ignore
     }
   }, [travelers]);
@@ -974,9 +876,8 @@ const CountrySlider = () => {
 
       const verificationSent = await sendStudentVerification(userEmail);
       if (verificationSent) {
-        // Store pending checkout query to continue after verification
-        setPendingCheckoutQuery(getCheckoutQueryString());
-        setSelectedPaymentMethod("stripe");
+        setPendingCheckoutQuery("proceed"); // Simple flag
+        setSelectedLocalPaymentMethod("stripe");
         // Polling/verification effect will handle redirect after verification
         return;
       } else {
@@ -993,7 +894,7 @@ const CountrySlider = () => {
         ? Math.round(Number(selectedVisaType.price) / 100)
         : baseFee;
 
-    let visaFees = currentBaseFee * travelers;
+    let visaFees = hasOnlyInsurance ? 0 : currentBaseFee * travelers;
 
     // Apply discount if available
     let discountAmount = 0;
@@ -1006,19 +907,28 @@ const CountrySlider = () => {
       ? perDayInsurancePrice * insuranceDays * travelers
       : 0;
     const giftCardFees = recommendedItems.giftCard ? 188 * giftCardCount : 0;
+    const totalAmount = Math.round(visaFees + insuranceFees + giftCardFees);
 
     const countryName = getCountryParam(selectedCountry) || "Germany";
 
-    // Store in Redux (make sure we're only passing serializable primitive data)
     dispatch(setReduxSelectedCountry(String(countryName)));
-    dispatch(setVisaFees(Number(visaFees)));
+  dispatch(setVisaFees(Number(visaFees)));
     dispatch(setInsuranceFees(Number(insuranceFees)));
     dispatch(setReduxTravelers(Number(travelers)));
+    dispatch(setRequiredDocuments(requiredDocuments || {}));
+    dispatch(setRecommendedItems(recommendedItems || {}));
+    dispatch(setAppliedDiscount(appliedDiscount || null));
+    dispatch(setCouponCode(couponCode || ""));
+    dispatch(setUserEmail(userEmail || ""));
+    dispatch(setSelectedPaymentMethod(selectedPaymentMethod || "stripe"));
+    dispatch(setGiftCardFees(giftCardFees || 0));
+    dispatch(setTotalAmount(totalAmount || 0));
+    dispatch(setInsuranceOnly(hasOnlyInsurance || false));
 
     // Store selected visa type information
     if (selectedVisaType) {
       dispatch(
-        setSelectedVisaTypeDispatch({
+        setSelectedVisaType({
           id: String(selectedVisaType.id || ""),
           name: String(selectedVisaType.name || ""),
           type: String(selectedVisaType.type || selectedVisaType.name || ""),
@@ -1041,112 +951,7 @@ const CountrySlider = () => {
       );
     }
 
-    const totalAmount = Math.round(visaFees + insuranceFees + giftCardFees);
-
-    const queryParams = new URLSearchParams({
-      visaFees: Math.round(visaFees).toString(),
-      insuranceFees: insuranceFees.toString(),
-      giftCardFees: giftCardFees.toString(),
-      travelers: travelers.toString(),
-      selectedCountry: countryName,
-      departureDate: arrivalDate
-        ? arrivalDate.toISOString()
-        : new Date().toISOString(),
-      returnDate: departureDate
-        ? departureDate.toISOString()
-        : new Date().toISOString(),
-      requiredDocuments: JSON.stringify(requiredDocuments),
-      recommendedItems: JSON.stringify(recommendedItems),
-      insuranceOnly: hasOnlyInsurance.toString(),
-      paymentMethod: selectedPaymentMethod || "stripe",
-      userEmail: userEmail || "",
-      visaTypeId: selectedVisaType?.id || "",
-      totalAmount: totalAmount.toString(),
-      ...(appliedDiscount && {
-        discountCode: couponCode,
-        discountPercentage: appliedDiscount.percentage.toString(),
-        discountAmount: Math.round(discountAmount).toString(),
-        discountDescription: appliedDiscount.description,
-      }),
-    });
-
-    const queryString = queryParams.toString();
-
-    router.push(`/visa-checkout?${queryString}`);
-  };
-
-  // Helper function to generate checkout query string
-  const getCheckoutQueryString = () => {
-    // Calculate fees (similar to handleGetVisa)
-    const currentBaseFee =
-      selectedVisaType && selectedVisaType.priceGBP
-        ? Number(selectedVisaType.priceGBP)
-        : selectedVisaType && selectedVisaType.price
-        ? Math.round(Number(selectedVisaType.price) / 100)
-        : 159; // baseFee
-
-    let visaFees = currentBaseFee * travelers;
-
-    // Apply discount if available
-    let discountAmount = 0;
-    if (appliedDiscount) {
-      discountAmount = (visaFees * appliedDiscount.percentage) / 100;
-      visaFees = visaFees - discountAmount;
-    }
-
-    const insuranceFees = recommendedItems.insuranceCertificate
-      ? perDayInsurancePrice * insuranceDays * travelers
-      : 0;
-    const giftCardFees = recommendedItems.giftCard ? 188 * giftCardCount : 0;
-
-    const totalAmount = Math.round(visaFees + insuranceFees + giftCardFees);
-
-    const countryName = getCountryParam(selectedCountry) || "Germany";
-
-    // Determine if this is an insurance-only checkout
-    const requiredFields = [
-      "passport",
-      "ukVisa",
-      "photos",
-      "bankStatements",
-      "employmentProof",
-    ];
-    const missingDocs = requiredFields.filter(
-      (field) => !requiredDocuments[field]
-    );
-    const hasOnlyInsurance =
-      recommendedItems.insuranceCertificate &&
-      !recommendedItems.giftCard &&
-      missingDocs.length === requiredFields.length;
-
-    const queryParams = new URLSearchParams({
-      visaFees: Math.round(visaFees).toString(),
-      insuranceFees: insuranceFees.toString(),
-      giftCardFees: giftCardFees.toString(),
-      travelers: travelers.toString(),
-      selectedCountry: countryName,
-      departureDate: arrivalDate
-        ? arrivalDate.toISOString()
-        : new Date().toISOString(),
-      returnDate: departureDate
-        ? departureDate.toISOString()
-        : new Date().toISOString(),
-      requiredDocuments: JSON.stringify(requiredDocuments),
-      recommendedItems: JSON.stringify(recommendedItems),
-      insuranceOnly: hasOnlyInsurance.toString(),
-      paymentMethod: selectedPaymentMethod || "stripe",
-      userEmail: userEmail || "",
-      visaTypeId: selectedVisaType?.id || "",
-      totalAmount: totalAmount.toString(),
-      ...(appliedDiscount && {
-        discountCode: couponCode,
-        discountPercentage: appliedDiscount.percentage.toString(),
-        discountAmount: Math.round(discountAmount).toString(),
-        discountDescription: appliedDiscount.description,
-      }),
-    });
-
-    return queryParams.toString();
+    router.push(`/visa-checkout`);
   };
 
   // Send verification email via API
@@ -1204,7 +1009,7 @@ const CountrySlider = () => {
         setEmailError(data?.error || "Failed to send verification email");
         return false;
       }
-    } catch (err) {
+    } catch {
       setIsSendingVerification(false);
       setEmailError("Network error sending verification email");
       return false;
@@ -1238,7 +1043,7 @@ const CountrySlider = () => {
             if (typeof showSuccess === "function") {
               showSuccess("Email verified — student discount applied.");
             }
-          } catch (e) {
+          } catch {
             /* ignore */
           }
 
@@ -1248,17 +1053,15 @@ const CountrySlider = () => {
             (selectedPaymentMethod === "apple" ||
               selectedPaymentMethod === "google")
           ) {
-            router.push(
-              `/payment/${selectedPaymentMethod}?${pendingCheckoutQuery}`
-            );
+            router.push(`/payment/${selectedPaymentMethod}`);
           } else if (pendingCheckoutQuery) {
-            router.push(`/visa-checkout?${pendingCheckoutQuery}`);
+            router.push(`/visa-checkout`);
           } else {
             router.push("/get-the-visa");
           }
         }
-      } catch (err) {
-        console.error("Error checking verification status:", err);
+      } catch {
+        console.error("Error checking verification status:");
       }
     }, 3000); // Poll every 3 seconds
     verificationPollRef.current = pollInterval;
@@ -1292,26 +1095,23 @@ const CountrySlider = () => {
             if (typeof showSuccess === "function") {
               showSuccess("Email verified — student discount applied.");
             }
-          } catch (e) {
+          } catch {
             /* ignore */
           }
 
-          // Redirect to pending payment if present, otherwise to get-the-visa
           if (
             pendingCheckoutQuery &&
             (selectedPaymentMethod === "apple" ||
               selectedPaymentMethod === "google")
           ) {
-            router.push(
-              `/payment/${selectedPaymentMethod}?${pendingCheckoutQuery}`
-            );
+            router.push(`/payment/${selectedPaymentMethod}`);
           } else if (pendingCheckoutQuery) {
-            router.push(`/visa-checkout?${pendingCheckoutQuery}`);
+            router.push(`/visa-checkout`);
           } else {
             router.push("/get-the-visa");
           }
         }
-      } catch (err) {
+      } catch {
         // ignore
       }
     };
@@ -1352,7 +1152,7 @@ const CountrySlider = () => {
             .join(", ");
           showError(`Please provide required documents: ${pretty}`);
         }
-      } catch (e) {
+      } catch {
         // ignore
       }
       return false;
@@ -1382,8 +1182,8 @@ const CountrySlider = () => {
       const verificationSent = await sendStudentVerification(userEmail);
       if (verificationSent) {
         // Store pending payment data to process after verification
-        setPendingCheckoutQuery(getCheckoutQueryString());
-        setSelectedPaymentMethod("apple");
+        setPendingCheckoutQuery("proceed"); // Simple flag
+        setSelectedLocalPaymentMethod("apple");
         // The polling will handle redirecting to payment once verified
         return;
       } else {
@@ -1442,36 +1242,11 @@ const CountrySlider = () => {
           `This will redirect to payment processing page.`
       );
 
-      if (confirmPayment) {
-        // Build checkout query params similar to handleGetVisa
-        const queryParams = new URLSearchParams({
-          visaFees: Math.round(visaFees).toString(),
-          insuranceFees: insuranceFees.toString(),
-          giftCardFees: giftCardFees.toString(),
-          travelers: travelers.toString(),
-          selectedCountry: getCountryParam(selectedCountry) || "Germany",
-          departureDate: arrivalDate
-            ? arrivalDate.toISOString()
-            : new Date().toISOString(),
-          returnDate: departureDate
-            ? departureDate.toISOString()
-            : new Date().toISOString(),
-          requiredDocuments: JSON.stringify(requiredDocuments),
-          recommendedItems: JSON.stringify(recommendedItems),
-          paymentMethod: "apple-pay",
-          userEmail: userEmail || "",
-          totalAmount: totalAmount.toString(),
-          ...(appliedDiscount && {
-            discountCode: couponCode,
-            discountPercentage: appliedDiscount.percentage.toString(),
-            discountAmount: Math.round(
-              (currentBaseFee * travelers * appliedDiscount.percentage) / 100
-            ).toString(),
-            discountDescription: appliedDiscount.description,
-          }),
-        });
-
-        router.push(`/visa-checkout?${queryParams.toString()}`);
+        if (confirmPayment) {
+        // Update local selected payment method and persist to Redux, then navigate
+        setSelectedLocalPaymentMethod("apple");
+        dispatch(setSelectedPaymentMethod("apple"));
+        router.push(`/visa-checkout`);
       }
       return;
     }
@@ -1558,35 +1333,8 @@ const CountrySlider = () => {
           suppressCancel = true;
           redirecting = true;
 
-          // Build checkout query params similar to handleGetVisa
-          const queryParams = new URLSearchParams({
-            visaFees: Math.round(visaFees).toString(),
-            insuranceFees: insuranceFees.toString(),
-            giftCardFees: giftCardFees.toString(),
-            travelers: travelers.toString(),
-            selectedCountry: getCountryParam(selectedCountry) || "Germany",
-            departureDate: arrivalDate
-              ? arrivalDate.toISOString()
-              : new Date().toISOString(),
-            returnDate: departureDate
-              ? departureDate.toISOString()
-              : new Date().toISOString(),
-            requiredDocuments: JSON.stringify(requiredDocuments),
-            recommendedItems: JSON.stringify(recommendedItems),
-            paymentMethod: "apple-pay",
-            userEmail: userEmail || "",
-            totalAmount: totalAmount.toString(),
-            ...(appliedDiscount && {
-              discountCode: couponCode,
-              discountPercentage: appliedDiscount.percentage.toString(),
-              discountAmount: Math.round(
-                (currentBaseFee * travelers * appliedDiscount.percentage) / 100
-              ).toString(),
-              discountDescription: appliedDiscount.description,
-            }),
-          });
-
-          router.push(`/visa-checkout?${queryParams.toString()}`);
+          dispatch(setSelectedPaymentMethod("apple-pay"));
+          router.push(`/visa-checkout`);
         } catch (error) {
           console.error("Apple Pay merchant validation failed:", error);
           suppressCancel = true;
@@ -1595,20 +1343,10 @@ const CountrySlider = () => {
             alert(
               "Apple Pay setup required. Redirecting to standard checkout..."
             );
-          } catch (e) {}
+          } catch {}
 
-          // Fallback to standard checkout
-          const queryParams = new URLSearchParams({
-            visaFees: Math.round(visaFees).toString(),
-            insuranceFees: insuranceFees.toString(),
-            giftCardFees: giftCardFees.toString(),
-            travelers: travelers.toString(),
-            selectedCountry: getCountryParam(selectedCountry) || "Germany",
-            paymentMethod: "stripe",
-            totalAmount: totalAmount.toString(),
-          });
-
-          router.push(`/visa-checkout?${queryParams.toString()}`);
+          dispatch(setSelectedPaymentMethod("stripe"));
+          router.push(`/visa-checkout`);
         }
       };
 
@@ -1626,8 +1364,8 @@ const CountrySlider = () => {
           } else {
             router.push("/payment-success");
           }
-        } catch (e) {
-          console.error("Error parsing paymentMetadata for redirect:", e);
+        } catch {
+          console.error("Error parsing paymentMetadata for redirect:");
           router.push("/payment-success");
         }
       };
@@ -1677,8 +1415,8 @@ const CountrySlider = () => {
       const verificationSent = await sendStudentVerification(userEmail);
       if (verificationSent) {
         // Store pending payment data to process after verification
-        setPendingCheckoutQuery(getCheckoutQueryString());
-        setSelectedPaymentMethod("google");
+        setPendingCheckoutQuery("proceed"); // Simple flag
+        setSelectedLocalPaymentMethod("google");
         // The polling will handle redirecting to payment once verified
         return;
       } else {
@@ -1745,10 +1483,9 @@ const CountrySlider = () => {
                   } else {
                     router.push("/payment-success");
                   }
-                } catch (e) {
+                } catch {
                   console.error(
-                    "Error parsing paymentMetadata for redirect:",
-                    e
+                    "Error parsing paymentMetadata for redirect:"
                   );
                   router.push("/payment-success");
                 }
@@ -2653,7 +2390,7 @@ const CountrySlider = () => {
                     type="text"
                     value={couponCode}
                     onChange={(e) =>
-                      setCouponCode(e.target.value.toUpperCase())
+                      setCouponCodeLocal(e.target.value.toUpperCase())
                     }
                     placeholder="Enter coupon code (e.g., STUDENT10)"
                     className={`w-full border ${
@@ -2734,7 +2471,7 @@ const CountrySlider = () => {
                       <input
                         type="email"
                         value={userEmail}
-                        onChange={(e) => setUserEmail(e.target.value)}
+                        onChange={(e) => setUserEmailLocal(e.target.value)}
                         placeholder="Enter your student email (e.g., you@student.uni.ac.uk)"
                         className={`w-full border ${
                           emailError ? "border-red-400" : "border-gray-500"
