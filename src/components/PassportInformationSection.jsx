@@ -5,6 +5,13 @@ import { motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
 import UK_CITIES from "@/constants/ukCities";
 
+const getLocalDateString = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export default function App({ passportData, setPassportData, handleSave }) {
   const [isComplete, setIsComplete] = useState(false);
 
@@ -125,11 +132,11 @@ const PassportInformationSection = ({
   const handleInputChange = (e) => {
     const { name, value } = e.target;
 
-    // Check for travel date warnings
     if (name === "travelStartDate") {
       if (value) {
-        const selectedDate = new Date(value);
+        const selectedDate = new Date(value + 'T00:00:00');
         const today = new Date();
+        today.setHours(0, 0, 0, 0);
         const fifteenDaysFromToday = new Date(today);
         fifteenDaysFromToday.setDate(today.getDate() + 15);
 
@@ -140,11 +147,10 @@ const PassportInformationSection = ({
               " Your travel date is within 15 days. Embassy processing typically takes up to 15 days after your appointment. Consider if your dates are flexible.",
           }));
         } else {
-          setErrors((prev) => {
-            const newErrors = { ...prev };
-            delete newErrors.travelStartDateWarning;
-            return newErrors;
-          });
+          setErrors((prev) => ({
+            ...prev,
+            travelStartDateWarning: "",
+          }));
         }
       } else {
         setErrors((prev) => {
@@ -717,7 +723,7 @@ const PassportInformationSection = ({
                 name="travelStartDate"
                 value={passportData.travelStartDate || ""}
                 onChange={handleInputChange}
-                min={new Date().toISOString().split("T")[0]}
+                min={getLocalDateString(new Date())}
                 className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none bg-[#292933] text-white [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer ${errors.travelStartDate ? "border-red-500" : "border-[#423577]"
                   }`}
                 style={{
@@ -743,7 +749,7 @@ const PassportInformationSection = ({
                 onChange={handleInputChange}
                 min={
                   passportData.travelStartDate ||
-                  new Date().toISOString().split("T")[0]
+                  getLocalDateString(new Date())
                 }
                 className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none bg-[#292933] text-white [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer ${errors.travelEndDate ? "border-red-500" : "border-[#423577]"
                   }`}

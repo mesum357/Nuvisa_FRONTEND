@@ -161,12 +161,12 @@ const CountrySlider = () => {
     getHelp: true,
   });
   const [validationErrors, setValidationErrors] = useState(new Set());
-  const [selectedVisaType, _setSelectedVisaType] = useState(null); 
+  const [selectedVisaType, _setSelectedVisaType] = useState(null);
   const [selectedPaymentMethod, setSelectedLocalPaymentMethod] = useState("");
 
-const [couponCode, setCouponCodeLocal] = useState("");
+  const [couponCode, setCouponCodeLocal] = useState("");
   const [couponError, setCouponError] = useState("");
-const [appliedDiscount, setAppliedDiscountLocal] = useState(null);
+  const [appliedDiscount, setAppliedDiscountLocal] = useState(null);
   const [groupAutoApplied, setGroupAutoApplied] = useState(false);
   const [_showStudentModal, _setShowStudentModal] = useState(false);
   const [pendingCheckoutQuery, setPendingCheckoutQuery] = useState(null);
@@ -180,7 +180,7 @@ const [appliedDiscount, setAppliedDiscountLocal] = useState(null);
   // Keep a ref to the polling interval so we can clear it from other places
   const verificationPollRef = useRef(null);
 
-const [userEmail, setUserEmailLocal] = useState("");
+  const [userEmail, setUserEmailLocal] = useState("");
   const [emailError, setEmailError] = useState("");
 
   // Helper function to safely parse duration from visa type
@@ -397,10 +397,17 @@ const [userEmail, setUserEmailLocal] = useState("");
     }
   }, [selectedVisaType, arrivalDate, departureDate]);
 
+  const getLocalDateString = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   useEffect(() => {
     try {
-      const arrivalStr = initialArrivalDate.toISOString().split("T")[0];
-      const departureStr = initialDepartureDate.toISOString().split("T")[0];
+      const arrivalStr = getLocalDateString(initialArrivalDate);
+      const departureStr = getLocalDateString(initialDepartureDate);
       dispatch(setArrivalDate(arrivalStr));
       dispatch(setDepartureDate(departureStr));
 
@@ -410,16 +417,16 @@ const [userEmail, setUserEmailLocal] = useState("");
         selectedVisaType
       );
       setDateValidationErrors(errors);
-    } catch {}
+    } catch { }
   }, []);
 
-  const arrivalMinStr = initialArrivalDate.toISOString().split("T")[0];
+  const arrivalMinStr = getLocalDateString(new Date());
   const computeDepartureMinStr = (arr) => {
-    if (!arr) return initialDepartureDate.toISOString().split("T")[0];
+    if (!arr) return getLocalDateString(initialDepartureDate);
     const d = new Date(arr);
     d.setHours(0, 0, 0, 0);
     d.setDate(d.getDate() + 15);
-    return d.toISOString().split("T")[0];
+    return getLocalDateString(d);
   };
   const departureMinStr = computeDepartureMinStr(arrivalDate);
 
@@ -628,9 +635,9 @@ const [userEmail, setUserEmailLocal] = useState("");
       setGiftCardCount(newValue);
       // Update the recommended items state
       if (newValue > 0 && !recommendedItems.giftCard) {
-  setRecommendedItemsLocal((prev) => ({ ...prev, giftCard: true }));
+        setRecommendedItemsLocal((prev) => ({ ...prev, giftCard: true }));
       } else if (newValue === 0 && recommendedItems.giftCard) {
-  setRecommendedItemsLocal((prev) => ({ ...prev, giftCard: false }));
+        setRecommendedItemsLocal((prev) => ({ ...prev, giftCard: false }));
       }
     }
   };
@@ -657,8 +664,8 @@ const [userEmail, setUserEmailLocal] = useState("");
       selectedVisaType && selectedVisaType.priceGBP
         ? Number(selectedVisaType.priceGBP)
         : selectedVisaType && selectedVisaType.price
-        ? Math.round(Number(selectedVisaType.price) / 100)
-        : baseFee;
+          ? Math.round(Number(selectedVisaType.price) / 100)
+          : baseFee;
 
     const basePrice = currentBaseFee * travelers;
 
@@ -675,8 +682,8 @@ const [userEmail, setUserEmailLocal] = useState("");
       selectedVisaType && selectedVisaType.priceGBP
         ? Number(selectedVisaType.priceGBP)
         : selectedVisaType && selectedVisaType.price
-        ? Math.round(Number(selectedVisaType.price) / 100)
-        : baseFee;
+          ? Math.round(Number(selectedVisaType.price) / 100)
+          : baseFee;
 
     return Math.round(currentBaseFee * 1.25) * travelers;
   };
@@ -727,8 +734,8 @@ const [userEmail, setUserEmailLocal] = useState("");
       selectedVisaType && selectedVisaType.priceGBP
         ? Number(selectedVisaType.priceGBP)
         : selectedVisaType && selectedVisaType.price
-        ? Math.round(Number(selectedVisaType.price) / 100)
-        : 159; // baseFee
+          ? Math.round(Number(selectedVisaType.price) / 100)
+          : 159; // baseFee
     const currentVisaFees = currentBaseFee * travelers;
     const calculatedDiscountAmount =
       (currentVisaFees * discount.percentage) / 100;
@@ -738,7 +745,7 @@ const [userEmail, setUserEmailLocal] = useState("");
       discountAmount: Math.round(calculatedDiscountAmount),
     };
 
-  setAppliedDiscountLocal(discountWithAmount);
+    setAppliedDiscountLocal(discountWithAmount);
     setCouponError("");
     // If user manually applied GROUP20, mark it as manual (not auto-applied)
     if (couponCode.toUpperCase() === "GROUP20") {
@@ -773,8 +780,8 @@ const [userEmail, setUserEmailLocal] = useState("");
             selectedVisaType && selectedVisaType.priceGBP
               ? Number(selectedVisaType.priceGBP)
               : selectedVisaType && selectedVisaType.price
-              ? Math.round(Number(selectedVisaType.price) / 100)
-              : 159; // baseFee
+                ? Math.round(Number(selectedVisaType.price) / 100)
+                : 159; // baseFee
           const currentVisaFees = currentBaseFee * travelers;
           const calculatedDiscountAmount = (currentVisaFees * 20) / 100;
 
@@ -891,8 +898,8 @@ const [userEmail, setUserEmailLocal] = useState("");
       selectedVisaType && selectedVisaType.priceGBP
         ? Number(selectedVisaType.priceGBP)
         : selectedVisaType && selectedVisaType.price
-        ? Math.round(Number(selectedVisaType.price) / 100)
-        : baseFee;
+          ? Math.round(Number(selectedVisaType.price) / 100)
+          : baseFee;
 
     let visaFees = hasOnlyInsurance ? 0 : currentBaseFee * travelers;
 
@@ -912,7 +919,7 @@ const [userEmail, setUserEmailLocal] = useState("");
     const countryName = getCountryParam(selectedCountry) || "Germany";
 
     dispatch(setReduxSelectedCountry(String(countryName)));
-  dispatch(setVisaFees(Number(visaFees)));
+    dispatch(setVisaFees(Number(visaFees)));
     dispatch(setInsuranceFees(Number(insuranceFees)));
     dispatch(setReduxTravelers(Number(travelers)));
     dispatch(setRequiredDocuments(requiredDocuments || {}));
@@ -1196,8 +1203,8 @@ const [userEmail, setUserEmailLocal] = useState("");
       selectedVisaType && selectedVisaType.priceGBP
         ? Number(selectedVisaType.priceGBP)
         : selectedVisaType && selectedVisaType.price
-        ? Math.round(Number(selectedVisaType.price) / 100)
-        : 159; // baseFee
+          ? Math.round(Number(selectedVisaType.price) / 100)
+          : 159; // baseFee
 
     let visaFees = currentBaseFee * travelers;
 
@@ -1239,10 +1246,10 @@ const [userEmail, setUserEmailLocal] = useState("");
       // Simulate successful Apple Pay flow
       const confirmPayment = confirm(
         `Process Apple Pay payment of £${totalAmount}?\n\n` +
-          `This will redirect to payment processing page.`
+        `This will redirect to payment processing page.`
       );
 
-        if (confirmPayment) {
+      if (confirmPayment) {
         // Update local selected payment method and persist to Redux, then navigate
         setSelectedLocalPaymentMethod("apple");
         dispatch(setSelectedPaymentMethod("apple"));
@@ -1255,9 +1262,8 @@ const [userEmail, setUserEmailLocal] = useState("");
       // Build line items for detailed breakdown
       const lineItems = [
         {
-          label: `Visa Processing Fee (${travelers} traveller${
-            travelers > 1 ? "s" : ""
-          })`,
+          label: `Visa Processing Fee (${travelers} traveller${travelers > 1 ? "s" : ""
+            })`,
           amount: Math.round(visaFees).toString(),
           type: "final",
         },
@@ -1265,9 +1271,8 @@ const [userEmail, setUserEmailLocal] = useState("");
 
       if (recommendedItems.insuranceCertificate) {
         lineItems.push({
-          label: `Insurance Certificate (${travelers} traveller${
-            travelers > 1 ? "s" : ""
-          })`,
+          label: `Insurance Certificate (${travelers} traveller${travelers > 1 ? "s" : ""
+            })`,
           amount: insuranceFees.toString(),
           type: "final",
         });
@@ -1275,9 +1280,8 @@ const [userEmail, setUserEmailLocal] = useState("");
 
       if (recommendedItems.giftCard) {
         lineItems.push({
-          label: `Gift Card (${giftCardCount} card${
-            giftCardCount > 1 ? "s" : ""
-          })`,
+          label: `Gift Card (${giftCardCount} card${giftCardCount > 1 ? "s" : ""
+            })`,
           amount: giftCardFees.toString(),
           type: "final",
         });
@@ -1343,7 +1347,7 @@ const [userEmail, setUserEmailLocal] = useState("");
             alert(
               "Apple Pay setup required. Redirecting to standard checkout..."
             );
-          } catch {}
+          } catch { }
 
           dispatch(setSelectedPaymentMethod("stripe"));
           router.push(`/visa-checkout`);
@@ -1429,8 +1433,8 @@ const [userEmail, setUserEmailLocal] = useState("");
       selectedVisaType && selectedVisaType.priceGBP
         ? Number(selectedVisaType.priceGBP)
         : selectedVisaType && selectedVisaType.price
-        ? Math.round(Number(selectedVisaType.price) / 100)
-        : 159; // baseFee
+          ? Math.round(Number(selectedVisaType.price) / 100)
+          : 159; // baseFee
 
     let visaFees = currentBaseFee * travelers;
 
@@ -1524,9 +1528,8 @@ const [userEmail, setUserEmailLocal] = useState("");
       // Build display items for detailed breakdown
       const displayItems = [
         {
-          label: `Visa Processing Fee (${travelers} traveller${
-            travelers > 1 ? "s" : ""
-          })`,
+          label: `Visa Processing Fee (${travelers} traveller${travelers > 1 ? "s" : ""
+            })`,
           type: "LINE_ITEM",
           price: Math.round(visaFees).toString(),
         },
@@ -1534,9 +1537,8 @@ const [userEmail, setUserEmailLocal] = useState("");
 
       if (recommendedItems.insuranceCertificate) {
         displayItems.push({
-          label: `Insurance Certificate (${travelers} traveller${
-            travelers > 1 ? "s" : ""
-          })`,
+          label: `Insurance Certificate (${travelers} traveller${travelers > 1 ? "s" : ""
+            })`,
           type: "LINE_ITEM",
           price: insuranceFees.toString(),
         });
@@ -1544,9 +1546,8 @@ const [userEmail, setUserEmailLocal] = useState("");
 
       if (recommendedItems.giftCard) {
         displayItems.push({
-          label: `Gift Card (${giftCardCount} card${
-            giftCardCount > 1 ? "s" : ""
-          })`,
+          label: `Gift Card (${giftCardCount} card${giftCardCount > 1 ? "s" : ""
+            })`,
           type: "LINE_ITEM",
           price: giftCardFees.toString(),
         });
@@ -1788,9 +1789,8 @@ const [userEmail, setUserEmailLocal] = useState("");
                     setCurrentIndex(index);
                     resetTimer();
                   }}
-                  className={`w-2.5 h-2.5 cursor-pointer rounded-full transition-all ${
-                    index === currentIndex ? "bg-white w-6" : "bg-white/50"
-                  }`}
+                  className={`w-2.5 h-2.5 cursor-pointer rounded-full transition-all ${index === currentIndex ? "bg-white w-6" : "bg-white/50"
+                    }`}
                   aria-label={`Go to slide ${index + 1}`}
                 />
               ))}
@@ -1808,11 +1808,10 @@ const [userEmail, setUserEmailLocal] = useState("");
                   setCurrentIndex(index);
                   resetTimer();
                 }}
-                className={`w-20 aspect-square object-cover cursor-pointer rounded-xl border-2 transition-all border-white ${
-                  index === currentIndex
-                    ? "border-none"
-                    : "opacity-70 hover:opacity-100"
-                }`}
+                className={`w-20 aspect-square object-cover cursor-pointer rounded-xl border-2 transition-all border-white ${index === currentIndex
+                  ? "border-none"
+                  : "opacity-70 hover:opacity-100"
+                  }`}
                 style={{ boxSizing: "border-box" }}
               />
             ))}
@@ -1888,7 +1887,7 @@ const [userEmail, setUserEmailLocal] = useState("");
                   type="date"
                   id="arrivalDate"
                   value={
-                    arrivalDate ? arrivalDate.toISOString().split("T")[0] : ""
+                    arrivalDate ? getLocalDateString(arrivalDate) : ""
                   }
                   onChange={(e) =>
                     handleArrivalDateChange(
@@ -1896,12 +1895,11 @@ const [userEmail, setUserEmailLocal] = useState("");
                     )
                   }
                   min={arrivalMinStr}
-                  className={`w-full bg-white/10 backdrop-blur-sm text-white rounded-lg px-4 py-3 font-semibold border-2 transition-all duration-200 [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer ${
-                    dateValidationErrors.pastDate ||
+                  className={`w-full bg-white/10 backdrop-blur-sm text-white rounded-lg px-4 py-3 font-semibold border-2 transition-all duration-200 [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer ${dateValidationErrors.pastDate ||
                     dateValidationErrors.dateOrder
-                      ? "border-red-500 focus:border-red-400 focus:ring-2 focus:ring-red-400/20"
-                      : "border-white/20 hover:border-white/40 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20"
-                  } focus:outline-none`}
+                    ? "border-red-500 focus:border-red-400 focus:ring-2 focus:ring-red-400/20"
+                    : "border-white/20 hover:border-white/40 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20"
+                    } focus:outline-none`}
                   style={{
                     colorScheme: "white",
                   }}
@@ -1923,7 +1921,7 @@ const [userEmail, setUserEmailLocal] = useState("");
                   id="departureDate"
                   value={
                     departureDate
-                      ? departureDate.toISOString().split("T")[0]
+                      ? getLocalDateString(departureDate)
                       : ""
                   }
                   onChange={(e) =>
@@ -1932,11 +1930,10 @@ const [userEmail, setUserEmailLocal] = useState("");
                     )
                   }
                   min={departureMinStr}
-                  className={`w-full bg-white/10 backdrop-blur-sm text-white rounded-lg px-4 py-3 font-semibold border-2 transition-all duration-200 [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer ${
-                    dateValidationErrors.exceedsLimit
-                      ? "border-red-500 focus:border-red-400 focus:ring-2 focus:ring-red-400/20"
-                      : "border-white/20 hover:border-white/40 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20"
-                  } focus:outline-none`}
+                  className={`w-full bg-white/10 backdrop-blur-sm text-white rounded-lg px-4 py-3 font-semibold border-2 transition-all duration-200 [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer ${dateValidationErrors.exceedsLimit
+                    ? "border-red-500 focus:border-red-400 focus:ring-2 focus:ring-red-400/20"
+                    : "border-white/20 hover:border-white/40 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20"
+                    } focus:outline-none`}
                   style={{
                     colorScheme: "white",
                   }}
@@ -1977,21 +1974,19 @@ const [userEmail, setUserEmailLocal] = useState("");
             </h2>
             <div className="grid grid-cols-2 gap-3">
               <div
-                className={`flex items-start space-x-2 cursor-pointer rounded p-2 transition-colors ${
-                  requiredDocuments.passport
-                    ? "border-[2px] border-black rounded-xl"
-                    : validationErrors.has("passport")
+                className={`flex items-start space-x-2 cursor-pointer rounded p-2 transition-colors ${requiredDocuments.passport
+                  ? "border-[2px] border-black rounded-xl"
+                  : validationErrors.has("passport")
                     ? "border border-red-500 rounded-xl"
                     : "shadow-black/20 shadow-lg rounded-xl"
-                }`}
+                  }`}
                 onClick={() => toggleRequiredDocument("passport")}
               >
                 <div
-                  className={`w-3.5 h-3.5 rounded-sm mt-0.5 flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black ${
-                    requiredDocuments.passport
-                      ? "bg-[#7350FF] border border-transparent"
-                      : "bg-white border border-gray-500"
-                  }`}
+                  className={`w-3.5 h-3.5 rounded-sm mt-0.5 flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black ${requiredDocuments.passport
+                    ? "bg-[#7350FF] border border-transparent"
+                    : "bg-white border border-gray-500"
+                    }`}
                 >
                   {requiredDocuments.passport ? (
                     <Check className="w-3.5 h-3.5 text-white" />
@@ -2004,21 +1999,19 @@ const [userEmail, setUserEmailLocal] = useState("");
                 </span>
               </div>
               <div
-                className={`flex items-start space-x-2 cursor-pointer rounded p-1 transition-colors ${
-                  requiredDocuments.ukVisa
-                    ? "border-[2px] border-black rounded-xl"
-                    : validationErrors.has("ukVisa")
+                className={`flex items-start space-x-2 cursor-pointer rounded p-1 transition-colors ${requiredDocuments.ukVisa
+                  ? "border-[2px] border-black rounded-xl"
+                  : validationErrors.has("ukVisa")
                     ? "border border-red-500 rounded-xl"
                     : "shadow-black/20 shadow-lg rounded-xl"
-                }`}
+                  }`}
                 onClick={() => toggleRequiredDocument("ukVisa")}
               >
                 <div
-                  className={`w-3.5 h-3.5 rounded-sm mt-0.5 flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black ${
-                    requiredDocuments.ukVisa
-                      ? "bg-[#7350FF] border border-transparent"
-                      : "bg-white border border-gray-500"
-                  }`}
+                  className={`w-3.5 h-3.5 rounded-sm mt-0.5 flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black ${requiredDocuments.ukVisa
+                    ? "bg-[#7350FF] border border-transparent"
+                    : "bg-white border border-gray-500"
+                    }`}
                 >
                   {requiredDocuments.ukVisa ? (
                     <Check className="w-3.5 h-3.5 text-white" />
@@ -2031,21 +2024,19 @@ const [userEmail, setUserEmailLocal] = useState("");
                 </span>
               </div>
               <div
-                className={`flex items-start space-x-2 cursor-pointer rounded p-1 transition-colors ${
-                  requiredDocuments.photos
-                    ? "border-[2px] border-black rounded-xl"
-                    : validationErrors.has("photos")
+                className={`flex items-start space-x-2 cursor-pointer rounded p-1 transition-colors ${requiredDocuments.photos
+                  ? "border-[2px] border-black rounded-xl"
+                  : validationErrors.has("photos")
                     ? "border border-red-500 rounded-xl"
                     : "shadow-black/20 shadow-lg rounded-xl"
-                }`}
+                  }`}
                 onClick={() => toggleRequiredDocument("photos")}
               >
                 <div
-                  className={`w-3.5 h-3.5 rounded-sm mt-0.5 flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black ${
-                    requiredDocuments.photos
-                      ? "bg-[#7350FF] border border-transparent"
-                      : "bg-white border border-gray-500"
-                  }`}
+                  className={`w-3.5 h-3.5 rounded-sm mt-0.5 flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black ${requiredDocuments.photos
+                    ? "bg-[#7350FF] border border-transparent"
+                    : "bg-white border border-gray-500"
+                    }`}
                 >
                   {requiredDocuments.photos ? (
                     <Check className="w-3.5 h-3.5 text-white" />
@@ -2059,21 +2050,19 @@ const [userEmail, setUserEmailLocal] = useState("");
                 </span>
               </div>
               <div
-                className={`flex items-start space-x-2 cursor-pointer rounded p-1 transition-colors ${
-                  requiredDocuments.bankStatements
-                    ? "border-[2px] border-black rounded-xl"
-                    : validationErrors.has("bankStatements")
+                className={`flex items-start space-x-2 cursor-pointer rounded p-1 transition-colors ${requiredDocuments.bankStatements
+                  ? "border-[2px] border-black rounded-xl"
+                  : validationErrors.has("bankStatements")
                     ? "border border-red-500 rounded-xl"
                     : "shadow-black/20 shadow-lg rounded-xl"
-                }`}
+                  }`}
                 onClick={() => toggleRequiredDocument("bankStatements")}
               >
                 <div
-                  className={`w-3.5 h-3.5 rounded-sm mt-0.5 flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black ${
-                    requiredDocuments.bankStatements
-                      ? "bg-[#7350FF] border border-transparent"
-                      : "bg-white border border-gray-500"
-                  }`}
+                  className={`w-3.5 h-3.5 rounded-sm mt-0.5 flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black ${requiredDocuments.bankStatements
+                    ? "bg-[#7350FF] border border-transparent"
+                    : "bg-white border border-gray-500"
+                    }`}
                 >
                   {requiredDocuments.bankStatements ? (
                     <Check className="w-3.5 h-3.5 text-white" />
@@ -2087,21 +2076,19 @@ const [userEmail, setUserEmailLocal] = useState("");
                 </span>
               </div>
               <div
-                className={`flex items-start space-x-2 cursor-pointer rounded p-1 transition-colors ${
-                  requiredDocuments.employmentProof
-                    ? "border-[2px] border-black rounded-xl"
-                    : validationErrors.has("employmentProof")
+                className={`flex items-start space-x-2 cursor-pointer rounded p-1 transition-colors ${requiredDocuments.employmentProof
+                  ? "border-[2px] border-black rounded-xl"
+                  : validationErrors.has("employmentProof")
                     ? "border border-red-500 rounded-xl"
                     : "shadow-black/20 shadow-lg rounded-xl"
-                }`}
+                  }`}
                 onClick={() => toggleRequiredDocument("employmentProof")}
               >
                 <div
-                  className={`w-3.5 h-3.5 rounded-sm mt-0.5 flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black ${
-                    requiredDocuments.employmentProof
-                      ? "bg-[#7350FF] border border-transparent"
-                      : "bg-white border border-gray-500"
-                  }`}
+                  className={`w-3.5 h-3.5 rounded-sm mt-0.5 flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black ${requiredDocuments.employmentProof
+                    ? "bg-[#7350FF] border border-transparent"
+                    : "bg-white border border-gray-500"
+                    }`}
                 >
                   {requiredDocuments.employmentProof ? (
                     <Check className="w-3.5 h-3.5 text-white" />
@@ -2115,19 +2102,17 @@ const [userEmail, setUserEmailLocal] = useState("");
                 </span>
               </div>
               <div
-                className={`flex items-start space-x-2 cursor-pointer rounded p-1 transition-colors ${
-                  requiredDocuments.insurance
-                    ? "border-[2px] border-black rounded-xl"
-                    : "shadow-black/20 shadow-lg rounded-xl"
-                }`}
+                className={`flex items-start space-x-2 cursor-pointer rounded p-1 transition-colors ${requiredDocuments.insurance
+                  ? "border-[2px] border-black rounded-xl"
+                  : "shadow-black/20 shadow-lg rounded-xl"
+                  }`}
                 onClick={() => toggleRequiredDocument("insurance")}
               >
                 <div
-                  className={`w-3.5 h-3.5 rounded-sm mt-0.5 flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black ${
-                    requiredDocuments.insurance
-                      ? "bg-[#7350FF] border border-transparent"
-                      : "bg-white border border-gray-500"
-                  }`}
+                  className={`w-3.5 h-3.5 rounded-sm mt-0.5 flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black ${requiredDocuments.insurance
+                    ? "bg-[#7350FF] border border-transparent"
+                    : "bg-white border border-gray-500"
+                    }`}
                 >
                   {requiredDocuments.insurance ? (
                     <Check className="w-3.5 h-3.5 text-white" />
@@ -2160,11 +2145,10 @@ const [userEmail, setUserEmailLocal] = useState("");
                     className="flex items-center space-x-2 cursor-pointer"
                   >
                     <div
-                      className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black ${
-                        recommendedItems.insuranceCertificate
-                          ? "bg-[#7350FF] border border-transparent"
-                          : "bg-white border border-gray-500"
-                      }`}
+                      className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black ${recommendedItems.insuranceCertificate
+                        ? "bg-[#7350FF] border border-transparent"
+                        : "bg-white border border-gray-500"
+                        }`}
                     >
                       {recommendedItems.insuranceCertificate && (
                         <Check className="w-3.5 h-3.5 text-white" />
@@ -2281,11 +2265,10 @@ const [userEmail, setUserEmailLocal] = useState("");
                       className="flex items-center space-x-2 cursor-pointer"
                     >
                       <div
-                        className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black ${
-                          recommendedItems.giftCard
-                            ? "bg-[#7350FF] border border-transparent"
-                            : "bg-white border border-gray-500"
-                        }`}
+                        className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black ${recommendedItems.giftCard
+                          ? "bg-[#7350FF] border border-transparent"
+                          : "bg-white border border-gray-500"
+                          }`}
                       >
                         {recommendedItems.giftCard && (
                           <Check className="w-3.5 h-3.5 text-white" />
@@ -2393,13 +2376,11 @@ const [userEmail, setUserEmailLocal] = useState("");
                       setCouponCodeLocal(e.target.value.toUpperCase())
                     }
                     placeholder="Enter coupon code (e.g., STUDENT10)"
-                    className={`w-full border ${
-                      couponError ? "border-red-400" : "border-gray-500"
-                    } bg-[#24242D] text-white rounded-md p-2 text-sm ${
-                      couponError
+                    className={`w-full border ${couponError ? "border-red-400" : "border-gray-500"
+                      } bg-[#24242D] text-white rounded-md p-2 text-sm ${couponError
                         ? "outline-none ring-2 ring-red-400"
                         : "focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    }`}
+                      }`}
                     disabled={appliedDiscount}
                   />
                 </div>
@@ -2473,13 +2454,11 @@ const [userEmail, setUserEmailLocal] = useState("");
                         value={userEmail}
                         onChange={(e) => setUserEmailLocal(e.target.value)}
                         placeholder="Enter your student email (e.g., you@student.uni.ac.uk)"
-                        className={`w-full border ${
-                          emailError ? "border-red-400" : "border-gray-500"
-                        } bg-[#24242D] text-white rounded-md p-2 text-sm ${
-                          emailError
+                        className={`w-full border ${emailError ? "border-red-400" : "border-gray-500"
+                          } bg-[#24242D] text-white rounded-md p-2 text-sm ${emailError
                             ? "outline-none ring-2 ring-red-400"
                             : "focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        }`}
+                          }`}
                         disabled={studentVerified}
                       />
                     </div>
@@ -2606,8 +2585,8 @@ const [userEmail, setUserEmailLocal] = useState("");
               {selectedPaymentMethod === "stripe"
                 ? "CONTINUE WITH CREDIT CARD"
                 : selectedPaymentMethod === "klarna"
-                ? "CONTINUE WITH KLARNA"
-                : "CONTINUE TO CHECKOUT"}
+                  ? "CONTINUE WITH KLARNA"
+                  : "CONTINUE TO CHECKOUT"}
             </span>
             <span className="bg-white rounded-full p-1.5 transition-transform duration-300 group-hover:rotate-45 group-hover:translate-x-1 group-hover:-translate-y-0">
               <ArrowUpRight className="w-5 h-5 text-[#6B4EFF]" />
