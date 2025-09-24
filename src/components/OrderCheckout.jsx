@@ -34,8 +34,8 @@ const VisaCheckout = () => {
     visaState.selectedVisaType && visaState.selectedVisaType.priceGBP
       ? Number(visaState.selectedVisaType.priceGBP)
       : visaState.selectedVisaType && visaState.selectedVisaType.price
-        ? Math.round(Number(visaState.selectedVisaType.price) / 100)
-        : 159; // Default base fee per traveler
+      ? Math.round(Number(visaState.selectedVisaType.price) / 100)
+      : 159;
 
   const selectedCountry = visaState.selectedCountry;
   const selectedVisaType = visaState.selectedVisaType;
@@ -46,8 +46,25 @@ const VisaCheckout = () => {
       ? Number(visaState.travelers)
       : 1
   );
-  const insuranceFeesPerTraveller = Number(visaState.insuranceFees) || 0;
-  const insuranceFeesTotal = insuranceFeesPerTraveller * travelers;
+  let travelDays = 1;
+  try {
+    const arrival = visaState.arrivalDate
+      ? new Date(visaState.arrivalDate)
+      : null;
+    const departure = visaState.departureDate
+      ? new Date(visaState.departureDate)
+      : null;
+    if (arrival && departure && !isNaN(arrival) && !isNaN(departure)) {
+      const diffTime = Math.abs(departure.getTime() - arrival.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24) + 1);
+      travelDays = Math.max(1, diffDays);
+    }
+  } catch (err) {
+    travelDays = 1;
+  }
+
+  const insuranceFeesPerTraveller = 2 * travelDays; // EUR per traveller
+  const insuranceFeesTotal = insuranceFeesPerTraveller * travelers; // total EUR
   const [includeInsurance, setIncludeInsurance] = useState(
     visaState.recommendedItems?.insuranceCertificate || false
   );
@@ -58,9 +75,13 @@ const VisaCheckout = () => {
   const [postcode, setPostcode] = useState("");
   const [postcodeError, setPostcodeError] = useState("");
   const [emailNewsOffers, setEmailNewsOffers] = useState(false);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(visaState.selectedPaymentMethod || "stripe");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(
+    visaState.selectedPaymentMethod || "stripe"
+  );
   const [couponCode, setCouponCode] = useState(visaState.couponCode || "");
-  const [appliedDiscount, setAppliedDiscount] = useState(visaState.appliedDiscount || null);
+  const [appliedDiscount, setAppliedDiscount] = useState(
+    visaState.appliedDiscount || null
+  );
   const [couponError, setCouponError] = useState("");
 
   // Card details state
@@ -82,7 +103,6 @@ const VisaCheckout = () => {
 
   // Card validation errors
   const [cardErrors, setCardErrors] = useState({});
-
 
   // Function to apply coupon code
   const applyCouponCode = async () => {
@@ -285,16 +305,20 @@ const VisaCheckout = () => {
     validateCardDetails();
   };
 
+  const expectedVisaFeesTotal = baseVisaFee * travelers;
   let visaFeesTotal = 0;
-  if (Number.isFinite(Number(visaState.visaFees))) {
+  if (
+    Number.isFinite(Number(visaState.visaFees)) &&
+    Number(visaState.visaFees) === expectedVisaFeesTotal
+  ) {
     visaFeesTotal = Number(visaState.visaFees);
   } else if (travelers === 0) {
     visaFeesTotal = 0;
   } else {
-    visaFeesTotal = baseVisaFee * travelers;
+    visaFeesTotal = expectedVisaFeesTotal;
   }
 
-  const insuranceFees = includeInsurance ? Number(visaState.insuranceFees) || 0 : 0;
+  const insuranceFees = includeInsurance ? insuranceFeesTotal : 0;
   const giftCardFees = Number(visaState.giftCardFees) || 0;
   const eVisaFees = 0; // Currently free
   const subtotal = visaFeesTotal + insuranceFees + giftCardFees + eVisaFees;
@@ -337,9 +361,7 @@ const VisaCheckout = () => {
     }
 
     if (postcode && !isValidUKPostcode(postcode)) {
-      setPostcodeError(
-        "Please enter a valid UK postcode (e.g. SW1A 1AA)"
-      );
+      setPostcodeError("Please enter a valid UK postcode (e.g. SW1A 1AA)");
       return;
     }
 
@@ -362,7 +384,6 @@ const VisaCheckout = () => {
     setEmailError("");
     setPostcodeError("");
 
-
     const statusResult = await handleCreateDynamicCheckoutSession({
       email: email,
       amount: String(totalAmountEUR),
@@ -383,14 +404,22 @@ const VisaCheckout = () => {
       const returnedUser = results?.data?.results?.user;
 
       if (returnedToken) {
-        await localStorageGateway("token", localStorageEnums.SET, returnedToken);
+        await localStorageGateway(
+          "token",
+          localStorageEnums.SET,
+          returnedToken
+        );
         await Cookies.set("token", returnedToken);
         dispatch(setAuthState(true));
       }
 
       if (returnedUser) {
         await Cookies.set("user", JSON.stringify(returnedUser));
-        await localStorageGateway("user", localStorageEnums.SET, JSON.stringify(returnedUser));
+        await localStorageGateway(
+          "user",
+          localStorageEnums.SET,
+          JSON.stringify(returnedUser)
+        );
 
         if (returnedUser.id) {
           dispatch(setAuthId(returnedUser.id));
@@ -455,11 +484,13 @@ const VisaCheckout = () => {
                     onChange={(e) => setEmail(e.target.value)}
                     onBlur={handleEmailBlur}
                     placeholder="name@example.com"
-                    className={`w-full border ${emailError ? "border-red-400" : "border-gray-300"
-                      } rounded-md p-2 text-sm  ${emailError
+                    className={`w-full border ${
+                      emailError ? "border-red-400" : "border-gray-300"
+                    } rounded-md p-2 text-sm  ${
+                      emailError
                         ? "outline-none ring-2 ring-red-400"
                         : "focus:outline-none focus:ring-2 focus:ring-black"
-                      }`}
+                    }`}
                   />
                   {emailError && (
                     <span className="text-sm text-red-400 mt-1">
@@ -482,10 +513,11 @@ const VisaCheckout = () => {
                     onChange={(e) => setPhone(e.target.value)}
                     onBlur={handlePhoneBlur}
                     placeholder="+44 123 456 7890"
-                    className={`w-full border ${phoneError
-                      ? "border-red-400 outline-none ring-2 ring-red-400"
-                      : "border-gray-300 focus:outline-none focus:ring-2 focus:ring-black"
-                      } rounded-md p-2 text-sm`}
+                    className={`w-full border ${
+                      phoneError
+                        ? "border-red-400 outline-none ring-2 ring-red-400"
+                        : "border-gray-300 focus:outline-none focus:ring-2 focus:ring-black"
+                    } rounded-md p-2 text-sm`}
                   />
                   {phoneError && (
                     <span className="text-sm text-red-400 mt-1">
@@ -508,11 +540,13 @@ const VisaCheckout = () => {
                     onChange={(e) => setPostcode(e.target.value)}
                     onBlur={handlePostcodeBlur}
                     placeholder="SW1A 1AA"
-                    className={`w-full border ${postcodeError ? "border-red-400" : "border-gray-300"
-                      } rounded-md p-2 text-sm  ${postcodeError
+                    className={`w-full border ${
+                      postcodeError ? "border-red-400" : "border-gray-300"
+                    } rounded-md p-2 text-sm  ${
+                      postcodeError
                         ? "outline-none ring-2 ring-red-400"
                         : "focus:outline-none focus:ring-2 focus:ring-black"
-                      }`}
+                    }`}
                   />
                   {postcodeError && (
                     <span className="text-sm text-red-400 mt-1">
@@ -541,10 +575,11 @@ const VisaCheckout = () => {
               <h2 className="font-medium text-lg">Express Checkout</h2>
               <div className="space-y-2">
                 <div
-                  className={`border rounded-md p-3 cursor-pointer transition-all ${selectedPaymentMethod === "apple"
-                    ? "border-black bg-gray-50"
-                    : "border-gray-300"
-                    }`}
+                  className={`border rounded-md p-3 cursor-pointer transition-all ${
+                    selectedPaymentMethod === "apple"
+                      ? "border-black bg-gray-50"
+                      : "border-gray-300"
+                  }`}
                   onClick={() => setSelectedPaymentMethod("apple")}
                 >
                   <div className="flex items-center space-x-2">
@@ -567,10 +602,11 @@ const VisaCheckout = () => {
                 </div>
 
                 <div
-                  className={`border rounded-md p-3 cursor-pointer ${selectedPaymentMethod === "google"
-                    ? "border-black bg-gray-50"
-                    : "border-gray-300"
-                    }`}
+                  className={`border rounded-md p-3 cursor-pointer ${
+                    selectedPaymentMethod === "google"
+                      ? "border-black bg-gray-50"
+                      : "border-gray-300"
+                  }`}
                   onClick={() => setSelectedPaymentMethod("google")}
                 >
                   <div className="flex items-center space-x-2">
@@ -619,11 +655,13 @@ const VisaCheckout = () => {
                         setCouponCode(e.target.value.toUpperCase())
                       }
                       placeholder="Enter coupon code (e.g., STUDENT10)"
-                      className={`w-full border ${couponError ? "border-red-400" : "border-gray-300"
-                        } rounded-md p-2 text-sm ${couponError
+                      className={`w-full border ${
+                        couponError ? "border-red-400" : "border-gray-300"
+                      } rounded-md p-2 text-sm ${
+                        couponError
                           ? "outline-none ring-2 ring-red-400"
                           : "focus:outline-none focus:ring-2 focus:ring-black"
-                        }`}
+                      }`}
                       disabled={appliedDiscount}
                     />
                   </div>
@@ -671,10 +709,11 @@ const VisaCheckout = () => {
               <h2 className="font-medium text-lg">Payment Method</h2>
               <div className="space-y-2">
                 <div
-                  className={`border rounded-md p-3 cursor-pointer ${selectedPaymentMethod === "stripe"
-                    ? "border-black bg-gray-50"
-                    : "border-gray-300"
-                    }`}
+                  className={`border rounded-md p-3 cursor-pointer ${
+                    selectedPaymentMethod === "stripe"
+                      ? "border-black bg-gray-50"
+                      : "border-gray-300"
+                  }`}
                   onClick={() => setSelectedPaymentMethod("stripe")}
                 >
                   <div className="flex items-center justify-between">
@@ -742,13 +781,15 @@ const VisaCheckout = () => {
                             onBlur={handleCardFieldBlur}
                             placeholder="1234 5678 9012 3456"
                             maxLength={19}
-                            className={`w-full border ${cardErrors.cardNumber
-                              ? "border-red-400"
-                              : "border-gray-300"
-                              } rounded-md p-3 text-sm pr-10 ${cardErrors.cardNumber
+                            className={`w-full border ${
+                              cardErrors.cardNumber
+                                ? "border-red-400"
+                                : "border-gray-300"
+                            } rounded-md p-3 text-sm pr-10 ${
+                              cardErrors.cardNumber
                                 ? "outline-none ring-2 ring-red-400"
                                 : "focus:outline-none focus:ring-2 focus:ring-black"
-                              }`}
+                            }`}
                           />
                           <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                             <svg
@@ -803,13 +844,15 @@ const VisaCheckout = () => {
                             onBlur={handleCardFieldBlur}
                             placeholder="MM / YY"
                             maxLength={7}
-                            className={`w-full border ${cardErrors.expirationDate
-                              ? "border-red-400"
-                              : "border-gray-300"
-                              } rounded-md p-3 text-sm ${cardErrors.expirationDate
+                            className={`w-full border ${
+                              cardErrors.expirationDate
+                                ? "border-red-400"
+                                : "border-gray-300"
+                            } rounded-md p-3 text-sm ${
+                              cardErrors.expirationDate
                                 ? "outline-none ring-2 ring-red-400"
                                 : "focus:outline-none focus:ring-2 focus:ring-black"
-                              }`}
+                            }`}
                           />
                           {cardErrors.expirationDate && (
                             <span className="text-sm text-red-400 mt-1">
@@ -848,13 +891,15 @@ const VisaCheckout = () => {
                             onBlur={handleCardFieldBlur}
                             placeholder="123"
                             maxLength={4}
-                            className={`w-full border ${cardErrors.securityCode
-                              ? "border-red-400"
-                              : "border-gray-300"
-                              } rounded-md p-3 text-sm ${cardErrors.securityCode
+                            className={`w-full border ${
+                              cardErrors.securityCode
+                                ? "border-red-400"
+                                : "border-gray-300"
+                            } rounded-md p-3 text-sm ${
+                              cardErrors.securityCode
                                 ? "outline-none ring-2 ring-red-400"
                                 : "focus:outline-none focus:ring-2 focus:ring-black"
-                              }`}
+                            }`}
                           />
                           {cardErrors.securityCode && (
                             <span className="text-sm text-red-400 mt-1">
@@ -879,13 +924,15 @@ const VisaCheckout = () => {
                           onChange={(e) => setNameOnCard(e.target.value)}
                           onBlur={handleCardFieldBlur}
                           placeholder="John Doe"
-                          className={`w-full border ${cardErrors.nameOnCard
-                            ? "border-red-400"
-                            : "border-gray-300"
-                            } rounded-md p-3 text-sm ${cardErrors.nameOnCard
+                          className={`w-full border ${
+                            cardErrors.nameOnCard
+                              ? "border-red-400"
+                              : "border-gray-300"
+                          } rounded-md p-3 text-sm ${
+                            cardErrors.nameOnCard
                               ? "outline-none ring-2 ring-red-400"
                               : "focus:outline-none focus:ring-2 focus:ring-black"
-                            }`}
+                          }`}
                         />
                         {cardErrors.nameOnCard && (
                           <span className="text-sm text-red-400 mt-1">
@@ -916,7 +963,6 @@ const VisaCheckout = () => {
                           <h4 className="font-medium text-lg">
                             Billing address
                           </h4>
-
                           {/* Country/Region */}
                           <div>
                             <label
@@ -947,7 +993,6 @@ const VisaCheckout = () => {
                               <option value="Italy">Italy</option>
                             </select>
                           </div>
-
                           {/* First Name and Last Name Row */}
                           <div className="grid grid-cols-2 gap-4">
                             <div>
@@ -965,13 +1010,15 @@ const VisaCheckout = () => {
                                   setBillingFirstName(e.target.value)
                                 }
                                 onBlur={handleBillingFieldBlur}
-                                className={`w-full border ${cardErrors.billingFirstName
-                                  ? "border-red-400"
-                                  : "border-gray-300"
-                                  } rounded-md p-3 text-sm ${cardErrors.billingFirstName
+                                className={`w-full border ${
+                                  cardErrors.billingFirstName
+                                    ? "border-red-400"
+                                    : "border-gray-300"
+                                } rounded-md p-3 text-sm ${
+                                  cardErrors.billingFirstName
                                     ? "outline-none ring-2 ring-red-400"
                                     : "focus:outline-none focus:ring-2 focus:ring-black"
-                                  }`}
+                                }`}
                               />
                               {cardErrors.billingFirstName && (
                                 <span className="text-sm text-red-400 mt-1">
@@ -995,13 +1042,15 @@ const VisaCheckout = () => {
                                   setBillingLastName(e.target.value)
                                 }
                                 onBlur={handleBillingFieldBlur}
-                                className={`w-full border ${cardErrors.billingLastName
-                                  ? "border-red-400"
-                                  : "border-gray-300"
-                                  } rounded-md p-3 text-sm ${cardErrors.billingLastName
+                                className={`w-full border ${
+                                  cardErrors.billingLastName
+                                    ? "border-red-400"
+                                    : "border-gray-300"
+                                } rounded-md p-3 text-sm ${
+                                  cardErrors.billingLastName
                                     ? "outline-none ring-2 ring-red-400"
                                     : "focus:outline-none focus:ring-2 focus:ring-black"
-                                  }`}
+                                }`}
                               />
                               {cardErrors.billingLastName && (
                                 <span className="text-sm text-red-400 mt-1">
@@ -1040,13 +1089,15 @@ const VisaCheckout = () => {
                               onChange={(e) =>
                                 setBillingAddress(e.target.value)
                               }
-                              className={`w-full border ${cardErrors.billingAddress
-                                ? "border-red-400"
-                                : "border-gray-300"
-                                } rounded-md p-3 text-sm ${cardErrors.billingAddress
+                              className={`w-full border ${
+                                cardErrors.billingAddress
+                                  ? "border-red-400"
+                                  : "border-gray-300"
+                              } rounded-md p-3 text-sm ${
+                                cardErrors.billingAddress
                                   ? "outline-none ring-2 ring-red-400"
                                   : "focus:outline-none focus:ring-2 focus:ring-black"
-                                }`}
+                              }`}
                             />
                             {cardErrors.billingAddress && (
                               <span className="text-sm text-red-400 mt-1">
@@ -1054,7 +1105,6 @@ const VisaCheckout = () => {
                               </span>
                             )}
                           </div>
-
                           {/* Apartment */}
                           <div>
                             <label
@@ -1073,7 +1123,6 @@ const VisaCheckout = () => {
                               className="w-full border border-gray-300 rounded-md p-3 text-sm focus:outline-none focus:ring-2 focus:ring-black"
                             />
                           </div>
-
                           {/* City and Postcode Row */}
                           <div className="grid grid-cols-2 gap-4">
                             <div>
@@ -1089,13 +1138,15 @@ const VisaCheckout = () => {
                                 value={billingCity}
                                 onChange={(e) => setBillingCity(e.target.value)}
                                 onBlur={handleBillingFieldBlur}
-                                className={`w-full border ${cardErrors.billingCity
-                                  ? "border-red-400"
-                                  : "border-gray-300"
-                                  } rounded-md p-3 text-sm ${cardErrors.billingCity
+                                className={`w-full border ${
+                                  cardErrors.billingCity
+                                    ? "border-red-400"
+                                    : "border-gray-300"
+                                } rounded-md p-3 text-sm ${
+                                  cardErrors.billingCity
                                     ? "outline-none ring-2 ring-red-400"
                                     : "focus:outline-none focus:ring-2 focus:ring-black"
-                                  }`}
+                                }`}
                               />
                               {cardErrors.billingCity && (
                                 <span className="text-sm text-red-400 mt-1">
@@ -1141,13 +1192,15 @@ const VisaCheckout = () => {
                                     }
                                   }
                                 }}
-                                className={`w-full border ${cardErrors.billingPostcode
-                                  ? "border-red-400"
-                                  : "border-gray-300"
-                                  } rounded-md p-3 text-sm ${cardErrors.billingPostcode
+                                className={`w-full border ${
+                                  cardErrors.billingPostcode
+                                    ? "border-red-400"
+                                    : "border-gray-300"
+                                } rounded-md p-3 text-sm ${
+                                  cardErrors.billingPostcode
                                     ? "outline-none ring-2 ring-red-400"
                                     : "focus:outline-none focus:ring-2 focus:ring-black"
-                                  }`}
+                                }`}
                               />
                               {cardErrors.billingPostcode && (
                                 <span className="text-sm text-red-400 mt-1">
@@ -1156,7 +1209,6 @@ const VisaCheckout = () => {
                               )}
                             </div>
                           </div>
-
                           {/* Phone */}
                           <div>
                             <label
@@ -1191,10 +1243,11 @@ const VisaCheckout = () => {
                 </div>
 
                 <div
-                  className={`border rounded-md p-3 cursor-pointer ${selectedPaymentMethod === "klarna"
-                    ? "border-black bg-gray-50"
-                    : "border-gray-300"
-                    }`}
+                  className={`border rounded-md p-3 cursor-pointer ${
+                    selectedPaymentMethod === "klarna"
+                      ? "border-black bg-gray-50"
+                      : "border-gray-300"
+                  }`}
                   onClick={() => setSelectedPaymentMethod("klarna")}
                 >
                   <div className="flex items-center space-x-2">
@@ -1221,10 +1274,11 @@ const VisaCheckout = () => {
               <button
                 disabled={cretingDynamicCheckout}
                 onClick={handleProceedToCheckout}
-                className={`w-full bg-black text-white py-3 rounded-md font-semibold hover:bg-gray-900 transition-colors ${cretingDynamicCheckout
-                  ? "cursor-not-allowed opacity-50"
-                  : "cursor-pointer"
-                  }`}
+                className={`w-full bg-black text-white py-3 rounded-md font-semibold hover:bg-gray-900 transition-colors ${
+                  cretingDynamicCheckout
+                    ? "cursor-not-allowed opacity-50"
+                    : "cursor-pointer"
+                }`}
               >
                 {cretingDynamicCheckout ? (
                   "Processing..."
@@ -1288,6 +1342,8 @@ const VisaCheckout = () => {
                 onChange={(e) => {
                   if (e.target.checked && travelers === 1) {
                     setTravelers(2);
+                  } else if (!e.target.checked && travelers > 1) {
+                    setTravelers(1);
                   }
                 }}
               />
@@ -1309,14 +1365,16 @@ const VisaCheckout = () => {
               />
             </div>
             <div className="flex justify-between text-sm">
-              <span className="line-through">
-              </span>
+              <span className="line-through"></span>
               <span>{formatCurrency(visaFeesEUR, "EUR")}</span>
             </div>
 
             {/* Insurance */}
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
+              <div
+                className="flex items-center space-x-2 cursor-pointer"
+                onClick={() => setIncludeInsurance(!includeInsurance)}
+              >
                 <input
                   type="checkbox"
                   id="insurance"
@@ -1370,7 +1428,7 @@ const VisaCheckout = () => {
             {/* You Save */}
             <div className="flex justify-between text-sm text-green-400">
               <span>You save</span>
-              <span>{formatCurrency(savingsEUR, "EUR")}</span>
+              <span>{formatCurrency(0, "EUR")}</span>
             </div>
 
             {/* Total */}

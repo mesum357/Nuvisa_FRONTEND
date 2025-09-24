@@ -7,8 +7,8 @@ import UK_CITIES from "@/constants/ukCities";
 
 const getLocalDateString = (date) => {
   const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
 
@@ -134,7 +134,7 @@ const PassportInformationSection = ({
 
     if (name === "travelStartDate") {
       if (value) {
-        const selectedDate = new Date(value + 'T00:00:00');
+        const selectedDate = new Date(value + "T00:00:00");
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const fifteenDaysFromToday = new Date(today);
@@ -171,7 +171,8 @@ const PassportInformationSection = ({
   };
 
   const performOCR = async (file, url, side, initialProgress = null) => {
-    const startProgress = typeof initialProgress === "number" ? initialProgress : 0;
+    const startProgress =
+      typeof initialProgress === "number" ? initialProgress : 0;
     if (side === "front") {
       setFrontOcrLoading(true);
       setFrontOcrError(null);
@@ -184,20 +185,36 @@ const PassportInformationSection = ({
 
     // Start autofill animation when processing begins
     setExtractionProgress(startProgress);
-    setExtractionStep(startProgress > 0 ? "Starting extraction..." : "Processing document...");
+    setExtractionStep(
+      startProgress > 0 ? "Starting extraction..." : "Processing document..."
+    );
 
     // Simulate progress updates; make sure they always increase from startProgress
     const candidateUpdates = [
-      { progress: Math.min(startProgress + 15, 100), step: "Analyzing document..." },
-      { progress: Math.min(startProgress + 35, 100), step: "Detecting text fields..." },
-      { progress: Math.min(startProgress + 55, 100), step: "Extracting information..." },
-      { progress: Math.min(startProgress + 85, 100), step: "Validating data..." },
+      {
+        progress: Math.min(startProgress + 15, 100),
+        step: "Analyzing document...",
+      },
+      {
+        progress: Math.min(startProgress + 35, 100),
+        step: "Detecting text fields...",
+      },
+      {
+        progress: Math.min(startProgress + 55, 100),
+        step: "Extracting information...",
+      },
+      {
+        progress: Math.min(startProgress + 85, 100),
+        step: "Validating data...",
+      },
       { progress: 100, step: "Complete!" },
     ];
 
     // Keep only strictly increasing progress points and those > startProgress
     const progressUpdates = candidateUpdates.reduce((acc, u) => {
-      if (u.progress > (acc.length ? acc[acc.length - 1].progress : startProgress)) {
+      if (
+        u.progress > (acc.length ? acc[acc.length - 1].progress : startProgress)
+      ) {
         acc.push(u);
       }
       return acc;
@@ -238,10 +255,10 @@ const PassportInformationSection = ({
       const simple = data.simpleFields || {};
       const rawFields =
         data.raw &&
-          data.raw.rawHttp &&
-          data.raw.rawHttp.inference &&
-          data.raw.rawHttp.inference.result &&
-          data.raw.rawHttp.inference.result.fields
+        data.raw.rawHttp &&
+        data.raw.rawHttp.inference &&
+        data.raw.rawHttp.inference.result &&
+        data.raw.rawHttp.inference.result.fields
           ? data.raw.rawHttp.inference.result.fields
           : null;
 
@@ -429,13 +446,16 @@ const PassportInformationSection = ({
     }
   };
 
-  console.log("Rendering PassportInformationSection with data:", passportData);
-
-  const frontBusy = frontOcrLoading || frontUploadLoading || showAutofillAnimation;
+  const frontBusy =
+    frontOcrLoading || frontUploadLoading || showAutofillAnimation;
   const backBusy = backOcrLoading || backUploadLoading || showAutofillAnimation;
   // Overall processing state used for disabling actions/UI
   const isProcessing =
-    frontUploadLoading || backUploadLoading || frontOcrLoading || backOcrLoading || showAutofillAnimation;
+    frontUploadLoading ||
+    backUploadLoading ||
+    frontOcrLoading ||
+    backOcrLoading ||
+    showAutofillAnimation;
 
   const handleFileUpload = async (e, side) => {
     const file = e.target.files[0];
@@ -482,7 +502,6 @@ const PassportInformationSection = ({
             setExtractionStep("File uploaded. Starting extraction...");
 
             setPassportData((prev) => ({ ...prev, passportFront: res.url }));
-            console.log("Front upload successful:", res.url);
             // pass current extractionProgress to avoid resetting the bar in performOCR
             performOCR(file, res.url, "front", extractionProgress || 20);
           } else {
@@ -530,7 +549,6 @@ const PassportInformationSection = ({
             setExtractionStep("File uploaded. Starting extraction...");
 
             setPassportData((prev) => ({ ...prev, passportBack: res.url }));
-            console.log("Back upload successful:", res.url);
             performOCR(file, res.url, "back", extractionProgress || 20);
           } else {
             throw new Error("Upload API did not return a URL.");
@@ -724,8 +742,9 @@ const PassportInformationSection = ({
                 value={passportData.travelStartDate || ""}
                 onChange={handleInputChange}
                 min={getLocalDateString(new Date())}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none bg-[#292933] text-white [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer ${errors.travelStartDate ? "border-red-500" : "border-[#423577]"
-                  }`}
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none bg-[#292933] text-white [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer ${
+                  errors.travelStartDate ? "border-red-500" : "border-[#423577]"
+                }`}
                 style={{
                   colorScheme: "light",
                 }}
@@ -748,11 +767,11 @@ const PassportInformationSection = ({
                 value={passportData.travelEndDate || ""}
                 onChange={handleInputChange}
                 min={
-                  passportData.travelStartDate ||
-                  getLocalDateString(new Date())
+                  passportData.travelStartDate || getLocalDateString(new Date())
                 }
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none bg-[#292933] text-white [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer ${errors.travelEndDate ? "border-red-500" : "border-[#423577]"
-                  }`}
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none bg-[#292933] text-white [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer ${
+                  errors.travelEndDate ? "border-red-500" : "border-[#423577]"
+                }`}
                 style={{
                   colorScheme: "light",
                 }}
@@ -789,10 +808,11 @@ const PassportInformationSection = ({
             <div className="space-y-6">
               {/* Front Side Upload */}
               <div
-                className={`border-2 border-dashed rounded-xl p-4 transition ${errors.passportFront
-                  ? "border-red-500 bg-red-50"
-                  : "border-[#423577] hover:border-purple-400"
-                  }`}
+                className={`border-2 border-dashed rounded-xl p-4 transition ${
+                  errors.passportFront
+                    ? "border-red-500 bg-red-50"
+                    : "border-[#423577] hover:border-purple-400"
+                }`}
               >
                 <label className="block text-sm font-medium  mb-2">
                   Passport Front Page
@@ -828,10 +848,11 @@ const PassportInformationSection = ({
                       onClick={() => handleRemoveImage("front")}
                       disabled={frontBusy}
                       aria-disabled={frontBusy}
-                      className={`absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center transition-opacity ${frontBusy
-                        ? "opacity-60 pointer-events-none cursor-not-allowed"
-                        : "opacity-0 group-hover:opacity-100"
-                        }`}
+                      className={`absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center transition-opacity ${
+                        frontBusy
+                          ? "opacity-60 pointer-events-none cursor-not-allowed"
+                          : "opacity-0 group-hover:opacity-100"
+                      }`}
                     >
                       <X size={16} />
                     </button>
@@ -873,10 +894,11 @@ const PassportInformationSection = ({
               </div>
               {/* Back Side Upload */}
               <div
-                className={`border-2 border-dashed rounded-xl p-4 transition ${errors.passportBack
-                  ? "border-red-500 bg-red-50"
-                  : "border-[#423577] hover:border-purple-400"
-                  }`}
+                className={`border-2 border-dashed rounded-xl p-4 transition ${
+                  errors.passportBack
+                    ? "border-red-500 bg-red-50"
+                    : "border-[#423577] hover:border-purple-400"
+                }`}
               >
                 <label className="block text-sm font-medium  mb-2">
                   Passport Back Page
@@ -912,10 +934,11 @@ const PassportInformationSection = ({
                       onClick={() => handleRemoveImage("back")}
                       disabled={backBusy}
                       aria-disabled={backBusy}
-                      className={`absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center transition-opacity ${backBusy
-                        ? "opacity-60 pointer-events-none cursor-not-allowed"
-                        : "opacity-0 group-hover:opacity-100"
-                        }`}
+                      className={`absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center transition-opacity ${
+                        backBusy
+                          ? "opacity-60 pointer-events-none cursor-not-allowed"
+                          : "opacity-0 group-hover:opacity-100"
+                      }`}
                     >
                       <X size={16} />
                     </button>
@@ -1020,7 +1043,7 @@ const PassportInformationSection = ({
             <motion.div
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
-            // className="bg-[#23232B] rounded-xl shadow-sm p-6 border border-[#423577]"
+              // className="bg-[#23232B] rounded-xl shadow-sm p-6 border border-[#423577]"
             >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -1033,10 +1056,11 @@ const PassportInformationSection = ({
                     value={passportData.passportNumber}
                     onChange={handleInputChange}
                     placeholder="Enter passport number"
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${errors.passportNumber
-                      ? "border-red-500"
-                      : "border-[#423577]"
-                      }`}
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
+                      errors.passportNumber
+                        ? "border-red-500"
+                        : "border-[#423577]"
+                    }`}
                   />
                   {errors.passportNumber && (
                     <p className="text-red-500 text-xs mt-1">
@@ -1054,8 +1078,9 @@ const PassportInformationSection = ({
                     value={passportData.firstName}
                     onChange={handleInputChange}
                     placeholder="Name"
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${errors.firstName ? "border-red-500" : "border-[#423577]"
-                      }`}
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
+                      errors.firstName ? "border-red-500" : "border-[#423577]"
+                    }`}
                   />
                   {errors.firstName && (
                     <p className="text-red-500 text-xs mt-1">
@@ -1073,8 +1098,9 @@ const PassportInformationSection = ({
                     value={passportData.lastName}
                     onChange={handleInputChange}
                     placeholder="SurName"
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${errors.lastName ? "border-red-500" : "border-[#423577]"
-                      }`}
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
+                      errors.lastName ? "border-red-500" : "border-[#423577]"
+                    }`}
                   />
                   {errors.lastName && (
                     <p className="text-red-500 text-xs mt-1">
@@ -1088,8 +1114,9 @@ const PassportInformationSection = ({
                     name="sex"
                     value={passportData.sex}
                     onChange={handleInputChange}
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${errors.sex ? "border-red-500" : "border-[#423577]"
-                      }`}
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
+                      errors.sex ? "border-red-500" : "border-[#423577]"
+                    }`}
                   >
                     <option value="">Select gender</option>
                     <option value="Male">Male</option>
@@ -1109,8 +1136,9 @@ const PassportInformationSection = ({
                     name="dateOfBirth"
                     value={passportData.dateOfBirth}
                     onChange={handleInputChange}
-                    className={`w-full px-4  py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer ${errors.dateOfBirth ? "border-red-500" : "border-[#423577]"
-                      }`}
+                    className={`w-full px-4  py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer ${
+                      errors.dateOfBirth ? "border-red-500" : "border-[#423577]"
+                    }`}
                     style={{
                       colorScheme: "light",
                     }}
@@ -1132,10 +1160,11 @@ const PassportInformationSection = ({
                     value={passportData.placeOfBirth}
                     onChange={handleInputChange}
                     placeholder="City, Country"
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${errors.placeOfBirth
-                      ? "border-red-500"
-                      : "border-[#423577]"
-                      }`}
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
+                      errors.placeOfBirth
+                        ? "border-red-500"
+                        : "border-[#423577]"
+                    }`}
                   />
                   {errors.placeOfBirth && (
                     <p className="text-red-500 text-xs mt-1">
@@ -1151,7 +1180,7 @@ const PassportInformationSection = ({
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2 }}
-            // className="bg-[#23232B] rounded-xl shadow-sm p-6 border border-[#423577]"
+              // className="bg-[#23232B] rounded-xl shadow-sm p-6 border border-[#423577]"
             >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
@@ -1164,10 +1193,11 @@ const PassportInformationSection = ({
                     value={passportData.passportIssuePlace}
                     onChange={handleInputChange}
                     placeholder="City, Country"
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${errors.passportIssuePlace
-                      ? "border-red-500"
-                      : "border-[#423577]"
-                      }`}
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
+                      errors.passportIssuePlace
+                        ? "border-red-500"
+                        : "border-[#423577]"
+                    }`}
                   />
                   {errors.passportIssuePlace && (
                     <p className="text-red-500 text-xs mt-1">
@@ -1184,10 +1214,11 @@ const PassportInformationSection = ({
                     name="passportIssueDate"
                     value={passportData.passportIssueDate}
                     onChange={handleInputChange}
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer ${errors.passportIssueDate
-                      ? "border-red-500"
-                      : "border-[#423577]"
-                      }`}
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer ${
+                      errors.passportIssueDate
+                        ? "border-red-500"
+                        : "border-[#423577]"
+                    }`}
                   />
                   {errors.passportIssueDate && (
                     <p className="text-red-500 text-xs mt-1">
@@ -1204,10 +1235,11 @@ const PassportInformationSection = ({
                     name="passportExpiryDate"
                     value={passportData.passportExpiryDate}
                     onChange={handleInputChange}
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer ${errors.passportExpiryDate
-                      ? "border-red-500"
-                      : "border-[#423577]"
-                      }`}
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer ${
+                      errors.passportExpiryDate
+                        ? "border-red-500"
+                        : "border-[#423577]"
+                    }`}
                   />
                   {errors.passportExpiryDate && (
                     <p className="text-red-500 text-xs mt-1">
@@ -1223,7 +1255,7 @@ const PassportInformationSection = ({
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3 }}
-            // className="bg-[#23232B] rounded-xl shadow-sm p-6 border border-[#423577]"
+              // className="bg-[#23232B] rounded-xl shadow-sm p-6 border border-[#423577]"
             >
               <div className="space-y-4 pt-2">
                 <div>
@@ -1236,10 +1268,11 @@ const PassportInformationSection = ({
                     value={passportData.currentAddress1}
                     onChange={handleInputChange}
                     placeholder="Street address, P.O. box"
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${errors.currentAddress1
-                      ? "border-red-500"
-                      : "border-[#423577]"
-                      }`}
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
+                      errors.currentAddress1
+                        ? "border-red-500"
+                        : "border-[#423577]"
+                    }`}
                   />
                   {errors.currentAddress1 && (
                     <p className="text-red-500 text-xs mt-1">
@@ -1273,8 +1306,9 @@ const PassportInformationSection = ({
                       value={passportData.city}
                       onChange={handleInputChange}
                       placeholder="City (type or select)"
-                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${errors.city ? "border-red-500" : "border-[#423577]"
-                        }`}
+                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
+                        errors.city ? "border-red-500" : "border-[#423577]"
+                      }`}
                     />
                     <datalist id="city-options">
                       {UK_CITIES && UK_CITIES.length > 0
@@ -1295,8 +1329,9 @@ const PassportInformationSection = ({
                       value={passportData.pincode}
                       onChange={handleInputChange}
                       placeholder="e.g. SW1A 1AA"
-                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${errors.pincode ? "border-red-500" : "border-[#423577]"
-                        }`}
+                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
+                        errors.pincode ? "border-red-500" : "border-[#423577]"
+                      }`}
                     />
                     {errors.pincode && (
                       <p className="text-red-500 text-xs mt-1">
@@ -1315,10 +1350,11 @@ const PassportInformationSection = ({
                     value={passportData.mobileNumber || ""}
                     onChange={handleInputChange}
                     placeholder="e.g. +447123456789 or 07123456789"
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${errors.mobileNumber
-                      ? "border-red-500"
-                      : "border-[#423577]"
-                      }`}
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${
+                      errors.mobileNumber
+                        ? "border-red-500"
+                        : "border-[#423577]"
+                    }`}
                   />
                   {errors.mobileNumber && (
                     <p className="text-red-500 text-xs mt-1">
