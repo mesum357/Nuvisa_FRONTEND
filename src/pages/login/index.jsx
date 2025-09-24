@@ -22,7 +22,7 @@ const Index = () => {
     e.preventDefault();
     const payload = { email };
 
-    const results = await login(payload, () => {});
+    const results = await login(payload, () => { });
     if (/^2\d{2}$/.test(results?.status)) {
       setIsVerificationSent(true);
     }
@@ -32,7 +32,7 @@ const Index = () => {
     e.preventDefault();
     const payload = { email, otp };
 
-    const results = await verifyOtp(payload, () => {});
+    const results = await verifyOtp(payload, () => { });
     if (/^2\d{2}$/.test(results?.status)) {
       await localStorageGateway(
         "token",
@@ -48,6 +48,7 @@ const Index = () => {
           "user",
           JSON.stringify(results?.data?.data?.results?.user)
         );
+        await Cookies.set("userEmail", email);
         dispatch(setAuthState(true));
         dispatch(setAuthId(results?.data?.data?.results?.user?.id));
       }

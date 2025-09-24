@@ -5,18 +5,10 @@ import { localStorageGateway } from "@/gateways/localStoragegateway";
 import useCreateDynamicCheckoutSession from "@/hooks/useCreateDynamicCheckoutSession";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { setAuthId, setAuthState } from "@/store/authSlice";
-import {
-  setVisaFees,
-  setTravelers as setReduxTravelers,
-  setInsuranceFees,
-  setSelectedCountry,
-  setVisaTypeId,
-} from "@/store/visaSlice";
 import Cookies from "js-cookie";
 import Image from "next/image";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { FaUser, FaShieldAlt, FaApple, FaGoogle } from "react-icons/fa";
 import { HiOutlineDeviceMobile } from "react-icons/hi";
 import { SiKlarna } from "react-icons/si";
@@ -27,16 +19,12 @@ import {
   applyCouponDiscount,
 } from "@/utils/currency";
 import ClientOnly from "./ClientOnly";
-import { useRouter } from "next/router";
 import QtyInput from "./QtyInput";
 
 const VisaCheckout = () => {
   const dispatch = useAppDispatch();
-  const searchParams = useSearchParams();
   const { handleCreateDynamicCheckoutSession, cretingDynamicCheckout } =
     useCreateDynamicCheckoutSession();
-  const router = useRouter();
-  const query = router.query;
 
   // Get data from Redux store first, fallback to URL params if not available
   const visaState = useAppSelector((state) => state.visa);
@@ -46,48 +34,33 @@ const VisaCheckout = () => {
     visaState.selectedVisaType && visaState.selectedVisaType.priceGBP
       ? Number(visaState.selectedVisaType.priceGBP)
       : visaState.selectedVisaType && visaState.selectedVisaType.price
-      ? Math.round(Number(visaState.selectedVisaType.price) / 100)
-      : 159; // Default base fee per traveler
+        ? Math.round(Number(visaState.selectedVisaType.price) / 100)
+        : 159; // Default base fee per traveler
 
-  const initialVisaFees =
-    (query?.visaFees ?? searchParams.get("visaFees")) || visaState.visaFees;
-  const initialInsuranceFees =
-    (query?.insuranceFees ?? searchParams.get("insuranceFees")) ||
-    visaState.insuranceFees;
-  const initialTravelers =
-    (query?.travelers ?? searchParams.get("travelers")) || visaState.travelers;
-  const selectedCountry =
-    (query?.selectedCountry ?? searchParams.get("selectedCountry")) ||
-    visaState.selectedCountry;
+  const selectedCountry = visaState.selectedCountry;
   const selectedVisaType = visaState.selectedVisaType;
   const visaTypeId = visaState.visaTypeId;
 
-  const [travelers, setTravelers] = useState(1);
-  const insuranceFeesFromQuery = query?.insuranceFees
-    ? Number(query.insuranceFees)
-    : Number(searchParams.get("insuranceFees"));
-  const insuranceFeesPerTravellerFromRedux = Number(visaState.insuranceFees);
-  const insurancePerTraveller =
-    !isNaN(insuranceFeesFromQuery) && insuranceFeesFromQuery > 0
-      ? insuranceFeesFromQuery
-      : !isNaN(insuranceFeesPerTravellerFromRedux) &&
-        insuranceFeesPerTravellerFromRedux > 0
-      ? insuranceFeesPerTravellerFromRedux
-      : 0;
-  const insuranceFeesTotal = insurancePerTraveller * travelers;
+  const [travelers, setTravelers] = useState(
+    visaState.travelers !== undefined && visaState.travelers !== null
+      ? Number(visaState.travelers)
+      : 1
+  );
+  const insuranceFeesPerTraveller = Number(visaState.insuranceFees) || 0;
+  const insuranceFeesTotal = insuranceFeesPerTraveller * travelers;
   const [includeInsurance, setIncludeInsurance] = useState(
-    query.insuranceFees > 0 ? true : false
-  ); // Insurance should be unchecked by default
-  const [email, setEmail] = useState("");
+    visaState.recommendedItems?.insuranceCertificate || false
+  );
+  const [email, setEmail] = useState(visaState.userEmail || "");
   const [emailError, setEmailError] = useState("");
   const [phone, setPhone] = useState("");
   const [phoneError, setPhoneError] = useState("");
   const [postcode, setPostcode] = useState("");
   const [postcodeError, setPostcodeError] = useState("");
   const [emailNewsOffers, setEmailNewsOffers] = useState(false);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("stripe");
-  const [couponCode, setCouponCode] = useState("");
-  const [appliedDiscount, setAppliedDiscount] = useState(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(visaState.selectedPaymentMethod || "stripe");
+  const [couponCode, setCouponCode] = useState(visaState.couponCode || "");
+  const [appliedDiscount, setAppliedDiscount] = useState(visaState.appliedDiscount || null);
   const [couponError, setCouponError] = useState("");
 
   // Card details state
@@ -110,82 +83,6 @@ const VisaCheckout = () => {
   // Card validation errors
   const [cardErrors, setCardErrors] = useState({});
 
-  const searchParamsString = searchParams ? searchParams.toString() : "";
-
-  useEffect(() => {
-    const travelersFromQuery = query?.travelers
-      ? Number(query.travelers)
-      : null;
-    const travelersFromParams =
-      travelersFromQuery ??
-      (searchParams ? Number(searchParams.get("travelers")) : null) ??
-      1;
-    if (travelersFromParams !== travelers) {
-      setTravelers(travelersFromParams);
-    }
-  }, [query, searchParams]);
-
-  // Initialize Redux store with URL parameters if they exist (run only when params change)
-  useEffect(() => {
-    const sp = new URLSearchParams(searchParamsString);
-    const visaFeesFromParams = Number(sp.get("visaFees"));
-    const selectedCountryFromParams = sp.get("selectedCountry");
-    const insuranceFeesFromParams = Number(sp.get("insuranceFees"));
-    const travelersFromParams = Number(sp.get("travelers"));
-    const visaTypeIdFromParams = sp.get("visaTypeId");
-    const expressPaymentFromParams = sp.get("expressPayment");
-    const paymentMethodFromParams = sp.get("paymentMethod");
-    const userEmailFromParams = sp.get("userEmail");
-    const discountCodeFromParams = sp.get("discountCode");
-    const discountPercentageFromParams = sp.get("discountPercentage");
-    const discountDescriptionFromParams = sp.get("discountDescription");
-    const discountAmountFromParams = sp.get("discountAmount");
-
-    if (userEmailFromParams && !email) {
-      setEmail(userEmailFromParams);
-    }
-
-    if (paymentMethodFromParams && selectedPaymentMethod === "stripe") {
-      setSelectedPaymentMethod(paymentMethodFromParams);
-    }
-
-    if (
-      discountCodeFromParams &&
-      discountPercentageFromParams &&
-      !appliedDiscount
-    ) {
-      setCouponCode(discountCodeFromParams);
-      setAppliedDiscount({
-        code: discountCodeFromParams,
-        percentage: Number(discountPercentageFromParams),
-        description: discountDescriptionFromParams || "Applied Discount",
-        discountAmount: Number(discountAmountFromParams) || 0,
-      });
-    }
-
-    if (visaFeesFromParams && visaFeesFromParams !== visaState.visaFees) {
-      dispatch(setVisaFees(visaFeesFromParams));
-    }
-    if (
-      insuranceFeesFromParams &&
-      insuranceFeesFromParams !== visaState.insuranceFees
-    ) {
-      dispatch(setInsuranceFees(insuranceFeesFromParams));
-    }
-    if (
-      selectedCountryFromParams &&
-      selectedCountryFromParams !== visaState.selectedCountry
-    ) {
-      dispatch(setSelectedCountry(String(selectedCountryFromParams)));
-    }
-    if (travelersFromParams && travelersFromParams !== visaState.travelers) {
-      dispatch(setReduxTravelers(travelersFromParams));
-    }
-    if (visaTypeIdFromParams && visaTypeIdFromParams !== visaState.visaTypeId) {
-      dispatch(setVisaTypeId(visaTypeIdFromParams));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // Function to apply coupon code
   const applyCouponCode = async () => {
@@ -342,39 +239,83 @@ const VisaCheckout = () => {
     return Object.keys(errors).length === 0;
   };
 
-  // Resolve visa fees: prefer values passed in the URL (from the slider) then fall back to selected visa type calculation
-  const visaFeesFromQuery = query?.visaFees
-    ? Number(query.visaFees)
-    : Number(searchParams.get("visaFees"));
+  const handleEmailBlur = () => {
+    if (!email) {
+      setEmailError("Email is required for checkout");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setEmailError("Please enter a valid email for checkout");
+      return;
+    }
+    setEmailError("");
+  };
 
-  const visaFeesTotal =
-    !isNaN(visaFeesFromQuery) && visaFeesFromQuery > 0
-      ? visaFeesFromQuery * travelers
-      : baseVisaFee * travelers;
+  const handlePhoneBlur = () => {
+    if (!phone || !phone.trim()) {
+      setPhoneError("");
+      return;
+    }
+    if (!isValidUKPhone(phone)) {
+      setPhoneError(
+        "Please enter a valid UK phone number (e.g. +44 7XXXXXXXXX or 07XXXXXXXXX)"
+      );
+    } else {
+      setPhoneError("");
+    }
+  };
 
-  const insuranceFees = includeInsurance ? insuranceFeesTotal : 0;
+  const handlePostcodeBlur = () => {
+    if (!postcode) {
+      setPostcodeError("Postcode is required for checkout");
+      return;
+    }
+    if (!isValidUKPostcode(postcode)) {
+      setPostcodeError("Please enter a valid UK postcode (e.g. SW1A 1AA)");
+      return;
+    }
+    setPostcodeError("");
+  };
+
+  const handleCardFieldBlur = () => {
+    validateCardDetails();
+  };
+
+  const handleBillingFieldBlur = () => {
+    validateCardDetails();
+  };
+
+  let visaFeesTotal = 0;
+  if (Number.isFinite(Number(visaState.visaFees))) {
+    visaFeesTotal = Number(visaState.visaFees);
+  } else if (travelers === 0) {
+    visaFeesTotal = 0;
+  } else {
+    visaFeesTotal = baseVisaFee * travelers;
+  }
+
+  const insuranceFees = includeInsurance ? Number(visaState.insuranceFees) || 0 : 0;
+  const giftCardFees = Number(visaState.giftCardFees) || 0;
   const eVisaFees = 0; // Currently free
-  const subtotal = visaFeesTotal + insuranceFees + eVisaFees;
+  const subtotal = visaFeesTotal + insuranceFees + giftCardFees + eVisaFees;
 
   // Calculate original price and savings (for display purposes)
-  const originalPrice = baseVisaFee * travelers; // Original price without any discounts
+  const originalPrice = visaState.insuranceOnly ? 0 : baseVisaFee * travelers;
   const savings = originalPrice - visaFeesTotal; // Any savings from discounts
 
   // Calculate dynamic values based on user selections in EUR
   const visaFeesEUR = calculatePaymentFees(visaFeesTotal, "EUR");
   const insuranceFeesEUR = includeInsurance
-    ? calculatePaymentFees(insuranceFeesTotal, "EUR")
+    ? calculatePaymentFees(insuranceFees, "EUR")
     : 0;
+  const _giftCardFeesEUR = calculatePaymentFees(giftCardFees, "EUR");
   const eVisaFeesEUR = 0; // Currently free
   const subtotalEUR = calculatePaymentFees(subtotal, "EUR");
 
-  // Apply discount if coupon is applied
-  const discountAmountEUR = appliedDiscount
-    ? appliedDiscount.discountAmount || 0
-    : 0;
+  const discountAmountEUR = 0;
   const discountedSubtotalEUR = subtotalEUR - discountAmountEUR;
 
-  const originalPriceEUR = calculatePaymentFees(originalPrice, "EUR");
+  const _originalPriceEUR = calculatePaymentFees(originalPrice, "EUR");
   const savingsEUR = calculatePaymentFees(savings, "EUR");
   const totalAmountEUR = discountedSubtotalEUR;
 
@@ -392,6 +333,13 @@ const VisaCheckout = () => {
 
     if (!postcode) {
       setPostcodeError("Postcode is required for checkout");
+      return;
+    }
+
+    if (postcode && !isValidUKPostcode(postcode)) {
+      setPostcodeError(
+        "Please enter a valid UK postcode (e.g. SW1A 1AA)"
+      );
       return;
     }
 
@@ -414,101 +362,6 @@ const VisaCheckout = () => {
     setEmailError("");
     setPostcodeError("");
 
-    // Store payment data in localStorage before redirect
-    await localStorageGateway("userEmail", localStorageEnums.SET, email);
-    await localStorageGateway("userPhone", localStorageEnums.SET, phone);
-    await localStorageGateway("userPostcode", localStorageEnums.SET, postcode);
-    await localStorageGateway(
-      "emailNewsOffers",
-      localStorageEnums.SET,
-      String(emailNewsOffers)
-    );
-    await localStorageGateway(
-      "paymentMethod",
-      localStorageEnums.SET,
-      selectedPaymentMethod
-    );
-    await localStorageGateway(
-      "selectedCountry",
-      localStorageEnums.SET,
-      selectedCountry || ""
-    );
-    await localStorageGateway(
-      "insurancePayment",
-      localStorageEnums.SET,
-      String(insuranceFeesEUR)
-    );
-    await localStorageGateway(
-      "insuranceSelected",
-      localStorageEnums.SET,
-      includeInsurance ? "true" : "false"
-    );
-    await localStorageGateway(
-      "travelers",
-      localStorageEnums.SET,
-      String(travelers)
-    );
-    await localStorageGateway(
-      "paymentAmount",
-      localStorageEnums.SET,
-      String(totalAmountEUR)
-    );
-    await localStorageGateway(
-      "appliedDiscount",
-      localStorageEnums.SET,
-      appliedDiscount ? JSON.stringify(appliedDiscount) : ""
-    );
-
-    // Store visa type information
-    await localStorageGateway(
-      "visaTypeId",
-      localStorageEnums.SET,
-      visaTypeId || visaState.visaTypeId || ""
-    );
-    await localStorageGateway(
-      "selectedVisaType",
-      localStorageEnums.SET,
-      selectedVisaType ? JSON.stringify(selectedVisaType) : ""
-    );
-
-    // Store card details if stripe payment is selected
-    if (selectedPaymentMethod === "stripe") {
-      await localStorageGateway(
-        "cardNumber",
-        localStorageEnums.SET,
-        cardNumber
-      );
-      await localStorageGateway(
-        "expirationDate",
-        localStorageEnums.SET,
-        expirationDate
-      );
-      await localStorageGateway(
-        "securityCode",
-        localStorageEnums.SET,
-        securityCode
-      );
-      await localStorageGateway(
-        "nameOnCard",
-        localStorageEnums.SET,
-        nameOnCard
-      );
-      await localStorageGateway(
-        "billingAddress",
-        localStorageEnums.SET,
-        JSON.stringify({
-          useShippingAddress,
-          country: billingCountry,
-          firstName: billingFirstName,
-          lastName: billingLastName,
-          address: billingAddress,
-          apartment: billingApartment,
-          city: billingCity,
-          postcode: billingPostcode,
-          phone: billingPhone,
-        })
-      );
-    }
 
     const statusResult = await handleCreateDynamicCheckoutSession({
       email: email,
@@ -526,20 +379,25 @@ const VisaCheckout = () => {
     const results = statusResult.data;
 
     if (/^2\d{2}$/.test(statusResult?.status)) {
-      await localStorageGateway(
-        "token",
-        localStorageEnums.SET,
-        results?.data?.results?.token
-      );
+      const returnedToken = results?.data?.results?.token;
+      const returnedUser = results?.data?.results?.user;
+
+      if (returnedToken) {
+        await localStorageGateway("token", localStorageEnums.SET, returnedToken);
+        await Cookies.set("token", returnedToken);
+        dispatch(setAuthState(true));
+      }
+
+      if (returnedUser) {
+        await Cookies.set("user", JSON.stringify(returnedUser));
+        await localStorageGateway("user", localStorageEnums.SET, JSON.stringify(returnedUser));
+
+        if (returnedUser.id) {
+          dispatch(setAuthId(returnedUser.id));
+        }
+      }
 
       await localStorageGateway("userEmail", localStorageEnums.SET, email);
-      const token = await localStorageGateway("token", localStorageEnums.GET);
-      if (token) {
-        await Cookies.set("token", token);
-        await Cookies.set("user", JSON.stringify(results?.data?.results?.user));
-        dispatch(setAuthState(true));
-        dispatch(setAuthId(results?.data?.results?.user?.id));
-      }
     }
 
     const redirectUrl = results.data.results.url;
@@ -547,43 +405,6 @@ const VisaCheckout = () => {
       window.location.href = redirectUrl; // Redirect user to stripe checkout
     }
   };
-
-  useEffect(() => {
-    const perTravellerVisaFee =
-      !isNaN(visaFeesFromQuery) && visaFeesFromQuery > 0
-        ? Number(visaFeesFromQuery)
-        : Number(baseVisaFee);
-    const currentVisaFees = Number(perTravellerVisaFee);
-    const currentTravelers = Number(travelers);
-    const currentInsuranceFees = Number(insurancePerTraveller);
-
-    if (
-      typeof currentVisaFees === "number" &&
-      !isNaN(currentVisaFees) &&
-      currentVisaFees !== visaState.visaFees
-    ) {
-      dispatch(setVisaFees(currentVisaFees));
-    }
-    if (
-      typeof currentTravelers === "number" &&
-      !isNaN(currentTravelers) &&
-      currentTravelers !== visaState.travelers
-    ) {
-      dispatch(setReduxTravelers(currentTravelers));
-    }
-    if (
-      typeof currentInsuranceFees === "number" &&
-      !isNaN(currentInsuranceFees) &&
-      currentInsuranceFees !== visaState.insuranceFees
-    ) {
-      dispatch(setInsuranceFees(currentInsuranceFees));
-    }
-
-    // Update visa type ID if it's different from what's in Redux
-    if (visaTypeId && visaTypeId !== visaState.visaTypeId) {
-      dispatch(setVisaTypeId(String(visaTypeId)));
-    }
-  }, []);
 
   return (
     <ClientOnly>
@@ -632,14 +453,13 @@ const VisaCheckout = () => {
                     id="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    onBlur={handleEmailBlur}
                     placeholder="name@example.com"
-                    className={`w-full border ${
-                      emailError ? "border-red-400" : "border-gray-300"
-                    } rounded-md p-2 text-sm  ${
-                      emailError
+                    className={`w-full border ${emailError ? "border-red-400" : "border-gray-300"
+                      } rounded-md p-2 text-sm  ${emailError
                         ? "outline-none ring-2 ring-red-400"
                         : "focus:outline-none focus:ring-2 focus:ring-black"
-                    }`}
+                      }`}
                   />
                   {emailError && (
                     <span className="text-sm text-red-400 mt-1">
@@ -659,29 +479,13 @@ const VisaCheckout = () => {
                     type="tel"
                     id="phone"
                     value={phone}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setPhone(v);
-                      // Clear error if empty (phone is optional)
-                      if (!v.trim()) {
-                        setPhoneError("");
-                        return;
-                      }
-                      // Validate UK phone and set error message accordingly
-                      if (!isValidUKPhone(v)) {
-                        setPhoneError(
-                          "Please enter a valid UK phone number (e.g. +44 7XXXXXXXXX or 07XXXXXXXXX)"
-                        );
-                      } else {
-                        setPhoneError("");
-                      }
-                    }}
+                    onChange={(e) => setPhone(e.target.value)}
+                    onBlur={handlePhoneBlur}
                     placeholder="+44 123 456 7890"
-                    className={`w-full border ${
-                      phoneError
-                        ? "border-red-400 outline-none ring-2 ring-red-400"
-                        : "border-gray-300 focus:outline-none focus:ring-2 focus:ring-black"
-                    } rounded-md p-2 text-sm`}
+                    className={`w-full border ${phoneError
+                      ? "border-red-400 outline-none ring-2 ring-red-400"
+                      : "border-gray-300 focus:outline-none focus:ring-2 focus:ring-black"
+                      } rounded-md p-2 text-sm`}
                   />
                   {phoneError && (
                     <span className="text-sm text-red-400 mt-1">
@@ -702,14 +506,13 @@ const VisaCheckout = () => {
                     id="postcode"
                     value={postcode}
                     onChange={(e) => setPostcode(e.target.value)}
+                    onBlur={handlePostcodeBlur}
                     placeholder="SW1A 1AA"
-                    className={`w-full border ${
-                      postcodeError ? "border-red-400" : "border-gray-300"
-                    } rounded-md p-2 text-sm  ${
-                      postcodeError
+                    className={`w-full border ${postcodeError ? "border-red-400" : "border-gray-300"
+                      } rounded-md p-2 text-sm  ${postcodeError
                         ? "outline-none ring-2 ring-red-400"
                         : "focus:outline-none focus:ring-2 focus:ring-black"
-                    }`}
+                      }`}
                   />
                   {postcodeError && (
                     <span className="text-sm text-red-400 mt-1">
@@ -738,11 +541,10 @@ const VisaCheckout = () => {
               <h2 className="font-medium text-lg">Express Checkout</h2>
               <div className="space-y-2">
                 <div
-                  className={`border rounded-md p-3 cursor-pointer transition-all ${
-                    selectedPaymentMethod === "apple"
-                      ? "border-black bg-gray-50"
-                      : "border-gray-300"
-                  }`}
+                  className={`border rounded-md p-3 cursor-pointer transition-all ${selectedPaymentMethod === "apple"
+                    ? "border-black bg-gray-50"
+                    : "border-gray-300"
+                    }`}
                   onClick={() => setSelectedPaymentMethod("apple")}
                 >
                   <div className="flex items-center space-x-2">
@@ -765,11 +567,10 @@ const VisaCheckout = () => {
                 </div>
 
                 <div
-                  className={`border rounded-md p-3 cursor-pointer ${
-                    selectedPaymentMethod === "google"
-                      ? "border-black bg-gray-50"
-                      : "border-gray-300"
-                  }`}
+                  className={`border rounded-md p-3 cursor-pointer ${selectedPaymentMethod === "google"
+                    ? "border-black bg-gray-50"
+                    : "border-gray-300"
+                    }`}
                   onClick={() => setSelectedPaymentMethod("google")}
                 >
                   <div className="flex items-center space-x-2">
@@ -818,13 +619,11 @@ const VisaCheckout = () => {
                         setCouponCode(e.target.value.toUpperCase())
                       }
                       placeholder="Enter coupon code (e.g., STUDENT10)"
-                      className={`w-full border ${
-                        couponError ? "border-red-400" : "border-gray-300"
-                      } rounded-md p-2 text-sm ${
-                        couponError
+                      className={`w-full border ${couponError ? "border-red-400" : "border-gray-300"
+                        } rounded-md p-2 text-sm ${couponError
                           ? "outline-none ring-2 ring-red-400"
                           : "focus:outline-none focus:ring-2 focus:ring-black"
-                      }`}
+                        }`}
                       disabled={appliedDiscount}
                     />
                   </div>
@@ -872,11 +671,10 @@ const VisaCheckout = () => {
               <h2 className="font-medium text-lg">Payment Method</h2>
               <div className="space-y-2">
                 <div
-                  className={`border rounded-md p-3 cursor-pointer ${
-                    selectedPaymentMethod === "stripe"
-                      ? "border-black bg-gray-50"
-                      : "border-gray-300"
-                  }`}
+                  className={`border rounded-md p-3 cursor-pointer ${selectedPaymentMethod === "stripe"
+                    ? "border-black bg-gray-50"
+                    : "border-gray-300"
+                    }`}
                   onClick={() => setSelectedPaymentMethod("stripe")}
                 >
                   <div className="flex items-center justify-between">
@@ -941,17 +739,16 @@ const VisaCheckout = () => {
                             onChange={(e) =>
                               setCardNumber(formatCardNumber(e.target.value))
                             }
+                            onBlur={handleCardFieldBlur}
                             placeholder="1234 5678 9012 3456"
                             maxLength={19}
-                            className={`w-full border ${
-                              cardErrors.cardNumber
-                                ? "border-red-400"
-                                : "border-gray-300"
-                            } rounded-md p-3 text-sm pr-10 ${
-                              cardErrors.cardNumber
+                            className={`w-full border ${cardErrors.cardNumber
+                              ? "border-red-400"
+                              : "border-gray-300"
+                              } rounded-md p-3 text-sm pr-10 ${cardErrors.cardNumber
                                 ? "outline-none ring-2 ring-red-400"
                                 : "focus:outline-none focus:ring-2 focus:ring-black"
-                            }`}
+                              }`}
                           />
                           <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                             <svg
@@ -1003,17 +800,16 @@ const VisaCheckout = () => {
                                 formatExpirationDate(e.target.value)
                               )
                             }
+                            onBlur={handleCardFieldBlur}
                             placeholder="MM / YY"
                             maxLength={7}
-                            className={`w-full border ${
-                              cardErrors.expirationDate
-                                ? "border-red-400"
-                                : "border-gray-300"
-                            } rounded-md p-3 text-sm ${
-                              cardErrors.expirationDate
+                            className={`w-full border ${cardErrors.expirationDate
+                              ? "border-red-400"
+                              : "border-gray-300"
+                              } rounded-md p-3 text-sm ${cardErrors.expirationDate
                                 ? "outline-none ring-2 ring-red-400"
                                 : "focus:outline-none focus:ring-2 focus:ring-black"
-                            }`}
+                              }`}
                           />
                           {cardErrors.expirationDate && (
                             <span className="text-sm text-red-400 mt-1">
@@ -1049,17 +845,16 @@ const VisaCheckout = () => {
                                 e.target.value.replace(/\D/g, "").slice(0, 4)
                               )
                             }
+                            onBlur={handleCardFieldBlur}
                             placeholder="123"
                             maxLength={4}
-                            className={`w-full border ${
-                              cardErrors.securityCode
-                                ? "border-red-400"
-                                : "border-gray-300"
-                            } rounded-md p-3 text-sm ${
-                              cardErrors.securityCode
+                            className={`w-full border ${cardErrors.securityCode
+                              ? "border-red-400"
+                              : "border-gray-300"
+                              } rounded-md p-3 text-sm ${cardErrors.securityCode
                                 ? "outline-none ring-2 ring-red-400"
                                 : "focus:outline-none focus:ring-2 focus:ring-black"
-                            }`}
+                              }`}
                           />
                           {cardErrors.securityCode && (
                             <span className="text-sm text-red-400 mt-1">
@@ -1082,16 +877,15 @@ const VisaCheckout = () => {
                           id="nameOnCard"
                           value={nameOnCard}
                           onChange={(e) => setNameOnCard(e.target.value)}
+                          onBlur={handleCardFieldBlur}
                           placeholder="John Doe"
-                          className={`w-full border ${
-                            cardErrors.nameOnCard
-                              ? "border-red-400"
-                              : "border-gray-300"
-                          } rounded-md p-3 text-sm ${
-                            cardErrors.nameOnCard
+                          className={`w-full border ${cardErrors.nameOnCard
+                            ? "border-red-400"
+                            : "border-gray-300"
+                            } rounded-md p-3 text-sm ${cardErrors.nameOnCard
                               ? "outline-none ring-2 ring-red-400"
                               : "focus:outline-none focus:ring-2 focus:ring-black"
-                          }`}
+                            }`}
                         />
                         {cardErrors.nameOnCard && (
                           <span className="text-sm text-red-400 mt-1">
@@ -1170,15 +964,14 @@ const VisaCheckout = () => {
                                 onChange={(e) =>
                                   setBillingFirstName(e.target.value)
                                 }
-                                className={`w-full border ${
-                                  cardErrors.billingFirstName
-                                    ? "border-red-400"
-                                    : "border-gray-300"
-                                } rounded-md p-3 text-sm ${
-                                  cardErrors.billingFirstName
+                                onBlur={handleBillingFieldBlur}
+                                className={`w-full border ${cardErrors.billingFirstName
+                                  ? "border-red-400"
+                                  : "border-gray-300"
+                                  } rounded-md p-3 text-sm ${cardErrors.billingFirstName
                                     ? "outline-none ring-2 ring-red-400"
                                     : "focus:outline-none focus:ring-2 focus:ring-black"
-                                }`}
+                                  }`}
                               />
                               {cardErrors.billingFirstName && (
                                 <span className="text-sm text-red-400 mt-1">
@@ -1201,15 +994,14 @@ const VisaCheckout = () => {
                                 onChange={(e) =>
                                   setBillingLastName(e.target.value)
                                 }
-                                className={`w-full border ${
-                                  cardErrors.billingLastName
-                                    ? "border-red-400"
-                                    : "border-gray-300"
-                                } rounded-md p-3 text-sm ${
-                                  cardErrors.billingLastName
+                                onBlur={handleBillingFieldBlur}
+                                className={`w-full border ${cardErrors.billingLastName
+                                  ? "border-red-400"
+                                  : "border-gray-300"
+                                  } rounded-md p-3 text-sm ${cardErrors.billingLastName
                                     ? "outline-none ring-2 ring-red-400"
                                     : "focus:outline-none focus:ring-2 focus:ring-black"
-                                }`}
+                                  }`}
                               />
                               {cardErrors.billingLastName && (
                                 <span className="text-sm text-red-400 mt-1">
@@ -1218,7 +1010,8 @@ const VisaCheckout = () => {
                               )}
                             </div>
                           </div>
-
+                          onChange={(e) => setBillingAddress(e.target.value)}
+                          onBlur={handleBillingFieldBlur}
                           {/* Address */}
                           <div>
                             <label
@@ -1247,15 +1040,13 @@ const VisaCheckout = () => {
                               onChange={(e) =>
                                 setBillingAddress(e.target.value)
                               }
-                              className={`w-full border ${
-                                cardErrors.billingAddress
-                                  ? "border-red-400"
-                                  : "border-gray-300"
-                              } rounded-md p-3 text-sm ${
-                                cardErrors.billingAddress
+                              className={`w-full border ${cardErrors.billingAddress
+                                ? "border-red-400"
+                                : "border-gray-300"
+                                } rounded-md p-3 text-sm ${cardErrors.billingAddress
                                   ? "outline-none ring-2 ring-red-400"
                                   : "focus:outline-none focus:ring-2 focus:ring-black"
-                              }`}
+                                }`}
                             />
                             {cardErrors.billingAddress && (
                               <span className="text-sm text-red-400 mt-1">
@@ -1297,15 +1088,14 @@ const VisaCheckout = () => {
                                 id="billingCity"
                                 value={billingCity}
                                 onChange={(e) => setBillingCity(e.target.value)}
-                                className={`w-full border ${
-                                  cardErrors.billingCity
-                                    ? "border-red-400"
-                                    : "border-gray-300"
-                                } rounded-md p-3 text-sm ${
-                                  cardErrors.billingCity
+                                onBlur={handleBillingFieldBlur}
+                                className={`w-full border ${cardErrors.billingCity
+                                  ? "border-red-400"
+                                  : "border-gray-300"
+                                  } rounded-md p-3 text-sm ${cardErrors.billingCity
                                     ? "outline-none ring-2 ring-red-400"
                                     : "focus:outline-none focus:ring-2 focus:ring-black"
-                                }`}
+                                  }`}
                               />
                               {cardErrors.billingCity && (
                                 <span className="text-sm text-red-400 mt-1">
@@ -1328,15 +1118,36 @@ const VisaCheckout = () => {
                                 onChange={(e) =>
                                   setBillingPostcode(e.target.value)
                                 }
-                                className={`w-full border ${
-                                  cardErrors.billingPostcode
-                                    ? "border-red-400"
-                                    : "border-gray-300"
-                                } rounded-md p-3 text-sm ${
-                                  cardErrors.billingPostcode
+                                onBlur={(e) => {
+                                  const v = String(e.target.value || "").trim();
+                                  if (billingCountry === "United Kingdom") {
+                                    if (!v) {
+                                      setCardErrors((prev) => ({
+                                        ...prev,
+                                        billingPostcode: "Postcode is required",
+                                      }));
+                                    } else if (!isValidUKPostcode(v)) {
+                                      setCardErrors((prev) => ({
+                                        ...prev,
+                                        billingPostcode:
+                                          "Please enter a valid UK postcode (e.g. SW1A 1AA)",
+                                      }));
+                                    } else {
+                                      setCardErrors((prev) => {
+                                        const nxt = { ...prev };
+                                        delete nxt.billingPostcode;
+                                        return nxt;
+                                      });
+                                    }
+                                  }
+                                }}
+                                className={`w-full border ${cardErrors.billingPostcode
+                                  ? "border-red-400"
+                                  : "border-gray-300"
+                                  } rounded-md p-3 text-sm ${cardErrors.billingPostcode
                                     ? "outline-none ring-2 ring-red-400"
                                     : "focus:outline-none focus:ring-2 focus:ring-black"
-                                }`}
+                                  }`}
                               />
                               {cardErrors.billingPostcode && (
                                 <span className="text-sm text-red-400 mt-1">
@@ -1380,11 +1191,10 @@ const VisaCheckout = () => {
                 </div>
 
                 <div
-                  className={`border rounded-md p-3 cursor-pointer ${
-                    selectedPaymentMethod === "klarna"
-                      ? "border-black bg-gray-50"
-                      : "border-gray-300"
-                  }`}
+                  className={`border rounded-md p-3 cursor-pointer ${selectedPaymentMethod === "klarna"
+                    ? "border-black bg-gray-50"
+                    : "border-gray-300"
+                    }`}
                   onClick={() => setSelectedPaymentMethod("klarna")}
                 >
                   <div className="flex items-center space-x-2">
@@ -1411,11 +1221,10 @@ const VisaCheckout = () => {
               <button
                 disabled={cretingDynamicCheckout}
                 onClick={handleProceedToCheckout}
-                className={`w-full bg-black text-white py-3 rounded-md font-semibold hover:bg-gray-900 transition-colors ${
-                  cretingDynamicCheckout
-                    ? "cursor-not-allowed opacity-50"
-                    : "cursor-pointer"
-                }`}
+                className={`w-full bg-black text-white py-3 rounded-md font-semibold hover:bg-gray-900 transition-colors ${cretingDynamicCheckout
+                  ? "cursor-not-allowed opacity-50"
+                  : "cursor-pointer"
+                  }`}
               >
                 {cretingDynamicCheckout ? (
                   "Processing..."
@@ -1501,7 +1310,6 @@ const VisaCheckout = () => {
             </div>
             <div className="flex justify-between text-sm">
               <span className="line-through">
-                {formatCurrency(originalPriceEUR, "EUR")}
               </span>
               <span>{formatCurrency(visaFeesEUR, "EUR")}</span>
             </div>

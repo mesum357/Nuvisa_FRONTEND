@@ -17,7 +17,7 @@ const useCreateDynamicCheckoutSession = () => {
     currency = "EUR",
   }) => {
     setCreatingDynamicCheckout(true);
-    const successCallbackFunction = () => {};
+    const successCallbackFunction = () => { };
 
     console.log("=== PAYMENT HOOK DEBUG ===");
     console.log("Raw input parameters:", {

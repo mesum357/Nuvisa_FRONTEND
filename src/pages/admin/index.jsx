@@ -5,6 +5,7 @@ import { Header } from "@/components/layout/Header";
 import { getApplicationOverview, getDocumentsOverview } from "@/api/admin";
 import { localStorageEnums } from "@/enums/localstorage.enums";
 import { localStorageGateway } from "@/gateways/localStoragegateway";
+import Cookies from 'js-cookie';
 import ApplicationStatusList from "@/components/admin/ApplicationStatusList";
 import DocumentsList from "@/components/admin/DocumentsList";
 import { saveOrderId, getOrderId } from "@/utils/adminStorage";
@@ -13,14 +14,36 @@ import { useRouter } from "next/router";
 
 export default function AdminDashboard() {
   const router = useRouter();
+  // Client-side guard: only allow admin email to view this page
+  useEffect(() => {
+    const adminEmail = 'test@123.com';
+    const storedEmail = localStorageGateway('userEmail', localStorageEnums.GET);
+    let email = storedEmail || null;
+    if (!email) {
+      try {
+        const userCookie = Cookies.get('user');
+        if (userCookie) {
+          const parsed = JSON.parse(userCookie);
+          email = parsed?.email || null;
+        }
+      } catch {
+        email = null;
+      }
+    }
+
+    if (email !== adminEmail) {
+      // Replace navigation so user can't go back to admin via history
+      router.replace('/dashboard');
+    }
+  }, [router]);
   const [activeTab, setActiveTab] = useState("overview");
   const [applications, setApplications] = useState([]);
-  const [allApplications, setAllApplications] = useState([]); 
+  const [allApplications, setAllApplications] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchType, setSearchType] = useState("all"); 
+  const [searchType, setSearchType] = useState("all");
   const [searching, setSearching] = useState(false);
 
   const token = localStorageGateway("token", localStorageEnums.GET);
@@ -229,13 +252,13 @@ export default function AdminDashboard() {
               transition={{ duration: 0.2 }}
             >
               <DocumentsList documents={documents}
-              onView={
-                (doc) => {
-                  window.open(doc?.previewUrl || doc?.downloadUrl, '_blank', 'noopener,noreferrer');
+                onView={
+                  (doc) => {
+                    window.open(doc?.previewUrl || doc?.downloadUrl, '_blank', 'noopener,noreferrer');
+                  }
                 }
-              }
 
-                />
+              />
             </motion.div>
           )}
         </AnimatePresence>
@@ -248,11 +271,10 @@ function TabButton({ active, onClick, icon, label }) {
   return (
     <button
       onClick={onClick}
-      className={`px-4 py-3 flex items-center gap-3 font-medium text-sm relative border-b-2 transition-colors ${
-        active
-          ? "text-white border-[#7350FF]"
-          : "text-white/60 border-transparent hover:text-white hover:border-[#7350FF]"
-      }`}
+      className={`px-4 py-3 flex items-center gap-3 font-medium text-sm relative border-b-2 transition-colors ${active
+        ? "text-white border-[#7350FF]"
+        : "text-white/60 border-transparent hover:text-white hover:border-[#7350FF]"
+        }`}
     >
       {icon}
       {label}

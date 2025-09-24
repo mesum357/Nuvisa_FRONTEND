@@ -6,7 +6,6 @@ import { useSearchParams } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/store";
 import {
   setSelectedCountry,
-  setVisaFees,
   setInsuranceFees,
   setTravelers,
 } from "@/store/visaSlice";
@@ -19,7 +18,6 @@ const PaymentSuccess = () => {
   const dispatch = useAppDispatch();
   const visaState = useAppSelector((state) => state.visa);
   const { getCurrentPaymentData, addPaymentToHistory } = usePaymentData();
-  const [paymentData, setPaymentData] = useState(null);
   const [isCreatingApplication, setIsCreatingApplication] = useState(false);
   const [paymentType, setPaymentType] = useState("application_creation");
   const hasProcessedPayment = useRef(false);
@@ -36,13 +34,19 @@ const PaymentSuccess = () => {
       try {
         // Get payment data from current session
         const currentData = await getCurrentPaymentData();
-        setPaymentData(currentData); // Store payment data for display
+
+        const sessionId = searchParams.get("session_id");
+        if (
+          !sessionId &&
+          (!currentData || (!currentData.totalAmount && !currentData.applicationId))
+        ) {
+          setTimeout(() => router.replace("/dashboard"), 800);
+          return;
+        }
 
         console.log("=== PAYMENT SUCCESS DEBUG ===");
         console.log("Current payment data:", currentData);
 
-        // Get session ID from Stripe if available
-        const sessionId = searchParams.get("session_id");
 
         // Check if this is a traveler insurance payment (both regular and additional)
         // Prioritize URL parameters over localStorage data for insurance payments
@@ -117,8 +121,7 @@ const PaymentSuccess = () => {
             // otherwise fall back to current payment data.
             const postAmount =
               (usedStoredInsuranceMetadata && usedStoredInsuranceMetadata.paymentAmount) ||
-              currentData.totalAmount ||
-              "490";
+              (Number.isFinite(Number(currentData.totalAmount)) ? currentData.totalAmount : "490");
             const postOrderId =
               (usedStoredInsuranceMetadata && usedStoredInsuranceMetadata.orderId) ||
               undefined;
@@ -189,11 +192,11 @@ const PaymentSuccess = () => {
         if (currentData.selectedCountry) {
           dispatch(setSelectedCountry(currentData.selectedCountry));
         }
-        if (currentData.insurancePayment) {
-          dispatch(setInsuranceFees(Number(currentData.insurancePayment) || 0));
+        if (Number.isFinite(Number(currentData.insurancePayment))) {
+          dispatch(setInsuranceFees(Number(currentData.insurancePayment)));
         }
-        if (currentData.travelers) {
-          dispatch(setTravelers(Number(currentData.travelers) || 1));
+        if (Number.isFinite(Number(currentData.travelers))) {
+          dispatch(setTravelers(Number(currentData.travelers)));
         }
 
         // Create visa application
@@ -227,11 +230,11 @@ const PaymentSuccess = () => {
 
         // Initialize travelers data with insurance set for each initial traveler
         const numberOfTravelers = Number(currentData.travelers) || 1;
-        
+
         // Use the actual insurance selection boolean, fallback to fee check for backward compatibility
-        const hasInsurance = currentData.insuranceSelected === "true" || 
-                           (currentData.insuranceSelected === undefined && Number(currentData.insurancePayment) > 0) 
-                           ? "true" : "false";
+        const hasInsurance = currentData.insuranceSelected === "true" ||
+          (currentData.insuranceSelected === undefined && Number(currentData.insurancePayment) > 0)
+          ? "true" : "false";
 
         const initialTravelersData = Array.from(
           { length: numberOfTravelers },
@@ -329,7 +332,7 @@ const PaymentSuccess = () => {
           setTimeout(() => {
             router.replace(
               "/application-step/?application_id=" +
-                applicationResponse?.data?.data?.results?.application?.id
+              applicationResponse?.data?.data?.results?.application?.id
             );
           }, 2000); // 2 second delay
         } else {
@@ -358,11 +361,11 @@ const PaymentSuccess = () => {
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#7350FF] mx-auto mb-4"></div>
         <p className="text-gray-600">
           {paymentType === "additional_traveler_insurance" ||
-          paymentType === "traveler_insurance"
+            paymentType === "traveler_insurance"
             ? "Processing insurance payment and redirecting back to your application..."
             : isCreatingApplication
-            ? "Creating your visa application..."
-            : "Processing payment and redirecting to dashboard..."}
+              ? "Creating your visa application..."
+              : "Processing payment and redirecting to dashboard..."}
         </p>
       </div>
     </div>
