@@ -25,8 +25,8 @@ import { useEffect, useState } from "react";
 import { ChevronLeft } from "lucide-react";
 import { useToast } from "@/contexts/ToastContext";
 import BookingAppointment from "@/components/BookingAppointment";
-import { calculatePaymentFees } from "@/utils/currency";
 import useCreateDynamicCheckoutSession from "@/hooks/useCreateDynamicCheckoutSession";
+import { countryCodeMap } from "@/utils/countryCodeMap";
 
 const MultiStepAccordion = () => {
   const token = localStorageGateway("token", localStorageEnums.GET);
@@ -1324,13 +1324,15 @@ const MultiStepAccordion = () => {
         {/* Country Info */}
         <div className="flex flex-col md:flex-row justify-start w-full items-start md:items-center gap-4 mb-8">
           <div className="flex items-center gap-4">
-            <img
-              src="https://flagcdn.com/w80/gb.png"
-              alt="United Kingdom Flag"
-              width={40}
-              height={30}
-              className="rounded-md border border-gray-200 w-[50px] h-[42px]"
-            />
+            <ClientOnly>
+              <img
+                src={`https://flagcdn.com/w80/${countryCodeMap[parentVisaApplication?.country]}.png`}
+                alt="United Kingdom Flag"
+                width={40}
+                height={30}
+                className="rounded-md border border-gray-200 w-[50px] h-[42px]"
+              />
+            </ClientOnly>
             <div>
               <h2 className="text-2xl font-gilroy-bold text-white">
                 <ClientOnly fallback="United Kingdom Visa Application">
@@ -1405,7 +1407,7 @@ const MultiStepAccordion = () => {
                   const insuranceDetailsSelected =
                     travelerInsuranceObj.insuranceDetails?.selected === true ||
                     travelerInsuranceObj.insuranceDetails?.hasOwnInsurance ===
-                      true;
+                    true;
                   const insuranceSelectedPurchaseOrOwn =
                     travelerInsuranceObj.insurance === "purchase" ||
                     travelerInsuranceObj.insurance === "own";
@@ -1451,11 +1453,10 @@ const MultiStepAccordion = () => {
                     <button
                       key={index}
                       onClick={() => setCurrentTravelerIndex(index)}
-                      className={`px-4 py-2 rounded-lg font-medium transition-colors duration-200 relative ${
-                        currentTravelerIndex === index
-                          ? "bg-[#6366F1] text-white"
-                          : "bg-[#292933] text-gray-300 hover:bg-[#333340] hover:text-white"
-                      }`}
+                      className={`px-4 py-2 rounded-lg font-medium transition-colors duration-200 relative ${currentTravelerIndex === index
+                        ? "bg-[#6366F1] text-white"
+                        : "bg-[#292933] text-gray-300 hover:bg-[#333340] hover:text-white"
+                        }`}
                     >
                       <div className="flex items-center gap-2">
                         <span>
@@ -1538,30 +1539,29 @@ const MultiStepAccordion = () => {
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-400">Application Status:</span>
                     <span
-                      className={`font-medium ${
-                        parentVisaApplication.applicationStatus === "submitted"
-                          ? "text-green-400"
-                          : parentVisaApplication.applicationStatus ===
-                            "payment_required"
+                      className={`font-medium ${parentVisaApplication.applicationStatus === "submitted"
+                        ? "text-green-400"
+                        : parentVisaApplication.applicationStatus ===
+                          "payment_required"
                           ? "text-yellow-400"
                           : "text-blue-400"
-                      }`}
+                        }`}
                     >
                       {parentVisaApplication.applicationStatus ===
-                      "payment_required"
+                        "payment_required"
                         ? "Payment Required"
                         : parentVisaApplication.applicationStatus ===
                           "submitted"
-                        ? "Submitted"
-                        : "In Progress"}
+                          ? "Submitted"
+                          : "In Progress"}
                     </span>
                   </div>
                   {parentVisaApplication.applicationStatus ===
                     "payment_required" && (
-                    <div className="text-xs text-yellow-400 mt-1">
-                      Additional travelers require insurance payment
-                    </div>
-                  )}
+                      <div className="text-xs text-yellow-400 mt-1">
+                        Additional travelers require insurance payment
+                      </div>
+                    )}
                 </div>
               )}
             </div>
@@ -1579,25 +1579,22 @@ const MultiStepAccordion = () => {
             return (
               <div
                 key={step.id}
-                className={`border rounded-lg border-[#423577] overflow-hidden transition-all duration-300 ${
-                  isLocked ? "opacity-50 cursor-not-allowed" : "opacity-100"
-                }`}
+                className={`border rounded-lg border-[#423577] overflow-hidden transition-all duration-300 ${isLocked ? "opacity-50 cursor-not-allowed" : "opacity-100"
+                  }`}
                 style={{ boxShadow: "rgba(0, 0, 0, 0.05) 0px 1px 3px 0px" }}
               >
                 {/* Step Header */}
                 <div
-                  className={`p-4 flex justify-between items-center ${
-                    isLocked ? "cursor-not-allowed" : "cursor-pointer"
-                  } ${step.open ? "bg-[#292933]" : "bg-[#23232B]"}`}
+                  className={`p-4 flex justify-between items-center ${isLocked ? "cursor-not-allowed" : "cursor-pointer"
+                    } ${step.open ? "bg-[#292933]" : "bg-[#23232B]"}`}
                   onClick={() => !isLocked && toggleStep(step.id)}
                 >
                   <div className="flex items-center">
                     <div
-                      className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 ${
-                        step.completed
-                          ? "bg-green-500 text-white"
-                          : "bg-gray-700 text-white"
-                      }`}
+                      className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 ${step.completed
+                        ? "bg-green-500 text-white"
+                        : "bg-gray-700 text-white"
+                        }`}
                     >
                       {step.completed ? "✓" : index + 1}
                     </div>
@@ -1670,6 +1667,7 @@ const MultiStepAccordion = () => {
                         loading={loading}
                         parentVisaApplication={parentVisaApplication}
                         showError={showError}
+                        validateInsurance={validateInsurance}
                       />
                     )}
 
@@ -1924,7 +1922,7 @@ const DocumentStep = ({
     }
   };
 
-  const handleUploadSuccess = (documentData, docId) => {};
+  const handleUploadSuccess = (documentData, docId) => { };
 
   const handleUploadError = (errorMessage) => {
     console.error("Document upload error:", errorMessage);
@@ -2019,8 +2017,7 @@ const InsuranceStep = ({
     if (
       insurance.orderId &&
       insurance.paymentAmount &&
-      insurance.insurancePaymentCompleted &&
-      insurance.insurance !== "true"
+      insurance.insurancePaymentCompleted
     ) {
       updateCurrentTravelerData("insurance", {
         ...insurance,
@@ -2053,6 +2050,7 @@ const InsuranceStep = ({
       console.error("Error checking completed insurance payment:", error);
     }
   }, [travelerData?.insurance, travelerIndex, parentVisaApplication?.id]);
+
 
   const handleCertificateUpload = (event) => {
     const file = event.target.files[0];
@@ -2114,19 +2112,19 @@ const InsuranceStep = ({
       typeof validateInsurance === "function"
         ? validateInsurance()
         : (() => {
-            const ins = travelerData?.insurance || {};
-            if (!ins.insurance) return false;
-            if (ins.insurance === "own") {
-              return !!uploadedCertificate || !!ins.insuranceCertificate;
-            }
-            if (ins.insurance === "purchase") {
-              return (
-                !!ins.insurancePaymentCompleted ||
-                (!!ins.orderId && !!ins.paymentAmount)
-              );
-            }
-            return true;
-          })();
+          const ins = travelerData?.insurance || {};
+          if (!ins.insurance) return false;
+          if (ins.insurance === "own") {
+            return !!uploadedCertificate || !!ins.insuranceCertificate;
+          }
+          if (ins.insurance === "purchase") {
+            return (
+              !!ins.insurancePaymentCompleted ||
+              (!!ins.orderId && !!ins.paymentAmount)
+            );
+          }
+          return true;
+        })();
     if (!isValid) {
       console.error("Insurance validation failed");
       if (showError) {
@@ -2139,10 +2137,7 @@ const InsuranceStep = ({
 
     const currentInsurance = travelerData?.insurance || {};
 
-    if (currentInsurance.insurance === "own" && !uploadedCertificate) {
-      setInsuranceError("Please upload your insurance certificate.");
-      return;
-    }
+
 
     let insuranceToSave = currentInsurance;
     if (
@@ -2201,7 +2196,7 @@ const InsuranceStep = ({
         const diff = Math.ceil((e - s) / (1000 * 60 * 60 * 24));
         return Math.max(1, diff);
       }
-    } catch (e) {}
+    } catch (e) { }
     return 30;
   };
 
@@ -2265,8 +2260,8 @@ const InsuranceStep = ({
       console.error("Insurance payment error:", err);
       setPaymentError(
         err.response?.data?.message ||
-          err.message ||
-          "Failed to process payment. Please try again."
+        err.message ||
+        "Failed to process payment. Please try again."
       );
     } finally {
       setIsPaying(false);
@@ -2380,9 +2375,8 @@ const InsuranceStep = ({
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-4 max-w-56 w-full">
                   <div
-                    className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                      isUploaded ? "bg-green-600" : "bg-gray-600"
-                    }`}
+                    className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${isUploaded ? "bg-green-600" : "bg-gray-600"
+                      }`}
                   >
                     {isUploaded ? (
                       <svg
@@ -2590,8 +2584,8 @@ const InsuranceStep = ({
                 {isPaying || cretingDynamicCheckout
                   ? "Redirecting to Payment..."
                   : `Pay Insurance (£${(calculateInsuranceDays() * 2).toFixed(
-                      2
-                    )})`}
+                    2
+                  )})`}
               </button>
             </div>
           ) : (
@@ -2630,8 +2624,8 @@ const InsuranceStep = ({
                   <span className="text-white font-medium">
                     {travelerData?.insurance?.paymentDate
                       ? new Date(
-                          travelerData.insurance.paymentDate
-                        ).toLocaleDateString()
+                        travelerData.insurance.paymentDate
+                      ).toLocaleDateString()
                       : "N/A"}
                   </span>
                 </div>

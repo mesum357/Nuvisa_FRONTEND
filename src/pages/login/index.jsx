@@ -147,7 +147,7 @@ const Index = () => {
             <p className="text-sm text-gray-300">
               No NuVisa account?{" "}
               <Link
-                href="/checkout"
+                href="/get-the-visa"
                 className="font-medium text-purple-500 hover:text-purple-500"
               >
                 Proceed to checkout 3

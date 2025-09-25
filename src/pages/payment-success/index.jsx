@@ -11,6 +11,7 @@ import {
 } from "@/store/visaSlice";
 import usePaymentData from "@/hooks/usePaymentData";
 import { createApplication } from "@/api/visa";
+import { createOrUpdateApplication } from "@/api/visaApplications";
 
 const PaymentSuccess = () => {
   const router = useRouter();
@@ -103,71 +104,7 @@ const PaymentSuccess = () => {
 
         setPaymentType(finalPaymentType);
 
-        if (
-          (finalPaymentType === "additional_traveler_insurance" ||
-            finalPaymentType === "traveler_insurance") &&
-          finalApplicationId
-        ) {
-          console.log(
-            `✅ INSURANCE PAYMENT DETECTED - Processing ${finalPaymentType} payment success for traveler ${travelerIndex}`
-          );
-          console.log(
-            "Manually updating traveler insurance status (webhook workaround for localhost)"
-          );
 
-          try {
-            // Determine amount and orderId to send to backend.
-            // Prefer values from stored insurance metadata (if present),
-            // otherwise fall back to current payment data.
-            const postAmount =
-              (usedStoredInsuranceMetadata && usedStoredInsuranceMetadata.paymentAmount) ||
-              (Number.isFinite(Number(currentData.totalAmount)) ? currentData.totalAmount : "490");
-            const postOrderId =
-              (usedStoredInsuranceMetadata && usedStoredInsuranceMetadata.orderId) ||
-              undefined;
-
-            // Manually call the insurance update API since webhooks don't work in localhost
-            const insuranceUpdateResponse = await fetch(
-              `${process.env.NEXT_PUBLIC_API_URL}/stripe_payment/test-insurance-payment`,
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  paymentType: finalPaymentType,
-                  travelerIndex: travelerIndex,
-                  applicationId: finalApplicationId,
-                  email: currentData.email,
-                  amount: postAmount,
-                  orderId: postOrderId,
-                }),
-              }
-            );
-
-            const insuranceResult = await insuranceUpdateResponse.json();
-            console.log("Insurance update result:", insuranceResult);
-
-            if (insuranceResult.status === "success") {
-              console.log("✅ Traveler insurance updated successfully");
-            } else {
-              console.error(
-                "❌ Failed to update traveler insurance:",
-                insuranceResult
-              );
-            }
-          } catch (error) {
-            console.error("Error updating traveler insurance:", error);
-          }
-
-          // Redirect back to application step after updating insurance
-          setTimeout(() => {
-            router.replace(
-              `/application-step/?application_id=${finalApplicationId}`
-            );
-          }, 2000);
-          return;
-        }
 
         console.log(
           "❌ NOT AN INSURANCE PAYMENT - Proceeding with application creation flow"
@@ -289,7 +226,9 @@ const PaymentSuccess = () => {
               insurance: hasInsurance, // Set insurance for each initial traveler based on payment
               insuranceDetails:
                 hasInsurance === "true" ? { selected: true } : null,
-              insuranceCertificate: null, // Initialize certificate field
+              insuranceCertificate: null, // Initialize certificate field,
+              orderId: null,
+              paymentAmount: 0
             },
           })
         );
@@ -307,6 +246,7 @@ const PaymentSuccess = () => {
           // Add arrival and departure dates from Redux store for SMV order creation
           arrivalDate: visaState.arrivalDate,
           departureDate: visaState.departureDate,
+          insurancePaymentCompleted: hasInsurance === "true" ? false : null,
         };
 
         console.log("=== APPLICATION PAYLOAD DEBUG ===");
@@ -321,6 +261,78 @@ const PaymentSuccess = () => {
           numberOfTravellers: applicationPayload.numberOfTravellers,
         });
         console.log("=== END APPLICATION PAYLOAD DEBUG ===");
+
+        if (
+          (finalPaymentType === "additional_traveler_insurance" ||
+            finalPaymentType === "traveler_insurance") &&
+          finalApplicationId
+        ) {
+          console.log(
+            `✅ INSURANCE PAYMENT DETECTED - Processing ${finalPaymentType} payment success for traveler ${travelerIndex}`
+          );
+          console.log(
+            "Manually updating traveler insurance status (webhook workaround for localhost)"
+          );
+
+          try {
+            const postAmount =
+              (usedStoredInsuranceMetadata && usedStoredInsuranceMetadata.paymentAmount) ||
+              (Number.isFinite(Number(currentData.totalAmount)) ? currentData.totalAmount : "490");
+            const postOrderId =
+              (usedStoredInsuranceMetadata && usedStoredInsuranceMetadata.orderId) ||
+              undefined;
+
+            await fetch(
+              `${process.env.NEXT_PUBLIC_API_URL}/stripe_payment/test-insurance-payment`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  paymentType: finalPaymentType,
+                  travelerIndex: travelerIndex,
+                  applicationId: finalApplicationId,
+                  email: currentData.email,
+                  amount: postAmount,
+                  orderId: postOrderId,
+                }),
+              }
+            );
+
+            const insuranceUpdateResponse = await createOrUpdateApplication("", {
+              ...applicationPayload,
+              insurance: "true",
+              travelersData: initialTravelersData.map((traveler, index) =>
+                index === travelerIndex
+                  ? {
+                    ...traveler, insurance: {
+                      orderId: postOrderId || null, paymentAmount: postAmount,
+                      insurancePaymentCompleted: true
+                    }
+                  }
+                  : traveler
+              ),
+              insurancePaymentCompleted: true,
+
+            })
+
+
+            const insuranceResult = insuranceUpdateResponse?.data?.data?.results || {};
+            console.log("Insurance update result:", insuranceResult);
+
+
+          } catch (error) {
+            console.error("Error updating traveler insurance:", error);
+          }
+
+          setTimeout(() => {
+            router.replace(
+              `/application-step/?application_id=${finalApplicationId}`
+            );
+          }, 2000);
+          return;
+        }
 
         const applicationResponse = await createApplication(applicationPayload);
         // console.log("Application creation response:", applicationResponse);
