@@ -1398,10 +1398,8 @@ const PassportInformationSection = ({
           disabled={isProcessing || loading}
           className="bg-[#7350FF] hover:bg-[#6346E5] disabled:bg-[#7350FF]/30 disabled:cursor-not-allowed text-white font-medium px-6 py-3 rounded-lg transition-all duration-200 flex items-center gap-2 shadow-lg"
         >
-          {(isProcessing || loading) && (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          )}
-          {isProcessing || loading ? "Saving..." : "Save and Continue"}
+
+          Save and Continue
         </button>
       </div>
     </form>
