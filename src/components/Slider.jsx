@@ -184,6 +184,7 @@ const CountrySlider = () => {
 
   const [userEmail, setUserEmailLocal] = useState("");
   const [emailError, setEmailError] = useState("");
+  const [documentsAccordionOpen, setDocumentsAccordionOpen] = useState(false);
 
   // Helper function to safely parse duration from visa type
   const parseDurationDays = (durationString) => {
@@ -479,6 +480,7 @@ const CountrySlider = () => {
       const next = { ...prev, [documentKey]: !prev[documentKey] };
       return next;
     });
+    // Keep accordion open for better UX - let users manually close it
     // Clear validation error when document is checked
     if (!requiredDocuments[documentKey]) {
       setValidationErrors((prev) => {
@@ -1951,162 +1953,176 @@ const CountrySlider = () => {
 
         {/* Required Documents */}
         <ClientOnly>
-          <div className="mb-6">
-            <h2 className="text-xl font-gilroy-bold mb-4">
-              Required Documents:
-            </h2>
-            <div className="grid grid-cols-2 gap-3">
-              <div
-                className={`flex items-start space-x-2 cursor-pointer rounded p-2 transition-colors ${requiredDocuments.passport
-                  ? "border-[2px] border-black rounded-xl"
-                  : validationErrors.has("passport")
-                    ? "border border-red-500 rounded-xl"
-                    : "shadow-black/20 shadow-lg rounded-xl"
-                  }`}
-                onClick={() => toggleRequiredDocument("passport")}
+          <div className="my-6">
+            <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden transition-all duration-300 hover:bg-white/10">
+              <h2
+                className="text-xl font-gilroy-bold p-4 cursor-pointer flex items-center justify-between hover:bg-white/5 transition-all duration-200"
+                onClick={() => setDocumentsAccordionOpen(!documentsAccordionOpen)}
               >
-                <div
-                  className={`w-3.5 h-3.5 rounded-sm mt-0.5 flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black ${requiredDocuments.passport
-                    ? "bg-[#7350FF] border border-transparent"
-                    : "bg-white border border-gray-500"
-                    }`}
-                >
-                  {requiredDocuments.passport ? (
-                    <Check className="w-3.5 h-3.5 text-white" />
-                  ) : (
-                    <div className="w-4 h-4 border border-gray-300 rounded-lg" />
-                  )}
-                </div>
-                <span className="text-base">
-                  <strong>Passport</strong> (minimum 6 months validity)
+                <span className="flex items-center gap-3">
+                  <div className="w-6 h-6 rounded-full bg-[#7350FF] flex items-center justify-center">
+                    <FileText className="w-3.5 h-3.5 text-white" />
+                  </div>
+                  <span>Required Documents</span>
+                  <div className="ml-2 px-2 py-1 bg-white/10 rounded-full text-xs font-medium">
+                    {Object.values(requiredDocuments).filter(Boolean).length}/6 selected
+                  </div>
                 </span>
-              </div>
-              <div
-                className={`flex items-start space-x-2 cursor-pointer rounded p-1 transition-colors ${requiredDocuments.ukVisa
-                  ? "border-[2px] border-black rounded-xl"
-                  : validationErrors.has("ukVisa")
-                    ? "border border-red-500 rounded-xl"
-                    : "shadow-black/20 shadow-lg rounded-xl"
-                  }`}
-                onClick={() => toggleRequiredDocument("ukVisa")}
-              >
-                <div
-                  className={`w-3.5 h-3.5 rounded-sm mt-0.5 flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black ${requiredDocuments.ukVisa
-                    ? "bg-[#7350FF] border border-transparent"
-                    : "bg-white border border-gray-500"
-                    }`}
-                >
-                  {requiredDocuments.ukVisa ? (
-                    <Check className="w-3.5 h-3.5 text-white" />
-                  ) : (
-                    <div className="w-4 h-4 border border-gray-300" />
-                  )}
+                <div className={`transform transition-transform duration-300 ${documentsAccordionOpen ? 'rotate-180' : 'rotate-0'}`}>
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
                 </div>
-                <span className="text-base">
-                  <strong>UK visa</strong> (minimum 6 months validity)
-                </span>
-              </div>
-              <div
-                className={`flex items-start space-x-2 cursor-pointer rounded p-1 transition-colors ${requiredDocuments.photos
-                  ? "border-[2px] border-black rounded-xl"
-                  : validationErrors.has("photos")
-                    ? "border border-red-500 rounded-xl"
-                    : "shadow-black/20 shadow-lg rounded-xl"
-                  }`}
-                onClick={() => toggleRequiredDocument("photos")}
-              >
-                <div
-                  className={`w-3.5 h-3.5 rounded-sm mt-0.5 flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black ${requiredDocuments.photos
-                    ? "bg-[#7350FF] border border-transparent"
-                    : "bg-white border border-gray-500"
-                    }`}
-                >
-                  {requiredDocuments.photos ? (
-                    <Check className="w-3.5 h-3.5 text-white" />
-                  ) : (
-                    <div className="w-4 h-4 border border-gray-300" />
-                  )}
+              </h2>
+
+              <div className={`transition-all duration-300 ease-in-out ${documentsAccordionOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                <div className="px-4 pb-4">
+                  <div className="h-px bg-white/10 mb-4"></div>
+                  <div className="grid grid-cols-1 gap-3">
+                    <div
+                      className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border ${requiredDocuments.passport
+                        ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
+                        : validationErrors.has("passport")
+                          ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
+                          : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
+                        }`}
+                      onClick={() => toggleRequiredDocument("passport")}
+                    >
+                      <div
+                        className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all ${requiredDocuments.passport
+                          ? "bg-[#7350FF] border-2 border-[#7350FF]"
+                          : "bg-transparent border-2 border-white/40"
+                          }`}
+                      >
+                        {requiredDocuments.passport && (
+                          <Check className="w-3 h-3 text-white" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <span className="text-base font-medium">Passport</span>
+                        <p className="text-sm text-white/70 mt-1">Minimum 6 months validity required</p>
+                      </div>
+                    </div>
+                    <div
+                      className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border ${requiredDocuments.ukVisa
+                        ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
+                        : validationErrors.has("ukVisa")
+                          ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
+                          : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
+                        }`}
+                      onClick={() => toggleRequiredDocument("ukVisa")}
+                    >
+                      <div
+                        className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all ${requiredDocuments.ukVisa
+                          ? "bg-[#7350FF] border-2 border-[#7350FF]"
+                          : "bg-transparent border-2 border-white/40"
+                          }`}
+                      >
+                        {requiredDocuments.ukVisa && (
+                          <Check className="w-3 h-3 text-white" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <span className="text-base font-medium">UK Visa</span>
+                        <p className="text-sm text-white/70 mt-1">Minimum 6 months validity required</p>
+                      </div>
+                    </div>
+                    <div
+                      className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border ${requiredDocuments.photos
+                        ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
+                        : validationErrors.has("photos")
+                          ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
+                          : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
+                        }`}
+                      onClick={() => toggleRequiredDocument("photos")}
+                    >
+                      <div
+                        className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all ${requiredDocuments.photos
+                          ? "bg-[#7350FF] border-2 border-[#7350FF]"
+                          : "bg-transparent border-2 border-white/40"
+                          }`}
+                      >
+                        {requiredDocuments.photos && (
+                          <Check className="w-3 h-3 text-white" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <span className="text-base font-medium">Passport-Sized Photographs</span>
+                        <p className="text-sm text-white/70 mt-1">Two 35mm x 45mm photos required</p>
+                      </div>
+                    </div>
+                    <div
+                      className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border ${requiredDocuments.bankStatements
+                        ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
+                        : validationErrors.has("bankStatements")
+                          ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
+                          : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
+                        }`}
+                      onClick={() => toggleRequiredDocument("bankStatements")}
+                    >
+                      <div
+                        className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all ${requiredDocuments.bankStatements
+                          ? "bg-[#7350FF] border-2 border-[#7350FF]"
+                          : "bg-transparent border-2 border-white/40"
+                          }`}
+                      >
+                        {requiredDocuments.bankStatements && (
+                          <Check className="w-3 h-3 text-white" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <span className="text-base font-medium">Bank Statements</span>
+                        <p className="text-sm text-white/70 mt-1">Last 3 months showing sufficient funds £50–£80/day per person</p>
+                      </div>
+                    </div>
+                    <div
+                      className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border ${requiredDocuments.employmentProof
+                        ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
+                        : validationErrors.has("employmentProof")
+                          ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
+                          : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
+                        }`}
+                      onClick={() => toggleRequiredDocument("employmentProof")}
+                    >
+                      <div
+                        className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all ${requiredDocuments.employmentProof
+                          ? "bg-[#7350FF] border-2 border-[#7350FF]"
+                          : "bg-transparent border-2 border-white/40"
+                          }`}
+                      >
+                        {requiredDocuments.employmentProof && (
+                          <Check className="w-3 h-3 text-white" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <span className="text-base font-medium">Employment Proof</span>
+                        <p className="text-sm text-white/70 mt-1">Last 3 months payslips, or uni enrollment letter if student</p>
+                      </div>
+                    </div>
+                    <div
+                      className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border ${requiredDocuments.insurance
+                        ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
+                        : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
+                        }`}
+                      onClick={() => toggleRequiredDocument("insurance")}
+                    >
+                      <div
+                        className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all ${requiredDocuments.insurance
+                          ? "bg-[#7350FF] border-2 border-[#7350FF]"
+                          : "bg-transparent border-2 border-white/40"
+                          }`}
+                      >
+                        {requiredDocuments.insurance && (
+                          <Check className="w-3 h-3 text-white" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <span className="text-base font-medium">Insurance Certificate</span>
+                        <p className="text-sm text-white/70 mt-1">Must be valid for the entire duration of stay</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <span className="text-base">
-                  <strong>Passport-Sized Photographs</strong> (Two 35mm x 45mm
-                  photos)
-                </span>
-              </div>
-              <div
-                className={`flex items-start space-x-2 cursor-pointer rounded p-1 transition-colors ${requiredDocuments.bankStatements
-                  ? "border-[2px] border-black rounded-xl"
-                  : validationErrors.has("bankStatements")
-                    ? "border border-red-500 rounded-xl"
-                    : "shadow-black/20 shadow-lg rounded-xl"
-                  }`}
-                onClick={() => toggleRequiredDocument("bankStatements")}
-              >
-                <div
-                  className={`w-3.5 h-3.5 rounded-sm mt-0.5 flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black ${requiredDocuments.bankStatements
-                    ? "bg-[#7350FF] border border-transparent"
-                    : "bg-white border border-gray-500"
-                    }`}
-                >
-                  {requiredDocuments.bankStatements ? (
-                    <Check className="w-3.5 h-3.5 text-white" />
-                  ) : (
-                    <div className="w-4 h-4 border border-gray-300" />
-                  )}
-                </div>
-                <span className="text-base">
-                  <strong>Bank statements</strong> (Last 3 months showing
-                  sufficient funds £50–£80/day per person)
-                </span>
-              </div>
-              <div
-                className={`flex items-start space-x-2 cursor-pointer rounded p-1 transition-colors ${requiredDocuments.employmentProof
-                  ? "border-[2px] border-black rounded-xl"
-                  : validationErrors.has("employmentProof")
-                    ? "border border-red-500 rounded-xl"
-                    : "shadow-black/20 shadow-lg rounded-xl"
-                  }`}
-                onClick={() => toggleRequiredDocument("employmentProof")}
-              >
-                <div
-                  className={`w-3.5 h-3.5 rounded-sm mt-0.5 flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black ${requiredDocuments.employmentProof
-                    ? "bg-[#7350FF] border border-transparent"
-                    : "bg-white border border-gray-500"
-                    }`}
-                >
-                  {requiredDocuments.employmentProof ? (
-                    <Check className="w-3.5 h-3.5 text-white" />
-                  ) : (
-                    <div className="w-4 h-4 border border-gray-300" />
-                  )}
-                </div>
-                <span className="text-base">
-                  <strong>Employment proof</strong> (Last 3 months payslips, if
-                  student uni enrolment letter)
-                </span>
-              </div>
-              <div
-                className={`flex items-start space-x-2 cursor-pointer rounded p-1 transition-colors ${requiredDocuments.insurance
-                  ? "border-[2px] border-black rounded-xl"
-                  : "shadow-black/20 shadow-lg rounded-xl"
-                  }`}
-                onClick={() => toggleRequiredDocument("insurance")}
-              >
-                <div
-                  className={`w-3.5 h-3.5 rounded-sm mt-0.5 flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black ${requiredDocuments.insurance
-                    ? "bg-[#7350FF] border border-transparent"
-                    : "bg-white border border-gray-500"
-                    }`}
-                >
-                  {requiredDocuments.insurance ? (
-                    <Check className="w-3.5 h-3.5 text-white" />
-                  ) : (
-                    <div className="w-4 h-4 border border-gray-300" />
-                  )}
-                </div>
-                <span className="text-base">
-                  <strong>Insurance certificate</strong> (Must be valid for the
-                  entire duration of stay)
-                </span>
               </div>
             </div>
           </div>
