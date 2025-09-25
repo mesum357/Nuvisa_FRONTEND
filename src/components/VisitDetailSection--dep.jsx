@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Home, Briefcase, Globe, Users, DollarSign } from "react-feather";
 import { Plane } from "lucide-react";
-import { createOrUpdateApplication } from "@/api/visaApplications";
 import { localStorageGateway } from "@/gateways/localStoragegateway";
 import { localStorageEnums } from "@/enums/localstorage.enums";
 import { useAppSelector } from "@/store";
@@ -41,18 +40,18 @@ const VisitDetailSection = ({
       [name === "hasVisitSponsor"
         ? "noVisitSponsor"
         : name === "noVisitSponsor"
-        ? "hasVisitSponsor"
-        : name === "hasUkTravelHistory"
-        ? "noUkTravelHistory"
-        : name === "noUkTravelHistory"
-        ? "hasUkTravelHistory"
-        : name === "hasSpecificCountryTravel"
-        ? "noSpecificCountryTravel"
-        : name === "noSpecificCountryTravel"
-        ? "hasSpecificCountryTravel"
-        : name === "hasOtherCountryTravel"
-        ? "noOtherCountryTravel"
-        : "hasOtherCountryTravel"]: false,
+          ? "hasVisitSponsor"
+          : name === "hasUkTravelHistory"
+            ? "noUkTravelHistory"
+            : name === "noUkTravelHistory"
+              ? "hasUkTravelHistory"
+              : name === "hasSpecificCountryTravel"
+                ? "noSpecificCountryTravel"
+                : name === "noSpecificCountryTravel"
+                  ? "hasSpecificCountryTravel"
+                  : name === "hasOtherCountryTravel"
+                    ? "noOtherCountryTravel"
+                    : "hasOtherCountryTravel"]: false,
     }));
   };
 
@@ -94,11 +93,10 @@ const VisitDetailSection = ({
           />
           <div
             className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition 
-            ${
-              value === option
+            ${value === option
                 ? "border-[#7350FF] bg-[#7350FF]"
                 : "border-gray-300"
-            }`}
+              }`}
           >
             {value === option && (
               <div className="w-2 h-2 rounded-full bg-white"></div>
@@ -124,9 +122,8 @@ const VisitDetailSection = ({
       />
       <div
         className={`w-5 h-5 rounded border-2 flex items-center justify-center transition 
-        ${
-          checked ? "bg-[#7350FF] border-[#7350FF]" : "bg-white border-gray-300"
-        }`}
+        ${checked ? "bg-[#7350FF] border-[#7350FF]" : "bg-white border-gray-300"
+          }`}
       >
         {checked && (
           <svg

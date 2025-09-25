@@ -89,3 +89,27 @@ input[type="number"]::-webkit-outer-spin-button {
 input[type="number"] {
   -moz-appearance: textfield; /* Firefox */
 }
+.dangerous-date {
+  color: #ffc107 !important; 
+  border-radius: 50%;
+  background-color: white !important;
+}
+
+.comfortable-date {
+  color: #4caf50 !important; 
+  border-radius: 50%;
+  background-color: white !important;
+}
+.react-datepicker__day--selected {
+  background-color: #6b4eff !important; 
+  color: #fff !important;
+}
+.react-datepicker__day--today {
+  background-color: #8c78ee !important; 
+}
+.react-datepicker-wrapper {
+      width: 100%;
+}
+.react-datepicker-popper {
+  z-index: 9999 !important;
+}
