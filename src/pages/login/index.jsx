@@ -13,6 +13,7 @@ import { setAuthId, setAuthState } from "@/store/authSlice";
 const Index = () => {
   const dispatch = useAppDispatch();
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
 
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
@@ -20,9 +21,11 @@ const Index = () => {
 
   const handleSendVerification = async (e) => {
     e.preventDefault();
+    setLoading(true);
     const payload = { email };
 
     const results = await login(payload, () => { });
+    setLoading(false);
     if (/^2\d{2}$/.test(results?.status)) {
       setIsVerificationSent(true);
     }
@@ -89,19 +92,28 @@ const Index = () => {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="py-3 pl-10 block w-full border outline-none text-white placeholder:text-white border-gray-300 rounded-md focus:ring-[2px] focus:ring-purple-500 focus:border-purple-500"
+                    className="py-3 pl-10 block w-full border outline-none text-white placeholder:text-gray-300 border-gray-300 rounded-md focus:ring-[2px] focus:ring-purple-500 focus:border-purple-500"
                     placeholder="Enter your email address"
                   />
                 </div>
               </div>
 
               <div>
-                <button
-                  type="submit"
-                  className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#7350FF] hover:bg-[#6247D3] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-                >
-                  Send Verification Code
-                </button>
+                {loading ?
+                  <button
+                    disabled
+                    className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-600 !cursor-not-allowed"
+                  >
+                    Sending...
+                  </button>
+                  :
+                  <button
+                    type="submit"
+                    className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#7350FF] hover:bg-[#6247D3] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                  >
+                    Send Verification Code
+                  </button>
+                }
               </div>
             </form>
           ) : (
@@ -126,7 +138,7 @@ const Index = () => {
                     maxLength={6}
                     value={otp}
                     onChange={(e) => setOtp(e.target.value)}
-                    className="py-3 pl-10 block w-full border outline-none border-gray-300 rounded-md focus:ring-[2px] focus:ring-purple-500 focus:border-purple-500"
+                    className="py-3 pl-10 block w-full border outline-none border-gray-300 rounded-md focus:ring-[2px] focus:ring-purple-500 focus:border-purple-500 text-white !placeholder:text-gray-300"
                     placeholder="Enter the OTP"
                   />
                 </div>
