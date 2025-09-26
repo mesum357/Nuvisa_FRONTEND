@@ -39,7 +39,8 @@ const PaymentSuccess = () => {
         const sessionId = searchParams.get("session_id");
         if (
           !sessionId &&
-          (!currentData || (!currentData.totalAmount && !currentData.applicationId))
+          (!currentData ||
+            (!currentData.totalAmount && !currentData.applicationId))
         ) {
           setTimeout(() => router.replace("/dashboard"), 800);
           return;
@@ -47,7 +48,6 @@ const PaymentSuccess = () => {
 
         console.log("=== PAYMENT SUCCESS DEBUG ===");
         console.log("Current payment data:", currentData);
-
 
         // Check if this is a traveler insurance payment (both regular and additional)
         // Prioritize URL parameters over localStorage data for insurance payments
@@ -103,8 +103,6 @@ const PaymentSuccess = () => {
         console.log("- travelerIndex:", travelerIndex);
 
         setPaymentType(finalPaymentType);
-
-
 
         console.log(
           "❌ NOT AN INSURANCE PAYMENT - Proceeding with application creation flow"
@@ -169,9 +167,12 @@ const PaymentSuccess = () => {
         const numberOfTravelers = Number(currentData.travelers) || 1;
 
         // Use the actual insurance selection boolean, fallback to fee check for backward compatibility
-        const hasInsurance = currentData.insuranceSelected === "true" ||
-          (currentData.insuranceSelected === undefined && Number(currentData.insurancePayment) > 0)
-          ? "true" : "false";
+        const hasInsurance =
+          currentData.insuranceSelected === "true" ||
+          (currentData.insuranceSelected === undefined &&
+            Number(currentData.insurancePayment) > 0)
+            ? "true"
+            : "false";
 
         const initialTravelersData = Array.from(
           { length: numberOfTravelers },
@@ -228,7 +229,7 @@ const PaymentSuccess = () => {
                 hasInsurance === "true" ? { selected: true } : null,
               insuranceCertificate: null, // Initialize certificate field,
               orderId: null,
-              paymentAmount: 0
+              paymentAmount: 0,
             },
           })
         );
@@ -276,10 +277,14 @@ const PaymentSuccess = () => {
 
           try {
             const postAmount =
-              (usedStoredInsuranceMetadata && usedStoredInsuranceMetadata.paymentAmount) ||
-              (Number.isFinite(Number(currentData.totalAmount)) ? currentData.totalAmount : "490");
+              (usedStoredInsuranceMetadata &&
+                usedStoredInsuranceMetadata.paymentAmount) ||
+              (Number.isFinite(Number(currentData.totalAmount))
+                ? currentData.totalAmount
+                : "490");
             const postOrderId =
-              (usedStoredInsuranceMetadata && usedStoredInsuranceMetadata.orderId) ||
+              (usedStoredInsuranceMetadata &&
+                usedStoredInsuranceMetadata.orderId) ||
               undefined;
 
             await fetch(
@@ -300,28 +305,30 @@ const PaymentSuccess = () => {
               }
             );
 
-            const insuranceUpdateResponse = await createOrUpdateApplication("", {
-              ...applicationPayload,
-              insurance: "true",
-              travelersData: initialTravelersData.map((traveler, index) =>
-                index === travelerIndex
-                  ? {
-                    ...traveler, insurance: {
-                      orderId: postOrderId || null, paymentAmount: postAmount,
-                      insurancePaymentCompleted: true
-                    }
-                  }
-                  : traveler
-              ),
-              insurancePaymentCompleted: true,
+            const insuranceUpdateResponse = await createOrUpdateApplication(
+              "",
+              {
+                ...applicationPayload,
+                insurance: "true",
+                travelersData: initialTravelersData.map((traveler, index) =>
+                  index === travelerIndex
+                    ? {
+                        ...traveler,
+                        insurance: {
+                          orderId: postOrderId || null,
+                          paymentAmount: postAmount,
+                          insurancePaymentCompleted: true,
+                        },
+                      }
+                    : traveler
+                ),
+                insurancePaymentCompleted: true,
+              }
+            );
 
-            })
-
-
-            const insuranceResult = insuranceUpdateResponse?.data?.data?.results || {};
+            const insuranceResult =
+              insuranceUpdateResponse?.data?.data?.results || {};
             console.log("Insurance update result:", insuranceResult);
-
-
           } catch (error) {
             console.error("Error updating traveler insurance:", error);
           }
@@ -344,7 +351,7 @@ const PaymentSuccess = () => {
           setTimeout(() => {
             router.replace(
               "/application-step/?application_id=" +
-              applicationResponse?.data?.data?.results?.application?.id
+                applicationResponse?.data?.data?.results?.application?.id
             );
           }, 2000); // 2 second delay
         } else {
@@ -373,11 +380,11 @@ const PaymentSuccess = () => {
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#7350FF] mx-auto mb-4"></div>
         <p className="text-gray-600">
           {paymentType === "additional_traveler_insurance" ||
-            paymentType === "traveler_insurance"
+          paymentType === "traveler_insurance"
             ? "Processing insurance payment and redirecting back to your application..."
             : isCreatingApplication
-              ? "Creating your visa application..."
-              : "Processing payment and redirecting to dashboard..."}
+            ? "Creating your visa application..."
+            : "Processing payment and redirecting to dashboard..."}
         </p>
       </div>
     </div>
