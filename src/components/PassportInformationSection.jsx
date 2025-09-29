@@ -878,11 +878,34 @@ const PassportInformationSection = ({
 
                 {frontPreview ? (
                   <div className="mb-3 relative group">
-                    <img
-                      src={frontPreview}
-                      alt="Passport Front Preview"
-                      className="max-h-48 w-full object-contain mx-auto border rounded-lg"
-                    />
+                    {frontPreview && frontPreview.includes(".pdf") ? (
+                      <object
+                        data={frontPreview}
+                        type="application/pdf"
+                        className="max-h-48 w-full object-contain mx-auto border rounded-lg"
+                        aria-label="Passport Front PDF Preview"
+                      >
+                        <div className="p-4 text-center">
+                          <p className="text-sm text-gray-400 mb-2">
+                            PDF preview not available.
+                          </p>
+                          <a
+                            href={frontPreview}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-purple-400 underline"
+                          >
+                            Open PDF in new tab
+                          </a>
+                        </div>
+                      </object>
+                    ) : (
+                      <img
+                        src={frontPreview}
+                        alt="Passport Front Preview"
+                        className="max-h-48 w-full object-contain mx-auto border rounded-lg"
+                      />
+                    )}
                     <button
                       type="button"
                       onClick={() => handleRemoveImage("front")}
@@ -962,11 +985,34 @@ const PassportInformationSection = ({
 
                 {backPreview ? (
                   <div className="mb-3 relative group">
-                    <img
-                      src={backPreview}
-                      alt="Passport Back Preview"
-                      className="max-h-48 w-full object-contain mx-auto border rounded-lg"
-                    />
+                    {backPreview && backPreview.includes(".pdf") ? (
+                      <object
+                        data={backPreview}
+                        type="application/pdf"
+                        className="max-h-48 w-full object-contain mx-auto border rounded-lg"
+                        aria-label="Passport Back PDF Preview"
+                      >
+                        <div className="p-4 text-center">
+                          <p className="text-sm text-gray-400 mb-2">
+                            PDF preview not available.
+                          </p>
+                          <a
+                            href={backPreview}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-purple-400 underline"
+                          >
+                            Open PDF in new tab
+                          </a>
+                        </div>
+                      </object>
+                    ) : (
+                      <img
+                        src={backPreview}
+                        alt="Passport Back Preview"
+                        className="max-h-48 w-full object-contain mx-auto border rounded-lg"
+                      />
+                    )}
                     <button
                       type="button"
                       onClick={() => handleRemoveImage("back")}

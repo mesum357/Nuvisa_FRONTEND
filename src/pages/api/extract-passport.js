@@ -1,4 +1,4 @@
-import { ClientV2 } from "mindee";
+import { ClientV2, BufferInput } from "mindee";
 import formidable from "formidable";
 import fs from "fs";
 
@@ -39,11 +39,9 @@ export default async function handler(req, res) {
     // Read file into a buffer
     const buffer = fs.readFileSync(file.filepath);
     
-    // Load a file from buffer using the client's method
-    const input_source = client.sourceFromBuffer(buffer, file.originalFilename);
-    
-    // Set MIME type - default to jpeg for images if not detected
-    input_source.mimeType = file.mimetype || 'image/jpeg';
+  const input_source = new BufferInput({ buffer, filename: file.originalFilename || file.newFilename || "upload.jpg" });
+
+  if (file.mimetype) input_source.mimeType = file.mimetype;
 
     // Send for processing using polling with custom model
     // The SDK may expect the model to be an object with an `id` field
