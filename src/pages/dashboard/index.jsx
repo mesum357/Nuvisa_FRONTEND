@@ -146,22 +146,20 @@ export default function HeaderSearchSection() {
           <div className="flex border-b border-[#423577] gap-2 mb-5">
             <button
               onClick={() => setActiveTab("all")}
-              className={`px-4 py-2 flex items-center cursor-pointer gap-3 font-medium text-sm relative ${
-                activeTab === "all"
-                  ? "text-white border-b-2 border-[#7350FF]"
-                  : "text-white/60 border-transparent hover:text-white border-b-2 hover:border-[#7350FF]"
-              }`}
+              className={`px-4 py-2 flex items-center cursor-pointer gap-3 font-medium text-sm relative ${activeTab === "all"
+                ? "text-white border-b-2 border-[#7350FF]"
+                : "text-white/60 border-transparent hover:text-white border-b-2 hover:border-[#7350FF]"
+                }`}
             >
               <FileText size={20} />
               All Applications
             </button>
             <button
               onClick={() => setActiveTab("archived")}
-              className={`px-4 py-2 flex items-center cursor-pointer gap-3 font-medium text-sm relative ${
-                activeTab === "archived"
-                  ? "text-white border-b-2 border-[#7350FF]"
-                  : "text-white/60 border-transparent hover:text-white border-b-2 hover:border-[#7350FF]"
-              }`}
+              className={`px-4 py-2 flex items-center cursor-pointer gap-3 font-medium text-sm relative ${activeTab === "archived"
+                ? "text-white border-b-2 border-[#7350FF]"
+                : "text-white/60 border-transparent hover:text-white border-b-2 hover:border-[#7350FF]"
+                }`}
             >
               <Archive size={20} />
               Archived
@@ -369,12 +367,12 @@ function ApplicationCard({
     color: "bg-green-500/20 text-green-400",
     timestamp: app.statusTimestamp
       ? new Date(app.statusTimestamp).toLocaleString("en-US", {
-          month: "short",
-          day: "numeric",
-          hour: "numeric",
-          minute: "2-digit",
-          hour12: true,
-        })
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      })
       : null,
   };
 
@@ -397,9 +395,8 @@ function ApplicationCard({
           <div className="flex items-center justify-center w-10 h-7 rounded-sm border border-[#454553] overflow-hidden bg-gray-800">
             {schengenCountries[app?.country] ? (
               <img
-                src={`https://flagcdn.com/w80/${
-                  schengenCountries[app?.country]
-                }.png`}
+                src={`https://flagcdn.com/w80/${schengenCountries[app?.country]
+                  }.png`}
                 alt={`${app?.country} flag`}
                 className="w-full h-full object-cover"
               />
@@ -444,7 +441,7 @@ function ApplicationCard({
             >
               {app?.applicationStatus
                 ? app.applicationStatus.charAt(0).toUpperCase() +
-                  app.applicationStatus.slice(1)
+                app.applicationStatus.slice(1)
                 : statusInfo.message}
             </div>
             {statusInfo.timestamp && (
@@ -550,25 +547,40 @@ function ApplicationCard({
 const ProgressTimeline = ({ currentStatus, applicant, currentLabel }) => {
   const steps = [
     { id: "under_review", label: "Under Review", icon: <FileText size={20} /> },
-    {
-      id: "documents_reviewed",
-      label: "Documents Reviewed",
-      icon: <CheckCircle2 size={20} />,
-    },
-    {
-      id: "appointment_booked",
-      label: "Appointment booked",
-      icon: <CalendarDays size={20} />,
-    },
+    { id: "appointment_booked", label: "Appointment booked", icon: <CalendarDays size={20} /> },
     { id: "at_embassy", label: "At embassy", icon: <Building2 size={20} /> },
-    {
-      id: "amount_refunded",
-      label: "Amount Refunded",
-      icon: <CircleDollarSign size={20} />,
-    },
+    { id: "decision_made", label: "Decision made", icon: <CheckCircle2 size={20} /> },
   ];
 
-  const currentStepIndex = steps.findIndex((step) => step.id === currentStatus);
+  const getCurrentStepIndex = (statusOrProgress) => {
+    if (statusOrProgress == null) return -1;
+    if (typeof statusOrProgress === "number") {
+      const p = statusOrProgress;
+      if (p >= 100) return steps.length - 1;
+      if (p >= 66) return 2;
+      if (p >= 33) return 1;
+      return 0;
+    }
+
+    const s = String(statusOrProgress).toLowerCase();
+    const mapping = {
+      submitted: "under_review",
+      under_review: "under_review",
+      appointment: "appointment_booked",
+      appointment_booked: "appointment_booked",
+      at_embassy: "at_embassy",
+      embassy: "at_embassy",
+      decision_made: "decision_made",
+      approved: "decision_made",
+      rejected: "decision_made",
+      payment_required: "appointment_booked",
+    };
+
+    const mapped = mapping[s] || s;
+    return steps.findIndex((step) => step.id === mapped);
+  };
+
+  const currentStepIndex = getCurrentStepIndex(currentStatus);
 
   return (
     <div>
@@ -583,26 +595,23 @@ const ProgressTimeline = ({ currentStatus, applicant, currentLabel }) => {
             >
               {index > 0 && (
                 <div
-                  className={`absolute top-4 right-1/2 w-full h-0.5 ${
-                    isCompleted || isCurrent ? "bg-green-500" : "bg-[#423577]"
-                  }`}
+                  className={`absolute top-4 right-1/2 w-full h-0.5 ${isCompleted || isCurrent ? "bg-green-500" : "bg-[#423577]"
+                    }`}
                 />
               )}
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center z-10 ${
-                  isCompleted
-                    ? "bg-green-500 text-white"
-                    : isCurrent
+                className={`w-8 h-8 rounded-full flex items-center justify-center z-10 ${isCompleted
+                  ? "bg-green-500 text-white"
+                  : isCurrent
                     ? "bg-green-500 text-white"
                     : "bg-[#4A3B65] text-[#C1A2F4]"
-                }`}
+                  }`}
               >
                 {isCompleted ? <CheckCircle2 size={20} /> : step.icon}
               </div>
               <p
-                className={`text-xs mt-2 text-center ${
-                  isCompleted || isCurrent ? "text-white" : "text-white/60"
-                }`}
+                className={`text-xs mt-2 text-center ${isCompleted || isCurrent ? "text-white" : "text-white/60"
+                  }`}
               >
                 {step.label}
               </p>

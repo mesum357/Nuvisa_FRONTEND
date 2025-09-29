@@ -5,7 +5,7 @@ import { useAppointmentData } from '@/hooks/useAppointmentData';
 
 const BookingAppointment = ({ onComplete, loading, validateAppointment, travelerData }) => {
   const { cities, slots, loadingCities, loadingSlots, error } = useAppointmentData();
-  
+
   // Parse existing date strings back to Date objects for DatePicker
   const parseDate = (dateStr) => {
     if (!dateStr) return null;
@@ -95,7 +95,7 @@ const BookingAppointment = ({ onComplete, loading, validateAppointment, traveler
 
   const handleSave = () => {
     // Validate that preference 1 is filled (city, date range, slot)
-  const newErrors = { preference1: {}, preference2: { city: '', dateRange: '', slot: '' } };
+    const newErrors = { preference1: {}, preference2: { city: '', dateRange: '', slot: '' } };
     let hasError = false;
 
     if (!appointmentData.preference1.city) {
@@ -185,7 +185,7 @@ const BookingAppointment = ({ onComplete, loading, validateAppointment, traveler
       {/* Appointment Information */}
       <div className="bg-[#23232B] border border-[#423577] rounded-lg p-6">
         <h3 className="text-lg font-semibold text-white mb-4">
-          Appointment for SITA MAHA LAKSHMI
+          Appointment for {travelerData?.basicDetails?.firstName}
         </h3>
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
           <p className="text-sm text-gray-700">
@@ -344,7 +344,7 @@ const BookingAppointment = ({ onComplete, loading, validateAppointment, traveler
 
         {/* Action Buttons */}
         <div className="flex justify-between">
-          <button 
+          <button
             onClick={() => window.history.back()}
             className="px-6 py-2 border border-[#423577] text-gray-300 rounded-md hover:bg-[#292933] transition-colors"
           >

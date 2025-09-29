@@ -113,42 +113,29 @@ const VisaCheckout = () => {
       return;
     }
 
-    const currentSubtotal =
-      baseVisaFee * travelers + (includeInsurance ? insuranceFeesTotal : 0);
+    const availableDiscounts = {
+      STUDENT10: {
+        description: "Student discount",
+        percentage: 10,
+      },
+      GROUP20: {
+        description: "Group discount",
+        percentage: 20,
+      },
+    };
 
-    try {
-      // Validate coupon using API
-      const validationResult = await validateCouponCode(
-        couponCode.toUpperCase()
-      );
-
-      if (!validationResult.valid) {
-        setCouponError(validationResult.message || "Invalid coupon code");
-        return;
-      }
-
-      // Apply coupon discount
-      const discountAmountEUR = applyCouponDiscount(
-        calculatePaymentFees(currentSubtotal, "GBP", "EUR"),
-        couponCode.toUpperCase()
-      );
-      const finalTotalEUR = Math.max(
-        0,
-        calculatePaymentFees(currentSubtotal, "GBP", "EUR") - discountAmountEUR
-      );
-
-      setAppliedDiscount({
-        code: couponCode.toUpperCase(),
-        percentage: validationResult.discount || 10,
-        description: validationResult.description || "Applied Discount",
-        discountAmount: discountAmountEUR,
-        finalTotal: finalTotalEUR,
-      });
-      setCouponError("");
-    } catch (error) {
-      console.error("Coupon validation error:", error);
-      setCouponError("Failed to validate coupon. Please try again.");
+    const discount = availableDiscounts[couponCode.toUpperCase()];
+    if (!discount) {
+      setCouponError("Invalid coupon code. Available codes: STUDENT10, GROUP20");
+      return;
     }
+
+    setAppliedDiscount({
+      code: couponCode.toUpperCase(),
+      percentage: discount.percentage,
+      description: discount.description,
+    });
+    setCouponError("");
   };
 
   const removeCoupon = () => {
@@ -323,24 +310,36 @@ const VisaCheckout = () => {
   const eVisaFees = 0; // Currently free
   const subtotal = visaFeesTotal + insuranceFees + giftCardFees + eVisaFees;
 
+  const discountAmount = appliedDiscount
+    ? (subtotal * appliedDiscount.percentage) / 100
+    : 0;
+
+  const discountedSubtotal = subtotal - discountAmount;
+
   // Calculate original price and savings (for display purposes)
   const originalPrice = visaState.insuranceOnly ? 0 : baseVisaFee * travelers;
   const savings = originalPrice - visaFeesTotal; // Any savings from discounts
 
   // Calculate dynamic values based on user selections in EUR
   const visaFeesEUR = calculatePaymentFees(visaFeesTotal, "EUR");
-  const insuranceFeesEUR = includeInsurance
+
+  // Calculate discounted insurance fees
+  const baseInsuranceFeesEUR = includeInsurance
     ? calculatePaymentFees(insuranceFees, "EUR")
     : 0;
+  const discountedInsuranceFeesEUR = appliedDiscount && includeInsurance
+    ? baseInsuranceFeesEUR - (baseInsuranceFeesEUR * appliedDiscount.percentage) / 100
+    : baseInsuranceFeesEUR;
+
   const _giftCardFeesEUR = calculatePaymentFees(giftCardFees, "EUR");
   const eVisaFeesEUR = 0; // Currently free
   const subtotalEUR = calculatePaymentFees(subtotal, "EUR");
 
-  const discountAmountEUR = 0;
-  const discountedSubtotalEUR = subtotalEUR - discountAmountEUR;
+  const discountAmountEUR = calculatePaymentFees(discountAmount, "EUR");
+  const discountedSubtotalEUR = calculatePaymentFees(discountedSubtotal, "EUR");
 
   const _originalPriceEUR = calculatePaymentFees(originalPrice, "EUR");
-  const savingsEUR = calculatePaymentFees(savings, "EUR");
+  const _savingsEUR = calculatePaymentFees(savings, "EUR");
   const totalAmountEUR = discountedSubtotalEUR;
 
   const handleProceedToCheckout = async () => {
@@ -351,7 +350,7 @@ const VisaCheckout = () => {
     await localStorageGateway(
       "insurancePayment",
       localStorageEnums.SET,
-      String(insuranceFeesEUR)
+      String(discountedInsuranceFeesEUR)
     );
     await localStorageGateway(
       "insuranceSelected",
@@ -1372,11 +1371,13 @@ const VisaCheckout = () => {
                 <FaShieldAlt />
                 <span className="text-sm">Insurance certificate</span>
               </div>
-              <span className="text-sm">
-                {includeInsurance
-                  ? formatCurrency(insuranceFeesEUR, "EUR")
-                  : formatCurrency(0, "EUR")}
-              </span>
+              <div className="flex items-center space-x-2">
+                <span className="text-sm">
+                  {includeInsurance
+                    ? formatCurrency(baseInsuranceFeesEUR, "EUR")
+                    : formatCurrency(0, "EUR")}
+                </span>
+              </div>
             </div>
             {includeInsurance && (
               <p className="text-xs text-gray-400">
@@ -1415,7 +1416,7 @@ const VisaCheckout = () => {
             {/* You Save */}
             <div className="flex justify-between text-sm text-green-400">
               <span>You save</span>
-              <span>{formatCurrency(0, "EUR")}</span>
+              <span>{formatCurrency(discountAmountEUR, "EUR")}</span>
             </div>
 
             {/* Total */}

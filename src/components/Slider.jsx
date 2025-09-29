@@ -688,13 +688,37 @@ const CountrySlider = () => {
         : baseFee;
 
     const basePrice = currentBaseFee * travelers;
+    const insuranceCost = recommendedItems.insuranceCertificate && insuranceDays > 0
+      ? perDayInsurancePrice * insuranceDays * travelers
+      : 0;
+    const giftCardCost = recommendedItems.giftCard ? 188 * giftCardCount : 0;
+
+    const totalPrice = basePrice + insuranceCost + giftCardCost;
 
     if (appliedDiscount) {
-      const discountAmount = (basePrice * appliedDiscount.percentage) / 100;
-      return basePrice - discountAmount;
+      const discountAmount = (totalPrice * appliedDiscount.percentage) / 100;
+      return totalPrice - discountAmount;
     }
 
-    return basePrice;
+    return totalPrice;
+  };
+
+  const calculateDiscountedInsurancePrice = () => {
+    const originalPrice = computedInsuranceTotal;
+    if (appliedDiscount && originalPrice > 0) {
+      const discountAmount = (originalPrice * appliedDiscount.percentage) / 100;
+      return originalPrice - discountAmount;
+    }
+    return originalPrice;
+  };
+
+  const calculateDiscountedGiftCardPrice = () => {
+    const originalPrice = 188 * giftCardCount;
+    if (appliedDiscount && originalPrice > 0) {
+      const discountAmount = (originalPrice * appliedDiscount.percentage) / 100;
+      return originalPrice - discountAmount;
+    }
+    return originalPrice;
   };
 
   const calculateOriginalPrice = () => {
@@ -705,7 +729,13 @@ const CountrySlider = () => {
         ? Math.round(Number(selectedVisaType.price) / 100)
         : baseFee;
 
-    return Math.round(currentBaseFee * 1.25) * travelers;
+    const baseOriginalPrice = Math.round(currentBaseFee * 1.25) * travelers;
+    const insuranceOriginalPrice = recommendedItems.insuranceCertificate && insuranceDays > 0
+      ? Math.round(perDayInsurancePrice * insuranceDays * travelers * 1.25)
+      : 0;
+    const giftCardOriginalPrice = recommendedItems.giftCard ? 245 * giftCardCount : 0;
+
+    return baseOriginalPrice + insuranceOriginalPrice + giftCardOriginalPrice;
   };
 
   // Apply coupon immediately (no verification at apply time)
@@ -2242,8 +2272,13 @@ const CountrySlider = () => {
                         £{Math.round(computedInsuranceTotal * 1.25)}
                       </span>
                       <span className="font-gilroy-bold text-2xl">
-                        £{computedInsuranceTotal}
+                        £{Math.round(calculateDiscountedInsurancePrice())}
                       </span>
+                      {appliedDiscount && computedInsuranceTotal > 0 && (
+                        <span className="text-xs bg-green-600/20 text-green-400 px-2 py-1 rounded-full">
+                          -{appliedDiscount.percentage}%
+                        </span>
+                      )}
                     </div>
                   </ClientOnly>
                 </div>
@@ -2353,8 +2388,13 @@ const CountrySlider = () => {
                         £{245 * giftCardCount}
                       </span>
                       <span className="font-gilroy-bold text-2xl">
-                        £{188 * giftCardCount}
+                        £{Math.round(calculateDiscountedGiftCardPrice())}
                       </span>
+                      {appliedDiscount && recommendedItems.giftCard && (
+                        <span className="text-xs bg-green-600/20 text-green-400 px-2 py-1 rounded-full">
+                          -{appliedDiscount.percentage}%
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

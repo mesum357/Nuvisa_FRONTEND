@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { 
-  CheckCircle, 
-  Clock, 
-  AlertCircle, 
+import {
+  CheckCircle,
+  Clock,
+  AlertCircle,
   RefreshCw,
   Calendar,
   FileText,
@@ -53,40 +53,47 @@ const StatusTracker = ({ applicationId, className = "", initialStatus = null, on
   }, [applicationId, initialStatus]);
 
   const getStatusSteps = () => {
+    const statusToProgress = (s) => {
+      switch (s) {
+        case 'submitted': return 25;
+        case 'under_review': return 50;
+        case 'payment_required': return 75;
+        case 'approved':
+        case 'rejected': return 100;
+        default: return 0;
+      }
+    };
+
+    const progress = status?.progress ?? statusToProgress(status?.status);
+
     const steps = [
       {
         id: 'submitted',
         title: 'Application Submitted',
         description: 'Your application has been received',
-        completed: true
-      },
-      {
-        id: 'document_verification',
-        title: 'Document Verification',
-        description: 'Reviewing your submitted documents',
-        completed: ['under_review', 'biometric_scheduled', 'approved', 'rejected'].includes(status?.status),
-        current: status?.status === 'under_review'
-      },
-      {
-        id: 'biometric',
-        title: 'Biometric Appointment',
-        description: 'Schedule and attend biometric appointment',
-        completed: ['biometric_completed', 'approved', 'rejected'].includes(status?.status),
-        current: status?.status === 'biometric_scheduled'
+        completed: progress >= 25,
+        current: progress > 0 && progress < 50
       },
       {
         id: 'review',
         title: 'Application Review',
-        description: 'Final review by consulate',
-        completed: ['approved', 'rejected'].includes(status?.status),
-        current: status?.status === 'final_review'
+        description: 'Application is being reviewed by our team',
+        completed: progress >= 50,
+        current: progress >= 25 && progress < 75
+      },
+      {
+        id: 'payment',
+        title: 'Payment',
+        description: 'Complete any outstanding payments',
+        completed: progress >= 75,
+        current: progress >= 50 && progress < 100
       },
       {
         id: 'decision',
         title: 'Decision',
-        description: 'Application decision made',
-        completed: ['approved', 'rejected'].includes(status?.status),
-        current: false
+        description: 'Final decision on your application',
+        completed: progress >= 100,
+        current: progress === 100
       }
     ];
 
@@ -170,16 +177,14 @@ const StatusTracker = ({ applicationId, className = "", initialStatus = null, on
             <div className="flex flex-col items-center">
               {getStatusIcon(step)}
               {index < getStatusSteps().length - 1 && (
-                <div className={`w-0.5 h-8 mt-2 ${
-                  step.completed ? 'bg-green-400' : 'bg-gray-600'
-                }`} />
+                <div className={`w-0.5 h-8 mt-2 ${step.completed ? 'bg-green-400' : 'bg-gray-600'
+                  }`} />
               )}
             </div>
             <div className="flex-1 pb-4">
-              <h4 className={`font-medium ${
-                step.completed ? 'text-green-400' : 
+              <h4 className={`font-medium ${step.completed ? 'text-green-400' :
                 step.current ? 'text-blue-400' : 'text-gray-400'
-              }`}>
+                }`}>
                 {step.title}
               </h4>
               <p className="text-sm text-gray-300 mt-1">{step.description}</p>
@@ -206,11 +211,11 @@ const StatusTracker = ({ applicationId, className = "", initialStatus = null, on
               <p className="text-white font-medium">{status.progress || 0}%</p>
             </div>
           </div>
-          
+
           {status.progress && (
             <div className="mt-3">
               <div className="w-full bg-gray-700 rounded-full h-2">
-                <div 
+                <div
                   className="bg-[#7350FF] h-2 rounded-full transition-all duration-500"
                   style={{ width: `${status.progress}%` }}
                 ></div>
