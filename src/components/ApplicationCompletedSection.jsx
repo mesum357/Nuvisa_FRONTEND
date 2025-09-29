@@ -2,14 +2,14 @@ import React, { useState, useEffect } from "react";
 import ClientOnly from "./ClientOnly";
 import Router from "next/router";
 import StatusTracker from "./StatusTracker";
-import { 
-  CheckCircle, 
-  Clock, 
-  FileText, 
-  UserPlus, 
-  Upload, 
-  MessageCircle, 
-  Phone, 
+import {
+  CheckCircle,
+  Clock,
+  FileText,
+  UserPlus,
+  Upload,
+  MessageCircle,
+  Phone,
   Mail,
   Calendar,
   ExternalLink,
@@ -22,8 +22,8 @@ import { getApplicationStatus } from "@/api/applicationStatus";
 import { localStorageGateway } from "@/gateways/localStoragegateway";
 import { localStorageEnums } from "@/enums/localstorage.enums";
 
-const ApplicationCompletedSection = ({ 
-  parentVisaApplication = null, 
+const ApplicationCompletedSection = ({
+  parentVisaApplication = null,
   onAddTraveler = null,
   onUploadDocument = null,
   applicationId = null
@@ -58,99 +58,94 @@ const ApplicationCompletedSection = ({
 
   const fetchApplicationStatus = async () => {
     const appId = applicationId || parentVisaApplication?.id;
-    
+
     if (!appId) {
-      setTimeout(() => {
-        const randomNum = Math.floor(Math.random() * 10000);
-        setApplicationStatus({
-          id: `APP-${randomNum}`,
-          status: "submitted",
-          submittedAt: new Date().toISOString(),
-          estimatedProcessingTime: "Within 24 business hours",
-          orderId: `ORD-${randomNum}`,
-          currentStage: "Document Verification",
-          progress: 25,
-          nextSteps: [
-            "Document verification in progress",
-            "Biometric appointment (if required)", 
-            "Application review by consulate",
-            "Decision notification"
-          ]
-        });
-        setLoading(false);
-      }, 1000);
+      setApplicationStatus(null);
+      setLoading(false);
       return;
     }
 
+    const mapApplicationToStatus = (app) => {
+      if (!app) return null;
+      const stepInfo = app.stepInfo || app.applicationData?.stepInfo || {};
+
+      let currentStage = stepInfo.currentStep || app.currentStage || null;
+      if (
+        stepInfo.stepNames &&
+        stepInfo.currentStep &&
+        stepInfo.stepNames[stepInfo.currentStep]
+      ) {
+        currentStage = stepInfo.stepNames[stepInfo.currentStep];
+      }
+
+      const statusToProgress = (status) => {
+        switch (status) {
+          case "submitted":
+            return 25;
+          case "under_review":
+            return 50;
+          case "payment_required":
+            return 75;
+          case "approved":
+          case "rejected":
+            return 100;
+          default:
+            return stepInfo.stepProgress || app.progress || app.stepProgress || 0;
+        }
+      };
+
+      return {
+        id: app.id,
+        status: app.applicationStatus || app.status || app.applicationData?.applicationStatus || "submitted",
+        submittedAt: app.createdAt || app.submittedAt || app.applicationData?.createdAt || null,
+        estimatedProcessingTime: app.estimatedProcessingTime || null,
+        orderId: app.orderId || app.order_id || app.applicationData?.orderId || null,
+        currentStage: currentStage || "Application Review",
+        progress: statusToProgress(app.applicationStatus || app.status || app.applicationData?.applicationStatus) || 0,
+        nextSteps: stepInfo.nextStep ? [stepInfo.nextStep] : stepInfo.nextSteps || [],
+        raw: app,
+      };
+    };
+
     try {
       setRefreshing(true);
-      
-      if (token) {
-        const response = await getApplicationStatus(token, appId);
-        if (response?.success) {
-          setApplicationStatus(response.data);
+
+      console.info("Fetching application status", { appId, tokenPresent: !!token });
+      const response = await getApplicationStatus(token || null, appId);
+      console.info("getApplicationStatus response summary:", response && {
+        success: response.success,
+        dataKeys: response.data ? Object.keys(response.data) : null,
+        error: response.error || null,
+      });
+
+      if (response?.success && response.data) {
+        const rawApp =
+          response.data.results?.application || response.data.application || response.data.applicationData || response.data;
+
+        const mapped = mapApplicationToStatus(rawApp);
+        if (mapped) {
+          setApplicationStatus(mapped);
         } else {
-          console.error("Failed to fetch application status:", response?.error);
-          // Use parentVisaApplication data as fallback
+          console.error("API returned success but mapping failed:", response.data);
           if (parentVisaApplication) {
-            setApplicationStatus({
-                id: parentVisaApplication.id,
-                status: parentVisaApplication.applicationStatus || "submitted",
-                submittedAt: parentVisaApplication.createdAt || new Date().toISOString(),
-                estimatedProcessingTime: "Within 24 business hours",
-                orderId: parentVisaApplication.orderId || formatOrderId(null, parentVisaApplication.id),
-                currentStage: "Document Verification",
-                progress: 25,
-                nextSteps: [
-                  "Document verification in progress",
-                  "Biometric appointment (if required)",
-                  "Application review by consulate", 
-                  "Decision notification"
-                ]
-              });
+            const mappedParent = mapApplicationToStatus(parentVisaApplication);
+            setApplicationStatus(mappedParent);
+          } else {
+            setApplicationStatus(null);
           }
         }
       } else {
-        // No token, use parentVisaApplication data
+        console.error("Failed to fetch application status:", response?.error || response);
         if (parentVisaApplication) {
-          setApplicationStatus({
-            id: parentVisaApplication.id,
-            status: parentVisaApplication.applicationStatus || "submitted",
-            submittedAt: parentVisaApplication.createdAt || new Date().toISOString(),
-            estimatedProcessingTime: "10-15 business days",
-            orderId: parentVisaApplication.orderId || `ORD-${parentVisaApplication.id}`,
-            currentStage: "Document Verification",
-            progress: 25,
-            nextSteps: [
-              "Document verification in progress",
-              "Biometric appointment (if required)",
-              "Application review by consulate",
-              "Decision notification"
-            ]
-          });
+          const mapped = mapApplicationToStatus(parentVisaApplication);
+          setApplicationStatus(mapped);
+        } else {
+          setApplicationStatus(null);
         }
       }
-
     } catch (error) {
       console.error("Error fetching application status:", error);
-      // Use parentVisaApplication as fallback
-      if (parentVisaApplication) {
-        setApplicationStatus({
-          id: parentVisaApplication.id,
-          status: parentVisaApplication.applicationStatus || "submitted",
-          submittedAt: parentVisaApplication.createdAt || new Date().toISOString(),
-          estimatedProcessingTime: "10-15 business days",
-          orderId: parentVisaApplication.orderId || `ORD-${parentVisaApplication.id}`,
-          currentStage: "Document Verification",
-          progress: 25,
-          nextSteps: [
-            "Document verification in progress",
-            "Biometric appointment (if required)",
-            "Application review by consulate",
-            "Decision notification"
-          ]
-        });
-      }
+      setApplicationStatus(null);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -161,7 +156,7 @@ const ApplicationCompletedSection = ({
     // Generate reference number client-side to avoid hydration mismatch
     const randomNum = Math.floor(Math.random() * 10000);
     setReferenceNumber(`UKV-2023-${randomNum}`);
-    
+
     fetchApplicationStatus();
   }, [applicationId, parentVisaApplication, token]);
 
@@ -198,7 +193,7 @@ const ApplicationCompletedSection = ({
       case "under_review":
         return {
           color: "text-blue-400",
-          bgColor: "bg-blue-400/10", 
+          bgColor: "bg-blue-400/10",
           borderColor: "border-blue-400/20",
           icon: Clock,
           message: "Application Under Review"
@@ -207,7 +202,7 @@ const ApplicationCompletedSection = ({
         return {
           color: "text-yellow-400",
           bgColor: "bg-yellow-400/10",
-          borderColor: "border-yellow-400/20", 
+          borderColor: "border-yellow-400/20",
           icon: AlertCircle,
           message: "Payment Required"
         };
@@ -243,11 +238,36 @@ const ApplicationCompletedSection = ({
   const statusConfig = getStatusConfig(currentStatus?.status);
   const StatusIcon = statusConfig.icon;
 
+
   if (loading) {
     return (
       <div className="w-full mx-auto bg-[#23232B] border border-[#423577] rounded-lg p-8 text-center">
         <div className="animate-spin w-8 h-8 border-2 border-[#7350FF] border-t-transparent rounded-full mx-auto mb-4"></div>
         <p className="text-gray-300">Loading application status...</p>
+      </div>
+    );
+  }
+
+  if (!applicationStatus) {
+    return (
+      <div className="w-full mx-auto bg-[#23232B] border border-[#423577] rounded-lg p-8 text-center">
+        <h3 className="text-lg font-gilroy-bold text-white mb-2">Application status unavailable</h3>
+        <p className="text-gray-300 mb-4">We couldn't load the application status from the server. Please try refreshing or contact support.</p>
+        <div className="flex items-center justify-center gap-3">
+          <button
+            onClick={handleRefreshStatus}
+            className="flex items-center gap-2 bg-[#7350FF] text-white py-2 px-4 rounded-md hover:bg-[#6350E5] transition-colors"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Refresh
+          </button>
+          <button
+            onClick={() => route.push("/support")}
+            className="flex items-center gap-2 bg-gray-700 text-white py-2 px-4 rounded-md hover:bg-gray-600 transition-colors"
+          >
+            Contact Support
+          </button>
+        </div>
       </div>
     );
   }
@@ -272,28 +292,21 @@ const ApplicationCompletedSection = ({
         <div className="bg-[#1E1E27] border border-[#423577] rounded-lg p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-gilroy-bold text-white">Application Details</h3>
-            <button
-              onClick={handleRefreshStatus}
-              disabled={refreshing}
-              className="flex items-center gap-2 text-[#7350FF] hover:text-[#6350E5] transition-colors disabled:opacity-50"
-            >
-              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-              <span className="text-sm">Refresh</span>
-            </button>
+
           </div>
           <div className="grid md:grid-cols-2 gap-4 text-left">
             <div>
               <label className="text-sm text-gray-400">Application ID</label>
               <p className="text-white font-medium">
                 <ClientOnly fallback={referenceNumber}>
-                  {formatApplicationId(currentStatus?.id) || formatApplicationId(parentVisaApplication?.id) || referenceNumber}
+                  {formatApplicationId(currentStatus?.id)}
                 </ClientOnly>
               </p>
             </div>
             <div>
               <label className="text-sm text-gray-400">Order ID</label>
               <p className="text-white font-medium">
-                {formatOrderId(currentStatus?.orderId, currentStatus?.id) || formatOrderId(parentVisaApplication?.orderId, parentVisaApplication?.id) || "N/A"}
+                {formatOrderId(currentStatus?.orderId, currentStatus?.id) || "N/A"}
               </p>
             </div>
             <div>
@@ -311,14 +324,14 @@ const ApplicationCompletedSection = ({
               <div className="flex items-center gap-2">
                 <div className={`w-2 h-2 ${statusConfig.bgColor} rounded-full`}></div>
                 <p className={`font-medium ${statusConfig.color}`}>
-                  {currentStatus?.status?.replace('_', ' ')?.toUpperCase() || 'SUBMITTED'}
+                  {currentStatus?.status?.replace('_', ' ')?.toUpperCase()}
                 </p>
               </div>
             </div>
             <div>
               <label className="text-sm text-gray-400">Current Stage</label>
               <p className="text-white font-medium">
-                {currentStatus?.currentStage || "Document Verification"}
+                {currentStatus?.currentStage || "Application Review"}
               </p>
             </div>
             <div>
@@ -330,14 +343,14 @@ const ApplicationCompletedSection = ({
           </div>
 
           {/* Progress Bar */}
-          {currentStatus?.progress && (
+          {!!currentStatus?.progress && (
             <div className="mt-4">
               <div className="flex items-center justify-between mb-2">
                 <label className="text-sm text-gray-400">Progress</label>
                 <span className="text-sm text-white">{currentStatus.progress}%</span>
               </div>
               <div className="w-full bg-gray-700 rounded-full h-2">
-                <div 
+                <div
                   className="bg-[#7350FF] h-2 rounded-full transition-all duration-500"
                   style={{ width: `${currentStatus.progress}%` }}
                 ></div>
@@ -360,7 +373,7 @@ const ApplicationCompletedSection = ({
 
       {/* Status Tracker */}
       <StatusTracker
-        applicationId={currentStatus?.id || parentVisaApplication?.id || applicationId}
+        applicationId={currentStatus?.id}
         initialStatus={currentStatus}
         onRefresh={handleRefreshStatus}
         className="mb-6"
@@ -454,7 +467,7 @@ const UploadDocumentModal = ({ onClose, onUpload }) => {
             </svg>
           </button>
         </div>
-        
+
         <div className="border-2 border-dashed border-[#423577] rounded-lg p-6 text-center mb-4">
           <input
             type="file"

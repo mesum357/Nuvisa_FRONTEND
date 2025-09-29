@@ -85,9 +85,8 @@ const MultiSelectDropdown = ({
           {getDisplayText()}
         </span>
         <ChevronDown
-          className={`w-5 h-5 transition-transform ${
-            isOpen ? "rotate-180" : ""
-          }`}
+          className={`w-5 h-5 transition-transform ${isOpen ? "rotate-180" : ""
+            }`}
         />
       </div>
 
@@ -189,11 +188,10 @@ const RadioGroup = ({ name, options, value, onChange, errors }) => (
           />
           <div
             className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition 
-          ${
-            value === option
-              ? "border-[#7350FF] bg-[#7350FF]"
-              : "border-gray-300"
-          }`}
+          ${value === option
+                ? "border-[#7350FF] bg-[#7350FF]"
+                : "border-gray-300"
+              }`}
           >
             {value === option && (
               <div className="w-2 h-2 rounded-full bg-white"></div>
@@ -222,9 +220,8 @@ const CheckboxOption = ({ name, label, checked, onChange }) => (
     />
     <div
       className={`w-5 h-5 rounded border-2 flex items-center justify-center transition 
-      ${
-        checked ? "bg-[#7350FF] border-[#7350FF]" : "bg-white border-gray-300"
-      }`}
+      ${checked ? "bg-[#7350FF] border-[#7350FF]" : "bg-white border-gray-300"
+        }`}
     >
       {checked && (
         <svg
@@ -263,6 +260,7 @@ const VisitDetailSection = ({
   const token = localStorageGateway("token", localStorageEnums.GET);
 
   const [errors, setErrors] = useState({});
+  const [touchedSubmit, setTouchedSubmit] = useState(false);
 
   // Add useEffect to ensure proper data loading and debugging
   useEffect(() => {
@@ -334,18 +332,18 @@ const VisitDetailSection = ({
       [name === "hasVisitSponsor"
         ? "noVisitSponsor"
         : name === "noVisitSponsor"
-        ? "hasVisitSponsor"
-        : name === "hasUkTravelHistory"
-        ? "noUkTravelHistory"
-        : name === "noUkTravelHistory"
-        ? "hasUkTravelHistory"
-        : name === "hasSpecificCountryTravel"
-        ? "noSpecificCountryTravel"
-        : name === "noSpecificCountryTravel"
-        ? "hasSpecificCountryTravel"
-        : name === "hasOtherCountryTravel"
-        ? "noOtherCountryTravel"
-        : "hasOtherCountryTravel"]: false,
+          ? "hasVisitSponsor"
+          : name === "hasUkTravelHistory"
+            ? "noUkTravelHistory"
+            : name === "noUkTravelHistory"
+              ? "hasUkTravelHistory"
+              : name === "hasSpecificCountryTravel"
+                ? "noSpecificCountryTravel"
+                : name === "noSpecificCountryTravel"
+                  ? "hasSpecificCountryTravel"
+                  : name === "hasOtherCountryTravel"
+                    ? "noOtherCountryTravel"
+                    : "hasOtherCountryTravel"]: false,
     }));
   };
 
@@ -615,7 +613,10 @@ const VisitDetailSection = ({
     console.log("=== VISIT DETAILS FORM SUBMIT ===");
     console.log("Visit data:", visitData);
 
-    if (validateForm()) {
+    setTouchedSubmit(true);
+
+    const isValid = validateForm();
+    if (isValid) {
       console.log("✅ Form validation passed, calling onComplete");
       onComplete(visitData);
     } else {
@@ -1140,15 +1141,23 @@ const VisitDetailSection = ({
         )}
       </div>
 
-      <div className="mt-8 flex">
-        <button
-          type="submit"
-          disabled={loading}
-          className="mt-4 bg-[#7350FF] text-white px-4 py-2 rounded hover:bg-[#7350FF] disabled:bg-[#7350FF]/30"
-          onClick={handleSubmit}
-        >
-          {loading ? "Saving..." : "Save and Continue"}
-        </button>
+      <div className="mt-8 flex flex-col">
+        {touchedSubmit && Object.keys(errors).length > 0 && (
+          <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded text-red-700">
+            Fill all the required points above
+          </div>
+        )}
+
+        <div className="flex">
+          <button
+            type="submit"
+            disabled={loading}
+            className="mt-4 bg-[#7350FF] text-white px-4 py-2 rounded hover:bg-[#7350FF] disabled:bg-[#7350FF]/30"
+            onClick={handleSubmit}
+          >
+            {loading ? "Saving..." : "Save and Continue"}
+          </button>
+        </div>
       </div>
     </form>
   );

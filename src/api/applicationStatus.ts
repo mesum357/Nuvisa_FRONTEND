@@ -14,8 +14,9 @@ export const getApplicationStatus = async (token, applicationId) => {
     });
 
     if (response?.success && response?.data) {
-      // Transform the existing application data to status format
-      const applicationData = response.data;
+      const applicationData =
+        response.data.results?.application || response.data.application || response.data;
+
       return {
         success: true,
         data: {
@@ -61,7 +62,7 @@ export const getApplicationStatus = async (token, applicationId) => {
 const getStatusStage = (status) => {
   switch (status) {
     case "submitted":
-      return "Document Verification";
+      return "Submitted";
     case "under_review":
       return "Application Review";
     case "payment_required":
@@ -69,7 +70,7 @@ const getStatusStage = (status) => {
     case "approved":
       return "Approved";
     case "rejected":
-      return "Decision Made";
+      return "Rejected";
     default:
       return "Processing";
   }
@@ -97,23 +98,20 @@ const getStatusProgress = (status) => {
 const getNextSteps = (status) => {
   switch (status) {
     case "submitted":
+      // After submission the next logical steps are review, payment (if required) and decision
       return [
-        "Document verification in progress",
-        "Biometric appointment (if required)",
-        "Application review by consulate",
+        "Application being queued for review",
         "Decision notification",
       ];
     case "under_review":
       return [
-        "Application review by consulate",
-        "Biometric appointment (if required)",
-        "Final decision processing",
+        "Application is being reviewed",
         "Decision notification",
       ];
     case "payment_required":
       return [
         "Complete payment for additional services",
-        "Final processing",
+        "Resume review after payment",
         "Decision notification",
       ];
     case "approved":

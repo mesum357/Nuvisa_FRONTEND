@@ -14,28 +14,6 @@ import { useRouter } from "next/router";
 
 export default function AdminDashboard() {
   const router = useRouter();
-  // Client-side guard: only allow admin email to view this page
-  useEffect(() => {
-    const adminEmail = 'test@123.com';
-    const storedEmail = localStorageGateway('userEmail', localStorageEnums.GET);
-    let email = storedEmail || null;
-    if (!email) {
-      try {
-        const userCookie = Cookies.get('user');
-        if (userCookie) {
-          const parsed = JSON.parse(userCookie);
-          email = parsed?.email || null;
-        }
-      } catch {
-        email = null;
-      }
-    }
-
-    if (email !== adminEmail) {
-      // Replace navigation so user can't go back to admin via history
-      router.replace('/dashboard');
-    }
-  }, [router]);
   const [activeTab, setActiveTab] = useState("overview");
   const [applications, setApplications] = useState([]);
   const [allApplications, setAllApplications] = useState([]);

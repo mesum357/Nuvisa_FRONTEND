@@ -576,10 +576,16 @@ const PassportInformationSection = ({
 
           if (res && res.url) {
             setExtractionProgress(20);
-            setExtractionStep("File uploaded. Starting extraction...");
+            setExtractionStep("File uploaded.");
 
             setPassportData((prev) => ({ ...prev, passportBack: res.url }));
-            performOCR(file, res.url, "back", extractionProgress || 20);
+
+            setBackOcrDone(true);
+            setBackOcrSuccessMessage("Back image uploaded (OCR disabled).");
+            setTimeout(() => setBackOcrSuccessMessage(""), 4000);
+            setShowAutofillAnimation(false);
+            setExtractionProgress(0);
+            setExtractionStep("");
           } else {
             throw new Error("Upload API did not return a URL.");
           }
@@ -671,7 +677,7 @@ const PassportInformationSection = ({
       const ukPhoneRegex = /^(?:\+447\d{9}|447\d{9}|07\d{9})$/;
       if (!ukPhoneRegex.test(digits)) {
         newErrors.mobileNumber =
-          "Please enter a valid UK mobile number (e.g. +447123456789 or 07123456789).";
+          "Please enter a valid UK mobile number (e.g. +447123456789).";
       }
     }
 
@@ -966,7 +972,7 @@ const PassportInformationSection = ({
                 </label>
                 <p className="text-xs text-gray-400 mb-3">
                   Upload a clear photo of the back page (JPG, PNG or PDF) -
-                  Additional data may be extracted
+                  OCR is disabled for the back page; upload for record only
                 </p>
 
                 {/* OCR Status Messages for Back Side */}
@@ -1420,7 +1426,7 @@ const PassportInformationSection = ({
                     name="mobileNumber"
                     value={passportData.mobileNumber || ""}
                     onChange={handleInputChange}
-                    placeholder="e.g. +447123456789 or 07123456789"
+                    placeholder="e.g. +447123456789"
                     className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${errors.mobileNumber
                       ? "border-red-500"
                       : "border-[#423577]"

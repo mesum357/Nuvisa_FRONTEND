@@ -48,38 +48,72 @@ const DocumentUploadSection = ({
       title: "Other supporting document",
       description: "Optional additional supporting document",
       required: false,
+      multiple: true,
     },
   ];
 
   const handleFileUpload = async (e, docId) => {
-    const file = e.target.files[0];
-    if (!file) return;
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+
+    const isPassportPhoto = docId === 1;
+    const isAdditionalDoc = docId === 6;
+
+    let filesToUpload = files;
+    if (isPassportPhoto) {
+      const currentUploads = documents[docId] ? (Array.isArray(documents[docId]) ? documents[docId] : [documents[docId]]) : [];
+      const remainingSlots = 2 - currentUploads.length;
+      filesToUpload = files.slice(0, remainingSlots);
+    } else if (isAdditionalDoc) {
+      filesToUpload = files;
+    } else {
+      filesToUpload = files.slice(0, 1);
+    }
+
+    if (fileInputRefs.current[docId]) {
+      fileInputRefs.current[docId].value = "";
+    }
 
     try {
-      // Upload file to backend and get URL
-      const uploadResult = await uploadFile(file);
-      if (uploadResult && uploadResult.url) {
-        const documentData = {
-          file,
-          preview: uploadResult.url,
-          name: file.name,
-          type: file.type,
-          size: file.size,
-          uploadedAt: new Date().toISOString(),
-        };
+      const uploadPromises = filesToUpload.map(file => uploadFile(file));
+      const uploadResults = await Promise.all(uploadPromises);
 
+      const documentData = filesToUpload.map((file, index) => ({
+        file,
+        preview: uploadResults[index]?.url,
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        uploadedAt: new Date().toISOString(),
+      }));
+
+      if (isPassportPhoto) {
+        setDocuments((prev) => {
+          const currentDocs = prev[docId] ? (Array.isArray(prev[docId]) ? prev[docId] : [prev[docId]]) : [];
+          return {
+            ...prev,
+            [docId]: [...currentDocs, ...documentData].slice(0, 2),
+          };
+        });
+      } else if (isAdditionalDoc) {
+        setDocuments((prev) => {
+          const currentDocs = prev[docId] ? (Array.isArray(prev[docId]) ? prev[docId] : [prev[docId]]) : [];
+          return {
+            ...prev,
+            [docId]: [...currentDocs, ...documentData],
+          };
+        });
+      } else {
         setDocuments((prev) => ({
           ...prev,
-          [docId]: documentData,
+          [docId]: documentData[0],
         }));
-
-        if (onUploadSuccess) {
-          onUploadSuccess(documentData, docId);
-        }
-      } else {
-        throw new Error("Upload failed");
       }
-    } catch {
+
+      if (onUploadSuccess) {
+        onUploadSuccess(isPassportPhoto ? documentData : documentData[0], docId);
+      }
+    } catch (error) {
       const errorMessage = "Failed to upload file. Please try again.";
       if (onUploadError) {
         onUploadError(errorMessage);
@@ -87,33 +121,54 @@ const DocumentUploadSection = ({
     }
   };
 
-  const handleRemoveDocument = (docId) => {
+  const handleRemoveDocument = (docId, fileIndex = null) => {
     setDocuments((prev) => {
       const newDocs = { ...prev };
-      delete newDocs[docId];
+
+      const isPassportPhoto = docId === 1;
+      const isAdditionalDoc = docId === 6;
+
+      if ((isPassportPhoto || isAdditionalDoc) && Array.isArray(prev[docId]) && fileIndex !== null) {
+        const updatedList = prev[docId].filter((_, index) => index !== fileIndex);
+        if (updatedList.length > 0) {
+          newDocs[docId] = updatedList;
+        } else {
+          delete newDocs[docId];
+        }
+      } else {
+        delete newDocs[docId];
+      }
+
       return newDocs;
     });
+
     if (fileInputRefs.current[docId]) {
       fileInputRefs.current[docId].value = "";
     }
   };
 
-  const handleViewDocument = (docId) => {
+  const handleViewDocument = (docId, fileIndex = 0) => {
     const doc = documents[docId];
     if (doc) {
-      window.open(doc.preview, "_blank");
+      const targetDoc = Array.isArray(doc) ? doc[fileIndex] : doc;
+      if (targetDoc) {
+        window.open(targetDoc.preview, "_blank");
+      }
     }
   };
 
-  const handleDownloadDocument = (docId) => {
+  const handleDownloadDocument = (docId, fileIndex = 0) => {
     const doc = documents[docId];
     if (doc) {
-      const link = document.createElement("a");
-      link.href = doc.preview;
-      link.download = doc.name;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const targetDoc = Array.isArray(doc) ? doc[fileIndex] : doc;
+      if (targetDoc) {
+        const link = document.createElement("a");
+        link.href = targetDoc.preview;
+        link.download = targetDoc.name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
     }
   };
 
@@ -146,6 +201,9 @@ const DocumentUploadSection = ({
       <div>
         {documentTypes.map((docType) => {
           const isUploaded = documents[docType.id];
+          const isPassportPhoto = docType.id === 1;
+          const uploadedFiles = Array.isArray(isUploaded) ? isUploaded : isUploaded ? [isUploaded] : [];
+          const canUploadMore = (isPassportPhoto && uploadedFiles.length < 2) || docType.multiple;
 
           return (
             <div key={docType.id} className="p-6 border   dark:border-gray-700">
@@ -153,11 +211,10 @@ const DocumentUploadSection = ({
                 <div className="flex items-center gap-4  ">
                   <div className="flex items-center gap-4 max-w-56 w-full">
                     <div
-                      className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                        isUploaded
-                          ? "bg-green-600 dark:bg-green-900/50"
-                          : "bg-gray-400 dark:bg-gray-600"
-                      }`}
+                      className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${isUploaded
+                        ? "bg-green-600 dark:bg-green-900/50"
+                        : "bg-gray-400 dark:bg-gray-600"
+                        }`}
                     >
                       {isUploaded ? (
                         <Check className="w-5 h-5 text-white dark:text-green-400" />
@@ -167,12 +224,16 @@ const DocumentUploadSection = ({
                     </div>
                     <h4 className="text-base font-semibold text-gray-900 dark:text-gray-100 w-full flex items-center gap-2">
                       {docType.title}
+                      {isPassportPhoto && (
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          ({uploadedFiles.length}/2)
+                        </span>
+                      )}
                       <span
-                        className={`text-xs font-medium px-2 py-1 rounded-full ${
-                          docType.required
-                            ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                            : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
-                        }`}
+                        className={`text-xs font-medium px-2 py-1 rounded-full ${docType.required
+                          ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                          : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
+                          }`}
                       >
                         {docType.required ? "Required" : "Optional"}
                       </span>
@@ -191,51 +252,65 @@ const DocumentUploadSection = ({
                 </div>
 
                 <div className="self-start">
-                  <input
-                    type="file"
-                    ref={(el) => (fileInputRefs.current[docType.id] = el)}
-                    onChange={(e) => handleFileUpload(e, docType.id)}
-                    className="hidden"
-                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.zip,.env"
-                    id={`file-upload-${docType.id}`}
-                  />
-                  <label
-                    htmlFor={`file-upload-${docType.id}`}
-                    className="bg-purple-600 text-white font-semibold px-6 py-2.5 rounded-lg cursor-pointer hover:bg-purple-700 transition-colors"
-                  >
-                    Upload
-                  </label>
+                  {(!isUploaded || canUploadMore) && (
+                    <>
+                      <input
+                        type="file"
+                        ref={(el) => (fileInputRefs.current[docType.id] = el)}
+                        onChange={(e) => handleFileUpload(e, docType.id)}
+                        className="hidden"
+                        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.zip,.env"
+                        id={`file-upload-${docType.id}`}
+                        multiple={isPassportPhoto || !!docType.multiple}
+                      />
+                      <label
+                        htmlFor={`file-upload-${docType.id}`}
+                        className="bg-purple-600 text-white font-semibold px-6 py-2.5 rounded-lg cursor-pointer hover:bg-purple-700 transition-colors"
+                      >
+                        {isUploaded && canUploadMore ? "Add More" : "Upload"}
+                      </label>
+                    </>
+                  )}
                 </div>
               </div>
 
               {isUploaded && (
-                <div className="flex items-center justify-between pl-12 mt-4 bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
-                  <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">
-                    {isUploaded.name}
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleViewDocument(docType.id)}
-                      className="p-2 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-100 dark:hover:bg-gray-700 rounded-md transition-colors"
-                      title="View document"
-                    >
-                      <Eye className="w-5 h-5" />
-                    </button>
-                    <button
-                      onClick={() => handleDownloadDocument(docType.id)}
-                      className="p-2 text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-100 dark:hover:bg-gray-700 rounded-md transition-colors"
-                      title="Download document"
-                    >
-                      <Download className="w-5 h-5" />
-                    </button>
-                    <button
-                      onClick={() => handleRemoveDocument(docType.id)}
-                      className="p-2 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-100 dark:hover:bg-gray-700 rounded-md transition-colors"
-                      title="Remove document"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
+                <div className="pl-12 mt-4 space-y-2">
+                  {uploadedFiles.map((file, index) => (
+                    <div key={index} className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+                      <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">
+                        {file.name}
+                        {isPassportPhoto && (
+                          <span className="ml-2 text-xs text-gray-500">
+                            Photo {index + 1}
+                          </span>
+                        )}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleViewDocument(docType.id, index)}
+                          className="p-2 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+                          title="View document"
+                        >
+                          <Eye className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => handleDownloadDocument(docType.id, index)}
+                          className="p-2 text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+                          title="Download document"
+                        >
+                          <Download className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => handleRemoveDocument(docType.id, isPassportPhoto ? index : null)}
+                          className="p-2 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+                          title="Remove document"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
