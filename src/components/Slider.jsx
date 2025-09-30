@@ -436,7 +436,7 @@ const CountrySlider = () => {
         selectedVisaType
       );
       setDateValidationErrors(errors);
-    } catch {}
+    } catch { }
   }, []);
 
   let maxDepartureDate = null;
@@ -684,8 +684,8 @@ const CountrySlider = () => {
       selectedVisaType && selectedVisaType.priceGBP
         ? Number(selectedVisaType.priceGBP)
         : selectedVisaType && selectedVisaType.price
-        ? Math.round(Number(selectedVisaType.price) / 100)
-        : baseFee;
+          ? Math.round(Number(selectedVisaType.price) / 100)
+          : baseFee;
 
     const basePrice = currentBaseFee * travelers;
     const insuranceCost = recommendedItems.insuranceCertificate && insuranceDays > 0
@@ -726,8 +726,8 @@ const CountrySlider = () => {
       selectedVisaType && selectedVisaType.priceGBP
         ? Number(selectedVisaType.priceGBP)
         : selectedVisaType && selectedVisaType.price
-        ? Math.round(Number(selectedVisaType.price) / 100)
-        : baseFee;
+          ? Math.round(Number(selectedVisaType.price) / 100)
+          : baseFee;
 
     const baseOriginalPrice = Math.round(currentBaseFee * 1.25) * travelers;
     const insuranceOriginalPrice = recommendedItems.insuranceCertificate && insuranceDays > 0
@@ -784,8 +784,8 @@ const CountrySlider = () => {
       selectedVisaType && selectedVisaType.priceGBP
         ? Number(selectedVisaType.priceGBP)
         : selectedVisaType && selectedVisaType.price
-        ? Math.round(Number(selectedVisaType.price) / 100)
-        : 159; // baseFee
+          ? Math.round(Number(selectedVisaType.price) / 100)
+          : 159; // baseFee
     const currentVisaFees = currentBaseFee * travelers;
     const calculatedDiscountAmount =
       (currentVisaFees * discount.percentage) / 100;
@@ -830,8 +830,8 @@ const CountrySlider = () => {
             selectedVisaType && selectedVisaType.priceGBP
               ? Number(selectedVisaType.priceGBP)
               : selectedVisaType && selectedVisaType.price
-              ? Math.round(Number(selectedVisaType.price) / 100)
-              : 159; // baseFee
+                ? Math.round(Number(selectedVisaType.price) / 100)
+                : 159; // baseFee
           const currentVisaFees = currentBaseFee * travelers;
           const calculatedDiscountAmount = (currentVisaFees * 20) / 100;
 
@@ -931,7 +931,7 @@ const CountrySlider = () => {
         return;
       }
 
-      const verificationSent = await sendStudentVerification(userEmail);
+      const verificationSent = await sendStudentVerification(userEmail, "/get-the-visa");
       if (verificationSent) {
         setPendingCheckoutQuery("proceed"); // Simple flag
         setSelectedLocalPaymentMethod("stripe");
@@ -948,8 +948,8 @@ const CountrySlider = () => {
       selectedVisaType && selectedVisaType.priceGBP
         ? Number(selectedVisaType.priceGBP)
         : selectedVisaType && selectedVisaType.price
-        ? Math.round(Number(selectedVisaType.price) / 100)
-        : baseFee;
+          ? Math.round(Number(selectedVisaType.price) / 100)
+          : baseFee;
 
     let visaFees = hasOnlyInsurance ? 0 : currentBaseFee * travelers;
 
@@ -1012,7 +1012,7 @@ const CountrySlider = () => {
   };
 
   // Send verification email via API
-  const sendStudentVerification = async (email) => {
+  const sendStudentVerification = async (email, returnTo = null) => {
     if (!email || !validateEmail(email)) {
       setEmailError("Please enter a valid email");
       return false;
@@ -1050,7 +1050,7 @@ const CountrySlider = () => {
       const resp = await fetch("/api/student/send-verification", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, returnTo }),
       });
 
       const data = await resp.json();
@@ -1177,6 +1177,36 @@ const CountrySlider = () => {
     return () => window.removeEventListener("message", onMessage);
   }, [pendingCheckoutQuery, selectedPaymentMethod, router, showSuccess]);
 
+  // On mount, check for verified student email and auto-apply student discount if present
+  useEffect(() => {
+    try {
+      const key = 'nuvisa.verifiedStudentEmail';
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        const payload = JSON.parse(raw);
+        if (payload && payload.email && payload.expiresAt && Date.now() < payload.expiresAt) {
+          setStudentVerified(true);
+          setStudentVerificationSent(false);
+
+          // Pre-fill user email field if it's empty so user sees which address was verified
+          try {
+            if (!userEmail && payload.email) setUserEmailLocal(payload.email);
+          } catch {
+            /* ignore */
+          }
+
+          // Auto-apply STUDENT10 if not already applied
+          if (!appliedDiscount || (appliedDiscount && appliedDiscount.code !== 'STUDENT10')) {
+            setAppliedDiscountLocal({ code: 'STUDENT10', percentage: 10, description: 'Student discount' });
+            setCouponCodeLocal('STUDENT10');
+          }
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
   // Validate required documents before allowing express payment
   const validateRequiredDocuments = () => {
     const requiredFields = [
@@ -1235,7 +1265,7 @@ const CountrySlider = () => {
         return;
       }
 
-      const verificationSent = await sendStudentVerification(userEmail);
+      const verificationSent = await sendStudentVerification(userEmail, "/visa-checkout");
       if (verificationSent) {
         // Store pending payment data to process after verification
         setPendingCheckoutQuery("proceed"); // Simple flag
@@ -1252,8 +1282,8 @@ const CountrySlider = () => {
       selectedVisaType && selectedVisaType.priceGBP
         ? Number(selectedVisaType.priceGBP)
         : selectedVisaType && selectedVisaType.price
-        ? Math.round(Number(selectedVisaType.price) / 100)
-        : 159; // baseFee
+          ? Math.round(Number(selectedVisaType.price) / 100)
+          : 159; // baseFee
 
     let visaFees = currentBaseFee * travelers;
 
@@ -1295,7 +1325,7 @@ const CountrySlider = () => {
       // Simulate successful Apple Pay flow
       const confirmPayment = confirm(
         `Process Apple Pay payment of £${totalAmount}?\n\n` +
-          `This will redirect to payment processing page.`
+        `This will redirect to payment processing page.`
       );
 
       if (confirmPayment) {
@@ -1311,9 +1341,8 @@ const CountrySlider = () => {
       // Build line items for detailed breakdown
       const lineItems = [
         {
-          label: `Visa Processing Fee (${travelers} traveller${
-            travelers > 1 ? "s" : ""
-          })`,
+          label: `Visa Processing Fee (${travelers} traveller${travelers > 1 ? "s" : ""
+            })`,
           amount: Math.round(visaFees).toString(),
           type: "final",
         },
@@ -1321,9 +1350,8 @@ const CountrySlider = () => {
 
       if (recommendedItems.insuranceCertificate) {
         lineItems.push({
-          label: `Insurance Certificate (${travelers} traveller${
-            travelers > 1 ? "s" : ""
-          })`,
+          label: `Insurance Certificate (${travelers} traveller${travelers > 1 ? "s" : ""
+            })`,
           amount: insuranceFees.toString(),
           type: "final",
         });
@@ -1331,9 +1359,8 @@ const CountrySlider = () => {
 
       if (recommendedItems.giftCard) {
         lineItems.push({
-          label: `Gift Card (${giftCardCount} card${
-            giftCardCount > 1 ? "s" : ""
-          })`,
+          label: `Gift Card (${giftCardCount} card${giftCardCount > 1 ? "s" : ""
+            })`,
           amount: giftCardFees.toString(),
           type: "final",
         });
@@ -1399,7 +1426,7 @@ const CountrySlider = () => {
             alert(
               "Apple Pay setup required. Redirecting to standard checkout..."
             );
-          } catch {}
+          } catch { }
 
           dispatch(setSelectedPaymentMethod("stripe"));
           router.push(`/visa-checkout`);
@@ -1468,7 +1495,7 @@ const CountrySlider = () => {
         return;
       }
 
-      const verificationSent = await sendStudentVerification(userEmail);
+      const verificationSent = await sendStudentVerification(userEmail, `/payment/${selectedPaymentMethod}`);
       if (verificationSent) {
         // Store pending payment data to process after verification
         setPendingCheckoutQuery("proceed"); // Simple flag
@@ -1485,8 +1512,8 @@ const CountrySlider = () => {
       selectedVisaType && selectedVisaType.priceGBP
         ? Number(selectedVisaType.priceGBP)
         : selectedVisaType && selectedVisaType.price
-        ? Math.round(Number(selectedVisaType.price) / 100)
-        : 159; // baseFee
+          ? Math.round(Number(selectedVisaType.price) / 100)
+          : 159; // baseFee
 
     let visaFees = currentBaseFee * travelers;
 
@@ -1578,9 +1605,8 @@ const CountrySlider = () => {
       // Build display items for detailed breakdown
       const displayItems = [
         {
-          label: `Visa Processing Fee (${travelers} traveller${
-            travelers > 1 ? "s" : ""
-          })`,
+          label: `Visa Processing Fee (${travelers} traveller${travelers > 1 ? "s" : ""
+            })`,
           type: "LINE_ITEM",
           price: Math.round(visaFees).toString(),
         },
@@ -1588,9 +1614,8 @@ const CountrySlider = () => {
 
       if (recommendedItems.insuranceCertificate) {
         displayItems.push({
-          label: `Insurance Certificate (${travelers} traveller${
-            travelers > 1 ? "s" : ""
-          })`,
+          label: `Insurance Certificate (${travelers} traveller${travelers > 1 ? "s" : ""
+            })`,
           type: "LINE_ITEM",
           price: insuranceFees.toString(),
         });
@@ -1598,9 +1623,8 @@ const CountrySlider = () => {
 
       if (recommendedItems.giftCard) {
         displayItems.push({
-          label: `Gift Card (${giftCardCount} card${
-            giftCardCount > 1 ? "s" : ""
-          })`,
+          label: `Gift Card (${giftCardCount} card${giftCardCount > 1 ? "s" : ""
+            })`,
           type: "LINE_ITEM",
           price: giftCardFees.toString(),
         });
@@ -1842,9 +1866,8 @@ const CountrySlider = () => {
                     setCurrentIndex(index);
                     resetTimer();
                   }}
-                  className={`w-2.5 h-2.5 cursor-pointer rounded-full transition-all ${
-                    index === currentIndex ? "bg-white w-6" : "bg-white/50"
-                  }`}
+                  className={`w-2.5 h-2.5 cursor-pointer rounded-full transition-all ${index === currentIndex ? "bg-white w-6" : "bg-white/50"
+                    }`}
                   aria-label={`Go to slide ${index + 1}`}
                 />
               ))}
@@ -1862,11 +1885,10 @@ const CountrySlider = () => {
                   setCurrentIndex(index);
                   resetTimer();
                 }}
-                className={`w-20 aspect-square object-cover cursor-pointer rounded-xl border-2 transition-all border-white ${
-                  index === currentIndex
+                className={`w-20 aspect-square object-cover cursor-pointer rounded-xl border-2 transition-all border-white ${index === currentIndex
                     ? "border-none"
                     : "opacity-70 hover:opacity-100"
-                }`}
+                  }`}
                 style={{ boxSizing: "border-box" }}
               />
             ))}
@@ -1989,11 +2011,10 @@ const CountrySlider = () => {
         <ClientOnly>
           <div className="my-6">
             <div
-              className={`bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden transition-all duration-300 hover:bg-white/10 ${
-                validationErrors.size > 0
+              className={`bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden transition-all duration-300 hover:bg-white/10 ${validationErrors.size > 0
                   ? "!bg-red-500/10 border !border-red-500 shadow-lg"
                   : ""
-              }`}
+                }`}
             >
               <h2
                 className={`text-xl font-gilroy-bold p-4 cursor-pointer flex items-center justify-between hover:bg-white/5 transition-all duration-200`}
@@ -2012,9 +2033,8 @@ const CountrySlider = () => {
                   </div>
                 </span>
                 <div
-                  className={`transform transition-transform duration-300 ${
-                    documentsAccordionOpen ? "rotate-180" : "rotate-0"
-                  }`}
+                  className={`transform transition-transform duration-300 ${documentsAccordionOpen ? "rotate-180" : "rotate-0"
+                    }`}
                 >
                   <svg
                     width="16"
@@ -2035,31 +2055,28 @@ const CountrySlider = () => {
               </h2>
 
               <div
-                className={`transition-all duration-300 ease-in-out ${
-                  documentsAccordionOpen
+                className={`transition-all duration-300 ease-in-out ${documentsAccordionOpen
                     ? "max-h-[600px] opacity-100"
                     : "max-h-0 opacity-0"
-                }`}
+                  }`}
               >
                 <div className="px-4 pb-4">
                   <div className="h-px bg-white/10 mb-4"></div>
                   <div className="grid grid-cols-1 gap-3">
                     <div
-                      className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border ${
-                        requiredDocuments.passport
+                      className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border ${requiredDocuments.passport
                           ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
                           : validationErrors.has("passport")
-                          ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
-                          : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
-                      }`}
+                            ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
+                            : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
+                        }`}
                       onClick={() => toggleRequiredDocument("passport")}
                     >
                       <div
-                        className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all ${
-                          requiredDocuments.passport
+                        className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all ${requiredDocuments.passport
                             ? "bg-[#7350FF] border-2 border-[#7350FF]"
                             : "bg-transparent border-2 border-white/40"
-                        }`}
+                          }`}
                       >
                         {requiredDocuments.passport && (
                           <Check className="w-3 h-3 text-white" />
@@ -2073,21 +2090,19 @@ const CountrySlider = () => {
                       </div>
                     </div>
                     <div
-                      className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border ${
-                        requiredDocuments.ukVisa
+                      className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border ${requiredDocuments.ukVisa
                           ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
                           : validationErrors.has("ukVisa")
-                          ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
-                          : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
-                      }`}
+                            ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
+                            : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
+                        }`}
                       onClick={() => toggleRequiredDocument("ukVisa")}
                     >
                       <div
-                        className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all ${
-                          requiredDocuments.ukVisa
+                        className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all ${requiredDocuments.ukVisa
                             ? "bg-[#7350FF] border-2 border-[#7350FF]"
                             : "bg-transparent border-2 border-white/40"
-                        }`}
+                          }`}
                       >
                         {requiredDocuments.ukVisa && (
                           <Check className="w-3 h-3 text-white" />
@@ -2101,21 +2116,19 @@ const CountrySlider = () => {
                       </div>
                     </div>
                     <div
-                      className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border ${
-                        requiredDocuments.photos
+                      className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border ${requiredDocuments.photos
                           ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
                           : validationErrors.has("photos")
-                          ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
-                          : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
-                      }`}
+                            ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
+                            : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
+                        }`}
                       onClick={() => toggleRequiredDocument("photos")}
                     >
                       <div
-                        className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all ${
-                          requiredDocuments.photos
+                        className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all ${requiredDocuments.photos
                             ? "bg-[#7350FF] border-2 border-[#7350FF]"
                             : "bg-transparent border-2 border-white/40"
-                        }`}
+                          }`}
                       >
                         {requiredDocuments.photos && (
                           <Check className="w-3 h-3 text-white" />
@@ -2131,21 +2144,19 @@ const CountrySlider = () => {
                       </div>
                     </div>
                     <div
-                      className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border ${
-                        requiredDocuments.bankStatements
+                      className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border ${requiredDocuments.bankStatements
                           ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
                           : validationErrors.has("bankStatements")
-                          ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
-                          : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
-                      }`}
+                            ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
+                            : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
+                        }`}
                       onClick={() => toggleRequiredDocument("bankStatements")}
                     >
                       <div
-                        className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all ${
-                          requiredDocuments.bankStatements
+                        className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all ${requiredDocuments.bankStatements
                             ? "bg-[#7350FF] border-2 border-[#7350FF]"
                             : "bg-transparent border-2 border-white/40"
-                        }`}
+                          }`}
                       >
                         {requiredDocuments.bankStatements && (
                           <Check className="w-3 h-3 text-white" />
@@ -2162,21 +2173,19 @@ const CountrySlider = () => {
                       </div>
                     </div>
                     <div
-                      className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border ${
-                        requiredDocuments.employmentProof
+                      className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border ${requiredDocuments.employmentProof
                           ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
                           : validationErrors.has("employmentProof")
-                          ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
-                          : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
-                      }`}
+                            ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
+                            : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
+                        }`}
                       onClick={() => toggleRequiredDocument("employmentProof")}
                     >
                       <div
-                        className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all ${
-                          requiredDocuments.employmentProof
+                        className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all ${requiredDocuments.employmentProof
                             ? "bg-[#7350FF] border-2 border-[#7350FF]"
                             : "bg-transparent border-2 border-white/40"
-                        }`}
+                          }`}
                       >
                         {requiredDocuments.employmentProof && (
                           <Check className="w-3 h-3 text-white" />
@@ -2193,19 +2202,17 @@ const CountrySlider = () => {
                       </div>
                     </div>
                     <div
-                      className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border ${
-                        requiredDocuments.insurance
+                      className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border ${requiredDocuments.insurance
                           ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
                           : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
-                      }`}
+                        }`}
                       onClick={() => toggleRequiredDocument("insurance")}
                     >
                       <div
-                        className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all ${
-                          requiredDocuments.insurance
+                        className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all ${requiredDocuments.insurance
                             ? "bg-[#7350FF] border-2 border-[#7350FF]"
                             : "bg-transparent border-2 border-white/40"
-                        }`}
+                          }`}
                       >
                         {requiredDocuments.insurance && (
                           <Check className="w-3 h-3 text-white" />
@@ -2243,11 +2250,10 @@ const CountrySlider = () => {
                     className="flex items-center space-x-2 cursor-pointer"
                   >
                     <div
-                      className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black ${
-                        recommendedItems.insuranceCertificate
+                      className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black ${recommendedItems.insuranceCertificate
                           ? "bg-[#7350FF] border border-transparent"
                           : "bg-white border border-gray-500"
-                      }`}
+                        }`}
                     >
                       {recommendedItems.insuranceCertificate && (
                         <Check className="w-3.5 h-3.5 text-white" />
@@ -2369,11 +2375,10 @@ const CountrySlider = () => {
                       className="flex items-center space-x-2 cursor-pointer"
                     >
                       <div
-                        className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black ${
-                          recommendedItems.giftCard
+                        className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black ${recommendedItems.giftCard
                             ? "bg-[#7350FF] border border-transparent"
                             : "bg-white border border-gray-500"
-                        }`}
+                          }`}
                       >
                         {recommendedItems.giftCard && (
                           <Check className="w-3.5 h-3.5 text-white" />
@@ -2486,13 +2491,11 @@ const CountrySlider = () => {
                       setCouponCodeLocal(e.target.value.toUpperCase())
                     }
                     placeholder="Enter coupon code (e.g., STUDENT10)"
-                    className={`w-full border ${
-                      couponError ? "border-red-400" : "border-gray-500"
-                    } bg-[#24242D] text-white rounded-md p-2 text-sm ${
-                      couponError
+                    className={`w-full border ${couponError ? "border-red-400" : "border-gray-500"
+                      } bg-[#24242D] text-white rounded-md p-2 text-sm ${couponError
                         ? "outline-none ring-2 ring-red-400"
                         : "focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    }`}
+                      }`}
                     disabled={appliedDiscount}
                   />
                 </div>
@@ -2566,13 +2569,11 @@ const CountrySlider = () => {
                         value={userEmail}
                         onChange={(e) => setUserEmailLocal(e.target.value)}
                         placeholder="Enter your student email (e.g., you@student.uni.ac.uk)"
-                        className={`w-full border ${
-                          emailError ? "border-red-400" : "border-gray-500"
-                        } bg-[#24242D] text-white rounded-md p-2 text-sm ${
-                          emailError
+                        className={`w-full border ${emailError ? "border-red-400" : "border-gray-500"
+                          } bg-[#24242D] text-white rounded-md p-2 text-sm ${emailError
                             ? "outline-none ring-2 ring-red-400"
                             : "focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        }`}
+                          }`}
                         disabled={studentVerified}
                       />
                     </div>
@@ -2699,8 +2700,8 @@ const CountrySlider = () => {
               {selectedPaymentMethod === "stripe"
                 ? "CONTINUE WITH CREDIT CARD"
                 : selectedPaymentMethod === "klarna"
-                ? "CONTINUE WITH KLARNA"
-                : "CONTINUE TO CHECKOUT"}
+                  ? "CONTINUE WITH KLARNA"
+                  : "CONTINUE TO CHECKOUT"}
             </span>
             <span className="bg-white rounded-full p-1.5 transition-transform duration-300 group-hover:rotate-45 group-hover:translate-x-1 group-hover:-translate-y-0">
               <ArrowUpRight className="w-5 h-5 text-[#6B4EFF]" />

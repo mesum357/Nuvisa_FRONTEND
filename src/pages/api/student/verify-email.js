@@ -123,7 +123,7 @@ export default async function handler(req, res) {
         <p>Your student email address has been verified:</p>
         <div class="email">${record.email}</div>
         <p>You can now close this window and return to NuVisa to complete your application with the student discount.</p>
-        <a href="/get-the-visa" class="button">Return to NuVisa</a>
+  <a href="${returnToParam ? returnToParam : '/get-the-visa'}" class="button">Return to NuVisa</a>
       </div>
       <script>
         // Store a client-side flag so returning users see their verified state on the site
