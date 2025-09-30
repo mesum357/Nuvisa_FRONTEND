@@ -8,17 +8,13 @@ import { setAuthId, setAuthState } from "@/store/authSlice";
 import Cookies from "js-cookie";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { FaUser, FaShieldAlt, FaApple, FaGoogle } from "react-icons/fa";
 import { HiOutlineDeviceMobile } from "react-icons/hi";
 import { SiKlarna } from "react-icons/si";
-import {
-  calculatePaymentFees,
-  formatCurrency,
-  validateCouponCode,
-  applyCouponDiscount,
-} from "@/utils/currency";
+import { calculatePaymentFees, formatCurrency } from "@/utils/currency";
 import ClientOnly from "./ClientOnly";
+import { useToast } from "@/contexts/ToastContext";
 import QtyInput from "./QtyInput";
 
 const VisaCheckout = () => {
@@ -59,7 +55,7 @@ const VisaCheckout = () => {
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24) + 1);
       travelDays = Math.max(1, diffDays);
     }
-  } catch (err) {
+  } catch {
     travelDays = 1;
   }
 
@@ -84,7 +80,185 @@ const VisaCheckout = () => {
   );
   const [couponError, setCouponError] = useState("");
 
-  // Card details state
+  const { showSuccess } = useToast();
+
+  const [_studentVerificationSent, setStudentVerificationSent] = useState(false);
+  const [studentVerified, setStudentVerified] = useState(false);
+  const [_isSendingVerification, setIsSendingVerification] = useState(false);
+  const verificationPollRef = useRef(null);
+  const [pendingCheckoutQuery, _setPendingCheckoutQuery] = useState(null);
+
+  const sendStudentVerification = async (emailToVerify, returnTo = "/visa-checkout") => {
+    if (!emailToVerify || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailToVerify)) {
+      setEmailError("Please enter a valid email");
+      return false;
+    }
+
+    const educationalDomains = [
+      ".edu",
+      ".ac.uk",
+      ".edu.au",
+      ".edu.ca",
+      ".ac.nz",
+      ".edu.sg",
+      ".uni-",
+      ".university",
+      ".college",
+      ".ac.",
+      ".edu.",
+    ];
+    const isEducationalEmail = educationalDomains.some((domain) =>
+      emailToVerify.toLowerCase().includes(domain)
+    );
+
+    if (!isEducationalEmail) {
+      setEmailError(
+        "Please use your educational institution email address (.edu, .ac.uk, etc.)"
+      );
+      return false;
+    }
+
+    setIsSendingVerification(true);
+    setEmailError("");
+
+    try {
+      const resp = await fetch("/api/student/send-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: emailToVerify, returnTo }),
+      });
+
+      const data = await resp.json();
+      setIsSendingVerification(false);
+
+      if (resp.ok) {
+        setStudentVerificationSent(true);
+        setEmailError("");
+        startVerificationPolling(emailToVerify);
+        return true;
+      } else {
+        setEmailError(data?.error || "Failed to send verification email");
+        return false;
+      }
+    } catch {
+      setIsSendingVerification(false);
+      setEmailError("Network error sending verification email");
+      return false;
+    }
+  };
+
+  const startVerificationPolling = (emailToCheck) => {
+    const pollInterval = setInterval(async () => {
+      try {
+        const resp = await fetch("/api/student/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: emailToCheck }),
+        });
+
+        const data = await resp.json();
+
+        if (resp.ok && data.verified) {
+          setStudentVerified(true);
+          setStudentVerificationSent(false);
+          if (verificationPollRef.current) {
+            clearInterval(verificationPollRef.current);
+            verificationPollRef.current = null;
+          } else {
+            clearInterval(pollInterval);
+          }
+
+          try {
+            if (typeof showSuccess === "function") {
+              showSuccess("Email verified — student discount applied.");
+            }
+          } catch {
+          }
+
+          if (
+            pendingCheckoutQuery &&
+            (selectedPaymentMethod === "apple" ||
+              selectedPaymentMethod === "google")
+          ) {
+            window.location.href = `/payment/${selectedPaymentMethod}`;
+          } else if (pendingCheckoutQuery) {
+            window.location.href = `/visa-checkout`;
+          }
+        }
+      } catch (e) {
+        console.error("Error checking verification status:", e);
+      }
+    }, 3000);
+    verificationPollRef.current = pollInterval;
+
+    setTimeout(() => {
+      if (verificationPollRef.current) {
+        clearInterval(verificationPollRef.current);
+        verificationPollRef.current = null;
+      }
+    }, 10 * 60 * 1000);
+  };
+
+  useEffect(() => {
+    const onMessage = (e) => {
+      try {
+        const data = e.data || {};
+        if (data && data.type === "student-email-verified") {
+          setStudentVerified(true);
+          setStudentVerificationSent(false);
+          if (verificationPollRef.current) {
+            clearInterval(verificationPollRef.current);
+            verificationPollRef.current = null;
+          }
+
+          try {
+            if (typeof showSuccess === "function") {
+              showSuccess("Email verified — student discount applied.");
+            }
+          } catch {
+          }
+
+          if (
+            pendingCheckoutQuery &&
+            (selectedPaymentMethod === "apple" ||
+              selectedPaymentMethod === "google")
+          ) {
+            window.location.href = `/payment/${selectedPaymentMethod}`;
+          } else if (pendingCheckoutQuery) {
+            window.location.href = `/visa-checkout`;
+          }
+        }
+      } catch {
+      }
+    };
+
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [pendingCheckoutQuery, selectedPaymentMethod, showSuccess]);
+
+  useEffect(() => {
+    try {
+      const key = 'nuvisa.verifiedStudentEmail';
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        const payload = JSON.parse(raw);
+        if (payload && payload.email && payload.expiresAt && Date.now() < payload.expiresAt) {
+          setStudentVerified(true);
+
+          if (!email) {
+            setEmail(payload.email);
+          }
+
+          if (!appliedDiscount || (appliedDiscount && appliedDiscount.code !== 'STUDENT10')) {
+            setAppliedDiscount({ code: 'STUDENT10', percentage: 10, description: 'Student discount' });
+            setCouponCode('STUDENT10');
+          }
+        }
+      }
+    } catch {
+    }
+  }, []);
+
   const [cardNumber, setCardNumber] = useState("");
   const [expirationDate, setExpirationDate] = useState("");
   const [securityCode, setSecurityCode] = useState("");
@@ -121,12 +295,68 @@ const VisaCheckout = () => {
       GROUP20: {
         description: "Group discount",
         percentage: 20,
+        requiresMinTravellers: 3,
       },
     };
 
     const discount = availableDiscounts[couponCode.toUpperCase()];
     if (!discount) {
       setCouponError("Invalid coupon code. Available codes: STUDENT10, GROUP20");
+      return;
+    }
+
+    if (discount.requiresMinTravellers && travelers < discount.requiresMinTravellers) {
+      setCouponError(`This coupon requires at least ${discount.requiresMinTravellers} travellers`);
+      return;
+    }
+
+    if (couponCode.toUpperCase() === "STUDENT10") {
+      if (!email) {
+        setEmailError("Please enter your email to verify student discount");
+        setCouponError("Enter an email to verify student discount");
+        return;
+      }
+
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        setEmailError("Please enter a valid email address");
+        setCouponError("Please provide a valid email for student verification");
+        return;
+      }
+
+      const educationalDomains = [
+        ".edu",
+        ".ac.uk",
+        ".edu.au",
+        ".edu.ca",
+        ".ac.nz",
+        ".edu.sg",
+        ".uni-",
+        ".university",
+        ".college",
+        ".ac.",
+        ".edu.",
+      ];
+      const isEducationalEmail = educationalDomains.some((domain) =>
+        email.toLowerCase().includes(domain)
+      );
+
+      if (!isEducationalEmail) {
+        setCouponError("Please use your educational institution email address (.edu, .ac.uk, etc.)");
+        return;
+      }
+
+      setAppliedDiscount({
+        code: couponCode.toUpperCase(),
+        percentage: discount.percentage,
+        description: discount.description,
+      });
+      setCouponError("");
+
+      try {
+        await sendStudentVerification(email, "/visa-checkout");
+      } catch {
+      }
+
       return;
     }
 
@@ -399,6 +629,18 @@ const VisaCheckout = () => {
 
     setEmailError("");
     setPostcodeError("");
+
+    if (
+      appliedDiscount &&
+      appliedDiscount.description &&
+      appliedDiscount.description.toLowerCase().includes("student") &&
+      !studentVerified
+    ) {
+      const verificationSent = await sendStudentVerification(email);
+      if (!verificationSent) {
+        return;
+      }
+    }
 
     const statusResult = await handleCreateDynamicCheckoutSession({
       email: email,
@@ -701,6 +943,30 @@ const VisaCheckout = () => {
                     </span>
                   </div>
                 )}
+
+                {appliedDiscount &&
+                  appliedDiscount.description &&
+                  appliedDiscount.description.toLowerCase().includes("student") &&
+                  !studentVerified && (
+                    <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
+                      <p className="mb-2">
+                        Student discount requires email verification. We have sent a verification email to the address above. Please check your inbox and click the verification link to continue.
+                      </p>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => sendStudentVerification(email)}
+                          className="px-3 py-1 bg-black text-white rounded text-sm"
+                        >
+                          Resend verification email
+                        </button>
+                        {_studentVerificationSent && (
+                          <span className="text-sm text-gray-700">
+                            Verification sent — check your inbox
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                 <div className="text-xs text-gray-600">
                   <p>Available discounts:</p>
@@ -1259,15 +1525,23 @@ const VisaCheckout = () => {
               </div>
 
               <button
-                disabled={cretingDynamicCheckout}
+                disabled={
+                  cretingDynamicCheckout ||
+                  (appliedDiscount &&
+                    appliedDiscount.description &&
+                    appliedDiscount.description.toLowerCase().includes("student") &&
+                    !studentVerified)
+                }
                 onClick={handleProceedToCheckout}
-                className={`w-full bg-black text-white py-3 rounded-md font-semibold hover:bg-gray-900 transition-colors ${cretingDynamicCheckout
+                className={`w-full bg-black text-white py-3 rounded-md font-semibold hover:bg-gray-900 transition-colors ${cretingDynamicCheckout || (appliedDiscount && appliedDiscount.description && appliedDiscount.description.toLowerCase().includes("student") && !studentVerified)
                   ? "cursor-not-allowed opacity-50"
                   : "cursor-pointer"
                   }`}
               >
                 {cretingDynamicCheckout ? (
                   "Processing..."
+                ) : appliedDiscount && appliedDiscount.description && appliedDiscount.description.toLowerCase().includes("student") && !studentVerified ? (
+                  "Verify your email to continue"
                 ) : selectedPaymentMethod === "apple" ? (
                   <div className="flex items-center justify-center space-x-2">
                     <FaApple />
