@@ -274,6 +274,7 @@ const VisaCheckout = () => {
   const [billingCity, setBillingCity] = useState("");
   const [billingPostcode, setBillingPostcode] = useState("");
   const [billingPhone, setBillingPhone] = useState("");
+  const [billingPhoneError, setBillingPhoneError] = useState("");
 
   // Card validation errors
   const [cardErrors, setCardErrors] = useState({});
@@ -402,11 +403,11 @@ const VisaCheckout = () => {
     return v;
   };
 
-  const isValidUKPhone = (value) => {
+  const isValidPhone = (value) => {
     if (!value) return false;
-    const normalized = value.replace(/[^+0-9]/g, "");
-    if (/^\+447\d{9}$/.test(normalized)) return true;
-    if (/^07\d{9}$/.test(normalized)) return true;
+    const digits = String(value).replace(/\D/g, "");
+    if (digits.length === 10) return true;
+    if (digits.length === 11 && digits.startsWith("0")) return true;
     return false;
   };
 
@@ -493,9 +494,9 @@ const VisaCheckout = () => {
       setPhoneError("");
       return;
     }
-    if (!isValidUKPhone(phone)) {
+    if (!isValidPhone(phone)) {
       setPhoneError(
-        "Please enter a valid UK phone number (e.g. +44 7XXXXXXXXX or 07XXXXXXXXX)"
+        "Please enter a valid phone number (10 digits or 11 digits starting with 0, e.g. 0123456789)"
       );
     } else {
       setPhoneError("");
@@ -610,10 +611,16 @@ const VisaCheckout = () => {
       return;
     }
 
-    // If phone is provided, ensure it's a valid UK phone number
-    if (phone && phone.trim() && !isValidUKPhone(phone)) {
+    if (phone && String(phone).trim() && !isValidPhone(phone)) {
       setPhoneError(
-        "Please enter a valid UK phone number (e.g. +44 7XXXXXXXXX or 07XXXXXXXXX)"
+        "Please enter a valid phone number (10 digits or 11 digits starting with 0)"
+      );
+      return;
+    }
+
+    if (billingPhone && String(billingPhone).trim() && !isValidPhone(billingPhone)) {
+      setBillingPhoneError(
+        "Please enter a valid phone number (10 digits or 11 digits starting with 0)"
       );
       return;
     }
@@ -768,7 +775,7 @@ const VisaCheckout = () => {
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     onBlur={handlePhoneBlur}
-                    placeholder="+44 123 456 7890"
+                    placeholder="e.g. 0123456789"
                     className={`w-full border ${phoneError
                       ? "border-red-400 outline-none ring-2 ring-red-400"
                       : "border-gray-300 focus:outline-none focus:ring-2 focus:ring-black"
@@ -1487,8 +1494,14 @@ const VisaCheckout = () => {
                               id="billingPhone"
                               value={billingPhone}
                               onChange={(e) => setBillingPhone(e.target.value)}
-                              className="w-full border border-gray-300 rounded-md p-3 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                              placeholder="e.g. 0123456789"
+                              className={`w-full border ${billingPhoneError ? "border-red-400" : "border-gray-300"} rounded-md p-3 text-sm focus:outline-none focus:ring-2 focus:ring-black`}
                             />
+                            {billingPhoneError && (
+                              <span className="text-sm text-red-400 mt-1">
+                                {billingPhoneError}
+                              </span>
+                            )}
                           </div>
                         </div>
                       )}

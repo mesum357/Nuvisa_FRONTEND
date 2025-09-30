@@ -673,11 +673,16 @@ const PassportInformationSection = ({
       newErrors.mobileNumber = "Mobile number is required.";
     } else {
       const s = String(mobileNumber).trim();
-      const digits = s.replace(/[\s()\\-]/g, "");
-      const ukPhoneRegex = /^(?:\+447\d{9}|447\d{9}|07\d{9})$/;
-      if (!ukPhoneRegex.test(digits)) {
+      const digits = s.replace(/\D/g, "");
+
+      if (!(digits.length === 10 || digits.length === 11)) {
         newErrors.mobileNumber =
-          "Please enter a valid UK mobile number (e.g. +447123456789).";
+          "Please enter only digits: 10 digits (or 11 digits if you include a leading 0).";
+      } else if (digits.length === 11 && digits.charAt(0) !== "0") {
+        newErrors.mobileNumber = "11-digit numbers must start with 0.";
+      } else if (digits.length === 10 && digits.charAt(0) === "0") {
+        newErrors.mobileNumber =
+          "10-digit numbers should not start with 0; include the 0 to make it 11 digits.";
       }
     }
 
@@ -1426,7 +1431,7 @@ const PassportInformationSection = ({
                     name="mobileNumber"
                     value={passportData.mobileNumber || ""}
                     onChange={handleInputChange}
-                    placeholder="e.g. +447123456789"
+                    placeholder="e.g. 7123456789 or 07123456789"
                     className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none ${errors.mobileNumber
                       ? "border-red-500"
                       : "border-[#423577]"

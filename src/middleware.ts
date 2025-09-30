@@ -23,7 +23,14 @@ export function middleware(request) {
   } catch {
     email = null;
   }
-
+ const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || ""
+    if (url.includes('/admin')) {
+      if (email !== adminEmail) {
+        const redirectUrl = new URL(RoutesEnums.Dashboard.Main, request.url);
+        return NextResponse.redirect(redirectUrl);
+      }
+    }
+    
   if (!token) {
     const redirects = {
       [RoutesEnums.Dashboard.Main]: RoutesEnums.Login,
@@ -40,15 +47,7 @@ export function middleware(request) {
   }
 
   if (token) {
-    const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || ""
-
-    if (url.includes('/admin')) {
-      if (email !== adminEmail) {
-        const redirectUrl = new URL(RoutesEnums.Dashboard.Main, request.url);
-        return NextResponse.redirect(redirectUrl);
-      }
-    }
-
+   
     if (url.includes(RoutesEnums.Login)) {
       const redirectPath = email === adminEmail ? '/admin' : RoutesEnums.Dashboard.Main;
       const redirectUrl = new URL(redirectPath, request.url);
