@@ -21,6 +21,7 @@ import {
   Building2,
   CircleDollarSign,
 } from "lucide-react";
+import { FaWhatsapp } from "react-icons/fa";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
@@ -376,6 +377,10 @@ function ApplicationCard({
       : null,
   };
 
+  const waHref = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER}text=${encodeURIComponent(
+    `Hi, I need help with my application #${app.id?.slice(0, 6)}`
+  )}`;
+
   return (
     <motion.div
       layout
@@ -500,17 +505,7 @@ function ApplicationCard({
             className="border-t border-[#423577] overflow-hidden"
           >
             <div className="p-6 space-y-6">
-              <div className="p-4 bg-[#7350FF]/10 border border-[#7350FF]/30 rounded-lg">
-                <p className="font-semibold text-white">
-                  Have questions about your application?
-                </p>
-                <p className="text-sm text-white/80">
-                  {app?.assignedAgent?.name || "Support"}, Available 10am-7pm •
-                  Mon-Sat
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex items-center gap-6">
                 <button
                   onClick={() => handleViewApplication(app.id)}
                   className="flex items-center gap-2 text-white font-medium hover:text-[#7350FF] transition-colors"
@@ -518,7 +513,7 @@ function ApplicationCard({
                   View application <span className="font-bold">&gt;</span>
                 </button>
 
-                {type !== "archived" && onRequestArchive && (
+                      {type !== "archived" && onRequestArchive && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -529,8 +524,19 @@ function ApplicationCard({
                     {isArchiving ? "Archiving..." : "Archive"}
                   </button>
                 )}
+
+                <a
+                  href={waHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-white font-medium hover:text-[#25D366] transition-colors"
+                >
+                  <FaWhatsapp className="text-green-400" />
+                  Need help?
+                </a>
               </div>
 
+        
               <ProgressTimeline
                 currentStatus={app.progressStatus}
                 applicant={{ fullName, age, email, initials }}

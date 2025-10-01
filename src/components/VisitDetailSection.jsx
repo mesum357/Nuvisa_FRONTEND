@@ -19,6 +19,7 @@ const MultiSelectDropdown = ({
   options,
   value,
   onChange,
+  disabled = false,
   placeholder,
   errors,
 }) => {
@@ -49,11 +50,13 @@ const MultiSelectDropdown = ({
   }, []);
 
   const handleSelectAll = () => {
+    if (disabled) return;
     const allCountries = filteredOptions.map((option) => option.name);
     onChange(allCountries);
   };
 
   const handleCountryToggle = (countryName) => {
+    if (disabled) return;
     let newSelectedValues;
     if (selectedValues.includes(countryName)) {
       newSelectedValues = selectedValues.filter((val) => val !== countryName);
@@ -74,8 +77,10 @@ const MultiSelectDropdown = ({
   return (
     <div className="relative" ref={dropdownRef}>
       <div
-        className="w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-[#7350FF] focus:border-transparent cursor-pointer flex items-center justify-between"
-        onClick={() => setIsOpen(!isOpen)}
+        className={`w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-[#7350FF] focus:border-transparent flex items-center justify-between ${
+          disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+        }`}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
       >
         <span
           className={
@@ -90,7 +95,7 @@ const MultiSelectDropdown = ({
         />
       </div>
 
-      {isOpen && (
+      {isOpen && !disabled && (
         <div className="absolute z-50 w-full mt-1 sec_bg public_border_clr text-white rounded-lg border shadow-lg max-h-80 overflow-hidden">
           <div className="p-3">
             <input
@@ -170,20 +175,23 @@ const QuestionCard = ({ icon, title, children }) => (
   </div>
 );
 
-const RadioGroup = ({ name, options, value, onChange, errors }) => (
+const RadioGroup = ({ name, options, value, onChange, errors, disabled = false }) => (
   <div className="space-y-3">
     <div className="gap-3 flex items-center flex-wrap">
       {options.map((option) => (
         <label
           key={option}
-          className="flex items-center space-x-3 cursor-pointer sec_bg p-2 px-4"
+          className={`flex items-center space-x-3 sec_bg p-2 px-4 ${
+            disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+          }`}
         >
           <input
             type="radio"
             name={name}
             value={option}
             checked={value === option}
-            onChange={(e) => onChange(e.target.value)}
+            onChange={disabled ? () => {} : (e) => onChange(e.target.value)}
+            disabled={disabled}
             className="hidden"
           />
           <div
@@ -250,6 +258,7 @@ const VisitDetailSection = ({
   setParentVisaApplication,
   onComplete,
   loading,
+  disabled = false,
 }) => {
   const visaState = useAppSelector((state) => state.visa);
   const selectedCountry = visaState.selectedCountry || "UK";
@@ -300,6 +309,7 @@ const VisitDetailSection = ({
   }, [visitData, parentVisaApplication]);
 
   const handleInputChange = (e) => {
+    if (disabled) return;
     const { name, value } = e.target;
     console.log(`Field changed: ${name} = ${value}`);
     setVisitData((prev) => ({
@@ -309,6 +319,7 @@ const VisitDetailSection = ({
   };
 
   const handleRadioChange = (name, value) => {
+    if (disabled) return;
     console.log(`Radio changed: ${name} = ${value}`);
     setVisitData((prev) => ({
       ...prev,
@@ -317,6 +328,7 @@ const VisitDetailSection = ({
   };
 
   const handleMultiSelectChange = (name, selectedOptions) => {
+    if (disabled) return;
     console.log(`MultiSelect changed: ${name} =`, selectedOptions);
     setVisitData((prev) => ({
       ...prev,
@@ -325,6 +337,7 @@ const VisitDetailSection = ({
   };
 
   const handleCheckboxChange = (e) => {
+    if (disabled) return;
     const { name, checked } = e.target;
     setVisitData((prev) => ({
       ...prev,
@@ -609,6 +622,8 @@ const VisitDetailSection = ({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (disabled) return; // Prevent form submission when disabled
 
     console.log("=== VISIT DETAILS FORM SUBMIT ===");
     console.log("Visit data:", visitData);
@@ -624,36 +639,8 @@ const VisitDetailSection = ({
     }
   };
 
-  // Removed problematic useEffect that was causing input focus issues
-  // useEffect(() => {
-  //   if (isFirstRender) {
-  //     if (visitData?.monthlyExpenditure) {
-  //       setIsFirstRender(false);
-  //     }
-  //     return; // skip first render
-  //   }
-  //   if (!isFirstRender) {
-  //     inputRef.current?.focus();
-  //   }
-  // }, [visitData?.monthlyExpenditure]);
 
   if (!parentVisaApplication) return null;
-
-  console.log("=== VISIT DETAIL SECTION RENDER ===");
-  console.log("selectedCountry:", selectedCountry);
-  console.log("visitData prop:", visitData);
-  console.log("Form fields mapping:");
-  console.log(
-    "- visitingOtherSchengenCountries:",
-    visitData?.visitingOtherSchengenCountries
-  );
-  console.log("- firstCountryOfEntry:", visitData?.firstCountryOfEntry);
-  console.log("- hasSchengenVisa:", visitData?.hasSchengenVisa);
-  console.log("- hasDigitalFingerprints:", visitData?.hasDigitalFingerprints);
-  console.log("- maritalStatus:", visitData?.maritalStatus);
-  console.log("- employmentStatus:", visitData?.employmentStatus);
-  console.log("- willAnyonePayForVisit:", visitData?.willAnyonePayForVisit);
-  console.log("=== END VISIT DETAIL SECTION RENDER ===");
 
   return (
     <form className="space-y-6 p-3" onSubmit={handleSubmit}>
@@ -681,6 +668,7 @@ const VisitDetailSection = ({
                 }
                 placeholder="Germany, Austria, Belgium, Croatia"
                 errors={errors}
+                disabled={disabled}
               />
             </div>
           </div>
@@ -694,8 +682,11 @@ const VisitDetailSection = ({
             name="firstCountryOfEntry"
             value={visitData?.firstCountryOfEntry || ""}
             onChange={handleInputChange}
-            className="w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-[#7350FF] focus:border-transparent"
+            className={`w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-[#7350FF] focus:border-transparent ${
+               disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+            }`}
             required
+            disabled={disabled}
           >
             <option value="" className="text-black">
               Select
@@ -732,6 +723,7 @@ const VisitDetailSection = ({
             value={visitData?.hasSchengenVisa}
             onChange={(value) => handleRadioChange("hasSchengenVisa", value)}
             errors={errors}
+            disabled={disabled}
           />
         </QuestionCard>
 
@@ -746,9 +738,14 @@ const VisitDetailSection = ({
                 type="date"
                 name="lastVisaStartDate"
                 value={visitData?.lastVisaStartDate || ""}
-                onChange={handleInputChange}
+                onChange={disabled ? () => {} : handleInputChange}
+                disabled={disabled}
                 placeholder="dd-mm-yyyy"
-                className="w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-[#7350FF] focus:border-transparent [&::-webkit-calendar-picker-indicator]:invert"
+                className={`w-full p-3 rounded-lg border focus:outline-none focus:ring-2 focus:border-transparent [&::-webkit-calendar-picker-indicator]:invert ${
+                  disabled
+                    ? "bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                    : "bg-white/10 border-white/20 text-white focus:ring-[#7350FF]"
+                }`}
               />
               {errors.lastVisaStartDate && (
                 <p className="text-red-500 text-xs mt-1">
@@ -762,9 +759,14 @@ const VisitDetailSection = ({
                 type="date"
                 name="lastVisaEndDate"
                 value={visitData?.lastVisaEndDate || ""}
-                onChange={handleInputChange}
+                onChange={disabled ? () => {} : handleInputChange}
+                disabled={disabled}
                 placeholder="dd-mm-yyyy"
-                className="w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-[#7350FF] focus:border-transparent [&::-webkit-calendar-picker-indicator]:invert"
+                className={`w-full p-3 rounded-lg border focus:outline-none focus:ring-2 focus:border-transparent [&::-webkit-calendar-picker-indicator]:invert ${
+                  disabled
+                    ? "bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                    : "bg-white/10 border-white/20 text-white focus:ring-[#7350FF]"
+                }`}
               />
               {errors.lastVisaEndDate && (
                 <p className="text-red-500 text-xs mt-1">
@@ -788,6 +790,7 @@ const VisitDetailSection = ({
               handleRadioChange("hasDigitalFingerprints", value)
             }
             errors={errors}
+            disabled={disabled}
           />
         </QuestionCard>
 
@@ -835,6 +838,7 @@ const VisitDetailSection = ({
                 value={visitData.maritalStatus}
                 onChange={(value) => handleRadioChange("maritalStatus", value)}
                 errors={errors}
+                disabled={disabled}
               />
             </div>
           </div>
@@ -851,9 +855,14 @@ const VisitDetailSection = ({
                 type="date"
                 name="partnerDateOfBirth"
                 value={visitData?.partnerDateOfBirth || ""}
-                onChange={handleInputChange}
+                onChange={disabled ? () => {} : handleInputChange}
+                disabled={disabled}
                 placeholder="dd-mm-yyyy"
-                className="w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-[#7350FF] focus:border-transparent [&::-webkit-calendar-picker-indicator]:invert"
+                className={`w-full p-3 rounded-lg border focus:outline-none focus:ring-2 focus:border-transparent [&::-webkit-calendar-picker-indicator]:invert ${
+                  disabled
+                    ? "bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                    : "bg-white/10 border-white/20 text-white focus:ring-[#7350FF]"
+                }`}
               />
               {errors.partnerDateOfBirth && (
                 <p className="text-red-500 text-xs mt-1">
@@ -870,9 +879,14 @@ const VisitDetailSection = ({
                 type="text"
                 name="partnerFullName"
                 value={visitData?.partnerFullName || ""}
-                onChange={handleInputChange}
+                onChange={disabled ? () => {} : handleInputChange}
+                disabled={disabled}
                 placeholder="Partner name"
-                className="w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-[#7350FF] focus:border-transparent"
+                className={`w-full p-3 rounded-lg border focus:outline-none focus:ring-2 focus:border-transparent ${
+                  disabled
+                    ? "bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 placeholder-gray-400 cursor-not-allowed"
+                    : "bg-white/10 border-white/20 text-white placeholder-white/50 focus:ring-[#7350FF]"
+                }`}
               />
               {errors.partnerFullName && (
                 <p className="text-red-500 text-xs mt-1">
@@ -905,6 +919,7 @@ const VisitDetailSection = ({
                   handleRadioChange("employmentStatus", value)
                 }
                 errors={errors}
+                disabled={disabled}
               />
             </div>
           </div>
@@ -921,9 +936,14 @@ const VisitDetailSection = ({
                 type="text"
                 name="institutionName"
                 value={visitData?.institutionName || ""}
-                onChange={handleInputChange}
+                onChange={disabled ? () => {} : handleInputChange}
+                disabled={disabled}
                 placeholder="Name"
-                className="w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-[#7350FF] focus:border-transparent"
+                className={`w-full p-3 rounded-lg border focus:outline-none focus:ring-2 focus:border-transparent ${
+                  disabled
+                    ? "bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 placeholder-gray-400 cursor-not-allowed"
+                    : "bg-white/10 border-white/20 text-white placeholder-white/50 focus:ring-[#7350FF]"
+                }`}
               />
               {errors.institutionName && (
                 <p className="text-red-500 text-xs mt-1">
@@ -940,9 +960,14 @@ const VisitDetailSection = ({
                 type="email"
                 name="instituteEmail"
                 value={visitData?.instituteEmail || ""}
-                onChange={handleInputChange}
+                onChange={disabled ? () => {} : handleInputChange}
+                disabled={disabled}
                 placeholder="Email"
-                className="w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-[#7350FF] focus:border-transparent"
+                className={`w-full p-3 rounded-lg border focus:outline-none focus:ring-2 focus:border-transparent ${
+                  disabled
+                    ? "bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 placeholder-gray-400 cursor-not-allowed"
+                    : "bg-white/10 border-white/20 text-white placeholder-white/50 focus:ring-[#7350FF]"
+                }`}
               />
               {errors.instituteEmail && (
                 <p className="text-red-500 text-xs mt-1">
@@ -958,10 +983,15 @@ const VisitDetailSection = ({
               <textarea
                 name="instituteAddress"
                 value={visitData?.instituteAddress || ""}
-                onChange={handleInputChange}
+                onChange={disabled ? () => {} : handleInputChange}
+                disabled={disabled}
                 placeholder="Address"
                 rows={4}
-                className="w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-[#7350FF] focus:border-transparent resize-none"
+                className={`w-full p-3 rounded-lg border focus:outline-none focus:ring-2 focus:border-transparent resize-none ${
+                  disabled
+                    ? "bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 placeholder-gray-400 cursor-not-allowed"
+                    : "bg-white/10 border-white/20 text-white placeholder-white/50 focus:ring-[#7350FF]"
+                }`}
               />
               {errors.instituteAddress && (
                 <p className="text-red-500 text-xs mt-1">
@@ -983,9 +1013,14 @@ const VisitDetailSection = ({
                 type="tel"
                 name="employerPhone"
                 value={visitData?.employerPhone || ""}
-                onChange={handleInputChange}
+                onChange={disabled ? () => {} : handleInputChange}
+                disabled={disabled}
                 placeholder="Number"
-                className="w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-[#7350FF] focus:border-transparent"
+                className={`w-full p-3 rounded-lg border focus:outline-none focus:ring-2 focus:border-transparent ${
+                  disabled
+                    ? "bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 placeholder-gray-400 cursor-not-allowed"
+                    : "bg-white/10 border-white/20 text-white placeholder-white/50 focus:ring-[#7350FF]"
+                }`}
               />
               {errors.employerPhone && (
                 <p className="text-red-500 text-xs mt-1">
@@ -1002,9 +1037,14 @@ const VisitDetailSection = ({
                 type="text"
                 name="employerName"
                 value={visitData?.employerName || ""}
-                onChange={handleInputChange}
+                onChange={disabled ? () => {} : handleInputChange}
+                disabled={disabled}
                 placeholder="Enter here"
-                className="w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-[#7350FF] focus:border-transparent"
+                className={`w-full p-3 rounded-lg border focus:outline-none focus:ring-2 focus:border-transparent ${
+                  disabled
+                    ? "bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 placeholder-gray-400 cursor-not-allowed"
+                    : "bg-white/10 border-white/20 text-white placeholder-white/50 focus:ring-[#7350FF]"
+                }`}
               />
               {errors.employerName && (
                 <p className="text-red-500 text-xs mt-1">
@@ -1021,9 +1061,14 @@ const VisitDetailSection = ({
                 type="email"
                 name="employerEmail"
                 value={visitData?.employerEmail || ""}
-                onChange={handleInputChange}
+                onChange={disabled ? () => {} : handleInputChange}
+                disabled={disabled}
                 placeholder="johndoe@gmail.com"
-                className="w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-[#7350FF] focus:border-transparent"
+                className={`w-full p-3 rounded-lg border focus:outline-none focus:ring-2 focus:border-transparent ${
+                  disabled
+                    ? "bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 placeholder-gray-400 cursor-not-allowed"
+                    : "bg-white/10 border-white/20 text-white placeholder-white/50 focus:ring-[#7350FF]"
+                }`}
               />
               {errors.employerEmail && (
                 <p className="text-red-500 text-xs mt-1">
@@ -1039,10 +1084,15 @@ const VisitDetailSection = ({
               <textarea
                 name="employerAddress"
                 value={visitData?.employerAddress || ""}
-                onChange={handleInputChange}
+                onChange={disabled ? () => {} : handleInputChange}
+                disabled={disabled}
                 placeholder="Address"
                 rows={4}
-                className="w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-[#7350FF] focus:border-transparent resize-none"
+                className={`w-full p-3 rounded-lg border focus:outline-none focus:ring-2 focus:border-transparent resize-none ${
+                  disabled
+                    ? "bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 placeholder-gray-400 cursor-not-allowed"
+                    : "bg-white/10 border-white/20 text-white placeholder-white/50 focus:ring-[#7350FF]"
+                }`}
               />
               {errors.employerAddress && (
                 <p className="text-red-500 text-xs mt-1">
@@ -1089,6 +1139,7 @@ const VisitDetailSection = ({
                   handleRadioChange("willAnyonePayForVisit", value)
                 }
                 errors={errors}
+                disabled={disabled}
               />
             </div>
           </div>
@@ -1135,6 +1186,7 @@ const VisitDetailSection = ({
                 value={visitData?.tripFundedBy}
                 onChange={(value) => handleRadioChange("tripFundedBy", value)}
                 errors={errors}
+                disabled={disabled}
               />
             </QuestionCard>
           </>
@@ -1148,11 +1200,15 @@ const VisitDetailSection = ({
           </div>
         )}
 
-        <div className="flex">
+        <div className="flex self-end">
           <button
             type="submit"
-            disabled={loading}
-            className="mt-4 bg-[#7350FF] text-white px-4 py-2 rounded hover:bg-[#7350FF] disabled:bg-[#7350FF]/30"
+            disabled={loading || disabled}
+            className={`mt-4 px-4 py-2 rounded ${
+              disabled
+                ? "bg-gray-400 dark:bg-gray-600 text-white cursor-not-allowed"
+                : "bg-[#7350FF] text-white hover:bg-[#7350FF] disabled:bg-[#7350FF]/30"
+            }`}
             onClick={handleSubmit}
           >
             {loading ? "Saving..." : "Save and Continue"}

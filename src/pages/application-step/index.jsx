@@ -46,6 +46,9 @@ const MultiStepAccordion = () => {
   const [loading, setLoading] = useState(false);
   const [currentTravelerIndex, setCurrentTravelerIndex] = useState(0);
   const [numberOfTravelers, setNumberOfTravelers] = useState(1);
+  const [userEmail, setUserEmail] = useState("");
+
+  const isOwner = parentVisaApplication?.email === userEmail;
 
   const [travelersData, setTravelersData] = useState([
     {
@@ -701,18 +704,6 @@ const MultiStepAccordion = () => {
 
     const targetStep = visible[visibleIndex];
 
-    if (isApplicationSubmitted) {
-      const targetIsDocumentsOrCompleted =
-        targetStep?.stepType === "documents" || targetStep?.stepType === "completed";
-      if (!targetIsDocumentsOrCompleted) {
-        if (showError)
-          showError(
-            "This application has been submitted. You can only upload pending documents or view the submitted application."
-          );
-        return;
-      }
-    }
-
     if (targetStep.open) {
       setSteps((prev) =>
         prev.map((step) => ({
@@ -898,11 +889,6 @@ const MultiStepAccordion = () => {
 
       const response = await createOrUpdateApplication(token, payload);
 
-      console.log("=== STEP COMPLETION DEBUG ===");
-      console.log("Step completed:", step.stepType, "ID:", step.id);
-      console.log("Response status:", response?.status);
-      console.log("=== END STEP COMPLETION DEBUG ===");
-
       if (response?.status >= 200 && response?.status < 300) {
         const updatedApplication = response?.data?.data?.results?.application;
 
@@ -936,7 +922,7 @@ const MultiStepAccordion = () => {
         setSteps((prevSteps) =>
           prevSteps.map((s) =>
             s.id === step.id
-              ? { ...s, completed: true, open: step.stepType === "documents" ? true : false }
+              ? { ...s, completed: true, open: false }
               : s
           )
         );
@@ -964,11 +950,7 @@ const MultiStepAccordion = () => {
         console.log("Current visible index:", currentVisibleIndex);
         console.log("=== END STEP NAVIGATION DEBUG ===");
 
-        if (
-          step.stepType !== "documents" &&
-          currentVisibleIndex !== -1 &&
-          currentVisibleIndex < visible.length - 1
-        ) {
+        if (currentVisibleIndex !== -1 && currentVisibleIndex < visible.length - 1) {
           const nextVisibleStep = visible[currentVisibleIndex + 1];
           if (nextVisibleStep) {
             // Force open the next step regardless of previous completion checks
@@ -1032,6 +1014,31 @@ const MultiStepAccordion = () => {
     );
   };
 
+  // New validation function for all travelers' passport data
+  const validateAllTravelersPassportData = () => {
+    return travelersData.every((traveler) => {
+      const basicDetails = traveler.basicDetails || {};
+      return (
+        basicDetails.passportNumber &&
+        basicDetails.firstName &&
+        basicDetails.lastName &&
+        basicDetails.sex &&
+        basicDetails.dateOfBirth &&
+        basicDetails.placeOfBirth &&
+        basicDetails.passportIssuePlace &&
+        basicDetails.passportIssueDate &&
+        basicDetails.passportExpiryDate &&
+        basicDetails.currentAddress1 &&
+        basicDetails.state &&
+        basicDetails.city &&
+        basicDetails.pincode &&
+        basicDetails.mobileNumber &&
+        basicDetails.passportFront &&
+        basicDetails.passportBack
+      );
+    });
+  };
+
   const validateVisitData = () => {
     const currentTraveler = getCurrentTravelerData();
     const visitDetails = currentTraveler.visitDetails || {};
@@ -1069,11 +1076,57 @@ const MultiStepAccordion = () => {
     return isValid;
   };
 
+  // New validation function for all travelers' visit data
+  const validateAllTravelersVisitData = () => {
+    return travelersData.every((traveler) => {
+      const visitDetails = traveler.visitDetails || {};
+      return (
+        visitDetails.visitingOtherSchengenCountries &&
+        Array.isArray(visitDetails.visitingOtherSchengenCountries) &&
+        visitDetails.visitingOtherSchengenCountries.length > 0 &&
+        visitDetails.firstCountryOfEntry &&
+        visitDetails.hasSchengenVisa &&
+        visitDetails.hasDigitalFingerprints &&
+        visitDetails.maritalStatus &&
+        visitDetails.employmentStatus &&
+        visitDetails.willAnyonePayForVisit &&
+        (visitDetails.hasSchengenVisa !== "Yes" ||
+          (visitDetails.lastVisaStartDate && visitDetails.lastVisaEndDate)) &&
+        (visitDetails.hasDigitalFingerprints !== "Yes" ||
+          visitDetails.previousVisaNumber) &&
+        (visitDetails.maritalStatus !== "Married" ||
+          (visitDetails.partnerFullName && visitDetails.partnerDateOfBirth)) &&
+        (visitDetails.employmentStatus !== "Student" ||
+          (visitDetails.institutionName &&
+            visitDetails.instituteEmail &&
+            visitDetails.instituteAddress)) &&
+        (visitDetails.employmentStatus !== "Employed" ||
+          (visitDetails.employerPhone &&
+            visitDetails.employerName &&
+            visitDetails.employerEmail &&
+            visitDetails.employerAddress)) &&
+        (visitDetails.employmentStatus !== "Other" ||
+          visitDetails.otherEmploymentStatus) &&
+        (visitDetails.willAnyonePayForVisit !== "Yes" ||
+          (visitDetails.fundingPersonName && visitDetails.tripFundedBy))
+      );
+    });
+  };
+
   const validateDocuments = () => {
     const currentTraveler = getCurrentTravelerData();
     const documents = currentTraveler.documents?.documents || {};
     const requiredDocIds = [1, 2, 3, 5]; // Documents 1, 2, 3, and 5 are required
     return requiredDocIds.every((id) => documents[id]);
+  };
+
+  // New validation function for all travelers' documents
+  const validateAllTravelersDocuments = () => {
+    const requiredDocIds = [1, 2, 3, 5]; // Documents 1, 2, 3, and 5 are required
+    return travelersData.every((traveler) => {
+      const documents = traveler.documents?.documents || {};
+      return requiredDocIds.every((id) => documents[id]);
+    });
   };
 
   const validateAppointment = () => {
@@ -1268,6 +1321,11 @@ const MultiStepAccordion = () => {
   }, []);
 
   useEffect(() => {
+    const email = localStorage.getItem("userEmail");
+    setUserEmail(email || "");
+  }, []);
+
+  useEffect(() => {
     if (
       currentTravelerIndex >= 0 &&
       currentTravelerIndex < travelersData.length
@@ -1326,14 +1384,16 @@ const MultiStepAccordion = () => {
     });
   }, [visaState?.arrivalDate, visaState?.departureDate, numberOfTravelers]);
 
+
+
   return (
     <div className="w-full pri_bg text-white h-full min-h-screen">
       <Header href="/dashboard" />
       <div className="w-full max-w-4xl py-[25px] pri_bg mx-auto flex-col gap-3 flex items-center justify-center px-6">
         {/* Go Back Button */}
         <div className="w-full mb-4">
-          <button
-            onClick={() => window.history.back()}
+         <button
+            onClick={() => router.replace("/dashboard")}
             className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors duration-200"
           >
             <ChevronLeft className="size-5" />
@@ -1382,10 +1442,9 @@ const MultiStepAccordion = () => {
                 onChange={(e) => {
                   const newNumber = parseInt(e.target.value);
                   setNumberOfTravelers(newNumber);
-                  // Initialize travelers data if needed
                   initializeTravelersData(newNumber);
                 }}
-                className="bg-[#292933] border border-[#423577] text-white px-3 py-2 rounded-lg focus:outline-none focus:border-[#6366F1]"
+                className="bg-[#292933] border border-[#423577] text-white px-3 py-2 rounded-lg focus:outline-none focus:border-[#6366F1] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
                   <option key={num} value={num}>
@@ -1395,12 +1454,12 @@ const MultiStepAccordion = () => {
               </select>
             </div>
             <div className="text-sm text-gray-400">
-              You will complete separate application forms for each traveler.
+              You will complete each step for all travelers using tabs within each section.
             </div>
           </div>
         </div>
 
-        {isApplicationSubmitted && (
+        {isApplicationSubmitted && isOwner  && (
           <div className="w-full mb-4 p-4 bg-yellow-900/10 border border-yellow-600 rounded-lg text-yellow-100">
             <div className="flex items-center justify-between">
               <div>
@@ -1413,7 +1472,7 @@ const MultiStepAccordion = () => {
               <div>
                 <button
                   onClick={openDocumentsStep}
-                  className="bg-yellow-600 text-black px-3 py-2 rounded font-medium"
+                  className="bg-yellow-600  px-3 text-white min-w-40 py-2 rounded font-medium text-sm"
                 >
                   Upload Documents
                 </button>
@@ -1428,156 +1487,7 @@ const MultiStepAccordion = () => {
           onStepClick={(stepId) => toggleStep(stepId)}
         />
 
-        {/* Traveler Navigation */}
-        {numberOfTravelers > 1 && (
-          <div className="w-full mb-6">
-            <div className="bg-[#23232B] border border-[#423577] rounded-lg p-4">
-              <h3 className="text-white font-gilroy-bold text-lg mb-4">
-                Select Traveler
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {Array.from({ length: numberOfTravelers }, (_, index) => {
-                  const traveler = travelersData[index] || {};
-                  const travelerStepInfo =
-                    travelersStepInfo[traveler?.id] || traveler?.stepInfo || {};
 
-                  const travelerInsuranceObj = traveler?.insurance || {};
-
-                  const insuranceFlagTrue =
-                    travelerInsuranceObj.insurance === "true" ||
-                    travelerInsuranceObj.insurance === true;
-                  const insuranceDetailsSelected =
-                    travelerInsuranceObj.insuranceDetails?.selected === true ||
-                    travelerInsuranceObj.insuranceDetails?.hasOwnInsurance ===
-                    true;
-                  const insuranceSelectedPurchaseOrOwn =
-                    travelerInsuranceObj.insurance === "purchase" ||
-                    travelerInsuranceObj.insurance === "own";
-
-                  const computedRequiresInsurance =
-                    insuranceFlagTrue ||
-                    insuranceDetailsSelected ||
-                    insuranceSelectedPurchaseOrOwn;
-
-                  const showInsuranceStep =
-                    travelerInsuranceObj.insurance !== "true" &&
-                    (travelerInsuranceObj.insurance === "own" ||
-                      (travelerInsuranceObj.insurance === "purchase" &&
-                        !travelerInsuranceObj.insurancePaymentCompleted) ||
-                      travelerInsuranceObj.insurance === "false" ||
-                      !travelerInsuranceObj.insurance ||
-                      travelerInsuranceObj.insurance === "");
-
-                  let visibleStepsForTraveler = [...steps];
-                  if (!showInsuranceStep) {
-                    visibleStepsForTraveler = visibleStepsForTraveler.filter(
-                      (s) => s.stepType !== "insurance"
-                    );
-                  }
-
-                  const totalSteps = visibleStepsForTraveler.length;
-
-                  const completedSteps = travelerStepInfo?.completedSteps || [];
-                  const completedStepsCount = completedSteps.filter((cs) =>
-                    visibleStepsForTraveler.some((vs) => vs.stepType === cs)
-                  ).length;
-
-                  const isCompleted = travelerStepInfo?.isCompleted || false;
-                  const isAdditionalTraveler =
-                    travelerStepInfo?.isAdditionalTraveler || false;
-                  const requiresInsurance =
-                    travelerStepInfo?.requiresInsurance ||
-                    computedRequiresInsurance ||
-                    false;
-                  const hasInsurance = travelerStepInfo?.hasInsurance || false;
-
-                  return (
-                    <button
-                      key={index}
-                      onClick={() => setCurrentTravelerIndex(index)}
-                      className={`px-4 py-2 rounded-lg font-medium transition-colors duration-200 relative ${currentTravelerIndex === index
-                          ? "bg-[#6366F1] text-white"
-                          : "bg-[#292933] text-gray-300 hover:bg-[#333340] hover:text-white"
-                        }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span>
-                          Traveler {index + 1}
-                          {travelersData[index]?.basicDetails?.firstName &&
-                            ` - ${travelersData[index].basicDetails.firstName}`}
-                        </span>
-                        {isAdditionalTraveler && (
-                          <span className="text-xs bg-yellow-500 text-black px-1 rounded">
-                            ADD
-                          </span>
-                        )}
-                        {isCompleted && (
-                          <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-                            <svg
-                              className="w-3 h-3 text-white"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                          </div>
-                        )}
-                      </div>
-                      {!isCompleted && (
-                        <div className="text-xs text-gray-400 mt-1">
-                          {completedStepsCount}/{totalSteps} steps
-                          {isAdditionalTraveler && requiresInsurance && (
-                            <span className="text-yellow-400">
-                              {" "}
-                              • Insurance Required
-                            </span>
-                          )}
-                        </div>
-                      )}
-                      {isCompleted && (
-                        <div className="text-xs text-green-400 mt-1">
-                          {isAdditionalTraveler
-                            ? "Additional Traveler Complete"
-                            : "Application Complete"}
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-              <div className="mt-4 text-sm text-gray-400">
-                Currently viewing application for Traveler{" "}
-                {currentTravelerIndex + 1}
-                {(() => {
-                  const currentTravelerStepInfo = getCurrentTravelerStepInfo();
-                  const isCompleted =
-                    currentTravelerStepInfo?.isCompleted || false;
-                  const isAdditionalTraveler =
-                    currentTravelerStepInfo?.isAdditionalTraveler || false;
-                  const requiresInsurance =
-                    currentTravelerStepInfo?.requiresInsurance || false;
-
-                  if (isCompleted) {
-                    return isAdditionalTraveler
-                      ? " (Additional Traveler - Completed)"
-                      : " (Completed)";
-                  }
-                  if (isAdditionalTraveler) {
-                    return requiresInsurance
-                      ? " (Additional Traveler - Insurance Required)"
-                      : " (Additional Traveler)";
-                  }
-                  return "";
-                })()}
-              </div>
-
-            </div>
-          </div>
-        )}
 
         {/* Step Sections */}
         <div className="space-y-2 w-full">
@@ -1620,44 +1530,151 @@ const MultiStepAccordion = () => {
                 {/* Step Content */}
                 {step.open && (
                   <div className="p-4 border-[#423577] border-t">
-                    {isApplicationSubmitted &&
-                      step.stepType !== "documents" &&
-                      step.stepType !== "completed" ? (
-                      <div className="p-6 bg-[#1F1F24] border border-[#333] rounded">
-                        <div className="mb-3 font-medium text-white">
-                          This application has already been submitted
+                    {/* Tab-based steps for multi-traveler scenarios */}
+                    {(step.stepType === "basicDetails" || step.stepType === "visitDetails" || step.stepType === "documents") && numberOfTravelers > 1 ? (
+                      <div>
+                        {/* Traveler Tabs */}
+                        <div className="flex flex-wrap gap-2 mb-6 border-b border-[#423577] pb-4">
+                          {Array.from({ length: numberOfTravelers }, (_, index) => {
+                            const traveler = travelersData[index] || {};
+                            const travelerStepInfo = travelersStepInfo[traveler?.id] || traveler?.stepInfo || {};
+                            const isCompleted = travelerStepInfo?.completedSteps?.includes(step.stepType) || false;
+                            
+                            return (
+                              <button
+                                key={index}
+                                onClick={() => setCurrentTravelerIndex(index)}
+                                className={`px-4 py-2 rounded-lg font-medium transition-colors duration-200 relative ${
+                                  currentTravelerIndex === index
+                                    ? "bg-[#6366F1] text-white"
+                                    : "bg-[#292933] text-gray-300 hover:bg-[#333340] hover:text-white"
+                                }`}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span>
+                                    Traveler {index + 1}
+                                    {travelersData[index]?.basicDetails?.firstName &&
+                                      ` - ${travelersData[index].basicDetails.firstName}`}
+                                  </span>
+                                  {isCompleted && (
+                                    <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                                      <svg
+                                        className="w-3 h-3 text-white"
+                                        fill="currentColor"
+                                        viewBox="0 0 20 20"
+                                      >
+                                        <path
+                                          fillRule="evenodd"
+                                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                          clipRule="evenodd"
+                                        />
+                                      </svg>
+                                    </div>
+                                  )}
+                                </div>
+                              </button>
+                            );
+                          })}
                         </div>
-                        <div className="text-sm text-gray-300 mb-4">
-                          You cannot edit this section anymore. If you need to
-                          add missing documents, click Upload Documents. To view the
-                          submitted application, click View Application.
-                        </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => {
-                              openDocumentsStep();
-                            }}
-                            className="bg-[#6366F1] text-white px-3 py-2 rounded"
-                          >
-                            Upload Documents
-                          </button>
-                          <button
-                            onClick={() => {
-                              const completedStep = steps.find(
-                                (s) => s.stepType === "completed"
-                              );
-                              if (completedStep) toggleStep(completedStep.id);
-                            }}
-                            className="bg-transparent border border-gray-600 text-white px-3 py-2 rounded"
-                          >
-                            View Application
-                          </button>
+
+                        {/* Tab Content */}
+                        <div>
+                          {step.id === 1 && step.stepType === "basicDetails" && (
+                            <PassportStep
+                              travelerIndex={currentTravelerIndex}
+                              travelerData={getCurrentTravelerData()}
+                              travelersData={travelersData}
+                              updateCurrentTravelerData={updateCurrentTravelerData}
+                              validatePassportData={validatePassportData}
+                              onComplete={(data) =>
+                                handleCompleteStep(step.id, data)
+                              }
+                              loading={loading}
+                              showError={showError}
+                              disabled={
+                                !isOwner || isApplicationSubmitted
+                              }
+                            />
+                          )}
+
+                          {step.id === 2 && step.stepType === "visitDetails" && (
+                            <VisitStep
+                              travelerIndex={currentTravelerIndex}
+                              travelerData={getCurrentTravelerData()}
+                              updateCurrentTravelerData={updateCurrentTravelerData}
+                              validateVisitData={validateVisitData}
+                              parentVisaApplication={parentVisaApplication}
+                              setParentVisaApplication={setParentVisaApplication}
+                              onComplete={(data) =>
+                                handleCompleteStep(step.id, data)
+                              }
+                              loading={loading}
+                              showError={showError}
+                              disabled={
+                                !isOwner || isApplicationSubmitted
+                              }
+                            />
+                          )}
+
+                          {step.id === 4 && step.stepType === "documents" && (
+                            <DocumentStep
+                              travelerIndex={currentTravelerIndex}
+                              travelerData={getCurrentTravelerData()}
+                              updateCurrentTravelerData={updateCurrentTravelerData}
+                              validateDocuments={validateDocuments}
+                              onComplete={(data) =>
+                                handleCompleteStep(step.id, data)
+                              }
+                              loading={loading}
+                              showError={showError}
+                              disabled={!isOwner}
+                              isOwner={isOwner}
+                            />
+                          )}
+
+                          {/* Complete Step Button for tab-based steps */}
+                          <div className="mt-6 flex justify-between items-center border-t border-[#423577] pt-4">
+                            <div className="text-sm text-gray-400">
+                              Complete this step for all {numberOfTravelers} traveler{numberOfTravelers > 1 ? 's' : ''}
+                            </div>
+                            <button
+                              onClick={() => {
+                                let isValid = false;
+                                let errorMessage = "";
+                                
+                                if (step.stepType === "basicDetails") {
+                                  isValid = validateAllTravelersPassportData();
+                                  errorMessage = "Please complete basic details for all travelers before proceeding.";
+                                } else if (step.stepType === "visitDetails") {
+                                  isValid = validateAllTravelersVisitData();
+                                  errorMessage = "Please complete visit details for all travelers before proceeding.";
+                                } else if (step.stepType === "documents") {
+                                  isValid = validateAllTravelersDocuments();
+                                  errorMessage = "Please upload required documents for all travelers before proceeding.";
+                                }
+
+                                if (!isValid) {
+                                  if (showError) {
+                                    showError(errorMessage);
+                                  }
+                                  return;
+                                }
+
+                                // Mark step as complete for all travelers
+                                handleCompleteStep(step.id, { allTravelersCompleted: true });
+                              }}
+                              // disabled={loading || disabled}
+                              className="bg-[#7350FF] text-white px-6 py-2 rounded-lg hover:bg-[#7350FF]/90 disabled:bg-[#7350FF]/30 transition-colors duration-200"
+                            >
+                              {loading ? "Completing..." : "Complete Step"}
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ) : (
-                      // Normal editable steps
+                      /* Single traveler or non-tab steps */
                       <>
-                        {step.id === 1 && (
+                        {step.id === 1 && step.stepType === "basicDetails" && (
                           <PassportStep
                             travelerIndex={currentTravelerIndex}
                             travelerData={getCurrentTravelerData()}
@@ -1669,6 +1686,9 @@ const MultiStepAccordion = () => {
                             }
                             loading={loading}
                             showError={showError}
+                            disabled={
+                              !isOwner || isApplicationSubmitted
+                            }
                           />
                         )}
 
@@ -1685,6 +1705,9 @@ const MultiStepAccordion = () => {
                             }
                             loading={loading}
                             showError={showError}
+                            disabled={
+                              !isOwner || isApplicationSubmitted
+                            }
                           />
                         )}
 
@@ -1697,6 +1720,9 @@ const MultiStepAccordion = () => {
                               handleCompleteStep(step.id, data)
                             }
                             loading={loading}
+                            disabled={
+                              !isOwner || isApplicationSubmitted
+                            }
                           />
                         )}
 
@@ -1711,6 +1737,8 @@ const MultiStepAccordion = () => {
                             }
                             loading={loading}
                             showError={showError}
+                            disabled={!isOwner}
+                            isOwner={isOwner}
                           />
                         )}
 
@@ -1726,6 +1754,9 @@ const MultiStepAccordion = () => {
                             parentVisaApplication={parentVisaApplication}
                             showError={showError}
                             validateInsurance={validateInsurance}
+                            disabled={
+                              !isOwner || isApplicationSubmitted
+                            }
                           />
                         )}
 
@@ -1774,6 +1805,7 @@ const PassportStep = ({
   onComplete,
   loading,
   showError,
+  disabled = false,
 }) => {
   const fileToBase64 = (file) => {
     return new Promise((resolve, reject) => {
@@ -1873,6 +1905,8 @@ const PassportStep = ({
         setPassportData={updateBasicDetails}
         travelerIndex={travelerIndex}
         handleSave={handleSave}
+        loading={loading}
+        disabled={disabled}
       />
     </div>
   );
@@ -1888,6 +1922,7 @@ const VisitStep = ({
   setParentVisaApplication,
   loading,
   showError,
+  disabled = false,
 }) => {
   const visitData = travelerData?.visitDetails || {};
 
@@ -1956,6 +1991,7 @@ const VisitStep = ({
         setParentVisaApplication={setParentVisaApplication}
         onComplete={handleSave}
         loading={loading}
+        disabled={disabled}
       />
     </div>
   );
@@ -1969,6 +2005,8 @@ const DocumentStep = ({
   onComplete,
   loading,
   showError,
+  disabled = false,
+  isOwner = true,
 }) => {
   const documents = travelerData.documents?.documents || {};
 
@@ -2038,13 +2076,15 @@ const DocumentStep = ({
         setDocuments={setDocuments}
         onUploadSuccess={handleUploadSuccess}
         onUploadError={handleUploadError}
+        disabled={disabled}
+        isOwner={isOwner}
       />
 
       {/* Right-aligned Save button */}
       <div className="mt-4 flex justify-end">
         <button
           onClick={handleSave}
-          disabled={loading}
+          // disabled={loading || disabled}
           className="bg-[#7350FF] text-white px-4 py-2 rounded hover:bg-[#7350FF] disabled:bg-[#7350FF]/30"
         >
           {loading ? "Saving..." : "Save and Continue"}
@@ -2078,6 +2118,7 @@ const InsuranceStep = ({
   parentVisaApplication,
   showError,
   validateInsurance,
+  disabled = false,
 }) => {
   const [uploadedCertificate, setUploadedCertificate] = useState(
     travelerData?.insurance?.insuranceCertificate || null
@@ -2345,6 +2386,8 @@ const InsuranceStep = ({
     }
   };
 
+
+
   return (
     <div className="space-y-4">
       {/* Insurance Selection */}
@@ -2365,6 +2408,7 @@ const InsuranceStep = ({
               value="own"
               checked={travelerData?.insurance?.insurance === "own"}
               onChange={(e) => {
+                if (disabled) return;
                 updateCurrentTravelerData("insurance", {
                   insurance: "own",
                   insuranceDetails: null,
@@ -2375,6 +2419,7 @@ const InsuranceStep = ({
                   paymentDate: null,
                 });
               }}
+              disabled={disabled}
               className="w-4 h-4 text-purple-600 border-gray-300 focus:ring-purple-500"
             />
             <div className="flex-1">
@@ -2394,6 +2439,7 @@ const InsuranceStep = ({
               value="purchase"
               checked={travelerData?.insurance?.insurance === "purchase"}
               onChange={(e) => {
+                if (disabled) return;
                 updateCurrentTravelerData("insurance", {
                   insurance: "purchase",
                   insuranceDetails: null,
@@ -2404,6 +2450,7 @@ const InsuranceStep = ({
                   paymentDate: null,
                 });
               }}
+              disabled={disabled}
               className="w-4 h-4 text-purple-600 border-gray-300 focus:ring-purple-500"
             />
             <div className="flex-1">
@@ -2489,10 +2536,11 @@ const InsuranceStep = ({
                   className="hidden"
                   accept=".pdf,.jpg,.jpeg,.png"
                   id="insurance-upload"
+                  disabled={disabled}
                 />
                 <label
                   htmlFor="insurance-upload"
-                  className="bg-purple-600 text-white font-semibold px-6 py-2.5 rounded-lg cursor-pointer hover:bg-purple-700 transition-colors"
+                  className={`bg-purple-600 text-white font-semibold px-6 py-2.5 rounded-lg cursor-pointer hover:bg-purple-700 transition-colors ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   Upload
                 </label>
@@ -2587,7 +2635,7 @@ const InsuranceStep = ({
           <div className="mt-4 flex justify-end">
             <button
               onClick={handleSave}
-              disabled={loading}
+              // disabled={loading || disabled}
               className="bg-[#7350FF] text-white px-4 py-2 rounded hover:bg-[#7350FF] disabled:bg-[#7350FF]/30"
             >
               {loading ? "Saving..." : "Save and Continue"}
@@ -2655,7 +2703,7 @@ const InsuranceStep = ({
 
               <button
                 onClick={handleInsurancePay}
-                disabled={isPaying || cretingDynamicCheckout}
+                disabled={isPaying || cretingDynamicCheckout || disabled}
                 className="w-full bg-[#28A745] text-white py-3 px-4 rounded-md hover:bg-[#218838] disabled:opacity-60 font-medium"
               >
                 {isPaying || cretingDynamicCheckout
@@ -2710,7 +2758,7 @@ const InsuranceStep = ({
               <div className="mt-4 flex justify-end">
                 <button
                   onClick={handleSave}
-                  disabled={loading}
+                  // disabled={loading || disabled}
                   className="bg-[#7350FF] text-white px-4 py-2 rounded hover:bg-[#7350FF] disabled:bg-[#7350FF]/30"
                 >
                   {loading ? "Saving..." : "Continue"}
