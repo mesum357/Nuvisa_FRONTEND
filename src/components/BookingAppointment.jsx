@@ -3,7 +3,7 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { useAppointmentData } from '@/hooks/useAppointmentData';
 
-const BookingAppointment = ({ onComplete, loading, validateAppointment, travelerData }) => {
+const BookingAppointment = ({ onComplete, loading, _validateAppointment, travelerData, disabled = false }) => {
   const { cities, slots, loadingCities, loadingSlots, error } = useAppointmentData();
 
   // Parse existing date strings back to Date objects for DatePicker
@@ -211,8 +211,8 @@ const BookingAppointment = ({ onComplete, loading, validateAppointment, traveler
               <select
                 value={appointmentData.preference1.city}
                 onChange={(e) => handleInputChange('preference1', 'city', e.target.value)}
-                className={`w-full px-3 py-2 bg-[#292933] border text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:border-transparent ${errors.preference1.city ? 'border-red-500' : 'border-[#423577]'}`}
-                disabled={loadingCities}
+                className={`w-full px-3 py-2 bg-[#292933] border text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:border-transparent ${errors.preference1.city ? 'border-red-500' : 'border-[#423577]'} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={loadingCities || disabled}
               >
                 <option value="">Select</option>
                 {cities.map((city) => (
@@ -240,7 +240,8 @@ const BookingAppointment = ({ onComplete, loading, validateAppointment, traveler
                 minDate={new Date()}
                 dateFormat="dd/MM/yyyy"
                 placeholderText="Select date range"
-                className={`w-full px-3 py-2 bg-[#292933] border text-white placeholder-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:border-transparent ${errors.preference1.dateRange ? 'border-red-500' : 'border-[#423577]'}`}
+                className={`w-full px-3 py-2 bg-[#292933] border text-white placeholder-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:border-transparent ${errors.preference1.dateRange ? 'border-red-500' : 'border-[#423577]'} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={disabled}
               />
               {errors.preference1.dateRange && (
                 <p className="text-xs text-red-400 mt-1">{errors.preference1.dateRange}</p>
@@ -253,8 +254,8 @@ const BookingAppointment = ({ onComplete, loading, validateAppointment, traveler
               <select
                 value={appointmentData.preference1.slot}
                 onChange={(e) => handleInputChange('preference1', 'slot', e.target.value)}
-                className={`w-full px-3 py-2 bg-[#292933] border text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:border-transparent ${errors.preference1.slot ? 'border-red-500' : 'border-[#423577]'}`}
-                disabled={loadingSlots}
+                className={`w-full px-3 py-2 bg-[#292933] border text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:border-transparent ${errors.preference1.slot ? 'border-red-500' : 'border-[#423577]'} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={loadingSlots || disabled}
               >
                 <option value="">Select</option>
                 {slots.map((slot) => (
@@ -286,8 +287,8 @@ const BookingAppointment = ({ onComplete, loading, validateAppointment, traveler
               <select
                 value={appointmentData.preference2.city}
                 onChange={(e) => handleInputChange('preference2', 'city', e.target.value)}
-                className={`w-full px-3 py-2 bg-[#292933] border text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:border-transparent ${errors.preference2.city ? 'border-red-500' : 'border-[#423577]'}`}
-                disabled={loadingCities}
+                className={`w-full px-3 py-2 bg-[#292933] border text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:border-transparent ${errors.preference2.city ? 'border-red-500' : 'border-[#423577]'} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={loadingCities || disabled}
               >
                 <option value="">Select</option>
                 {cities.map((city) => (
@@ -312,7 +313,8 @@ const BookingAppointment = ({ onComplete, loading, validateAppointment, traveler
                 minDate={new Date()}
                 dateFormat="dd/MM/yyyy"
                 placeholderText="Select date range (optional)"
-                className={`w-full px-3 py-2 bg-[#292933] border text-white placeholder-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:border-transparent ${errors.preference2.dateRange ? 'border-red-500' : 'border-[#423577]'}`}
+                className={`w-full px-3 py-2 bg-[#292933] border text-white placeholder-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:border-transparent ${errors.preference2.dateRange ? 'border-red-500' : 'border-[#423577]'} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={disabled}
               />
               {errors.preference2.dateRange && (
                 <p className="text-xs text-red-400 mt-1">{errors.preference2.dateRange}</p>
@@ -325,8 +327,8 @@ const BookingAppointment = ({ onComplete, loading, validateAppointment, traveler
               <select
                 value={appointmentData.preference2.slot}
                 onChange={(e) => handleInputChange('preference2', 'slot', e.target.value)}
-                className={`w-full px-3 py-2 bg-[#292933] border text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:border-transparent ${errors.preference2.slot ? 'border-red-500' : 'border-[#423577]'}`}
-                disabled={loadingSlots}
+                className={`w-full px-3 py-2 bg-[#292933] border text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:border-transparent ${errors.preference2.slot ? 'border-red-500' : 'border-[#423577]'} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={loadingSlots || disabled}
               >
                 <option value="">Select</option>
                 {slots.map((slot) => (
@@ -343,19 +345,14 @@ const BookingAppointment = ({ onComplete, loading, validateAppointment, traveler
         </div>
 
         {/* Action Buttons */}
-        <div className="flex justify-between">
-          <button
-            onClick={() => window.history.back()}
-            className="px-6 py-2 border border-[#423577] text-gray-300 rounded-md hover:bg-[#292933] transition-colors"
-          >
-            Back
-          </button>
+        <div className="flex justify-end">
+
           <button
             onClick={handleSave}
-            disabled={loading}
+            disabled={loading || disabled}
             className="px-6 py-2 bg-[#7350FF] text-white rounded-md hover:bg-[#7350FF]/90 disabled:bg-[#7350FF]/30 transition-colors"
           >
-            {loading ? 'Saving...' : 'Save and Continue'}
+            {loading ? 'Processing...' : 'Next'}
           </button>
         </div>
       </div>

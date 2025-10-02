@@ -497,6 +497,11 @@ const CountrySlider = () => {
       const next = { ...prev, [itemKey]: !prev[itemKey] };
       return next;
     });
+    if(itemKey === "giftCard" && recommendedItems.giftCard) {
+      setGiftCardCount(1);
+      dispatch(setGiftCardFees(1));
+      return;
+    }
     // If unchecking insurance certificate, reset days to 0
     if (itemKey === "insuranceCertificate" && recommendedItems[itemKey]) {
       setInsuranceDays(0);
@@ -2352,7 +2357,7 @@ const CountrySlider = () => {
                 </div>
               )}
               <div className="flex items-end gap-8">
-                <div>
+                <div className="flex items-center gap-2">
                   <QtyInput
                     value={travelers}
                     onChange={(next) => {
@@ -2362,17 +2367,18 @@ const CountrySlider = () => {
                     }}
                     min={1}
                   />
+                  <label className="text-md">Travellers</label>
                 </div>
               </div>
             </div>
 
-            <div className="shadow-xl shadow-black/10 rounded-xl  mb-6">
+            <div className=" rounded-xl  mb-6">
               <div className="flex items-center justify-between mb-1">
                 <div className="cursor-pointer rounded  transition-colors flex-1">
                   <div className="flex items-center space-x-2">
                     <div
                       onClick={() => toggleRecommendedItem("giftCard")}
-                      className="flex items-center space-x-2 cursor-pointer"
+                      className="flex items-center space-x-2 cursor-pointer "
                     >
                       <div
                         className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black ${recommendedItems.giftCard
@@ -2404,7 +2410,7 @@ const CountrySlider = () => {
                   </div>
                 </div>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 mb-4">
                 <QtyInput
                   value={giftCardCount}
                   onIncrement={() => handleGiftCardChange(1)}

@@ -32,7 +32,7 @@ export default async function handler(req, res) {
 
     // Initialize the Mindee ClientV2 with your API key
     const api_key = process.env.MINDEE_API_KEY || "md_rvtU59yTx2sBb89vk75p7DKgTCMSLKKR";
-    const model_id = "e9e60729-1368-4e9b-89e1-7b9a0a99a3cf";
+    const model_id = process.env.MINDEE_MODEL_ID || "9bc619aa-f5cd-481d-8add-ac5b3d124039"; // Replace with your actual model ID
     
     const client = new ClientV2({ apiKey: api_key });
 

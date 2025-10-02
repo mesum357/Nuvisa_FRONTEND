@@ -1,14 +1,20 @@
 import { Upload, Check, Eye, Download, Trash2 } from "lucide-react";
-import { useRef } from "react";
-import { uploadFile } from "@/api/upload";
+import { useRef, useState } from "react";
+import { uploadFile, deleteFile } from "@/api/upload";
 
 const DocumentUploadSection = ({
   documents,
   setDocuments,
   onUploadSuccess,
   onUploadError,
+  disabled = false,
+  isOwner = true,
+  totalTravelers = 1,
+  loading = false,
 }) => {
   const fileInputRefs = useRef({});
+  const [deletingFiles, setDeletingFiles] = useState(new Set());
+  const [loadingPart, setIsLoading] = useState();
 
   const documentTypes = [
     {
@@ -16,6 +22,8 @@ const DocumentUploadSection = ({
       title: "Passport sized photographs",
       description: "Recent passport-sized colour photographs",
       required: true,
+      requiredCount: 2,
+      field : "passportPhotos",
     },
     {
       id: 2,
@@ -23,18 +31,21 @@ const DocumentUploadSection = ({
       description:
         "Last 3 months showing sufficient funds (recommended £50–£80 per day per person)",
       required: true,
+      field : "bankStatements",
     },
     {
       id: 3,
       title: "Employment proof (last 3 months payslips)",
       description: "Payslips for the last 3 months",
       required: true,
+      field : "employmentProof",
     },
     {
       id: 4,
-      title: "School/College/Institute ID Card",
+      title: "School/College ID Card",
       description: "",
       required: false,
+      field : "schoolIdCard",
     },
     {
       id: 5,
@@ -42,30 +53,57 @@ const DocumentUploadSection = ({
       description:
         "Passport page showing a valid UK visa (must have at least 3 months validity after your travel end date)",
       required: true,
+      field : "ukVisa",
     },
     {
       id: 6,
+      title: "Travel Insurance Certificate",
+      description: `Upload your travel insurance certificate(s) if you have your own insurance. You can upload up to ${totalTravelers} certificate(s), one per traveler.`,
+      required: false,
+      multiple: false,
+      field : "insuranceDocument",
+    },
+    {
+      id: 7,
       title: "Other supporting document",
       description: "Optional additional supporting document",
       required: false,
       multiple: true,
+      field : "additionalDocument",
     },
   ];
 
-  const handleFileUpload = async (e, docId) => {
+  const handleFileUpload = async (e, docType) => {
+      setIsLoading(docType.field);
+    const docId = docType.field
+
+    if (disabled || !isOwner) return; // Prevent file upload when disabled or not owner
     const files = Array.from(e.target.files);
     if (!files.length) return;
 
-    const isPassportPhoto = docId === 1;
-    const isAdditionalDoc = docId === 6;
+    const isPassportPhoto = docId === "passportPhotos"
+    const isInsuranceDoc = docId === "insuranceDocument"
+    const isAdditionalDoc = docId === "additionalDocument"
 
     let filesToUpload = files;
     if (isPassportPhoto) {
-      const currentUploads = documents[docId] ? (Array.isArray(documents[docId]) ? documents[docId] : [documents[docId]]) : [];
+      const currentUploads = documents[docId]
+        ? Array.isArray(documents[docId])
+          ? documents[docId]
+          : [documents[docId]]
+        : [];
       const remainingSlots = 2 - currentUploads.length;
       filesToUpload = files.slice(0, remainingSlots);
+    } else if (isInsuranceDoc) {
+      const currentUploads = documents[docId]
+        ? Array.isArray(documents[docId])
+          ? documents[docId]
+          : [documents[docId]]
+        : [];
+      const remainingSlots = totalTravelers - currentUploads.length;
+      filesToUpload = files.slice(0, remainingSlots);
     } else if (isAdditionalDoc) {
-      filesToUpload = files;
+      filesToUpload = files; // Allow multiple additional documents
     } else {
       filesToUpload = files.slice(0, 1);
     }
@@ -75,7 +113,9 @@ const DocumentUploadSection = ({
     }
 
     try {
-      const uploadPromises = filesToUpload.map(file => uploadFile(file));
+      setIsLoading(docType.field);
+      const uploadPromises = filesToUpload.map(async (file) =>  uploadFile(file));
+    
       const uploadResults = await Promise.all(uploadPromises);
 
       const documentData = filesToUpload.map((file, index) => ({
@@ -89,15 +129,23 @@ const DocumentUploadSection = ({
 
       if (isPassportPhoto) {
         setDocuments((prev) => {
-          const currentDocs = prev[docId] ? (Array.isArray(prev[docId]) ? prev[docId] : [prev[docId]]) : [];
+          const currentDocs = prev[docId]
+            ? Array.isArray(prev[docId])
+              ? prev[docId]
+              : [prev[docId]]
+            : [];
           return {
             ...prev,
             [docId]: [...currentDocs, ...documentData].slice(0, 2),
           };
         });
-      } else if (isAdditionalDoc) {
+      } else if (isInsuranceDoc || isAdditionalDoc) {
         setDocuments((prev) => {
-          const currentDocs = prev[docId] ? (Array.isArray(prev[docId]) ? prev[docId] : [prev[docId]]) : [];
+          const currentDocs = prev[docId]
+            ? Array.isArray(prev[docId])
+              ? prev[docId]
+              : [prev[docId]]
+            : [];
           return {
             ...prev,
             [docId]: [...currentDocs, ...documentData],
@@ -111,25 +159,59 @@ const DocumentUploadSection = ({
       }
 
       if (onUploadSuccess) {
-        onUploadSuccess(isPassportPhoto ? documentData : documentData[0], docId);
+        onUploadSuccess(
+          (isPassportPhoto || isInsuranceDoc || isAdditionalDoc) ? documentData : documentData[0],
+          docId
+        );
       }
     } catch (error) {
+      console.error("File upload error:", error);
       const errorMessage = "Failed to upload file. Please try again.";
       if (onUploadError) {
         onUploadError(errorMessage);
       }
+      setIsLoading(null);
+    } finally{
+      setIsLoading(null);
     }
   };
 
-  const handleRemoveDocument = (docId, fileIndex = null) => {
+  const handleRemoveDocument = async (docId, fileIndex = null) => {
+    if (disabled || !isOwner) return; // Prevent document removal when disabled or not owner
+
+    // Get the file to be deleted
+    let fileToDelete = null;
+    const doc = documents[docId];
+
+    if (doc) {
+      const isPassportPhoto = docId === "passportPhotos";
+      const isAdditionalDoc = docId === "additionalDocument";
+
+      if ((isPassportPhoto || isAdditionalDoc) && Array.isArray(doc) && fileIndex !== null) {
+        fileToDelete = doc[fileIndex];
+      } else if (!Array.isArray(doc)) {
+        fileToDelete = doc;
+      }
+    }
+
+    // Create a unique identifier for this deletion operation
+    const deletionId = `${docId}-${fileIndex}`;
+
+    // Optimistically update UI first
     setDocuments((prev) => {
       const newDocs = { ...prev };
 
-      const isPassportPhoto = docId === 1;
-      const isAdditionalDoc = docId === 6;
+      const isPassportPhoto = docId === "passportPhotos";
+      const isAdditionalDoc = docId === "additionalDocument";
 
-      if ((isPassportPhoto || isAdditionalDoc) && Array.isArray(prev[docId]) && fileIndex !== null) {
-        const updatedList = prev[docId].filter((_, index) => index !== fileIndex);
+      if (
+        (isPassportPhoto || isAdditionalDoc) &&
+        Array.isArray(prev[docId]) &&
+        fileIndex !== null
+      ) {
+        const updatedList = prev[docId].filter(
+          (_, index) => index !== fileIndex
+        );
         if (updatedList.length > 0) {
           newDocs[docId] = updatedList;
         } else {
@@ -142,8 +224,34 @@ const DocumentUploadSection = ({
       return newDocs;
     });
 
+    // Reset file input
     if (fileInputRefs.current[docId]) {
       fileInputRefs.current[docId].value = "";
+    }
+
+    // Try to delete from server (don't block UI)
+    if (fileToDelete?.preview) {
+      setDeletingFiles(prev => new Set(prev).add(deletionId));
+
+      try {
+        await deleteFile(fileToDelete.preview);
+        console.log(`Successfully deleted file: ${fileToDelete.name}`);
+      } catch (error) {
+        console.error(`Failed to delete file from server: ${fileToDelete.name}`, error);
+        // Note: We don't revert the UI change here as the file is already "removed" from the user's perspective
+        // The server cleanup failure is logged but doesn't affect the user experience
+
+        // Optionally, you could show a toast notification here:
+        if (onUploadError) {
+          onUploadError(`Warning: File removed from form but server cleanup failed for ${fileToDelete.name}`);
+        }
+      } finally {
+        setDeletingFiles(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(deletionId);
+          return newSet;
+        });
+      }
     }
   };
 
@@ -156,28 +264,50 @@ const DocumentUploadSection = ({
       }
     }
   };
+  const handleDownloadDocument = async (fileObject) => {
+    if (!fileObject || !fileObject.preview) {
+      console.error("Invalid file object provided.");
+      return;
+    }
 
-  const handleDownloadDocument = (docId, fileIndex = 0) => {
-    const doc = documents[docId];
-    if (doc) {
-      const targetDoc = Array.isArray(doc) ? doc[fileIndex] : doc;
-      if (targetDoc) {
-        const link = document.createElement("a");
-        link.href = targetDoc.preview;
-        link.download = targetDoc.name;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+    try {
+      const response = await fetch(fileObject.preview);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const blob = await response.blob();
+
+      const blobUrl = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = fileObject.name;
+      document.body.appendChild(link);
+      link.click();
+
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error("Could not download the file:", error);
+      window.open(fileObject.preview, "_blank");
     }
   };
 
   const completedCount = Object.keys(documents).length;
   const totalCount = documentTypes.length;
   const requiredCount = documentTypes.filter((doc) => doc.required).length;
-  const completedRequiredCount = documentTypes.filter(
-    (doc) => doc.required && documents[doc.id]
-  ).length;
+  const completedRequiredCount = documentTypes.filter((doc) => {
+    if (!doc.required) return false;
+    if (!documents[doc.id]) return false;
+
+    if (doc.id === 1) {
+      const uploadedFiles = Array.isArray(documents[doc.id]) ? documents[doc.id] : [documents[doc.id]];
+      return uploadedFiles.length >= 2;
+    }
+
+    return true;
+  }).length;
 
   return (
     <div className="space-y-4">
@@ -200,46 +330,61 @@ const DocumentUploadSection = ({
       {/* Document List */}
       <div>
         {documentTypes.map((docType) => {
-          const isUploaded = documents[docType.id];
-          const isPassportPhoto = docType.id === 1;
-          const uploadedFiles = Array.isArray(isUploaded) ? isUploaded : isUploaded ? [isUploaded] : [];
-          const canUploadMore = (isPassportPhoto && uploadedFiles.length < 2) || docType.multiple;
+          const isUploaded = documents[docType.field];
+          const isPassportPhoto = docType.field === "passportPhotos";
+          const uploadedFiles = Array.isArray(isUploaded)
+            ? isUploaded
+            : isUploaded
+              ? [isUploaded]
+              : [];
+          const canUploadMore =
+            (isPassportPhoto && uploadedFiles.length < 2) || docType.multiple;
+
+          const isComplete = isPassportPhoto
+            ? uploadedFiles.length >= 2
+            : !!isUploaded;
 
           return (
             <div key={docType.id} className="p-6 border   dark:border-gray-700">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4  ">
-                  <div className="flex items-center gap-4 max-w-56 w-full">
+                <div className="flex items-center gap-4 ">
+                  <div className="flex items-center gap-4 ">
                     <div
-                      className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${isUploaded
+                      className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${isComplete
                         ? "bg-green-600 dark:bg-green-900/50"
                         : "bg-gray-400 dark:bg-gray-600"
                         }`}
                     >
-                      {isUploaded ? (
+                      {isComplete ? (
                         <Check className="w-5 h-5 text-white dark:text-green-400" />
                       ) : (
                         <div className="w-2 h-2 bg-white dark:bg-gray-300 rounded-full"></div>
                       )}
                     </div>
-                    <h4 className="text-base font-semibold text-gray-900 dark:text-gray-100 w-full flex items-center gap-2">
-                      {docType.title}
-                      {isPassportPhoto && (
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          ({uploadedFiles.length}/2)
+                    <div className="text-base font-semibold text-gray-900 dark:text-gray-100  flex items-center gap-2 w-full">
+                      <div className="flex items-center gap-2">
+                        <span className="max-w-40 min-w-40">
+                          {docType.title}
                         </span>
-                      )}
-                      <span
-                        className={`text-xs font-medium px-2 py-1 rounded-full ${docType.required
-                          ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                          : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
-                          }`}
-                      >
-                        {docType.required ? "Required" : "Optional"}
-                      </span>
-                    </h4>
+
+                        {!isUploaded && <span
+                          className={`text-xs font-medium px-2 py-1 rounded-full ${docType.required
+                            ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                            : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
+                            }`}
+                        >
+                          {docType.required ? "Required" : "Optional"}
+                        </span>}
+
+                        {isPassportPhoto && (
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            ({uploadedFiles.length}/2)
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 ">
                     {docType.description}
                   </p>
                   <div className="flex-1">
@@ -251,23 +396,27 @@ const DocumentUploadSection = ({
                   </div>
                 </div>
 
-                <div className="self-start">
+                <div className="self-start min-w-30">
                   {(!isUploaded || canUploadMore) && (
                     <>
                       <input
                         type="file"
-                        ref={(el) => (fileInputRefs.current[docType.id] = el)}
-                        onChange={(e) => handleFileUpload(e, docType.id)}
+                        ref={(el) => (fileInputRefs.current[docType.field] = el)}
+                        onChange={(e) => handleFileUpload(e, docType)}
                         className="hidden"
                         accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.zip,.env"
-                        id={`file-upload-${docType.id}`}
+                        id={`file-upload-${docType.field}`}
                         multiple={isPassportPhoto || !!docType.multiple}
+                        disabled={disabled || !isOwner || loadingPart === docType.field }
                       />
                       <label
-                        htmlFor={`file-upload-${docType.id}`}
-                        className="bg-purple-600 text-white font-semibold px-6 py-2.5 rounded-lg cursor-pointer hover:bg-purple-700 transition-colors"
+                        htmlFor={`file-upload-${docType.field}`}
+                        className={`${disabled || !isOwner || loadingPart === docType.field 
+                          ? "bg-gray-400 dark:bg-gray-600 cursor-not-allowed text-white"
+                          : "bg-purple-600 text-white cursor-pointer hover:bg-purple-700"
+                          } font-semibold px-6 py-2.5 rounded-lg transition-colors `}
                       >
-                        {isUploaded && canUploadMore ? "Add More" : "Upload"}
+                        {!isOwner ? "View Only" : (isUploaded && canUploadMore ? "Add More" : loadingPart === docType.field  ? "Uploading..." : "Upload")}
                       </label>
                     </>
                   )}
@@ -277,7 +426,10 @@ const DocumentUploadSection = ({
               {isUploaded && (
                 <div className="pl-12 mt-4 space-y-2">
                   {uploadedFiles.map((file, index) => (
-                    <div key={index} className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+                    <div
+                      key={index}
+                      className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 p-3 rounded-lg"
+                    >
                       <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">
                         {file.name}
                         {isPassportPhoto && (
@@ -295,19 +447,40 @@ const DocumentUploadSection = ({
                           <Eye className="w-5 h-5" />
                         </button>
                         <button
-                          onClick={() => handleDownloadDocument(docType.id, index)}
+                          onClick={() => handleDownloadDocument(file)}
                           className="p-2 text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-100 dark:hover:bg-gray-700 rounded-md transition-colors"
                           title="Download document"
                         >
                           <Download className="w-5 h-5" />
                         </button>
-                        <button
-                          onClick={() => handleRemoveDocument(docType.id, isPassportPhoto ? index : null)}
-                          className="p-2 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-100 dark:hover:bg-gray-700 rounded-md transition-colors"
-                          title="Remove document"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
+                        {isOwner && (
+                          <button
+                            onClick={() =>
+                              !disabled && handleRemoveDocument(
+                                docType.field,
+                                isPassportPhoto ? index : null
+                              )
+                            }
+                            className={`p-2 transition-colors ${disabled || deletingFiles.has(`${docType.id}-${isPassportPhoto ? index : null}`)
+                              ? "text-gray-400 dark:text-gray-500 cursor-not-allowed"
+                              : "text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-100 dark:hover:bg-gray-700 cursor-pointer"
+                              } rounded-md`}
+                            title={
+                              disabled
+                                ? "Cannot remove document"
+                                : deletingFiles.has(`${docType.id}-${isPassportPhoto ? index : null}`)
+                                  ? "Deleting..."
+                                  : "Remove document"
+                            }
+                            disabled={disabled || deletingFiles.has(`${docType.id}-${isPassportPhoto ? index : null}`)}
+                          >
+                            {deletingFiles.has(`${docType.id}-${isPassportPhoto ? index : null}`) ? (
+                              <div className="w-5 h-5 border-2 border-gray-300 border-t-red-500 rounded-full animate-spin"></div>
+                            ) : (
+                              <Trash2 className="w-5 h-5" />
+                            )}
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}

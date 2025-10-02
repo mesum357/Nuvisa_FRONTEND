@@ -16,6 +16,7 @@ import { calculatePaymentFees, formatCurrency } from "@/utils/currency";
 import ClientOnly from "./ClientOnly";
 import { useToast } from "@/contexts/ToastContext";
 import QtyInput from "./QtyInput";
+import { setAmountWithoutDiscount, setTravelers } from "@/store/visaSlice";
 
 const VisaCheckout = () => {
   const dispatch = useAppDispatch();
@@ -37,7 +38,7 @@ const VisaCheckout = () => {
   const selectedVisaType = visaState.selectedVisaType;
   const visaTypeId = visaState.visaTypeId;
 
-  const [travelers, setTravelers] = useState(
+  const [travelers, setTravelersLocal] = useState(
     visaState.travelers !== undefined && visaState.travelers !== null
       ? Number(visaState.travelers)
       : 1
@@ -58,13 +59,14 @@ const VisaCheckout = () => {
   } catch {
     travelDays = 1;
   }
+  const userEmail = localStorageGateway("userEmail", localStorageEnums.GET);
 
   const insuranceFeesPerTraveller = 2 * travelDays; // EUR per traveller
   const insuranceFeesTotal = insuranceFeesPerTraveller * travelers; // total EUR
   const [includeInsurance, setIncludeInsurance] = useState(
     visaState.recommendedItems?.insuranceCertificate || false
   );
-  const [email, setEmail] = useState(visaState.userEmail || "");
+  const [email, setEmail] = useState(userEmail || "");
   const [emailError, setEmailError] = useState("");
   const [phone, setPhone] = useState("");
   const [phoneError, setPhoneError] = useState("");
@@ -578,6 +580,7 @@ const VisaCheckout = () => {
     await localStorageGateway("paymentAmount", localStorageEnums.SET,
       String(totalAmountEUR)
     );
+   
     await localStorageGateway(
       "insurancePayment",
       localStorageEnums.SET,
@@ -586,9 +589,17 @@ const VisaCheckout = () => {
     await localStorageGateway(
       "insuranceSelected",
       localStorageEnums.SET,
-      includeInsurance ? "true" : "false"
+      includeInsurance ? true : false
     );
+    await localStorageGateway("travelers", localStorageEnums.SET,
+      String(travelers)
+    );
+    dispatch(setTravelers(Number(travelers)));
 
+  
+     await localStorageGateway("paymentWithoutInsurance", localStorageEnums.SET,
+      String(visaFeesEUR)
+    );
 
     if (cretingDynamicCheckout) return;
 
@@ -654,7 +665,7 @@ const VisaCheckout = () => {
       amount: String(totalAmountEUR),
       travellers: String(travelers),
       country: String(selectedCountry || ""),
-      insurance: includeInsurance ? "true" : "false", // Simple boolean conversion
+      insurance: includeInsurance ? true : false, // Simple boolean conversion
       phone: phone,
       postcode: postcode,
       paymentMethod: selectedPaymentMethod,
@@ -690,6 +701,13 @@ const VisaCheckout = () => {
           dispatch(setAuthId(returnedUser.id));
         }
       }
+      dispatch(
+        setAmountWithoutDiscount(
+          Number(
+visaFeesEUR
+          )
+        )
+      )
 
       await localStorageGateway("userEmail", localStorageEnums.SET, email);
     }
@@ -1614,9 +1632,9 @@ const VisaCheckout = () => {
                 checked={travelers > 1}
                 onChange={(e) => {
                   if (e.target.checked && travelers === 1) {
-                    setTravelers(2);
+                    setTravelersLocal(2);
                   } else if (!e.target.checked && travelers > 1) {
-                    setTravelers(1);
+                    setTravelersLocal(1);
                   }
                 }}
               />
@@ -1632,8 +1650,8 @@ const VisaCheckout = () => {
               </div>
 
               <QtyInput
-                onIncrement={(val) => setTravelers(val)}
-                onDecrement={(val) => setTravelers(val)}
+                onIncrement={(val) => setTravelersLocal(val)}
+                onDecrement={(val) => setTravelersLocal(val)}
                 value={travelers}
               />
             </div>

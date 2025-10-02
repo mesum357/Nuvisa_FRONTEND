@@ -9,6 +9,7 @@ export const successMessagesEnums = {
 
   Visa_Application: {
     CREATE: "Data Submitted Successfully",
+    UPDATE: "Application updated successfully",
   },
 
   Profile: {

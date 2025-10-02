@@ -4,6 +4,7 @@ export const backendApiEnums = {
     POST: "POST",
     PUT: "PUT",
     DELETE: "DELETE",
+    PATCH: "PATCH",
   },
   ENDPOINTS: {
     AUTH: {
@@ -26,6 +27,7 @@ export const backendApiEnums = {
       DELETE_APPLICATION: "/visa-application/delete",
       ARCHIVE_APPLICATION: "/visa-application/archive",
       UNARCHIVE_APPLICATION: "/visa-application/unarchive",
+      UPDATE_APPLICATION: "/visa-application/update",
     },
 
     VISA: {

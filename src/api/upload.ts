@@ -12,3 +12,18 @@ export const uploadFile = async (file) => {
 
   return response.data;
 };
+
+export const deleteFile = async (fileUrl) => {
+  if (!fileUrl) {
+    throw new Error("File URL is required");
+  }
+
+  const url = `${process.env.NEXT_PUBLIC_API_URL || ""}/upload`;
+
+  const response = await axios.delete(url, {
+    data: { fileUrl },
+    timeout: 15000,
+  });
+
+  return response.data;
+};
