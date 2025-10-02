@@ -28,7 +28,7 @@ export const useCalculatePayment = (applicationId) => {
     travelData: [],
     totalFullPayment: 0,
     totalInsurancePayment: 0,
-    
+    noOfInsuranceUploaded: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -57,15 +57,22 @@ export const useCalculatePayment = (applicationId) => {
         let totalFullPayment = 0;
         let totalInsurancePayment = 0;
         let allPaymentsCompleted = false;
+        let noOfInsuranceUploaded = 0;
 
         application.travelersData.forEach((traveler) => {
+             const travelDays = calculateTravelDays(
+              traveler.basicDetails.travelStartDate,
+              traveler.basicDetails.travelEndDate
+            );
           const { fullPayment = {} } = traveler;
           const { insurance = {} } = traveler;
           if (!fullPayment.paidInCheckout) {
-            totalFullPayment += Number(fullPayment.paymentWithoutInsurance) || 0;
+            totalFullPayment += Number(application.paymentWithoutInsurance) || 0;
           }
           if (!insurance.paidInCheckout) {
-            totalInsurancePayment += Number(insurance.paymentWithoutInsurance) || 0;
+            totalInsurancePayment += Number(
+              travelDays * 2
+            )|| 0;
           }
           if (
             fullPayment.paymentCompleted &&
@@ -77,16 +84,15 @@ export const useCalculatePayment = (applicationId) => {
             calculatedFullPayment += Number(application.paymentWithoutInsurance);
           }
 
+          if(traveler.documents.documents.insuranceDocument?.[0]?.name ){
+            noOfInsuranceUploaded += 1;
+          }
+
           if (
             !insurance.insurancePaymentCompleted &&
-            !insurance.paymentWithoutInsurance
+            !insurance.paymentWithoutInsurance && !traveler.documents.documents.insuranceDocument?.[0]?.name
           ) {
-         
-            const travelDays = calculateTravelDays(
-              traveler.basicDetails.travelStartDate,
-              traveler.basicDetails.travelEndDate
-            );
-            calculatedInsuranceCost += travelDays * 2;
+            calculatedInsuranceCost += (travelDays * 2)
           }
         });
 
@@ -112,6 +118,7 @@ export const useCalculatePayment = (applicationId) => {
           allPaymentCompleted: allPaymentsCompleted,
           totalFullPayment,
           totalInsurancePayment,
+          noOfInsuranceUploaded
         });
       } catch (err) {
         console.error("Failed to calculate payment:", err);

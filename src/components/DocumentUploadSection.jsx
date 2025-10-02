@@ -10,6 +10,7 @@ const DocumentUploadSection = ({
   disabled = false,
   isOwner = true,
   totalTravelers = 1,
+  loading = false,
 }) => {
   const fileInputRefs = useRef({});
   const [deletingFiles, setDeletingFiles] = useState(new Set());
@@ -21,6 +22,7 @@ const DocumentUploadSection = ({
       description: "Recent passport-sized colour photographs",
       required: true,
       requiredCount: 2,
+      field : "passportPhotos",
     },
     {
       id: 2,
@@ -28,18 +30,21 @@ const DocumentUploadSection = ({
       description:
         "Last 3 months showing sufficient funds (recommended £50–£80 per day per person)",
       required: true,
+      field : "bankStatements",
     },
     {
       id: 3,
       title: "Employment proof (last 3 months payslips)",
       description: "Payslips for the last 3 months",
       required: true,
+      field : "employmentProof",
     },
     {
       id: 4,
       title: "School/College ID Card",
       description: "",
       required: false,
+      field : "schoolIdCard",
     },
     {
       id: 5,
@@ -47,6 +52,7 @@ const DocumentUploadSection = ({
       description:
         "Passport page showing a valid UK visa (must have at least 3 months validity after your travel end date)",
       required: true,
+      field : "ukVisa",
     },
     {
       id: 6,
@@ -54,6 +60,7 @@ const DocumentUploadSection = ({
       description: `Upload your travel insurance certificate(s) if you have your own insurance. You can upload up to ${totalTravelers} certificate(s), one per traveler.`,
       required: false,
       multiple: false,
+      field : "insuranceDocument",
     },
     {
       id: 7,
@@ -61,17 +68,20 @@ const DocumentUploadSection = ({
       description: "Optional additional supporting document",
       required: false,
       multiple: true,
+      field : "additionalDocument",
     },
   ];
 
-  const handleFileUpload = async (e, docId) => {
+  const handleFileUpload = async (e, docType) => {
+    const docId = docType.field
+
     if (disabled || !isOwner) return; // Prevent file upload when disabled or not owner
     const files = Array.from(e.target.files);
     if (!files.length) return;
 
-    const isPassportPhoto = docId === 1;
-    const isInsuranceDoc = docId === 6;
-    const isAdditionalDoc = docId === 7;
+    const isPassportPhoto = docId === "passportPhotos"
+    const isInsuranceDoc = docId === "insuranceDocument"
+    const isAdditionalDoc = docId === "additionalDocument"
 
     let filesToUpload = files;
     if (isPassportPhoto) {
@@ -167,8 +177,8 @@ const DocumentUploadSection = ({
     const doc = documents[docId];
 
     if (doc) {
-      const isPassportPhoto = docId === 1;
-      const isAdditionalDoc = docId === 6;
+      const isPassportPhoto = docId === "passportPhotos";
+      const isAdditionalDoc = docId === "additionalDocument";
 
       if ((isPassportPhoto || isAdditionalDoc) && Array.isArray(doc) && fileIndex !== null) {
         fileToDelete = doc[fileIndex];
@@ -184,8 +194,8 @@ const DocumentUploadSection = ({
     setDocuments((prev) => {
       const newDocs = { ...prev };
 
-      const isPassportPhoto = docId === 1;
-      const isAdditionalDoc = docId === 6;
+      const isPassportPhoto = docId === "passportPhotos";
+      const isAdditionalDoc = docId === "additionalDocument";
 
       if (
         (isPassportPhoto || isAdditionalDoc) &&
@@ -313,8 +323,8 @@ const DocumentUploadSection = ({
       {/* Document List */}
       <div>
         {documentTypes.map((docType) => {
-          const isUploaded = documents[docType.id];
-          const isPassportPhoto = docType.id === 1;
+          const isUploaded = documents[docType.field];
+          const isPassportPhoto = docType.field === "passportPhotos";
           const uploadedFiles = Array.isArray(isUploaded)
             ? isUploaded
             : isUploaded
@@ -384,22 +394,22 @@ const DocumentUploadSection = ({
                     <>
                       <input
                         type="file"
-                        ref={(el) => (fileInputRefs.current[docType.id] = el)}
-                        onChange={(e) => handleFileUpload(e, docType.id)}
+                        ref={(el) => (fileInputRefs.current[docType.field] = el)}
+                        onChange={(e) => handleFileUpload(e, docType)}
                         className="hidden"
                         accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.zip,.env"
-                        id={`file-upload-${docType.id}`}
+                        id={`file-upload-${docType.field}`}
                         multiple={isPassportPhoto || !!docType.multiple}
-                        disabled={disabled || !isOwner}
+                        disabled={disabled || !isOwner || loading}
                       />
                       <label
-                        htmlFor={`file-upload-${docType.id}`}
+                        htmlFor={`file-upload-${docType.field}`}
                         className={`${disabled || !isOwner
                           ? "bg-gray-400 dark:bg-gray-600 cursor-not-allowed text-white"
                           : "bg-purple-600 text-white cursor-pointer hover:bg-purple-700"
                           } font-semibold px-6 py-2.5 rounded-lg transition-colors `}
                       >
-                        {!isOwner ? "View Only" : (isUploaded && canUploadMore ? "Add More" : "Upload")}
+                        {!isOwner ? "View Only" : (isUploaded && canUploadMore ? "Add More" : loading ? "Uploading..." : "Upload")}
                       </label>
                     </>
                   )}
@@ -440,7 +450,7 @@ const DocumentUploadSection = ({
                           <button
                             onClick={() =>
                               !disabled && handleRemoveDocument(
-                                docType.id,
+                                docType.field,
                                 isPassportPhoto ? index : null
                               )
                             }

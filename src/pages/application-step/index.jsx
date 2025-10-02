@@ -174,7 +174,7 @@ const MultiStepAccordion = () => {
       open: true,
       stepType: "basicDetails",
     },
-  
+
     {
       id: 2,
       title: "Add visit details",
@@ -189,7 +189,7 @@ const MultiStepAccordion = () => {
       open: false,
       stepType: "documents",
     },
-      {
+    {
       id: 4,
       title: "Full Payment",
       completed: false,
@@ -287,9 +287,7 @@ const MultiStepAccordion = () => {
       initiallyPaidTraveler < totalTraveler;
     const missingInsurancePayment = !allInsuranceHandled();
 
-
     visibleSteps = visibleSteps.map((step) => {
-
       if (step.stepType === "completed") {
         return {
           ...step,
@@ -300,6 +298,20 @@ const MultiStepAccordion = () => {
       }
       return step;
     });
+
+    const showPayment = parentVisaApplication?.travelersData?.every(
+      (traveler) => {
+        const payment = traveler?.fullPayment;
+        const insurance = traveler?.insurance;
+        return !insurance?.paidInCheckout || !payment?.paymentCompleted;
+      }
+    );
+
+    if (!showPayment) {
+      visibleSteps = visibleSteps.filter(
+        (step) => step.stepType !== "fullPayment"
+      );
+    }
 
     return visibleSteps;
   };
@@ -496,8 +508,6 @@ const MultiStepAccordion = () => {
               }));
 
               setCurrentTravelerIndex(updatedTravelersDataParsed.length - 1);
-
-            
             } catch (error) {
               console.error("Error parsing updated travellers data:", error);
               if (showError)
@@ -912,10 +922,8 @@ const MultiStepAccordion = () => {
       const step = steps.find((s) => s.id === stepId);
       const _currentTraveler = travelersData[currentTravelerIndex];
 
-      // Use updated travelers data if provided, otherwise use current state
       let travelersDataToSend = stepData.updatedTravelersData || travelersData;
 
-      // Special handling for appointment step data
       if (
         (stepId === 3 || step?.stepType === "appointment") &&
         stepData.appointmentData
@@ -934,12 +942,10 @@ const MultiStepAccordion = () => {
         });
       }
 
-      // Special handling for basic details step data
       if (
         (stepId === 1 || step?.stepType === "basicDetails") &&
         stepData.basicDetails
       ) {
-        // Update the current traveler's basic details data
         travelersDataToSend = travelersDataToSend.map((traveler, index) => {
           if (index === currentTravelerIndex) {
             const updatedTraveler = {
@@ -962,7 +968,6 @@ const MultiStepAccordion = () => {
           step?.stepType === "fullPayment") &&
         (stepData.fullPaymentData || stepData.travelerIndex !== undefined)
       ) {
-        // Update the current traveler's full payment data
         travelersDataToSend = travelersDataToSend.map((traveler, index) => {
           if (index === currentTravelerIndex) {
             const updatedTraveler = {
@@ -2121,10 +2126,9 @@ const MultiStepAccordion = () => {
                             }}
                           />
                         )}
-                        {/* Single-traveler action buttons (Back / Add Traveler / Next) */}
                         <div className="mt-6 flex justify-between items-center pt-4">
                           <div className="text-sm text-gray-400">&nbsp;</div>
-                          <div className="flex items-center gap-3">
+                          {step.stepType !== "appointment" &&<div className="flex items-center gap-3">
                             {step.stepType === "basicDetails" ? (
                               <button
                                 onClick={async () => {
@@ -2153,7 +2157,7 @@ const MultiStepAccordion = () => {
                             >
                               {loading ? "Processing..." : "Next"}
                             </button>
-                          </div>
+                          </div>}
                         </div>
                       </>
                     )}
@@ -2387,7 +2391,7 @@ const DocumentStep = ({
   updateCurrentTravelerData,
   validateDocuments,
   onComplete,
-  _loading,
+  loading,
   showError,
   disabled = false,
   isOwner = true,
@@ -2413,76 +2417,6 @@ const DocumentStep = ({
 
   const [saveSuccessMessage, setSaveSuccessMessage] = useState("");
 
-  const _handleSave = () => {
-    const isValid = validateDocuments();
-    if (!isValid) {
-      // Check specific requirements and provide detailed error messages
-      const missingItems = [];
-
-      // Check passport photos (need 2)
-      const passportPhotos = documents[1];
-      if (!passportPhotos) {
-        missingItems.push("Passport sized photographs (2 required)");
-      } else {
-        const photos = Array.isArray(passportPhotos)
-          ? passportPhotos
-          : [passportPhotos];
-        if (photos.length < 2) {
-          missingItems.push(
-            `Passport sized photographs (${photos.length}/2 uploaded, need 2)`
-          );
-        }
-      }
-
-      // Check other required documents
-      const otherRequiredDocs = [
-        { id: 2, name: "Bank statements" },
-        { id: 3, name: "Employment proof" },
-        { id: 5, name: "UK visa" },
-      ];
-
-      otherRequiredDocs.forEach((doc) => {
-        if (!documents[doc.id]) {
-          missingItems.push(doc.name);
-        }
-      });
-
-      console.error("Missing required documents:", missingItems);
-      if (showError) {
-        showError(
-          `Please upload all required documents before continuing. Missing: ${missingItems.join(
-            ", "
-          )}`
-        );
-      }
-      return;
-    }
-
-    const documentsForBackend = {};
-
-    Object.keys(documents).forEach((docId) => {
-      const doc = documents[docId];
-      if (doc) {
-        documentsForBackend[docId] = {
-          name: doc.name,
-          type: doc.type,
-          size: doc.size,
-          data: doc.preview,
-        };
-      }
-    });
-
-    onComplete({
-      documents: documentsForBackend,
-      travelerIndex: travelerIndex,
-    });
-
-    // Show success message and keep the documents step open so user can upload more
-    setSaveSuccessMessage(
-      "Documents saved. You can upload additional documents below."
-    );
-  };
-
   return (
     <div>
       <DocumentUploadSection
@@ -2494,6 +2428,7 @@ const DocumentStep = ({
         disabled={disabled}
         isOwner={isOwner}
         totalTravelers={totalTraveler}
+        loading={loading}
       />
 
       {saveSuccessMessage && (
@@ -3551,12 +3486,12 @@ const FullPaymentStep = ({
               </div>
             )}
 
-            {(
+            {
               <div className="border-t border-[#423577] pt-4">
                 <div className="flex justify-between items-center text-lg font-bold">
                   <span className="text-white">Grand Total</span>
                   <span className="text-[#7350FF]">
-                   {paymentData.allPaymentCompleted
+                    {paymentData.allPaymentCompleted
                       ? `€${
                           paymentData.totalFullPayment +
                           paymentData.totalInsurancePayment
@@ -3565,8 +3500,7 @@ const FullPaymentStep = ({
                   </span>
                 </div>
               </div>
-            )}
-           
+            }
 
             {allPaymentsCompleted && (
               <span className="flex items-center gap-2 py-2">

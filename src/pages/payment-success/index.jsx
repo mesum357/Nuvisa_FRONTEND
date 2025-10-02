@@ -203,7 +203,7 @@ const PaymentSuccess = () => {
 
         // Use the actual insurance selection boolean, fallback to fee check for backward compatibility
         const hasInsurance =
-          currentData.insuranceSelected === "true" ||
+          currentData.insuranceSelected  ||
             (currentData.insuranceSelected === undefined &&
               Number(currentData.insurancePayment) > 0)
             ? true
@@ -265,13 +265,13 @@ const PaymentSuccess = () => {
             insurance: {
               insurance: hasInsurance, // Set insurance for each initial traveler based on payment
               insuranceDetails:
-                hasInsurance === "true" ? { selected: true } : null,
+                hasInsurance  ? { selected: true } : null,
               insuranceCertificate: null, // Initialize certificate field,
               orderId: null,
-              paymentAmount: hasInsurance === "true" ? Number(currentData.insurancePayment) || 0 : 0,
-              paidInCheckout: hasInsurance === "true" && isCheckoutPayment, // Only true for actual checkout payments
-              insuranceSource: hasInsurance === "true" && isCheckoutPayment ? "checkout" : null,
-              insurancePaymentCompleted: hasInsurance === "true",
+              paymentAmount: hasInsurance  ? Number(currentData.insurancePayment) || 0 : 0,
+              paidInCheckout: hasInsurance  && isCheckoutPayment, // Only true for actual checkout payments
+              insuranceSource: hasInsurance  && isCheckoutPayment ? "checkout" : null,
+              insurancePaymentCompleted: hasInsurance ,
             },
             fullPayment: {
               paymentStatus: "completed",
@@ -279,8 +279,8 @@ const PaymentSuccess = () => {
               paymentAmount: Number(currentData.totalAmount) || 159,
               paymentDate: new Date().toISOString(),
               paymentMethod: "stripe",
-              includeInsurance: hasInsurance === "true",
-              insuranceType: hasInsurance === "true" ? "purchase" : "none",
+              includeInsurance: hasInsurance ,
+              insuranceType: hasInsurance  ? "purchase" : "none",
               paidInCheckout: isCheckoutPayment,
             },
           })
@@ -300,9 +300,9 @@ const PaymentSuccess = () => {
           // Add arrival and departure dates from Redux store for SMV order creation
           arrivalDate: visaState.arrivalDate,
           departureDate: visaState.departureDate,
-          insurancePaymentCompleted: hasInsurance === "true",
-          initialInsurancePaidTotal: hasInsurance === "true" ? (Number(currentData.insurancePayment) || 0).toString() : "0",
-          insuranceDetails: (hasInsurance === "true" && isCheckoutPayment) ? {
+          insurancePaymentCompleted: hasInsurance ,
+          initialInsurancePaidTotal: hasInsurance  ? (Number(currentData.insurancePayment) || 0).toString() : "0",
+          insuranceDetails: (hasInsurance  && isCheckoutPayment) ? {
             insurancePaymentCompleted: true,
             paymentAmount: Number(currentData.insurancePayment) || 0,
             paymentDate: new Date().toISOString(),
