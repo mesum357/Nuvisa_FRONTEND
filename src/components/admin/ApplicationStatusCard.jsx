@@ -472,27 +472,7 @@ function DocumentItem({ document, onUpdateStatus, isUpdating }) {
             </button>
           )}
           
-          {documentStatus !== 'approved' && document.id && (
-            <button
-              onClick={() => onUpdateStatus(document.id, 'approved')}
-              disabled={isUpdating}
-              className="p-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-lg transition-colors duration-200"
-              title="Approve document"
-            >
-              <CheckCircle size={14} />
-            </button>
-          )}
-          
-          {documentStatus !== 'rejected' && document.id && (
-            <button
-              onClick={() => onUpdateStatus(document.id, 'rejected', 'Document rejected by admin')}
-              disabled={isUpdating}
-              className="p-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg transition-colors duration-200"
-              title="Reject document"
-            >
-              <XCircle size={14} />
-            </button>
-          )}
+       
         </div>
       </div>
       
