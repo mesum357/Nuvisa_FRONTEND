@@ -179,7 +179,6 @@ const MultiStepAccordion = () => {
       open: true,
       stepType: "basicDetails",
     },
-
     {
       id: 2,
       title: "Add visit details",
@@ -579,6 +578,7 @@ const MultiStepAccordion = () => {
           id: applicationId,
           travelersData: newTravelersData,
           numberOfTravellers: newTravelersData.length,
+          totalTraveler: newTravelersData.length,
         });
 
         await fetchApplicationById();

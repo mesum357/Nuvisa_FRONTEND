@@ -59,13 +59,14 @@ const VisaCheckout = () => {
   } catch {
     travelDays = 1;
   }
+  const userEmail = localStorageGateway("userEmail", localStorageEnums.GET);
 
   const insuranceFeesPerTraveller = 2 * travelDays; // EUR per traveller
   const insuranceFeesTotal = insuranceFeesPerTraveller * travelers; // total EUR
   const [includeInsurance, setIncludeInsurance] = useState(
     visaState.recommendedItems?.insuranceCertificate || false
   );
-  const [email, setEmail] = useState(visaState.userEmail || "");
+  const [email, setEmail] = useState(userEmail || "");
   const [emailError, setEmailError] = useState("");
   const [phone, setPhone] = useState("");
   const [phoneError, setPhoneError] = useState("");
