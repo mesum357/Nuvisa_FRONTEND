@@ -657,7 +657,6 @@ const PassportInformationSection = ({
 
       try {
         await deleteFile(fileUrl);
-        console.log(`Successfully deleted ${side} passport image from server`);
       } catch (error) {
         console.error(`Failed to delete ${side} passport image from server:`, error);
         // Note: We don't revert the UI change here as the file is already "removed" from the user's perspective
@@ -895,9 +894,9 @@ const PassportInformationSection = ({
               <div className="space-y-6">
                 {/* Front Side Upload */}
                 <div
-                  className={`border-2 border-dashed rounded-xl p-4 transition ${errors.passportFront
+                  className={`shadow-sm shadow-gray-600/60 rounded-xl p-4 transition ${errors.passportFront
                     ? "border-red-500 bg-red-50"
-                    : "border-[#423577] hover:border-purple-400"
+                    : " hover:shadow-purple-400/60"
                     }`}
                 >
                   <label className="block text-sm font-medium  mb-2">
@@ -978,9 +977,9 @@ const PassportInformationSection = ({
                     </div>
                   ) : (
                     <div className="flex items-center justify-center w-full">
-                      <label className={`flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-lg transition ${disabled
+                      <label className={`flex flex-col items-center justify-center w-full h-40 border border-dashed rounded-lg transition ${disabled
                         ? "border-gray-500 cursor-not-allowed opacity-50 bg-gray-600/20"
-                        : "border-[#423577] cursor-pointer hover:border-purple-400"
+                        : "border-[#423577] cursor-pointer hover:border-purple-400/60"
                         }`}>
                         <div className="flex flex-col items-center justify-center pt-5 pb-6">
                           <Upload className="w-10 h-10 mb-3 text-gray-400" />
@@ -1012,9 +1011,9 @@ const PassportInformationSection = ({
                 </div>
                 {/* Back Side Upload */}
                 <div
-                  className={`border-2 border-dashed rounded-xl p-4 transition ${errors.passportBack
+                  className={`shadow-sm shadow-gray-600/60 rounded-xl p-4 transition ${errors.passportBack
                     ? "border-red-500 bg-red-50"
-                    : "border-[#423577] hover:border-purple-400"
+                    : "hover:shadow-purple-400/60"
                     }`}
                 >
                   <label className="block text-sm font-medium  mb-2">
@@ -1106,9 +1105,9 @@ const PassportInformationSection = ({
                     </div>
                   ) : (
                     <div className="flex items-center justify-center w-full">
-                      <label className={`flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-lg transition ${disabled
+                      <label className={`flex flex-col items-center justify-center w-full h-40 border border-dashed rounded-lg transition ${disabled
                         ? "border-gray-500 cursor-not-allowed opacity-50 bg-gray-600/20"
-                        : "border-[#423577] cursor-pointer hover:border-purple-400"
+                        : "border-[#423577] cursor-pointer hover:border-purple-400/60"
                         }`}>
                         <div className="flex flex-col items-center justify-center pt-5 pb-6">
                           <Upload className="w-10 h-10 mb-3 text-gray-400" />

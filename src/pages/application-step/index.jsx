@@ -32,6 +32,7 @@ import { useRouter } from "next/router";
 import { XIcon } from "lucide-react";
 import { useSendStudentVerification } from "@/hooks/useSendStudentVerification";
 import { useCalculatePayment } from "@/hooks/useCalculatePayment";
+import ConfirmationModal from "@/components/ConfirmationModal";
 
 const MultiStepAccordion = () => {
   const token = localStorageGateway("token", localStorageEnums.GET);
@@ -51,6 +52,13 @@ const MultiStepAccordion = () => {
   const [currentTravelerIndex, setCurrentTravelerIndex] = useState(0);
   const [numberOfTravelers, setNumberOfTravelers] = useState(1);
   const [userEmail, setUserEmail] = useState("");
+  
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
 
   const isOwner = parentVisaApplication?.email === userEmail;
 
@@ -296,9 +304,9 @@ const MultiStepAccordion = () => {
     return visibleSteps;
   };
 
-  const _addTraveler = async () => {
+  const _addTraveler = async (uniqueId) => {
     const newTraveler = {
-      id: travelersData.length + 1,
+      id: uniqueId,
       appointment: {
         preference1: {
           city: "",
@@ -491,22 +499,22 @@ const MultiStepAccordion = () => {
 
             
             } catch (error) {
-              console.error("Error parsing updated travelers data:", error);
+              console.error("Error parsing updated travellers data:", error);
               if (showError)
-                showError("Failed to add traveler. Please try again.");
+                showError("Failed to add traveller. Please try again.");
             }
           }
         } else {
           const errorMessage =
             response?.data?.message ||
             response?.data?.error ||
-            "Failed to add additional traveler.";
+            "Failed to add additional traveller.";
           if (showError) showError(errorMessage);
         }
       } catch (error) {
-        console.error("Error adding additional traveler:", error);
+        console.error("Error adding additional traveller:", error);
         if (showError)
-          showError("Failed to add additional traveler. Please try again.");
+          showError("Failed to add additional traveller. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -1857,13 +1865,20 @@ const MultiStepAccordion = () => {
                                       <button
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          const confirmed = window.confirm(
-                                            "Remove this traveler and all their data? This action cannot be undone."
-                                          );
-                                          if (confirmed) {
-                                            const idToRemove = traveler.id;
-                                            _removeTraveler(idToRemove);
-                                          }
+                                          const travelerName = travelersData[index]?.basicDetails?.firstName 
+                                            ? `${travelersData[index].basicDetails.firstName}` 
+                                            : `Traveler ${index + 1}`;
+                                          
+                                          setConfirmationModal({
+                                            isOpen: true,
+                                            title: `Delete ${travelerName}`,
+                                            message: `Are you sure you want to delete ${travelerName}? This action cannot be undone.`,
+                                            onConfirm: () => {
+                                              const idToRemove = traveler.id;
+                                              _removeTraveler(idToRemove);
+                                              setConfirmationModal({ ...confirmationModal, isOpen: false });
+                                            }
+                                          });
                                         }}
                                         title="Remove traveler"
                                         className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center rounded-full bg-red-500 text-white text-xs hover:bg-red-600 transition-all duration-200 opacity-0 group-hover:opacity-100 z-10 shadow-lg"
@@ -1878,13 +1893,14 @@ const MultiStepAccordion = () => {
                           {step.stepType === "basicDetails" && (
                             <button
                               onClick={async () => {
-                                await _addTraveler();
+                                const uniqueId = `traveler_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+                                await _addTraveler(uniqueId);
                               }}
                               className="bg-[#292933] text-gray-300 hover:bg-[#7350FF] hover:text-white px-4 py-1.5 rounded-lg flex items-center gap-2 font-medium transition-colors duration-200 border border-dashed border-gray-500 hover:border-[#7350FF]"
-                              title="Add Traveler"
+                              title="Add Traveller"
                             >
                               <span className="text-lg">+</span>
-                              <span className="font-medium">Add Traveler</span>
+                              <span className="font-medium">Add Traveller</span>
                             </button>
                           )}
                         </div>
@@ -1959,14 +1975,15 @@ const MultiStepAccordion = () => {
                               {step.stepType === "basicDetails" ? (
                                 <button
                                   onClick={async () => {
-                                    await _addTraveler();
+                                    const uniqueId = `traveler_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+                                    await _addTraveler(uniqueId);
                                   }}
                                   className="bg-gray-700 text-white px-4 py-1.5 rounded-lg hover:bg-gray-600 disabled:opacity-50 flex items-center gap-2 transition-colors duration-200"
-                                  title="Add Traveler"
+                                  title="Add Traveller"
                                 >
                                   <span className="text-lg">+</span>
                                   <span className="font-medium">
-                                    Add Traveler
+                                    Add Traveller
                                   </span>
                                 </button>
                               ) : (
@@ -1983,7 +2000,7 @@ const MultiStepAccordion = () => {
                                     allTravelersCompleted: true,
                                   })
                                 }
-                                className="bg-[#7350FF] text-white px-6 py-2 rounded-lg hover:bg-[#7350FF]/90 disabled:bg-[#7350FF]/30 transition-colors duration-200"
+                                className="bg-[#7350FF] text-white px-6 py-2 rounded-lg hover:bg-[#7350FF]/90 disabled:bg-[#7350FF]/30 transition-colors duration-200 disabled:cursor-not-allowed"
                               >
                                 {loading ? "Processing..." : "Next"}
                               </button>
@@ -2090,7 +2107,8 @@ const MultiStepAccordion = () => {
                             parentVisaApplication={parentVisaApplication}
                             applicationId={applicationId}
                             onAddTraveler={async () => {
-                              await _addTraveler();
+                              const uniqueId = `traveler_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+                              await _addTraveler(uniqueId);
                             }}
                             onUploadDocument={() => {
                               // Navigate back to documents step for current traveler
@@ -2110,7 +2128,8 @@ const MultiStepAccordion = () => {
                             {step.stepType === "basicDetails" ? (
                               <button
                                 onClick={async () => {
-                                  await _addTraveler();
+                                  const uniqueId = `traveler_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+                                  await _addTraveler(uniqueId);
                                 }}
                                 className="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-600 disabled:opacity-50 flex items-center gap-2 transition-colors duration-200"
                                 title="Add Traveler"
@@ -2145,6 +2164,17 @@ const MultiStepAccordion = () => {
           })}
         </div>
       </div>
+      
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={() => setConfirmationModal({ ...confirmationModal, isOpen: false })}
+        onConfirm={confirmationModal.onConfirm}
+        title={confirmationModal.title}
+        message={confirmationModal.message}
+        confirmText="Yes"
+        cancelText="No"
+        type="danger"
+      />
     </div>
   );
 };

@@ -48,7 +48,7 @@ export default function HeaderSearchSection() {
 
   const newApplications = filteredApplications.filter(
     (app) => app?.applicationStatus === "new"
-  );
+  ).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   const submittedApplications = filteredApplications.filter(
     (app) => app?.applicationStatus === "submitted"
