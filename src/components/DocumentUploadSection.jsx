@@ -367,14 +367,14 @@ const DocumentUploadSection = ({
                           {docType.title}
                         </span>
 
-                        <span
+                        {!isUploaded && <span
                           className={`text-xs font-medium px-2 py-1 rounded-full ${docType.required
                             ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
                             : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
                             }`}
                         >
                           {docType.required ? "Required" : "Optional"}
-                        </span>
+                        </span>}
 
                         {isPassportPhoto && (
                           <span className="text-xs text-gray-500 dark:text-gray-400">

@@ -101,7 +101,6 @@ export const useCalculatePayment = (applicationId) => {
             t.fullPayment?.paymentCompleted && 
             t.insurance?.insurancePaymentCompleted
           );
-
         setPaymentData({
           fullRemainingPayment: calculatedFullPayment,
           totalInsuranceCost: calculatedInsuranceCost,

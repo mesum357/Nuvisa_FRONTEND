@@ -52,7 +52,7 @@ export default function HeaderSearchSection() {
 
   const submittedApplications = filteredApplications.filter(
     (app) => app?.applicationStatus === "submitted"
-  );
+  ).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   const fetchUserApplications = async () => {
     try {
@@ -61,7 +61,7 @@ export default function HeaderSearchSection() {
         const applicationsWithStatus =
           response.data.data.results.applications.map((app) => ({
             ...app,
-          }));
+          }))
         setUserApplications(applicationsWithStatus);
         // load archived from applications that have archivedAt set
         const archived = applicationsWithStatus.filter((a) => a.archivedAt);

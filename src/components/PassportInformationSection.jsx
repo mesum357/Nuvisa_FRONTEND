@@ -13,7 +13,16 @@ const getLocalDateString = (date) => {
   return `${year}-${month}-${day}`;
 };
 
-export default function App({ passportData, setPassportData, handleSave, loading, disabled }) {
+export default function App({ 
+  passportData, 
+  setPassportData, 
+  handleSave, 
+  loading, 
+  disabled,
+  onBack = null,
+  onNext = null,
+  showIndividualButtons = true
+}) {
   const [isComplete, setIsComplete] = useState(false);
 
   const onComplete = () => {
@@ -32,6 +41,9 @@ export default function App({ passportData, setPassportData, handleSave, loading
           handleSave={handleSave}
           loading={loading}
           disabled={disabled}
+          onBack={onBack}
+          onNext={onNext}
+          showIndividualButtons={showIndividualButtons}
         />
       </div>
     </div>
@@ -47,6 +59,9 @@ const PassportInformationSection = ({
   handleSave,
   _loading,
   disabled = false,
+  onBack = null,
+  onNext = null,
+  showIndividualButtons = true,
 }) => {
   const [frontPreview, setFrontPreview] = useState(null);
   const [backPreview, setBackPreview] = useState(null);
@@ -775,10 +790,97 @@ const PassportInformationSection = ({
     return Object.keys(newErrors).length === 0;
   };
 
+  const isFormComplete = () => {
+    const {
+      passportNumber,
+      firstName,
+      lastName,
+      sex,
+      dateOfBirth,
+      placeOfBirth,
+      passportIssuePlace,
+      passportIssueDate,
+      passportExpiryDate,
+      currentAddress1,
+      city,
+      pincode,
+      mobileNumber,
+      travelStartDate,
+      travelEndDate,
+      passportFront,
+      passportBack,
+    } = passportData;
+
+    const hasBasicInfo = 
+      passportNumber && 
+      firstName && 
+      lastName && 
+      sex && 
+      dateOfBirth && 
+      placeOfBirth;
+
+    const hasPassportInfo = 
+      passportIssuePlace && 
+      passportIssueDate && 
+      passportExpiryDate;
+
+    const hasAddressInfo = 
+      currentAddress1 && 
+      city && 
+      pincode;
+
+    const hasTravelInfo = 
+      travelStartDate && 
+      travelEndDate;
+
+    const hasPassportImages = 
+      (passportFront || frontPreview) && 
+      (passportBack || backPreview);
+
+    const hasMobileNumber = mobileNumber && String(mobileNumber).trim();
+
+    // Also check for valid date relationships
+    let validDates = true;
+    if (passportIssueDate && passportExpiryDate) {
+      validDates = new Date(passportExpiryDate) >= new Date(passportIssueDate);
+    }
+    if (travelStartDate && travelEndDate) {
+      validDates = validDates && new Date(travelEndDate) > new Date(travelStartDate);
+    }
+
+    // Check mobile number format
+    let validMobile = true;
+    if (hasMobileNumber) {
+      const digits = String(mobileNumber).trim().replace(/\D/g, "");
+      validMobile = (digits.length === 10 || digits.length === 11) &&
+                   (digits.length === 10 ? digits.charAt(0) !== "0" : digits.charAt(0) === "0");
+    }
+
+    // Check postcode format
+    let validPostcode = true;
+    if (pincode) {
+      const ukPostcodeRegex = /^([A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}|GIR\s?0AA)$/i;
+      validPostcode = ukPostcodeRegex.test(String(pincode).trim());
+    }
+
+    return hasBasicInfo && 
+           hasPassportInfo && 
+           hasAddressInfo && 
+           hasTravelInfo && 
+           hasPassportImages && 
+           hasMobileNumber && 
+           validDates && 
+           validMobile && 
+           validPostcode;
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (validate()) {
-      if (handleSave) {
+      // Call the appropriate handler
+      if (onNext) {
+        onNext();
+      } else if (handleSave) {
         handleSave();
       } else {
         onComplete();
@@ -1527,6 +1629,50 @@ const PassportInformationSection = ({
             </div>
           </div>
         </div>
+
+        {/* Individual Step Buttons */}
+        {showIndividualButtons && (
+          <div className="mt-8 flex justify-between items-center pt-6 border-t border-[#423577]">
+            <div className="text-sm text-gray-400">
+              {!isFormComplete() && (
+                <span className="text-orange-400">
+                  ⚠ Please complete all required fields to proceed
+                </span>
+              )}
+              {isFormComplete() && (
+                <span className="text-green-400">
+                  ✓ All required information completed
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              {/* Back button - only show if onBack handler provided */}
+              {onBack && (
+                <button
+                  type="button"
+                  onClick={onBack}
+                  className="bg-gray-700 text-white px-6 py-2 rounded-lg hover:bg-gray-600 disabled:opacity-50 transition-colors duration-200"
+                  disabled={disabled}
+                >
+                  Back
+                </button>
+              )}
+              
+              {/* Next button - disabled until form is complete */}
+              <button
+                type="submit"
+                className={`px-6 py-2 rounded-lg font-semibold transition-colors duration-200 ${
+                  isFormComplete() && !disabled
+                    ? "bg-[#7350FF] text-white hover:bg-[#7350FF]/90"
+                    : "bg-gray-600 text-gray-400 cursor-not-allowed"
+                }`}
+                disabled={!isFormComplete() || disabled || isProcessing}
+              >
+                {isProcessing ? "Processing..." : "Next"}
+              </button>
+            </div>
+          </div>
+        )}
 
       </form>
     </div>

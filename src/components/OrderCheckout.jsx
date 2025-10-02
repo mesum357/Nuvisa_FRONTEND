@@ -16,7 +16,7 @@ import { calculatePaymentFees, formatCurrency } from "@/utils/currency";
 import ClientOnly from "./ClientOnly";
 import { useToast } from "@/contexts/ToastContext";
 import QtyInput from "./QtyInput";
-import { setAmountWithoutDiscount } from "@/store/visaSlice";
+import { setAmountWithoutDiscount, setTravelers } from "@/store/visaSlice";
 
 const VisaCheckout = () => {
   const dispatch = useAppDispatch();
@@ -38,7 +38,7 @@ const VisaCheckout = () => {
   const selectedVisaType = visaState.selectedVisaType;
   const visaTypeId = visaState.visaTypeId;
 
-  const [travelers, setTravelers] = useState(
+  const [travelers, setTravelersLocal] = useState(
     visaState.travelers !== undefined && visaState.travelers !== null
       ? Number(visaState.travelers)
       : 1
@@ -590,7 +590,12 @@ const VisaCheckout = () => {
       localStorageEnums.SET,
       includeInsurance ? true : false
     );
+    await localStorageGateway("travelers", localStorageEnums.SET,
+      String(travelers)
+    );
+    dispatch(setTravelers(Number(travelers)));
 
+  
      await localStorageGateway("paymentWithoutInsurance", localStorageEnums.SET,
       String(visaFeesEUR)
     );
@@ -1626,9 +1631,9 @@ visaFeesEUR
                 checked={travelers > 1}
                 onChange={(e) => {
                   if (e.target.checked && travelers === 1) {
-                    setTravelers(2);
+                    setTravelersLocal(2);
                   } else if (!e.target.checked && travelers > 1) {
-                    setTravelers(1);
+                    setTravelersLocal(1);
                   }
                 }}
               />
@@ -1644,8 +1649,8 @@ visaFeesEUR
               </div>
 
               <QtyInput
-                onIncrement={(val) => setTravelers(val)}
-                onDecrement={(val) => setTravelers(val)}
+                onIncrement={(val) => setTravelersLocal(val)}
+                onDecrement={(val) => setTravelersLocal(val)}
                 value={travelers}
               />
             </div>

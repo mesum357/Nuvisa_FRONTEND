@@ -203,11 +203,12 @@ const PaymentSuccess = () => {
 
         // Use the actual insurance selection boolean, fallback to fee check for backward compatibility
         const hasInsurance =
-          currentData.insuranceSelected  ||
+          currentData.insuranceSelected === "true"  ||
             (currentData.insuranceSelected === undefined &&
               Number(currentData.insurancePayment) > 0)
             ? true
             : false;
+
 
         // Determine if this is truly a checkout payment or application step payment
         const isCheckoutPayment = finalPaymentType === "application_creation" || 
@@ -216,7 +217,7 @@ const PaymentSuccess = () => {
         const initialTravelersData = Array.from(
           { length: numberOfTravelers },
           (_, index) => ({
-            id: index + 1,
+            id: `traveler_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
             basicDetails: {
               passportNumber: "",
               firstName: "",
@@ -234,6 +235,8 @@ const PaymentSuccess = () => {
               pincode: "",
               passportFront: null,
               passportBack: null,
+              travelStartDate: visaState.arrivalDate || "",
+              travelEndDate: visaState.departureDate || "",
             },
             visitDetails: {
               visitingOtherSchengenCountries: [],

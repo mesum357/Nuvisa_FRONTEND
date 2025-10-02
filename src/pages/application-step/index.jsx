@@ -52,12 +52,12 @@ const MultiStepAccordion = () => {
   const [currentTravelerIndex, setCurrentTravelerIndex] = useState(0);
   const [numberOfTravelers, setNumberOfTravelers] = useState(1);
   const [userEmail, setUserEmail] = useState("");
-  
+
   const [confirmationModal, setConfirmationModal] = useState({
     isOpen: false,
     title: '',
     message: '',
-    onConfirm: () => {},
+    onConfirm: () => { },
   });
 
   const isOwner = parentVisaApplication?.email === userEmail;
@@ -81,6 +81,10 @@ const MultiStepAccordion = () => {
       Number(initial) > 0
     );
   };
+
+  const { paymentData } = useCalculatePayment(
+    parentVisaApplication?.id
+  )
 
   const [travelersData, setTravelersData] = useState([
     {
@@ -167,6 +171,7 @@ const MultiStepAccordion = () => {
   ]);
 
   const [steps, setSteps] = useState([
+  
     {
       id: 1,
       title: "Add basic details",
@@ -189,7 +194,7 @@ const MultiStepAccordion = () => {
       open: false,
       stepType: "documents",
     },
-    {
+      {
       id: 4,
       title: "Full Payment",
       completed: false,
@@ -221,9 +226,17 @@ const MultiStepAccordion = () => {
 
     setSteps((prevSteps) => {
       return prevSteps.map((step) => {
-        const isCompleted = relevantStepInfo.completedSteps?.includes(
+        let isCompleted = relevantStepInfo.completedSteps?.includes(
           step.stepType
         );
+        const isInsuranceComplete = relevantStepInfo.completedSteps?.includes(
+          "insurance"
+        );
+        if (step.stepType === "fullPayment") {
+          if (!isInsuranceComplete) {
+            isCompleted = false;
+          }
+        }
 
         return {
           ...step,
@@ -289,11 +302,16 @@ const MultiStepAccordion = () => {
 
     visibleSteps = visibleSteps.map((step) => {
       if (step.stepType === "completed") {
+        const isAppCompleted = 
+    relevantStepInfo?.isCompleted || 
+    relevantStepInfo?.isSubmitted ||
+    parentVisaApplication?.applicationStatus === "submitted";
         return {
           ...step,
           title: "Application Completed",
           completed: isTravelerCompleted,
-          open: relevantStepInfo?.currentStep === "completed",
+          open:  relevantStepInfo?.currentStep === "completed" ||
+      (relevantStepInfo?.completedSteps?.length >= 6 && isAppCompleted)
         };
       }
       return step;
@@ -303,7 +321,7 @@ const MultiStepAccordion = () => {
       (traveler) => {
         const payment = traveler?.fullPayment;
         const insurance = traveler?.insurance;
-        return !insurance?.paidInCheckout || !payment?.paymentCompleted;
+        return !insurance?.paidInCheckout || !payment?.paidInCheckout;
       }
     );
 
@@ -1222,24 +1240,68 @@ const MultiStepAccordion = () => {
     const currentTraveler = getCurrentTravelerData();
     const basicDetails = currentTraveler.basicDetails || {};
 
-    return (
-      basicDetails.passportNumber &&
-      basicDetails.firstName &&
-      basicDetails.lastName &&
-      basicDetails.sex &&
-      basicDetails.dateOfBirth &&
-      basicDetails.placeOfBirth &&
-      basicDetails.passportIssuePlace &&
-      basicDetails.passportIssueDate &&
-      basicDetails.passportExpiryDate &&
-      basicDetails.currentAddress1 &&
-      basicDetails.state &&
-      basicDetails.city &&
-      basicDetails.pincode &&
-      basicDetails.mobileNumber &&
-      basicDetails.passportFront &&
-      basicDetails.passportBack
-    );
+    // Check all required fields are present
+    const hasBasicInfo = 
+      basicDetails.passportNumber && 
+      basicDetails.firstName && 
+      basicDetails.lastName && 
+      basicDetails.sex && 
+      basicDetails.dateOfBirth && 
+      basicDetails.placeOfBirth;
+
+    const hasPassportInfo = 
+      basicDetails.passportIssuePlace && 
+      basicDetails.passportIssueDate && 
+      basicDetails.passportExpiryDate;
+
+    const hasAddressInfo = 
+      basicDetails.currentAddress1 && 
+      basicDetails.city && 
+      basicDetails.pincode;
+
+    const hasTravelInfo = 
+      basicDetails.travelStartDate && 
+      basicDetails.travelEndDate;
+
+    const hasPassportImages = 
+      basicDetails.passportFront && 
+      basicDetails.passportBack;
+
+    const hasMobileNumber = basicDetails.mobileNumber && String(basicDetails.mobileNumber).trim();
+
+    // Also check for valid date relationships
+    let validDates = true;
+    if (basicDetails.passportIssueDate && basicDetails.passportExpiryDate) {
+      validDates = new Date(basicDetails.passportExpiryDate) >= new Date(basicDetails.passportIssueDate);
+    }
+    if (basicDetails.travelStartDate && basicDetails.travelEndDate) {
+      validDates = validDates && new Date(basicDetails.travelEndDate) > new Date(basicDetails.travelStartDate);
+    }
+
+    // Check mobile number format
+    let validMobile = true;
+    if (hasMobileNumber) {
+      const digits = String(basicDetails.mobileNumber).trim().replace(/\D/g, "");
+      validMobile = (digits.length === 10 || digits.length === 11) &&
+                   (digits.length === 10 ? digits.charAt(0) !== "0" : digits.charAt(0) === "0");
+    }
+
+    // Check postcode format
+    let validPostcode = true;
+    if (basicDetails.pincode) {
+      const ukPostcodeRegex = /^([A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}|GIR\s?0AA)$/i;
+      validPostcode = ukPostcodeRegex.test(String(basicDetails.pincode).trim());
+    }
+
+    return hasBasicInfo && 
+           hasPassportInfo && 
+           hasAddressInfo && 
+           hasTravelInfo && 
+           hasPassportImages && 
+           hasMobileNumber && 
+           validDates && 
+           validMobile && 
+           validPostcode;
   };
 
   // New validation function for all travelers' passport data
@@ -1347,14 +1409,14 @@ const MultiStepAccordion = () => {
 
     // Define required documents with their validation rules
     const requiredDocuments = [
-      { id: 1, minCount: 2 }, // Passport photos - need 2
-      { id: 2, minCount: 1 }, // Bank statements
-      { id: 3, minCount: 1 }, // Employment proof
-      { id: 5, minCount: 1 }, // UK visa
+      { id: 1, minCount: 2, field: "passportPhotos" }, // Passport photos - need 2
+      { id: 2, minCount: 1, field: "bankStatements" }, // Bank statements
+      { id: 3, minCount: 1, field: "employmentProof" }, // Employment proof
+      { id: 5, minCount: 1, field: "ukVisa" }, // UK visa
     ];
 
     return requiredDocuments.every((docReq) => {
-      const doc = documents[docReq.id];
+      const doc = documents[docReq.field];
       if (!doc) return false;
 
       // For passport photos (id: 1), check if we have at least 2 photos
@@ -1457,37 +1519,27 @@ const MultiStepAccordion = () => {
   };
 
   const _validateFullPayment = () => {
-    // Get payment tracking data from backend
-    const initiallyPaidTraveler =
-      parentVisaApplication?.initiallyPaidTraveler || 0;
-    const amountPaidTotal =
-      parentVisaApplication?.amountPaidTotal ||
-      parentVisaApplication?.amountPaid ||
-      "0";
+    return paymentData?.allPaymentCompleted
+  };
 
-    // Check if insurance documents are uploaded
-    const hasInsuranceDocuments = () => {
-      return travelersData.some((traveler) => {
-        const documents = traveler?.documents?.documents || {};
-        // Check for insurance documents (ID 6) or any document with insurance in the name
-        return (
-          documents["6"] ||
-          Object.keys(documents).some(
-            (key) => key.toLowerCase().includes("insurance") && documents[key]
-          )
-        );
-      });
-    };
-
-    const appInsurance = getAppInsurance();
-    const isInsurancePaid = appInsurance?.insurancePaymentCompleted === true;
-
-    const hasAnyPayment = parseFloat(amountPaidTotal) > 0;
-    const allTravelersPaid = initiallyPaidTraveler >= totalTraveler;
-
-    const insuranceHandled = hasInsuranceDocuments() || isInsurancePaid;
-
-    return hasAnyPayment && allTravelersPaid && insuranceHandled;
+  // Function to check if a step can be completed (for Next button state)
+  const canCompleteStep = (stepType) => {
+    switch (stepType) {
+      case "basicDetails":
+        return validatePassportData();
+      case "visitDetails":
+        return validateVisitData();
+      case "documents":
+        return validateDocuments();
+      case "fullPayment":
+        return _validateFullPayment();
+      case "appointment":
+        return validateAppointment();
+      case "insurance":
+        return _validateInsurance();
+      default:
+        return true;
+    }
   };
 
   const fetchApplicationById = async () => {
@@ -1712,9 +1764,8 @@ const MultiStepAccordion = () => {
           <div className="flex items-center gap-4">
             <ClientOnly>
               <img
-                src={`https://flagcdn.com/w80/${
-                  countryCodeMap[parentVisaApplication?.country]
-                }.png`}
+                src={`https://flagcdn.com/w80/${countryCodeMap[parentVisaApplication?.country]
+                  }.png`}
                 alt="United Kingdom Flag"
                 width={40}
                 height={30}
@@ -1777,25 +1828,22 @@ const MultiStepAccordion = () => {
             return (
               <div
                 key={step.id}
-                className={`border rounded-lg border-[#423577] overflow-hidden transition-all duration-300 ${
-                  isLocked ? "opacity-50 cursor-not-allowed" : "opacity-100"
-                }`}
+                className={`border rounded-lg border-[#423577] overflow-hidden transition-all duration-300 ${isLocked ? "opacity-50 cursor-not-allowed" : "opacity-100"
+                  }`}
                 style={{ boxShadow: "rgba(0, 0, 0, 0.05) 0px 1px 3px 0px" }}
               >
                 {/* Step Header */}
                 <div
-                  className={`p-4 flex justify-between items-center ${
-                    isLocked ? "cursor-not-allowed" : "cursor-pointer"
-                  } ${step.open ? "bg-[#292933]" : "bg-[#23232B]"}`}
+                  className={`p-4 flex justify-between items-center ${isLocked ? "cursor-not-allowed" : "cursor-pointer"
+                    } ${step.open ? "bg-[#292933]" : "bg-[#23232B]"}`}
                   onClick={() => !isLocked && toggleStep(step.id)}
                 >
                   <div className="flex items-center">
                     <div
-                      className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 ${
-                        step.completed
+                      className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 ${step.completed
                           ? "bg-green-500 text-white"
                           : "bg-gray-700 text-white"
-                      }`}
+                        }`}
                     >
                       {step.completed ? "✓" : index + 1}
                     </div>
@@ -1814,7 +1862,7 @@ const MultiStepAccordion = () => {
                     {(step.stepType === "basicDetails" ||
                       step.stepType === "visitDetails" ||
                       step.stepType === "documents") &&
-                    numberOfTravelers > 1 ? (
+                      numberOfTravelers > 1 ? (
                       <div>
                         {/* Traveler Tabs */}
                         <div className="flex flex-wrap gap-2 mb-6 border-b border-[#423577] pb-4 items-center">
@@ -1837,11 +1885,10 @@ const MultiStepAccordion = () => {
                                     onClick={() =>
                                       setCurrentTravelerIndex(index)
                                     }
-                                    className={`px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2 ${
-                                      currentTravelerIndex === index
+                                    className={`px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2 ${currentTravelerIndex === index
                                         ? "bg-[#6366F1] text-white"
                                         : "bg-[#292933] text-gray-300 hover:bg-[#333340] hover:text-white"
-                                    }`}
+                                      }`}
                                   >
                                     <span>
                                       {travelersData[index]?.basicDetails
@@ -1870,10 +1917,10 @@ const MultiStepAccordion = () => {
                                       <button
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          const travelerName = travelersData[index]?.basicDetails?.firstName 
-                                            ? `${travelersData[index].basicDetails.firstName}` 
+                                          const travelerName = travelersData[index]?.basicDetails?.firstName
+                                            ? `${travelersData[index].basicDetails.firstName}`
                                             : `Traveler ${index + 1}`;
-                                          
+
                                           setConfirmationModal({
                                             isOpen: true,
                                             title: `Delete ${travelerName}`,
@@ -1974,7 +2021,16 @@ const MultiStepAccordion = () => {
                           {/* Step action buttons (Back / Next) for tab-based steps */}
                           <div className="mt-6 flex justify-between items-center pt-4">
                             <div className="text-sm text-gray-400">
-                              {/* Placeholder for any helper text */}
+                              {!canCompleteStep(step.stepType) && (
+                                <span className="text-orange-400">
+                                  ⚠ Please complete all required fields for this step
+                                </span>
+                              )}
+                              {canCompleteStep(step.stepType) && (
+                                <span className="text-green-400">
+                                  ✓ All requirements completed for this step
+                                </span>
+                              )}
                             </div>
                             <div className="flex items-center gap-3">
                               {step.stepType === "basicDetails" ? (
@@ -2005,7 +2061,12 @@ const MultiStepAccordion = () => {
                                     allTravelersCompleted: true,
                                   })
                                 }
-                                className="bg-[#7350FF] text-white px-6 py-2 rounded-lg hover:bg-[#7350FF]/90 disabled:bg-[#7350FF]/30 transition-colors duration-200 disabled:cursor-not-allowed"
+                                disabled={!canCompleteStep(step.stepType) || loading}
+                                className={`px-6 py-2 rounded-lg font-semibold transition-colors duration-200 ${
+                                  canCompleteStep(step.stepType) && !loading
+                                    ? "bg-[#7350FF] text-white hover:bg-[#7350FF]/90"
+                                    : "bg-gray-600 text-gray-400 cursor-not-allowed"
+                                }`}
                               >
                                 {loading ? "Processing..." : "Next"}
                               </button>
@@ -2127,8 +2188,19 @@ const MultiStepAccordion = () => {
                           />
                         )}
                         <div className="mt-6 flex justify-between items-center pt-4">
-                          <div className="text-sm text-gray-400">&nbsp;</div>
-                          {step.stepType !== "appointment" &&<div className="flex items-center gap-3">
+                          <div className="text-sm text-gray-400">
+                            {!canCompleteStep(step.stepType) && (
+                              <span className="text-orange-400">
+                                ⚠ Please complete all required fields for this step
+                              </span>
+                            )}
+                            {canCompleteStep(step.stepType) && (
+                              <span className="text-green-400">
+                                ✓ All requirements completed for this step
+                              </span>
+                            )}
+                          </div>
+                          {step.stepType !== "appointment" && <div className="flex items-center gap-3">
                             {step.stepType === "basicDetails" ? (
                               <button
                                 onClick={async () => {
@@ -2153,7 +2225,12 @@ const MultiStepAccordion = () => {
                             )}
                             <button
                               onClick={() => handleCompleteStep(step.id, {})}
-                              className="bg-[#7350FF] text-white px-6 py-2 rounded-lg hover:bg-[#7350FF]/90 disabled:bg-[#7350FF]/30 transition-colors duration-200"
+                              disabled={!canCompleteStep(step.stepType) || loading}
+                              className={`px-6 py-2 rounded-lg font-semibold transition-colors duration-200 ${
+                                canCompleteStep(step.stepType) && !loading
+                                  ? "bg-[#7350FF] text-white hover:bg-[#7350FF]/90"
+                                  : "bg-gray-600 text-gray-400 cursor-not-allowed"
+                              }`}
                             >
                               {loading ? "Processing..." : "Next"}
                             </button>
@@ -2168,7 +2245,7 @@ const MultiStepAccordion = () => {
           })}
         </div>
       </div>
-      
+
       <ConfirmationModal
         isOpen={confirmationModal.isOpen}
         onClose={() => setConfirmationModal({ ...confirmationModal, isOpen: false })}
@@ -2295,6 +2372,7 @@ const PassportStep = ({
         handleSave={handleSave}
         loading={loading}
         disabled={disabled}
+        showIndividualButtons={false}
       />
     </div>
   );
@@ -2409,7 +2487,7 @@ const DocumentStep = ({
     }
   };
 
-  const handleUploadSuccess = (_documentData, _docId) => {};
+  const handleUploadSuccess = (_documentData, _docId) => { };
 
   const handleUploadError = (errorMessage) => {
     console.error("Document upload error:", errorMessage);
@@ -2563,7 +2641,7 @@ const _InsuranceStep = ({
     // Determine display value for "per traveler" (same value for all travelers?)
     const perTravelerDisplay =
       perTravelerCosts.length > 0 &&
-      perTravelerCosts.every((c) => c === perTravelerCosts[0])
+        perTravelerCosts.every((c) => c === perTravelerCosts[0])
         ? perTravelerCosts[0]
         : null;
 
@@ -2581,8 +2659,8 @@ const _InsuranceStep = ({
     parentVisaApplication?.insurance?.insurancePaymentCompleted === true ||
     Number(
       parentVisaApplication?.insurance?.paymentAmount ||
-        parentVisaApplication?.initialInsurancePaidTotal ||
-        0
+      parentVisaApplication?.initialInsurancePaidTotal ||
+      0
     ) > 0;
 
   // Check if current traveler has insurance paid in checkout
@@ -3058,19 +3136,19 @@ const FullPaymentStep = ({
               item.insurance?.paymentAmount > 0
                 ? item.insurance?.paymentAmount
                 : calculateTravelDays(
+                  item.basicDetails.startDate,
+                  item.basicDetails.endDate
+                ) *
+                2 -
+                (appliedDiscount && appliedDiscount.percentage
+                  ? (calculateTravelDays(
                     item.basicDetails.startDate,
                     item.basicDetails.endDate
                   ) *
-                    2 -
-                  (appliedDiscount && appliedDiscount.percentage
-                    ? (calculateTravelDays(
-                        item.basicDetails.startDate,
-                        item.basicDetails.endDate
-                      ) *
-                        2 *
-                        appliedDiscount.percentage) /
-                      100
-                    : 0),
+                    2 *
+                    appliedDiscount.percentage) /
+                  100
+                  : 0),
             insurancePaymentCompleted:
               item.insurance?.insurancePaymentCompleted || true,
             paidInCheckout: item.insurance?.paidInCheckout || false,
@@ -3193,7 +3271,7 @@ const FullPaymentStep = ({
 
           try {
             if (!userEmail && payload.email) setUserEmailLocal(payload.email);
-          } catch {}
+          } catch { }
 
           if (
             !appliedDiscount ||
@@ -3208,7 +3286,7 @@ const FullPaymentStep = ({
           }
         }
       }
-    } catch {}
+    } catch { }
   }, []);
 
   return (
@@ -3219,8 +3297,8 @@ const FullPaymentStep = ({
           {isAdditionalTraveler
             ? "Payment required for additional traveler"
             : !missingTravelerPayment && travelersNeedingInsurance > 0
-            ? "Insurance payment required to complete your application"
-            : "Complete your full payment to proceed with the application"}
+              ? "Insurance payment required to complete your application"
+              : "Complete your full payment to proceed with the application"}
         </p>
       </div>
 
@@ -3237,10 +3315,9 @@ const FullPaymentStep = ({
                   <h3 className="text-xl font-bold text-white">Full payment</h3>
                   <div className="text-3xl font-bold text-[#7350FF]">
                     {paymentData.allPaymentCompleted
-                      ? `€${
-                          paymentData.totalFullPayment +
-                          paymentData.totalInsurancePayment
-                        }`
+                      ? `€${paymentData.totalFullPayment +
+                      paymentData.totalInsurancePayment
+                      }`
                       : `€${totalPaymentDue.toFixed(2)}`}
                   </div>
                 </div>
@@ -3279,13 +3356,11 @@ const FullPaymentStep = ({
                       setCouponCodeLocal(e.target.value.toUpperCase())
                     }
                     placeholder="Enter coupon code (e.g., STUDENT10)"
-                    className={`w-full border ${
-                      couponError ? "border-red-400" : "border-gray-500"
-                    } bg-[#24242D] text-white rounded-md p-2 text-sm ${
-                      couponError
+                    className={`w-full border ${couponError ? "border-red-400" : "border-gray-500"
+                      } bg-[#24242D] text-white rounded-md p-2 text-sm ${couponError
                         ? "outline-none ring-2 ring-red-400"
                         : "focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    }`}
+                      }`}
                     disabled={appliedDiscount}
                   />
                 </div>
@@ -3342,13 +3417,11 @@ const FullPaymentStep = ({
                         value={userEmail}
                         onChange={(e) => setUserEmailLocal(e.target.value)}
                         placeholder="Enter your student email (e.g., you@student.uni.ac.uk)"
-                        className={`w-full border ${
-                          emailError ? "border-red-400" : "border-gray-500"
-                        } bg-[#24242D] text-white rounded-md p-2 text-sm ${
-                          emailError
+                        className={`w-full border ${emailError ? "border-red-400" : "border-gray-500"
+                          } bg-[#24242D] text-white rounded-md p-2 text-sm ${emailError
                             ? "outline-none ring-2 ring-red-400"
                             : "focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        }`}
+                          }`}
                         disabled={studentVerified}
                       />
                     </div>
@@ -3492,10 +3565,9 @@ const FullPaymentStep = ({
                   <span className="text-white">Grand Total</span>
                   <span className="text-[#7350FF]">
                     {paymentData.allPaymentCompleted
-                      ? `€${
-                          paymentData.totalFullPayment +
-                          paymentData.totalInsurancePayment
-                        }`
+                      ? `€${paymentData.totalFullPayment +
+                      paymentData.totalInsurancePayment
+                      }`
                       : `€${totalPaymentDue.toFixed(2)}`}
                   </span>
                 </div>
@@ -3516,7 +3588,7 @@ const FullPaymentStep = ({
                 (isAdditionalTraveler ||
                   missingTravelerPayment ||
                   travelersNeedingInsurance > 0) &&
-                !paymentData.allPaymentCompleted
+                  !paymentData.allPaymentCompleted
                   ? handlePayForTraveler
                   : handleSave
               }
@@ -3531,8 +3603,8 @@ const FullPaymentStep = ({
               {isPaying
                 ? "Processing..."
                 : totalPaymentDue > 0
-                ? `Pay €${totalPaymentDue.toFixed(2)}`
-                : "Continue"}
+                  ? `Pay €${totalPaymentDue.toFixed(2)}`
+                  : "Continue"}
             </button>
 
             {paymentError && (
