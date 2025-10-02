@@ -30,7 +30,7 @@ export const apigateway = async ({
   try {
     const response = await axios(config);
 
-    if (!directAction && endpoint !== "/visa-application/create") {
+    if (!directAction && endpoint !== "/visa-application/create" && endpoint !== "/visa-application/update") {
       if (isDisplayResponsePopUp) {
         await Swal.fire({
           icon: swalPopupEnums.icon.SUCCESS as SweetAlertIcon,
@@ -62,7 +62,7 @@ export const apigateway = async ({
 
     const errorMessage = error?.response?.data?.data?.results?.error;
 
-    if (endpoint === "/visa-application/create") {
+    if (endpoint === "/visa-application/create" || endpoint === "/visa-application/update") {
       return error.response;
     }
 

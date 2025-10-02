@@ -39,6 +39,7 @@ export interface IVisaState {
   giftCardFees: number;
   totalAmount: number;
   insuranceOnly: boolean;
+  amountWithoutDiscount: number;
 }
 
 const initialState: IVisaState = {
@@ -69,6 +70,7 @@ const initialState: IVisaState = {
   giftCardFees: 0,
   totalAmount: 0,
   insuranceOnly: false,
+  amountWithoutDiscount: 0,
 };
 
 export const visaSlice = createSlice({
@@ -126,6 +128,9 @@ export const visaSlice = createSlice({
     setInsuranceOnly: (state, action: PayloadAction<boolean>) => {
       state.insuranceOnly = action.payload;
     },
+    setAmountWithoutDiscount: (state, action: PayloadAction<number>) => {
+      state.amountWithoutDiscount = action.payload;
+    },
     clearVisaData: (state) => {
       state.selectedCountry = "";
   state.visaFees = 0;
@@ -177,5 +182,6 @@ export const {
   setTotalAmount,
   setInsuranceOnly,
   clearVisaData,
+  setAmountWithoutDiscount,
 } = visaSlice.actions;
 export const visaReducer = visaSlice.reducer;

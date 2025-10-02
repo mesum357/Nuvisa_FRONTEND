@@ -53,7 +53,7 @@ const DocumentUploadSection = ({
       title: "Travel Insurance Certificate",
       description: `Upload your travel insurance certificate(s) if you have your own insurance. You can upload up to ${totalTravelers} certificate(s), one per traveler.`,
       required: false,
-      multiple: true,
+      multiple: false,
     },
     {
       id: 7,

@@ -2,6 +2,7 @@
 import {
   getVisaApplication,
   createOrUpdateApplication,
+  updateVisaApplication,
 } from "@/api/visaApplications";
 import ApplicationCompletedSection from "@/components/ApplicationCompletedSection";
 import DocumentUploadSection from "@/components/DocumentUploadSection";
@@ -29,7 +30,8 @@ import useCreateDynamicCheckoutSession from "@/hooks/useCreateDynamicCheckoutSes
 import { countryCodeMap } from "@/utils/countryCodeMap";
 import { useRouter } from "next/router";
 import { XIcon } from "lucide-react";
-
+import { useSendStudentVerification } from "@/hooks/useSendStudentVerification";
+import { useCalculatePayment } from "@/hooks/useCalculatePayment";
 
 const MultiStepAccordion = () => {
   const token = localStorageGateway("token", localStorageEnums.GET);
@@ -52,16 +54,24 @@ const MultiStepAccordion = () => {
 
   const isOwner = parentVisaApplication?.email === userEmail;
 
-  const totalTraveler = parentVisaApplication?.totalTraveler || parentVisaApplication?.numberOfTravellers || 1;
+  const totalTraveler =
+    parentVisaApplication?.totalTraveler ||
+    parentVisaApplication?.numberOfTravellers ||
+    1;
 
   // Prefer application-level insurance summary when available
   const getAppInsurance = () => parentVisaApplication?.insurance || null;
   const getInitialInsurancePaidTotal = () =>
-    getAppInsurance()?.paymentAmount ?? parentVisaApplication?.initialInsurancePaidTotal ?? "0";
+    getAppInsurance()?.paymentAmount ??
+    parentVisaApplication?.initialInsurancePaidTotal ??
+    "0";
   const _isApplicationInsurancePaid = () => {
     const appIns = getAppInsurance();
     const initial = getInitialInsurancePaidTotal();
-    return (appIns && appIns.insurancePaymentCompleted === true) || Number(initial) > 0;
+    return (
+      (appIns && appIns.insurancePaymentCompleted === true) ||
+      Number(initial) > 0
+    );
   };
 
   const [travelersData, setTravelersData] = useState([
@@ -130,7 +140,7 @@ const MultiStepAccordion = () => {
         documents: {},
       },
       insurance: {
-        insurance: "",
+        insurance: false,
         insuranceDetails: null,
         insuranceCertificate: null,
       },
@@ -156,6 +166,7 @@ const MultiStepAccordion = () => {
       open: true,
       stepType: "basicDetails",
     },
+  
     {
       id: 2,
       title: "Add visit details",
@@ -170,13 +181,14 @@ const MultiStepAccordion = () => {
       open: false,
       stepType: "documents",
     },
-    {
+      {
       id: 4,
       title: "Full Payment",
       completed: false,
       open: false,
       stepType: "fullPayment",
     },
+
     {
       id: 5,
       title: "Book an appointment",
@@ -195,7 +207,8 @@ const MultiStepAccordion = () => {
 
   const updateStepsFromStepInfo = (stepInfo = null) => {
     const appStepInfo = parentVisaApplication?.stepInfo;
-    const relevantStepInfo = stepInfo || appStepInfo || getCurrentTravelerStepInfo();
+    const relevantStepInfo =
+      stepInfo || appStepInfo || getCurrentTravelerStepInfo();
     if (!relevantStepInfo) return;
 
     setSteps((prevSteps) => {
@@ -217,52 +230,57 @@ const MultiStepAccordion = () => {
 
     const appStepInfo = parentVisaApplication?.stepInfo;
     const currentTravelerStepInfo = getCurrentTravelerStepInfo();
-    const relevantStepInfo = appStepInfo || currentTravelerStepInfo || { completedSteps: [] };
+    const relevantStepInfo = appStepInfo ||
+      currentTravelerStepInfo || { completedSteps: [] };
 
     let visibleSteps = [...steps];
 
     const isTravelerCompleted = currentTravelerStepInfo?.isCompleted || false;
-    const isAdditionalTraveler = currentTravelerStepInfo?.isAdditionalTraveler || false;
+    const isAdditionalTraveler =
+      currentTravelerStepInfo?.isAdditionalTraveler || false;
 
     // Get payment tracking data from backend
-    const initiallyPaidTraveler = parentVisaApplication?.initiallyPaidTraveler || 0;
-    const amountPaidTotal = parentVisaApplication?.amountPaidTotal || parentVisaApplication?.amountPaid || "0";
+    const initiallyPaidTraveler =
+      parentVisaApplication?.initiallyPaidTraveler || 0;
+    const amountPaidTotal =
+      parentVisaApplication?.amountPaidTotal ||
+      parentVisaApplication?.amountPaid ||
+      "0";
 
     // Check if insurance documents are uploaded
     const _hasInsuranceDocuments = () => {
-      return travelersData.some(traveler => {
+      return travelersData.some((traveler) => {
         const documents = traveler?.documents?.documents || {};
         // Check for insurance documents (ID 6) or any document with insurance in the name
-        return documents['6'] || Object.keys(documents).some(key =>
-          key.toLowerCase().includes('insurance') && documents[key]
+        return (
+          documents["6"] ||
+          Object.keys(documents).some(
+            (key) => key.toLowerCase().includes("insurance") && documents[key]
+          )
         );
       });
     };
 
-    // Determine what needs payment - only show full payment if not all travelers are paid
-    const hasAnyPayment = parseFloat(amountPaidTotal) > 0;
-    const missingTravelerPayment = !hasAnyPayment || initiallyPaidTraveler === 0 || initiallyPaidTraveler < totalTraveler;
+    // Check if all travelers have insurance handled (either paid or documents uploaded)
+    const allInsuranceHandled = () => {
+      const appInsurance = getAppInsurance();
+      const hasAppInsurancePaid =
+        appInsurance?.insurancePaymentCompleted === true;
+      const hasInsuranceDocuments = _hasInsuranceDocuments();
 
-    // Hide full payment step if all travelers are already paid
-    if (!missingTravelerPayment) {
-      visibleSteps = visibleSteps.filter(
-        (step) => step.stepType !== "fullPayment"
-      );
-    }
+      return hasAppInsurancePaid || hasInsuranceDocuments;
+    };
+
+    // Determine what needs payment
+    const hasAnyPayment = parseFloat(amountPaidTotal) > 0;
+    const missingTravelerPayment =
+      !hasAnyPayment ||
+      initiallyPaidTraveler === 0 ||
+      initiallyPaidTraveler < totalTraveler;
+    const missingInsurancePayment = !allInsuranceHandled();
+
 
     visibleSteps = visibleSteps.map((step) => {
-      if (step.stepType === "fullPayment") {
-        // Check if payment is completed for all travelers
-        const isPaymentCompleted = !missingTravelerPayment;
-        return {
-          ...step,
-          title: isAdditionalTraveler
-            ? "Full Payment (Additional Traveler)"
-            : "Full Payment",
-          completed: isPaymentCompleted,
-          open: isPaymentCompleted ? false : step.open,
-        };
-      }
 
       if (step.stepType === "completed") {
         return {
@@ -278,7 +296,7 @@ const MultiStepAccordion = () => {
     return visibleSteps;
   };
 
-  const _addTraveler = () => {
+  const _addTraveler = async () => {
     const newTraveler = {
       id: travelersData.length + 1,
       appointment: {
@@ -313,6 +331,12 @@ const MultiStepAccordion = () => {
         mobileNumber: "",
         passportFront: null,
         passportBack: null,
+        travelStartDate:
+          parentVisaApplication?.travelersData?.[0]?.basicDetails
+            ?.travelStartDate || "",
+        travelEndDate:
+          parentVisaApplication?.travelersData?.[0]?.basicDetails
+            ?.travelEndDate || "",
       },
       visitDetails: {
         visitingOtherSchengenCountries: [],
@@ -346,79 +370,188 @@ const MultiStepAccordion = () => {
         documents: {},
       },
       insurance: {
-        insurance: "",
+        insurance: false,
         insuranceDetails: null,
         insuranceCertificate: null,
+        paidInCheckout: false, // New travelers need to pay separately unless app-level insurance is paid
+        insuranceSource: null,
+        insurancePaymentCompleted: false,
       },
-      payment: {
-        appointmentFees: 2060,
-        teleportFee: 1524.6,
-        cgst: 137.2,
-        sgst: 137.2,
-        grandTotal: 3859,
+      fullPayment: {
         paymentStatus: "pending",
+        paymentCompleted: false,
+        paymentAmount: 0,
+        paymentDate: null,
         paymentMethod: "",
-        couponCode: "",
-        discountAmount: 0,
+        includeInsurance: false,
+        insuranceType: "none",
       },
     };
 
     const newTravelersData = [...travelersData, newTraveler];
 
-    // Only update numberOfTravelers if no payment has been made yet
-    // If payment has been made, new travelers are additional and require separate payment
-    const hasPaymentBeenMade = parentVisaApplication?.amountPaid && parseFloat(parentVisaApplication.amountPaid) > 0;
+    const hasPaymentBeenMade =
+      parentVisaApplication?.amountPaid &&
+      parseFloat(parentVisaApplication.amountPaid) > 0;
+    const isAdditionalTraveler = hasPaymentBeenMade;
 
     if (!hasPaymentBeenMade) {
       const newNumberOfTravelers = numberOfTravelers + 1;
       setNumberOfTravelers(newNumberOfTravelers);
       dispatch(setTravelers(newNumberOfTravelers));
+    } else {
+      const newTotalTravelers = Math.max(
+        totalTraveler,
+        travelersData.length + 1
+      );
+      setNumberOfTravelers(newTotalTravelers);
+      dispatch(setTravelers(newTotalTravelers));
     }
 
     setTravelersData(newTravelersData);
 
+    const newStepInfo = {
+      completedSteps: isAdditionalTraveler ? ["createApplication"] : [],
+      currentStep: "basicDetails",
+      nextStep: null,
+      isCompleted: false,
+      stepProgress: isAdditionalTraveler ? 10 : 0,
+      totalSteps: 6,
+      isAdditionalTraveler: isAdditionalTraveler,
+      stepNames: {
+        createApplication: "Application Created",
+        basicDetails: "Basic Details",
+        visitDetails: "Visit Details",
+        appointment: "Book an appointment",
+        documents: "Documents Upload",
+        insurance: "Insurance",
+        payment: "Payment",
+      },
+    };
+
     setTravelersStepInfo((prev) => ({
       ...prev,
-      [newTraveler.id]: {
-        completedSteps: [],
-        currentStep: "basicDetails",
-        nextStep: null,
-        isCompleted: false,
-        stepProgress: 0,
-        totalSteps: 6,
-        stepNames: {
-          createApplication: "Application Created",
-          basicDetails: "Basic Details",
-          visitDetails: "Visit Details",
-          appointment: "Book an appointment",
-          documents: "Documents Upload",
-          insurance: "Insurance",
-          payment: "Payment",
-        },
-      },
+      [newTraveler.id]: newStepInfo,
     }));
+
+    if (isAdditionalTraveler) {
+      try {
+        setLoading(true);
+        const payload = {
+          type: "createApplication",
+          applicationId: applicationId,
+          currentTravelerIndex: travelersData.length,
+          travelersData: newTravelersData,
+          numberOfTravellers: newTravelersData.length,
+          totalTraveler: Math.max(totalTraveler, newTravelersData.length),
+          isAdditionalTraveler: true,
+          email: parentVisaApplication?.email,
+          country: parentVisaApplication?.country,
+          visaTypeId: parentVisaApplication?.visaTypeId,
+          selectedVisaType: parentVisaApplication?.selectedVisaType,
+          orderId: parentVisaApplication?.orderId,
+          amountPaid: parentVisaApplication?.amountPaid,
+          amountPaidTotal: parentVisaApplication?.amountPaidTotal,
+          applicationStatus: parentVisaApplication?.applicationStatus,
+          initiallyPaidTraveler: parentVisaApplication?.initiallyPaidTraveler,
+          paymentStatus: parentVisaApplication?.paymentStatus,
+          paymentMethod: parentVisaApplication?.paymentMethod,
+          stepInfo: parentVisaApplication?.stepInfo,
+        };
+
+        const response = await createOrUpdateApplication(token, payload);
+
+        if (response?.status >= 200 && response?.status < 300) {
+          const updatedApplication = response?.data?.data?.results?.application;
+
+          setParentVisaApplication(updatedApplication);
+
+          if (updatedApplication?.travelersData) {
+            try {
+              const updatedTravelersDataParsed = Array.isArray(
+                updatedApplication.travelersData
+              )
+                ? updatedApplication.travelersData
+                : JSON.parse(updatedApplication.travelersData);
+
+              setTravelersData(updatedTravelersDataParsed);
+
+              const updatedTravelersStepInfo = {};
+              updatedTravelersDataParsed.forEach((traveler) => {
+                if (traveler.stepInfo) {
+                  updatedTravelersStepInfo[traveler.id] = traveler.stepInfo;
+                }
+              });
+              setTravelersStepInfo((prev) => ({
+                ...prev,
+                ...updatedTravelersStepInfo,
+              }));
+
+              setCurrentTravelerIndex(updatedTravelersDataParsed.length - 1);
+
+            
+            } catch (error) {
+              console.error("Error parsing updated travelers data:", error);
+              if (showError)
+                showError("Failed to add traveler. Please try again.");
+            }
+          }
+        } else {
+          const errorMessage =
+            response?.data?.message ||
+            response?.data?.error ||
+            "Failed to add additional traveler.";
+          if (showError) showError(errorMessage);
+        }
+      } catch (error) {
+        console.error("Error adding additional traveler:", error);
+        if (showError)
+          showError("Failed to add additional traveler. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    }
   };
 
-  const _removeTraveler = (travelerId) => {
+  const _removeTraveler = async (travelerId) => {
     if (travelersData.length > 1) {
-      const newTravelersData = travelersData.filter(
-        (traveler) => traveler.id !== travelerId
-      );
-      const newNumberOfTravelers = numberOfTravelers - 1;
+      setLoading(true);
+      try {
+        const newTravelersData = travelersData.filter(
+          (traveler) => traveler.id !== travelerId
+        );
+        const newNumberOfTravelers = numberOfTravelers - 1;
 
-      setTravelersData(newTravelersData);
-      setNumberOfTravelers(newNumberOfTravelers);
+        setTravelersData(newTravelersData);
+        setNumberOfTravelers(newNumberOfTravelers);
 
-      dispatch(setTravelers(newNumberOfTravelers));
+        dispatch(setTravelers(newNumberOfTravelers));
 
-      setTravelersStepInfo((prev) => {
-        const updated = { ...prev };
-        delete updated[travelerId];
-        return updated;
-      });
+        setTravelersStepInfo((prev) => {
+          const updated = { ...prev };
+          delete updated[travelerId];
+          return updated;
+        });
 
-      if (currentTravelerIndex >= travelersData.length - 1) {
-        setCurrentTravelerIndex(0);
+        if (currentTravelerIndex >= travelersData.length - 1) {
+          setCurrentTravelerIndex(0);
+        }
+
+        // Update application with removed traveler
+        // await createOrUpdateApplication(token, payload);
+        await updateVisaApplication(token, {
+          id: applicationId,
+          travelersData: newTravelersData,
+          numberOfTravellers: newTravelersData.length,
+        });
+
+        await fetchApplicationById();
+      } catch (error) {
+        console.error("Error removing traveler:", error);
+        if (showError)
+          showError("Failed to remove traveler. Please try again.");
+      } finally {
+        setLoading(false);
       }
     }
   };
@@ -583,7 +716,7 @@ const MultiStepAccordion = () => {
           documents: {},
         },
         insurance: {
-          insurance: "",
+          insurance: false,
           insuranceDetails: null,
           insuranceCertificate: null,
         },
@@ -686,9 +819,12 @@ const MultiStepAccordion = () => {
           documents: {},
         },
         insurance: {
-          insurance: "",
+          insurance: false,
           insuranceDetails: null,
           insuranceCertificate: null,
+          paidInCheckout: false,
+          insuranceSource: null,
+          insurancePaymentCompleted: false,
         },
         completedSteps: [],
         currentStep: "basicDetails",
@@ -946,14 +1082,19 @@ const MultiStepAccordion = () => {
           }
         }
 
-        const currentTravelersList = updatedTravelersDataParsed || travelersData;
+        const currentTravelersList =
+          updatedTravelersDataParsed || travelersData;
 
         const getCompletedForTraveler = (traveler) => {
           if (!traveler) return [];
-          if (traveler.stepInfo && Array.isArray(traveler.stepInfo.completedSteps))
+          if (
+            traveler.stepInfo &&
+            Array.isArray(traveler.stepInfo.completedSteps)
+          )
             return traveler.stepInfo.completedSteps;
           const stored = travelersStepInfo[traveler.id];
-          if (stored && Array.isArray(stored.completedSteps)) return stored.completedSteps;
+          if (stored && Array.isArray(stored.completedSteps))
+            return stored.completedSteps;
           return traveler.completedSteps || [];
         };
 
@@ -963,7 +1104,11 @@ const MultiStepAccordion = () => {
         const paidCount = numberOfTravelers || 1;
 
         const findNextMissingTraveler = () => {
-          for (let i = 0; i < currentTravelersList.length && i < paidCount; i++) {
+          for (
+            let i = 0;
+            i < currentTravelersList.length && i < paidCount;
+            i++
+          ) {
             if (i === currentTravelerIndex) continue;
             const completed = getCompletedForTraveler(currentTravelersList[i]);
             if (!completed.includes(stepKey)) return i;
@@ -992,7 +1137,9 @@ const MultiStepAccordion = () => {
             }
           }
 
-          if (parentVisaApplication?.stepInfo?.completedSteps?.includes(stepKey)) {
+          if (
+            parentVisaApplication?.stepInfo?.completedSteps?.includes(stepKey)
+          ) {
             allPaidHaveStep = true;
           }
 
@@ -1009,8 +1156,13 @@ const MultiStepAccordion = () => {
           updateStepsFromStepInfo();
 
           const visible = getVisibleSteps();
-          const currentVisibleIndex = visible.findIndex((s) => s.id === step.id);
-          if (currentVisibleIndex !== -1 && currentVisibleIndex < visible.length - 1) {
+          const currentVisibleIndex = visible.findIndex(
+            (s) => s.id === step.id
+          );
+          if (
+            currentVisibleIndex !== -1 &&
+            currentVisibleIndex < visible.length - 1
+          ) {
             const nextVisibleStep = visible[currentVisibleIndex + 1];
             if (nextVisibleStep) {
               // Reset to first traveler when moving to the next step
@@ -1185,7 +1337,7 @@ const MultiStepAccordion = () => {
       { id: 1, minCount: 2 }, // Passport photos - need 2
       { id: 2, minCount: 1 }, // Bank statements
       { id: 3, minCount: 1 }, // Employment proof
-      { id: 5, minCount: 1 }  // UK visa
+      { id: 5, minCount: 1 }, // UK visa
     ];
 
     return requiredDocuments.every((docReq) => {
@@ -1210,7 +1362,7 @@ const MultiStepAccordion = () => {
       { id: 1, minCount: 2 }, // Passport photos - need 2
       { id: 2, minCount: 1 }, // Bank statements
       { id: 3, minCount: 1 }, // Employment proof
-      { id: 5, minCount: 1 }  // UK visa
+      { id: 5, minCount: 1 }, // UK visa
     ];
 
     return travelersData.every((traveler) => {
@@ -1293,32 +1445,36 @@ const MultiStepAccordion = () => {
 
   const _validateFullPayment = () => {
     // Get payment tracking data from backend
-    const initiallyPaidTraveler = parentVisaApplication?.initiallyPaidTraveler || 0;
-    const amountPaidTotal = parentVisaApplication?.amountPaidTotal || parentVisaApplication?.amountPaid || "0";
+    const initiallyPaidTraveler =
+      parentVisaApplication?.initiallyPaidTraveler || 0;
+    const amountPaidTotal =
+      parentVisaApplication?.amountPaidTotal ||
+      parentVisaApplication?.amountPaid ||
+      "0";
 
     // Check if insurance documents are uploaded
     const hasInsuranceDocuments = () => {
-      return travelersData.some(traveler => {
+      return travelersData.some((traveler) => {
         const documents = traveler?.documents?.documents || {};
         // Check for insurance documents (ID 6) or any document with insurance in the name
-        return documents['6'] || Object.keys(documents).some(key =>
-          key.toLowerCase().includes('insurance') && documents[key]
+        return (
+          documents["6"] ||
+          Object.keys(documents).some(
+            (key) => key.toLowerCase().includes("insurance") && documents[key]
+          )
         );
       });
     };
 
-    // Payment is valid if:
-    // 1. At least some payment has been made
-    // 2. All travelers are paid for OR current traveler is already paid
+    const appInsurance = getAppInsurance();
+    const isInsurancePaid = appInsurance?.insurancePaymentCompleted === true;
+
     const hasAnyPayment = parseFloat(amountPaidTotal) > 0;
     const allTravelersPaid = initiallyPaidTraveler >= totalTraveler;
-    const currentTravelerPaid = travelerIndex < initiallyPaidTraveler;
 
-    // If insurance documents are uploaded, no additional insurance payment needed
-    // If no insurance documents, insurance payment will be handled in checkout
-    const insuranceHandled = hasInsuranceDocuments() || true; // Always true since insurance is handled in payment or documents
+    const insuranceHandled = hasInsuranceDocuments() || isInsurancePaid;
 
-    return hasAnyPayment && (allTravelersPaid || currentTravelerPaid) && insuranceHandled;
+    return hasAnyPayment && allTravelersPaid && insuranceHandled;
   };
 
   const fetchApplicationById = async () => {
@@ -1523,8 +1679,6 @@ const MultiStepAccordion = () => {
     });
   }, [visaState?.arrivalDate, visaState?.departureDate, numberOfTravelers]);
 
-
-
   return (
     <div className="w-full pri_bg text-white h-full min-h-screen">
       <Header href="/dashboard" />
@@ -1545,8 +1699,9 @@ const MultiStepAccordion = () => {
           <div className="flex items-center gap-4">
             <ClientOnly>
               <img
-                src={`https://flagcdn.com/w80/${countryCodeMap[parentVisaApplication?.country]
-                  }.png`}
+                src={`https://flagcdn.com/w80/${
+                  countryCodeMap[parentVisaApplication?.country]
+                }.png`}
                 alt="United Kingdom Flag"
                 width={40}
                 height={30}
@@ -1568,15 +1723,14 @@ const MultiStepAccordion = () => {
 
         {/* Number of Travelers Setup */}
 
-
         {isApplicationSubmitted && isOwner && (
           <div className="w-full mb-4 p-4 bg-yellow-900/10 border border-yellow-600 rounded-lg text-yellow-100">
             <div className="flex items-center justify-between">
               <div>
                 <div className="font-medium">Application Submitted</div>
                 <div className="text-sm text-yellow-200">
-                  This application has been submitted. You cannot edit it anymore,
-                  but you can upload any pending documents.
+                  This application has been submitted. You cannot edit it
+                  anymore, but you can upload any pending documents.
                 </div>
               </div>
               <div>
@@ -1593,11 +1747,11 @@ const MultiStepAccordion = () => {
 
         <ProgressHeader
           steps={getVisibleSteps()}
-          stepInfo={parentVisaApplication?.stepInfo || getCurrentTravelerStepInfo()}
+          stepInfo={
+            parentVisaApplication?.stepInfo || getCurrentTravelerStepInfo()
+          }
           onStepClick={(stepId) => toggleStep(stepId)}
         />
-
-
 
         {/* Step Sections */}
         <div className="space-y-2 w-full">
@@ -1610,22 +1764,25 @@ const MultiStepAccordion = () => {
             return (
               <div
                 key={step.id}
-                className={`border rounded-lg border-[#423577] overflow-hidden transition-all duration-300 ${isLocked ? "opacity-50 cursor-not-allowed" : "opacity-100"
-                  }`}
+                className={`border rounded-lg border-[#423577] overflow-hidden transition-all duration-300 ${
+                  isLocked ? "opacity-50 cursor-not-allowed" : "opacity-100"
+                }`}
                 style={{ boxShadow: "rgba(0, 0, 0, 0.05) 0px 1px 3px 0px" }}
               >
                 {/* Step Header */}
                 <div
-                  className={`p-4 flex justify-between items-center ${isLocked ? "cursor-not-allowed" : "cursor-pointer"
-                    } ${step.open ? "bg-[#292933]" : "bg-[#23232B]"}`}
+                  className={`p-4 flex justify-between items-center ${
+                    isLocked ? "cursor-not-allowed" : "cursor-pointer"
+                  } ${step.open ? "bg-[#292933]" : "bg-[#23232B]"}`}
                   onClick={() => !isLocked && toggleStep(step.id)}
                 >
                   <div className="flex items-center">
                     <div
-                      className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 ${step.completed
-                        ? "bg-green-500 text-white"
-                        : "bg-gray-700 text-white"
-                        }`}
+                      className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 ${
+                        step.completed
+                          ? "bg-green-500 text-white"
+                          : "bg-gray-700 text-white"
+                      }`}
                     >
                       {step.completed ? "✓" : index + 1}
                     </div>
@@ -1641,72 +1798,87 @@ const MultiStepAccordion = () => {
                 {step.open && (
                   <div className="p-4 border-[#423577] border-t">
                     {/* Tab-based steps for multi-traveler scenarios */}
-                    {(step.stepType === "basicDetails" || step.stepType === "visitDetails" || step.stepType === "documents") && numberOfTravelers > 1 ? (
+                    {(step.stepType === "basicDetails" ||
+                      step.stepType === "visitDetails" ||
+                      step.stepType === "documents") &&
+                    numberOfTravelers > 1 ? (
                       <div>
                         {/* Traveler Tabs */}
                         <div className="flex flex-wrap gap-2 mb-6 border-b border-[#423577] pb-4 items-center">
-                          {Array.from({ length: numberOfTravelers }, (_, index) => {
-                            const traveler = travelersData[index] || {};
-                            const travelerStepInfo = travelersStepInfo[traveler?.id] || traveler?.stepInfo || {};
-                            const isCompleted = travelerStepInfo?.completedSteps?.includes(step.stepType) || false;
+                          {Array.from(
+                            { length: numberOfTravelers },
+                            (_, index) => {
+                              const traveler = travelersData[index] || {};
+                              const travelerStepInfo =
+                                travelersStepInfo[traveler?.id] ||
+                                traveler?.stepInfo ||
+                                {};
+                              const isCompleted =
+                                travelerStepInfo?.completedSteps?.includes(
+                                  step.stepType
+                                ) || false;
 
-                            return (
-                              <div key={index} className="relative group">
-                                <button
-                                  onClick={() => setCurrentTravelerIndex(index)}
-                                  className={`px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2 ${currentTravelerIndex === index
-                                    ? "bg-[#6366F1] text-white"
-                                    : "bg-[#292933] text-gray-300 hover:bg-[#333340] hover:text-white"
-                                    }`}
-                                >
-                                  <span>
-                                    {travelersData[index]?.basicDetails?.firstName ?
-                                      `${travelersData[index].basicDetails.firstName}` : `Traveler ${index + 1}`}
-                                  </span>
-                                  {isCompleted && (
-                                    <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-                                      <svg
-                                        className="w-3 h-3 text-white"
-                                        fill="currentColor"
-                                        viewBox="0 0 20 20"
-                                      >
-                                        <path
-                                          fillRule="evenodd"
-                                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                          clipRule="evenodd"
-                                        />
-                                      </svg>
-                                    </div>
-                                  )}
-                                </button>
-                                {numberOfTravelers > 1 && step.stepType === "basicDetails" && (
+                              return (
+                                <div key={index} className="relative group">
                                   <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      const confirmed = window.confirm(
-                                        "Remove this traveler and all their data? This action cannot be undone."
-                                      );
-                                      if (confirmed) {
-                                        const idToRemove = traveler.id;
-                                        _removeTraveler(idToRemove);
-                                      }
-                                    }}
-                                    title="Remove traveler"
-                                    className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center rounded-full bg-red-500 text-white text-xs hover:bg-red-600 transition-all duration-200 opacity-0 group-hover:opacity-100 z-10 shadow-lg"
+                                    onClick={() =>
+                                      setCurrentTravelerIndex(index)
+                                    }
+                                    className={`px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2 ${
+                                      currentTravelerIndex === index
+                                        ? "bg-[#6366F1] text-white"
+                                        : "bg-[#292933] text-gray-300 hover:bg-[#333340] hover:text-white"
+                                    }`}
                                   >
-                                    <XIcon className="w-3 h-3" />
+                                    <span>
+                                      {travelersData[index]?.basicDetails
+                                        ?.firstName
+                                        ? `${travelersData[index].basicDetails.firstName}`
+                                        : `Traveler ${index + 1}`}
+                                    </span>
+                                    {isCompleted && (
+                                      <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                                        <svg
+                                          className="w-3 h-3 text-white"
+                                          fill="currentColor"
+                                          viewBox="0 0 20 20"
+                                        >
+                                          <path
+                                            fillRule="evenodd"
+                                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                            clipRule="evenodd"
+                                          />
+                                        </svg>
+                                      </div>
+                                    )}
                                   </button>
-                                )}
-                              </div>
-                            );
-                          })}
+                                  {numberOfTravelers > 1 &&
+                                    step.stepType === "basicDetails" && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          const confirmed = window.confirm(
+                                            "Remove this traveler and all their data? This action cannot be undone."
+                                          );
+                                          if (confirmed) {
+                                            const idToRemove = traveler.id;
+                                            _removeTraveler(idToRemove);
+                                          }
+                                        }}
+                                        title="Remove traveler"
+                                        className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center rounded-full bg-red-500 text-white text-xs hover:bg-red-600 transition-all duration-200 opacity-0 group-hover:opacity-100 z-10 shadow-lg"
+                                      >
+                                        <XIcon className="w-3 h-3" />
+                                      </button>
+                                    )}
+                                </div>
+                              );
+                            }
+                          )}
                           {step.stepType === "basicDetails" && (
                             <button
-                              onClick={() => {
-                                const newTravelerCount = numberOfTravelers + 1;
-                                setNumberOfTravelers(newTravelerCount);
-                                initializeTravelersData(newTravelerCount);
-                                setCurrentTravelerIndex(newTravelerCount - 1);
+                              onClick={async () => {
+                                await _addTraveler();
                               }}
                               className="bg-[#292933] text-gray-300 hover:bg-[#7350FF] hover:text-white px-4 py-1.5 rounded-lg flex items-center gap-2 font-medium transition-colors duration-200 border border-dashed border-gray-500 hover:border-[#7350FF]"
                               title="Add Traveler"
@@ -1719,48 +1891,54 @@ const MultiStepAccordion = () => {
 
                         {/* Tab Content */}
                         <div>
-                          {step.id === 1 && step.stepType === "basicDetails" && (
-                            <PassportStep
-                              travelerIndex={currentTravelerIndex}
-                              travelerData={getCurrentTravelerData()}
-                              travelersData={travelersData}
-                              updateCurrentTravelerData={updateCurrentTravelerData}
-                              validatePassportData={validatePassportData}
-                              onComplete={(data) =>
-                                handleCompleteStep(step.id, data)
-                              }
-                              loading={loading}
-                              showError={showError}
-                              disabled={
-                                !isOwner || isApplicationSubmitted
-                              }
-                            />
-                          )}
+                          {step.id === 1 &&
+                            step.stepType === "basicDetails" && (
+                              <PassportStep
+                                travelerIndex={currentTravelerIndex}
+                                travelerData={getCurrentTravelerData()}
+                                travelersData={travelersData}
+                                updateCurrentTravelerData={
+                                  updateCurrentTravelerData
+                                }
+                                validatePassportData={validatePassportData}
+                                onComplete={(data) =>
+                                  handleCompleteStep(step.id, data)
+                                }
+                                loading={loading}
+                                showError={showError}
+                                disabled={!isOwner || isApplicationSubmitted}
+                              />
+                            )}
 
-                          {step.id === 2 && step.stepType === "visitDetails" && (
-                            <VisitStep
-                              travelerIndex={currentTravelerIndex}
-                              travelerData={getCurrentTravelerData()}
-                              updateCurrentTravelerData={updateCurrentTravelerData}
-                              validateVisitData={validateVisitData}
-                              parentVisaApplication={parentVisaApplication}
-                              setParentVisaApplication={setParentVisaApplication}
-                              onComplete={(data) =>
-                                handleCompleteStep(step.id, data)
-                              }
-                              loading={loading}
-                              showError={showError}
-                              disabled={
-                                !isOwner || isApplicationSubmitted
-                              }
-                            />
-                          )}
+                          {step.id === 2 &&
+                            step.stepType === "visitDetails" && (
+                              <VisitStep
+                                travelerIndex={currentTravelerIndex}
+                                travelerData={getCurrentTravelerData()}
+                                updateCurrentTravelerData={
+                                  updateCurrentTravelerData
+                                }
+                                validateVisitData={validateVisitData}
+                                parentVisaApplication={parentVisaApplication}
+                                setParentVisaApplication={
+                                  setParentVisaApplication
+                                }
+                                onComplete={(data) =>
+                                  handleCompleteStep(step.id, data)
+                                }
+                                loading={loading}
+                                showError={showError}
+                                disabled={!isOwner || isApplicationSubmitted}
+                              />
+                            )}
 
                           {step.id === 3 && step.stepType === "documents" && (
                             <DocumentStep
                               travelerIndex={currentTravelerIndex}
                               travelerData={getCurrentTravelerData()}
-                              updateCurrentTravelerData={updateCurrentTravelerData}
+                              updateCurrentTravelerData={
+                                updateCurrentTravelerData
+                              }
                               validateDocuments={validateDocuments}
                               onComplete={(data) =>
                                 handleCompleteStep(step.id, data)
@@ -1780,17 +1958,16 @@ const MultiStepAccordion = () => {
                             <div className="flex items-center gap-3">
                               {step.stepType === "basicDetails" ? (
                                 <button
-                                  onClick={() => {
-                                    const newTravelerCount = numberOfTravelers + 1;
-                                    setNumberOfTravelers(newTravelerCount);
-                                    initializeTravelersData(newTravelerCount);
-                                    setCurrentTravelerIndex(newTravelerCount - 1);
+                                  onClick={async () => {
+                                    await _addTraveler();
                                   }}
                                   className="bg-gray-700 text-white px-4 py-1.5 rounded-lg hover:bg-gray-600 disabled:opacity-50 flex items-center gap-2 transition-colors duration-200"
                                   title="Add Traveler"
                                 >
                                   <span className="text-lg">+</span>
-                                  <span className="font-medium">Add Traveler</span>
+                                  <span className="font-medium">
+                                    Add Traveler
+                                  </span>
                                 </button>
                               ) : (
                                 <button
@@ -1801,7 +1978,11 @@ const MultiStepAccordion = () => {
                                 </button>
                               )}
                               <button
-                                onClick={() => handleCompleteStep(step.id, { allTravelersCompleted: true })}
+                                onClick={() =>
+                                  handleCompleteStep(step.id, {
+                                    allTravelersCompleted: true,
+                                  })
+                                }
                                 className="bg-[#7350FF] text-white px-6 py-2 rounded-lg hover:bg-[#7350FF]/90 disabled:bg-[#7350FF]/30 transition-colors duration-200"
                               >
                                 {loading ? "Processing..." : "Next"}
@@ -1818,16 +1999,16 @@ const MultiStepAccordion = () => {
                             travelerIndex={currentTravelerIndex}
                             travelerData={getCurrentTravelerData()}
                             travelersData={travelersData}
-                            updateCurrentTravelerData={updateCurrentTravelerData}
+                            updateCurrentTravelerData={
+                              updateCurrentTravelerData
+                            }
                             validatePassportData={validatePassportData}
                             onComplete={(data) =>
                               handleCompleteStep(step.id, data)
                             }
                             loading={loading}
                             showError={showError}
-                            disabled={
-                              !isOwner || isApplicationSubmitted
-                            }
+                            disabled={!isOwner || isApplicationSubmitted}
                           />
                         )}
 
@@ -1835,7 +2016,9 @@ const MultiStepAccordion = () => {
                           <VisitStep
                             travelerIndex={currentTravelerIndex}
                             travelerData={getCurrentTravelerData()}
-                            updateCurrentTravelerData={updateCurrentTravelerData}
+                            updateCurrentTravelerData={
+                              updateCurrentTravelerData
+                            }
                             validateVisitData={validateVisitData}
                             parentVisaApplication={parentVisaApplication}
                             setParentVisaApplication={setParentVisaApplication}
@@ -1844,9 +2027,7 @@ const MultiStepAccordion = () => {
                             }
                             loading={loading}
                             showError={showError}
-                            disabled={
-                              !isOwner || isApplicationSubmitted
-                            }
+                            disabled={!isOwner || isApplicationSubmitted}
                           />
                         )}
 
@@ -1854,7 +2035,9 @@ const MultiStepAccordion = () => {
                           <DocumentStep
                             travelerIndex={currentTravelerIndex}
                             travelerData={getCurrentTravelerData()}
-                            updateCurrentTravelerData={updateCurrentTravelerData}
+                            updateCurrentTravelerData={
+                              updateCurrentTravelerData
+                            }
                             validateDocuments={validateDocuments}
                             onComplete={(data) =>
                               handleCompleteStep(step.id, data)
@@ -1871,7 +2054,9 @@ const MultiStepAccordion = () => {
                           <FullPaymentStep
                             travelerIndex={currentTravelerIndex}
                             travelerData={getCurrentTravelerData()}
-                            updateCurrentTravelerData={updateCurrentTravelerData}
+                            updateCurrentTravelerData={
+                              updateCurrentTravelerData
+                            }
                             _validateFullPayment={_validateFullPayment}
                             onComplete={(data) =>
                               handleCompleteStep(step.id, data)
@@ -1880,9 +2065,7 @@ const MultiStepAccordion = () => {
                             parentVisaApplication={parentVisaApplication}
                             showError={showError}
                             travelersData={travelersData}
-                            disabled={
-                              !isOwner || isApplicationSubmitted
-                            }
+                            disabled={!isOwner || isApplicationSubmitted}
                             totalTraveler={totalTraveler}
                           />
                         )}
@@ -1890,15 +2073,15 @@ const MultiStepAccordion = () => {
                         {step.id === 5 && step.stepType === "appointment" && (
                           <BookingAppointment
                             travelerData={getCurrentTravelerData()}
-                            updateCurrentTravelerData={updateCurrentTravelerData}
+                            updateCurrentTravelerData={
+                              updateCurrentTravelerData
+                            }
                             validateAppointment={validateAppointment}
                             onComplete={(data) =>
                               handleCompleteStep(step.id, data)
                             }
                             loading={loading}
-                            disabled={
-                              !isOwner || isApplicationSubmitted
-                            }
+                            disabled={!isOwner || isApplicationSubmitted}
                           />
                         )}
 
@@ -1906,12 +2089,8 @@ const MultiStepAccordion = () => {
                           <ApplicationCompletedSection
                             parentVisaApplication={parentVisaApplication}
                             applicationId={applicationId}
-                            onAddTraveler={() => {
-                              // Add new traveler functionality
-                              const newTravelerCount = numberOfTravelers + 1;
-                              setNumberOfTravelers(newTravelerCount);
-                              initializeTravelersData(newTravelerCount);
-                              setCurrentTravelerIndex(newTravelerCount - 1);
+                            onAddTraveler={async () => {
+                              await _addTraveler();
                             }}
                             onUploadDocument={() => {
                               // Navigate back to documents step for current traveler
@@ -1930,17 +2109,16 @@ const MultiStepAccordion = () => {
                           <div className="flex items-center gap-3">
                             {step.stepType === "basicDetails" ? (
                               <button
-                                onClick={() => {
-                                  const newTravelerCount = numberOfTravelers + 1;
-                                  setNumberOfTravelers(newTravelerCount);
-                                  initializeTravelersData(newTravelerCount);
-                                  setCurrentTravelerIndex(newTravelerCount - 1);
+                                onClick={async () => {
+                                  await _addTraveler();
                                 }}
                                 className="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-600 disabled:opacity-50 flex items-center gap-2 transition-colors duration-200"
                                 title="Add Traveler"
                               >
                                 <span className="text-lg">+</span>
-                                <span className="font-medium">Add Traveler</span>
+                                <span className="font-medium">
+                                  Add Traveler
+                                </span>
                               </button>
                             ) : (
                               <button
@@ -2197,7 +2375,7 @@ const DocumentStep = ({
     }
   };
 
-  const handleUploadSuccess = (_documentData, _docId) => { };
+  const handleUploadSuccess = (_documentData, _docId) => {};
 
   const handleUploadError = (errorMessage) => {
     console.error("Document upload error:", errorMessage);
@@ -2216,9 +2394,13 @@ const DocumentStep = ({
       if (!passportPhotos) {
         missingItems.push("Passport sized photographs (2 required)");
       } else {
-        const photos = Array.isArray(passportPhotos) ? passportPhotos : [passportPhotos];
+        const photos = Array.isArray(passportPhotos)
+          ? passportPhotos
+          : [passportPhotos];
         if (photos.length < 2) {
-          missingItems.push(`Passport sized photographs (${photos.length}/2 uploaded, need 2)`);
+          missingItems.push(
+            `Passport sized photographs (${photos.length}/2 uploaded, need 2)`
+          );
         }
       }
 
@@ -2226,10 +2408,10 @@ const DocumentStep = ({
       const otherRequiredDocs = [
         { id: 2, name: "Bank statements" },
         { id: 3, name: "Employment proof" },
-        { id: 5, name: "UK visa" }
+        { id: 5, name: "UK visa" },
       ];
 
-      otherRequiredDocs.forEach(doc => {
+      otherRequiredDocs.forEach((doc) => {
         if (!documents[doc.id]) {
           missingItems.push(doc.name);
         }
@@ -2238,7 +2420,9 @@ const DocumentStep = ({
       console.error("Missing required documents:", missingItems);
       if (showError) {
         showError(
-          `Please upload all required documents before continuing. Missing: ${missingItems.join(", ")}`
+          `Please upload all required documents before continuing. Missing: ${missingItems.join(
+            ", "
+          )}`
         );
       }
       return;
@@ -2264,7 +2448,9 @@ const DocumentStep = ({
     });
 
     // Show success message and keep the documents step open so user can upload more
-    setSaveSuccessMessage("Documents saved. You can upload additional documents below.");
+    setSaveSuccessMessage(
+      "Documents saved. You can upload additional documents below."
+    );
   };
 
   return (
@@ -2279,7 +2465,6 @@ const DocumentStep = ({
         isOwner={isOwner}
         totalTravelers={totalTraveler}
       />
-
 
       {saveSuccessMessage && (
         <div className="mt-4 p-3 bg-green-900/10 border border-green-700 rounded text-green-100">
@@ -2312,8 +2497,12 @@ const _InsuranceStep = ({
 }) => {
   const [paymentError, setPaymentError] = useState("");
   const [isPaying, setIsPaying] = useState(false);
-  const [insuranceOption, setInsuranceOption] = useState(travelerData?.insurance?.insurance || "");
-  const [uploadedCertificate, setUploadedCertificate] = useState(travelerData?.insurance?.insuranceCertificate || null);
+  const [insuranceOption, setInsuranceOption] = useState(
+    travelerData?.insurance?.insurance || ""
+  );
+  const [uploadedCertificate, setUploadedCertificate] = useState(
+    travelerData?.insurance?.insuranceCertificate || null
+  );
 
   // Initialize payment hook
   const { handleCreateDynamicCheckoutSession, cretingDynamicCheckout } =
@@ -2361,7 +2550,7 @@ const _InsuranceStep = ({
     setPaymentError("");
 
     try {
-      const totalAmount = Math.round(totalInsuranceCost);
+      const totalAmount = totalInsuranceCost.toFixed(2);
 
       // Use the hook's standardized payload (hook will attach orderId and currency)
       await handleCreateDynamicCheckoutSession({
@@ -2408,19 +2597,35 @@ const _InsuranceStep = ({
 
     // Determine display value for "per traveler" (same value for all travelers?)
     const perTravelerDisplay =
-      perTravelerCosts.length > 0 && perTravelerCosts.every((c) => c === perTravelerCosts[0])
+      perTravelerCosts.length > 0 &&
+      perTravelerCosts.every((c) => c === perTravelerCosts[0])
         ? perTravelerCosts[0]
         : null;
 
     return { perTravelerCosts, total, perTravelerDisplay };
   };
 
-  const { perTravelerCosts, total: totalInsuranceCost, perTravelerDisplay } = computeInsuranceBreakdown();
+  const {
+    perTravelerCosts,
+    total: totalInsuranceCost,
+    perTravelerDisplay,
+  } = computeInsuranceBreakdown();
 
   // Determine application-level insurance paid flag locally (InsuranceStep is a separate component scope)
   const appInsurancePaid =
     parentVisaApplication?.insurance?.insurancePaymentCompleted === true ||
-    Number(parentVisaApplication?.insurance?.paymentAmount || parentVisaApplication?.initialInsurancePaidTotal || 0) > 0;
+    Number(
+      parentVisaApplication?.insurance?.paymentAmount ||
+        parentVisaApplication?.initialInsurancePaidTotal ||
+        0
+    ) > 0;
+
+  // Check if current traveler has insurance paid in checkout
+  const currentTravelerInsurance = travelerData?.insurance || {};
+  const travelerInsurancePaid =
+    currentTravelerInsurance.paidInCheckout ||
+    currentTravelerInsurance.insurancePaymentCompleted ||
+    Number(currentTravelerInsurance.paymentAmount || 0) > 0;
 
   return (
     <div className="p-6">
@@ -2441,16 +2646,25 @@ const _InsuranceStep = ({
                   <div className="w-3 h-3 bg-[#7350FF] rounded-full"></div>
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-white">Insurance Coverage</h3>
-                  <div className="text-3xl font-bold text-[#7350FF]">€{totalInsuranceCost}</div>
+                  <h3 className="text-xl font-bold text-white">
+                    Insurance Coverage
+                  </h3>
+                  <div className="text-3xl font-bold text-[#7350FF]">
+                    €{totalInsuranceCost}
+                  </div>
                   {perTravelerDisplay ? (
-                    <div className="text-sm text-gray-400">€{perTravelerDisplay} per traveler × {totalTraveler} traveler{totalTraveler > 1 ? 's' : ''}</div>
+                    <div className="text-sm text-gray-400">
+                      €{perTravelerDisplay} per traveler × {totalTraveler}{" "}
+                      traveler{totalTraveler > 1 ? "s" : ""}
+                    </div>
                   ) : (
                     <div className="text-sm text-gray-400">
                       {perTravelerCosts.length > 0 ? (
                         <div className="space-y-1">
                           {perTravelerCosts.map((c, i) => (
-                            <div key={i}>Traveler {i + 1}: €{c}</div>
+                            <div key={i}>
+                              Traveler {i + 1}: €{c}
+                            </div>
                           ))}
                         </div>
                       ) : (
@@ -2462,8 +2676,16 @@ const _InsuranceStep = ({
               </div>
               <div className="text-right">
                 <div className="flex items-center text-green-400 font-medium">
-                  <svg className="w-5 h-5 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  <svg
+                    className="w-5 h-5 mr-1"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clipRule="evenodd"
+                    />
                   </svg>
                   Comprehensive Coverage
                 </div>
@@ -2475,13 +2697,17 @@ const _InsuranceStep = ({
         {/* Insurance Summary */}
         <div className="bg-[#292933] rounded-lg p-6 border border-[#423577]">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-white">Insurance Summary</h3>
+            <h3 className="text-lg font-semibold text-white">
+              Insurance Summary
+            </h3>
           </div>
 
           <div className="space-y-3 mb-6">
             <div className="flex justify-between text-sm">
               <span className="text-gray-300">Per Traveler:</span>
-              <span className="text-white">{perTravelerDisplay ? `€${perTravelerDisplay}` : "Varies"}</span>
+              <span className="text-white">
+                {perTravelerDisplay ? `€${perTravelerDisplay}` : "Varies"}
+              </span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-gray-300">Travelers:</span>
@@ -2499,7 +2725,9 @@ const _InsuranceStep = ({
 
       {/* Insurance Options */}
       <div className="mt-8">
-        <h4 className="text-lg font-semibold text-white mb-4">Insurance Options</h4>
+        <h4 className="text-lg font-semibold text-white mb-4">
+          Insurance Options
+        </h4>
         <div className="space-y-3">
           <label className="flex items-center p-4 border border-[#423577] rounded-lg hover:bg-[#292933] cursor-pointer bg-[#23232B]">
             <input
@@ -2512,8 +2740,12 @@ const _InsuranceStep = ({
               disabled={disabled}
             />
             <div>
-              <span className="font-medium text-white">I have my own insurance</span>
-              <p className="text-sm text-gray-400">Upload your existing insurance certificate</p>
+              <span className="font-medium text-white">
+                I have my own insurance
+              </span>
+              <p className="text-sm text-gray-400">
+                Upload your existing insurance certificate
+              </p>
             </div>
           </label>
 
@@ -2528,8 +2760,12 @@ const _InsuranceStep = ({
               disabled={disabled}
             />
             <div>
-              <span className="font-medium text-white">Purchase insurance (€{totalInsuranceCost})</span>
-              <p className="text-sm text-gray-400">Comprehensive travel insurance coverage for all travelers</p>
+              <span className="font-medium text-white">
+                Purchase insurance (€{totalInsuranceCost})
+              </span>
+              <p className="text-sm text-gray-400">
+                Comprehensive travel insurance coverage for all travelers
+              </p>
             </div>
           </label>
         </div>
@@ -2565,9 +2801,25 @@ const _InsuranceStep = ({
             >
               {isPaying || cretingDynamicCheckout ? (
                 <>
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  <svg
+                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
                   </svg>
                   Processing Payment...
                 </>
@@ -2586,13 +2838,49 @@ const _InsuranceStep = ({
         {insuranceOption === "purchase" && appInsurancePaid && (
           <div className="mt-4 p-4 bg-green-900/20 border border-green-700 rounded-lg">
             <div className="flex items-center">
-              <svg className="w-5 h-5 text-green-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              <svg
+                className="w-5 h-5 text-green-400 mr-2"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clipRule="evenodd"
+                />
               </svg>
-              <span className="text-green-400 font-medium">Insurance payment completed</span>
+              <span className="text-green-400 font-medium">
+                Insurance payment completed
+              </span>
             </div>
           </div>
         )}
+
+        {insuranceOption === "purchase" &&
+          travelerInsurancePaid &&
+          !appInsurancePaid && (
+            <div className="mt-4 p-4 bg-green-900/20 border border-green-700 rounded-lg">
+              <div className="flex items-center">
+                <svg
+                  className="w-5 h-5 text-green-400 mr-2"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <span className="text-green-400 font-medium">
+                  Insurance payment completed
+                  {currentTravelerInsurance.paidInCheckout
+                    ? " (paid in checkout)"
+                    : ""}
+                </span>
+              </div>
+            </div>
+          )}
       </div>
 
       {/* Continue Button */}
@@ -2622,14 +2910,83 @@ const FullPaymentStep = ({
 }) => {
   const [paymentError, setPaymentError] = useState("");
   const [isPaying, setIsPaying] = useState(false);
-
+  const [appliedDiscount, setAppliedDiscountLocal] = useState(null);
+  const [couponCode, setCouponCodeLocal] = useState("");
+  const [couponError, setCouponError] = useState("");
+  const [userEmail, setUserEmailLocal] = useState("");
+  const [_studentEmail, _setStudentEmail] = useState("");
+  const [_studentOtp, _setStudentOtp] = useState("");
+  const [studentVerified, setStudentVerified] = useState(false);
+  const [_isVerifyingOtp, _setIsVerifyingOtp] = useState(false);
   // Initialize payment hook
   const { handleCreateDynamicCheckoutSession } =
     useCreateDynamicCheckoutSession();
 
+  const {
+    emailError,
+    isSendingVerification,
+    sendStudentVerification,
+    setEmailError,
+    setIsSendingVerification,
+    setStudentVerificationSent,
+    studentVerificationSent,
+  } = useSendStudentVerification();
+
+  const applyCouponCode = () => {
+    if (!couponCode.trim()) {
+      setCouponError("Please enter a coupon code");
+      return;
+    }
+
+    const availableDiscounts = {
+      STUDENT10: {
+        description: "Student discount",
+        percentage: 10,
+      },
+      GROUP20: {
+        description: "Group discount (3+ travellers)",
+        percentage: 20,
+        requiresMinTravellers: 3,
+      },
+    };
+
+    const discount = availableDiscounts[couponCode.toUpperCase()];
+
+    if (!discount) {
+      setCouponError("Invalid coupon code");
+      return;
+    }
+
+    const totalAmount = calculateTotalPayment(discount);
+
+    // for Group20 must be 3 traveller
+    if (
+      discount.requiresMinTravellers &&
+      totalTraveler < discount.requiresMinTravellers
+    ) {
+      setCouponError(
+        `Coupon code requires at least ${discount.requiresMinTravellers} travellers`
+      );
+      return;
+    }
+
+    setAppliedDiscountLocal(discount);
+    setCouponError("");
+  };
+
+  const removeCoupon = () => {
+    setAppliedDiscountLocal(null);
+    setCouponCodeLocal("");
+    setCouponError("");
+  };
+
   // Get payment tracking data from backend
-  const initiallyPaidTraveler = parentVisaApplication?.initiallyPaidTraveler || 0;
-  const amountPaidTotal = parentVisaApplication?.amountPaidTotal || parentVisaApplication?.amountPaid || "0";
+  const initiallyPaidTraveler =
+    parentVisaApplication?.initiallyPaidTraveler || 0;
+  const amountPaidTotal =
+    parentVisaApplication?.amountPaidTotal ||
+    parentVisaApplication?.amountPaid ||
+    "0";
 
   // Get travel base cost from API/application data with fallback
   const baseCosts = travelerData?.payment || {};
@@ -2639,7 +2996,7 @@ const FullPaymentStep = ({
     const initiallyPaid = parentVisaApplication?.initiallyPaidTraveler || 1;
 
     if (appAmountPaid > 0 && initiallyPaid > 0) {
-      return Math.round(appAmountPaid / initiallyPaid); // Per traveler cost from API
+      return (appAmountPaid / initiallyPaid).toFixed(2); // Per traveler cost from API
     }
 
     // Fallback to traveler payment data or default
@@ -2656,20 +3013,43 @@ const FullPaymentStep = ({
 
   const teleportTotalEUR = getBaseTravelCost();
 
-  // Count travelers who need insurance (no insurance document uploaded)
+  // Count travelers who need insurance (no insurance document uploaded AND no application-level insurance paid)
   const getTravelersNeedingInsurance = () => {
-    return travelersData.filter(traveler => {
+    // Check if insurance is already paid at application level
+    const appInsurancePaid =
+      Number(parentVisaApplication?.initialInsurancePaidTotal || 0) > 0 ||
+      parentVisaApplication?.insurance?.insurancePaymentCompleted === true;
+    if (appInsurancePaid) return 0;
+
+    return travelersData.filter((traveler) => {
+      const travelerInsurance = traveler?.insurance || {};
       const documents = traveler?.documents?.documents || {};
-      // Check if this traveler has insurance documents
-      return !(documents['6'] || Object.keys(documents).some(key =>
-        key.toLowerCase().includes('insurance') && documents[key]
-      ));
+
+      // Skip if traveler has insurance paid in checkout or individually
+      if (
+        travelerInsurance.paidInCheckout ||
+        travelerInsurance.insurancePaymentCompleted
+      ) {
+        return false;
+      }
+
+      // Check if this traveler has insurance documents uploaded
+      const hasInsuranceDocuments =
+        documents["6"] ||
+        Object.keys(documents).some(
+          (key) => key.toLowerCase().includes("insurance") && documents[key]
+        );
+
+      return !hasInsuranceDocuments;
     }).length;
   };
 
   // Determine what needs payment
   const hasAnyPayment = parseFloat(amountPaidTotal) > 0;
-  const missingTravelerPayment = !hasAnyPayment || initiallyPaidTraveler === 0 || initiallyPaidTraveler < totalTraveler;
+  const missingTravelerPayment =
+    !hasAnyPayment ||
+    initiallyPaidTraveler === 0 ||
+    initiallyPaidTraveler < totalTraveler;
 
   // Check if this traveler needs payment
   const unpaidTravelers = Math.max(0, totalTraveler - initiallyPaidTraveler);
@@ -2677,10 +3057,12 @@ const FullPaymentStep = ({
 
   // Check if payment is already completed - only if ALL required payments are made
   const fullPayment = travelerData?.fullPayment || {};
-  const travelerPaymentCompleted = fullPayment.paymentCompleted || fullPayment.paymentStatus === "completed";
+  const travelerPaymentCompleted =
+    fullPayment.paymentCompleted || fullPayment.paymentStatus === "completed";
 
   // Payment is only truly completed when all traveler payments are done AND no insurance payment needed
-  const isPaymentCompleted = travelerPaymentCompleted && !missingTravelerPayment;
+  const isPaymentCompleted =
+    travelerPaymentCompleted && !missingTravelerPayment;
 
   const handlePayForTraveler = async () => {
     setIsPaying(true);
@@ -2693,14 +3075,51 @@ const FullPaymentStep = ({
       // Create checkout session via hook with normalized metadata
       await handleCreateDynamicCheckoutSession({
         email: parentVisaApplication?.email || "",
-        amount: Math.round(totalAmount),
+        amount: totalAmount.toFixed(2),
         travellers: String(totalTraveler),
         country: parentVisaApplication?.country || "",
         insurance: travelersNeedingInsurance > 0, // Include insurance if any travelers need it
         applicationId: parentVisaApplication?.id,
         travelerIndex: travelerIndex,
-        paymentType: isAdditionalTraveler ? "additional_traveler" : "full_payment",
+        paymentType: isAdditionalTraveler
+          ? "additional_traveler"
+          : "full_payment",
         currency: "EUR",
+        travelData: paymentData.travelData?.map((item) => ({
+          ...item,
+          insurance: {
+            insurance: item.insurance?.insurance || true,
+            paymentAmount:
+              item.insurance?.paymentAmount > 0
+                ? item.insurance?.paymentAmount
+                : calculateTravelDays(
+                    item.basicDetails.startDate,
+                    item.basicDetails.endDate
+                  ) *
+                    2 -
+                  (appliedDiscount && appliedDiscount.percentage
+                    ? (calculateTravelDays(
+                        item.basicDetails.startDate,
+                        item.basicDetails.endDate
+                      ) *
+                        2 *
+                        appliedDiscount.percentage) /
+                      100
+                    : 0),
+            insurancePaymentCompleted:
+              item.insurance?.insurancePaymentCompleted || true,
+            paidInCheckout: item.insurance?.paidInCheckout || false,
+          },
+          fullPayment: {
+            ...item.fullPayment,
+            paymentAmount:
+              Number(item.fullPayment) > 0
+                ? Number(item.fullPayment)
+                : Number(teleportTotalEUR),
+            paymentCompleted: item.fullPayment?.paymentCompleted || true,
+            paymentStatus: item.fullPayment?.paymentStatus || "completed",
+          },
+        })),
       });
     } catch (error) {
       console.error("Error creating full payment session:", error);
@@ -2738,80 +3157,94 @@ const FullPaymentStep = ({
     if (onComplete) onComplete(saveData);
   };
 
-  if (isPaymentCompleted && !isAdditionalTraveler) {
+  // Check insurance status with improved logic
+  const appInsurance = parentVisaApplication?.insurance;
+  const isInsurancePaid =
+    appInsurance?.insurancePaymentCompleted === true ||
+    Number(parentVisaApplication?.initialInsurancePaidTotal || 0) > 0;
+  const hasInsuranceDocuments = travelersData.some((traveler) => {
+    const documents = traveler?.documents?.documents || {};
     return (
-      <div className="p-6">
-        <div className="flex items-center gap-2 text-green-400 mb-4">
-          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-          </svg>
-          <span className="font-medium">Payment Completed</span>
-        </div>
-
-        <div className="mb-6">
-          <div className="bg-[#292933] border border-[#423577] rounded-lg p-4 mb-4">
-            <h4 className="font-medium text-white mb-2">Payment Details</h4>
-            <div className="space-y-1 text-sm text-gray-300">
-              <p><span className="font-medium text-white">Travelers Paid For:</span> {initiallyPaidTraveler}</p>
-              <p><span className="font-medium text-white">Total Amount Paid:</span> €{amountPaidTotal}</p>
-              <p><span className="font-medium text-white">Payment Date:</span> {new Date(fullPayment.paymentDate || parentVisaApplication?.updatedAt).toLocaleDateString()}</p>
-              <p><span className="font-medium text-white">Payment Method:</span> {fullPayment.paymentMethod || 'Stripe'}</p>
-            </div>
-          </div>
-          <p className="text-gray-300">
-            Your payment covers {initiallyPaidTraveler} traveler{initiallyPaidTraveler > 1 ? 's' : ''}.
-            {unpaidTravelers > 0 && (
-              <span className="text-orange-400">
-                {` ${unpaidTravelers} additional traveler${unpaidTravelers > 1 ? 's require' : ' requires'} payment.`}
-              </span>
-            )}
-          </p>
-        </div>
-
-        <div className="flex justify-end mt-6">
-          <button
-            onClick={handleSave}
-            disabled={disabled}
-            className="bg-[#7350FF] text-white px-6 py-2 rounded-lg hover:bg-[#7350FF]/90 disabled:bg-gray-600"
-          >
-            Continue
-          </button>
-        </div>
-      </div>
+      documents["6"] ||
+      Object.keys(documents).some(
+        (key) => key.toLowerCase().includes("insurance") && documents[key]
+      )
     );
-  }
+  });
 
-  // Calculate total payment required (travel fees + insurance if no documents uploaded)
+  // Check if any travelers have individual insurance paid
+  const hasIndividualInsurancePaid = travelersData.some((traveler) => {
+    const insurance = traveler?.insurance || {};
+    return insurance.paidInCheckout || insurance.insurancePaymentCompleted;
+  });
+
+  const insuranceHandled =
+    isInsurancePaid || hasInsuranceDocuments || hasIndividualInsurancePaid;
+
+  // Show completion only if ALL payments (travel + insurance) are done
+  const allPaymentsCompleted = isPaymentCompleted && insuranceHandled;
+
+  const { paymentData } = useCalculatePayment(parentVisaApplication?.id);
+
   const calculateTotalPayment = () => {
-    let total = 0;
+    console.log(paymentData, "paymentData");
+    const total =
+      paymentData?.fullRemainingPayment + paymentData?.totalInsuranceCost;
 
-    // Determine how many travelers need to be paid now
-    const travelerCount = (missingTravelerPayment || isAdditionalTraveler)
-      ? (isAdditionalTraveler ? 1 : unpaidTravelers)
-      : 0;
-
-    // Add travel fees per traveler
-    total += travelerCount * teleportTotalEUR;
-
-    // Add insurance fees for travelers without insurance documents
-    const travelersNeedingInsurance = getTravelersNeedingInsurance();
-    if (travelersNeedingInsurance > 0) {
-      // Calculate insurance based on actual travel days
-      const travelDays = calculateTravelDays();
-      const insurancePerTraveler = travelDays * 2; // €2 per day per traveler
-      total += travelersNeedingInsurance * insurancePerTraveler;
+    if (appliedDiscount && appliedDiscount.percentage) {
+      const discountAmount = (total * appliedDiscount.percentage) / 100;
+      return total - discountAmount;
     }
 
     return total;
   };
 
   const totalPaymentDue = calculateTotalPayment();
-  const travelerCount = (missingTravelerPayment || isAdditionalTraveler)
-    ? (isAdditionalTraveler ? 1 : unpaidTravelers)
-    : 0;
+
+  const travelerCount =
+    missingTravelerPayment || isAdditionalTraveler
+      ? isAdditionalTraveler
+        ? 1
+        : unpaidTravelers
+      : 0;
   const travelDays = calculateTravelDays();
   const insurancePerTraveler = travelDays * 2;
   const travelersNeedingInsurance = getTravelersNeedingInsurance();
+
+  useEffect(() => {
+    try {
+      const key = "nuvisa.verifiedStudentEmail";
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        const payload = JSON.parse(raw);
+        if (
+          payload &&
+          payload.email &&
+          payload.expiresAt &&
+          Date.now() < payload.expiresAt
+        ) {
+          setStudentVerified(true);
+          setStudentVerificationSent(false);
+
+          try {
+            if (!userEmail && payload.email) setUserEmailLocal(payload.email);
+          } catch {}
+
+          if (
+            !appliedDiscount ||
+            (appliedDiscount && appliedDiscount.code !== "STUDENT10")
+          ) {
+            setAppliedDiscountLocal({
+              code: "STUDENT10",
+              percentage: 10,
+              description: "Student discount",
+            });
+            setCouponCodeLocal("STUDENT10");
+          }
+        }
+      }
+    } catch {}
+  }, []);
 
   return (
     <div className="p-6">
@@ -2820,31 +3253,47 @@ const FullPaymentStep = ({
         <p className="text-gray-300">
           {isAdditionalTraveler
             ? "Payment required for additional traveler"
+            : !missingTravelerPayment && travelersNeedingInsurance > 0
+            ? "Insurance payment required to complete your application"
             : "Complete your full payment to proceed with the application"}
         </p>
-
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Payment Plan Selection */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-1">
           <div className="border-2 border-[#7350FF] rounded-lg p-6 bg-[#423577]/20">
             <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center">
-                <div className="w-6 h-6 border-2 border-[#7350FF] rounded-full flex items-center justify-center mr-3">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 border-2 border-[#7350FF] rounded-full flex items-center justify-center">
                   <div className="w-3 h-3 bg-[#7350FF] rounded-full"></div>
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-white">Full payment</h3>
-                  <div className="text-3xl font-bold text-[#7350FF]">€{Math.round(totalPaymentDue)}</div>
+                  <div className="text-3xl font-bold text-[#7350FF]">
+                    {paymentData.allPaymentCompleted
+                      ? `€${
+                          paymentData.totalFullPayment +
+                          paymentData.totalInsurancePayment
+                        }`
+                      : `€${totalPaymentDue.toFixed(2)}`}
+                  </div>
                 </div>
               </div>
               <div className="text-right">
-                <div className="flex items-center text-green-400 font-medium">
-                  <svg className="w-5 h-5 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                <div className="flex items-center gap-2 text-green-400 font-medium">
+                  <svg
+                    className="w-5 h-5"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clipRule="evenodd"
+                    />
                   </svg>
-                  Pay nothing later
+                  <span className="text-start">Pay nothing later</span>
                 </div>
               </div>
             </div>
@@ -2853,83 +3302,273 @@ const FullPaymentStep = ({
 
         {/* Payment Summary */}
         <div className="bg-[#292933] rounded-lg p-6 border border-[#423577]">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-white">Summary</h3>
-            <div className="flex items-center">
-              <input
-                type="text"
-                placeholder="Apply coupon"
-                className="bg-[#23232B] border border-[#423577] text-white rounded-l-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#7350FF] focus:border-[#7350FF] placeholder-gray-400"
-              />
-              <button className="bg-[#7350FF] text-white px-4 py-2 rounded-r-md text-sm font-medium hover:bg-[#7350FF]/90">
-                Apply
-              </button>
-            </div>
-          </div>
-
-          <div className="space-y-3 mb-6">
-            {/* Travel fees per traveler */}
-            {(missingTravelerPayment || isAdditionalTraveler) && (
-              <div>
-                <div className="flex justify-between">
-                  <span className="text-gray-300">Travel fees</span>
-                  <span className="font-medium text-white">€{teleportTotalEUR * travelerCount}</span>
+          {!paymentData.allPaymentCompleted && (
+            <div className="flex flex-col gap-4 pb-4">
+              <h3 className="text-lg font-semibold text-white">Summary</h3>
+              <div className="flex space-x-2">
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    value={couponCode}
+                    onChange={(e) =>
+                      setCouponCodeLocal(e.target.value.toUpperCase())
+                    }
+                    placeholder="Enter coupon code (e.g., STUDENT10)"
+                    className={`w-full border ${
+                      couponError ? "border-red-400" : "border-gray-500"
+                    } bg-[#24242D] text-white rounded-md p-2 text-sm ${
+                      couponError
+                        ? "outline-none ring-2 ring-red-400"
+                        : "focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    }`}
+                    disabled={appliedDiscount}
+                  />
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-400 ml-4">€{teleportTotalEUR} (per traveller) × {travelerCount}</span>
-                  <span className="text-gray-300">€{travelerCount * teleportTotalEUR}</span>
+                {!appliedDiscount ? (
+                  <button
+                    onClick={applyCouponCode}
+                    className="px-4 py-2 bg-[#7350FF] text-white text-sm rounded-md hover:opacity-0.9 transition-colors font-medium"
+                  >
+                    Apply
+                  </button>
+                ) : (
+                  <button
+                    onClick={removeCoupon}
+                    className="px-4 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+
+              {couponError && (
+                <span className="text-sm text-red-400">{couponError}</span>
+              )}
+
+              {appliedDiscount && (
+                <div className="flex items-center space-x-2 text-sm text-green-400 bg-green-600/20 p-2 rounded-md">
+                  <span>
+                    ✓ {appliedDiscount.description} (
+                    {appliedDiscount.percentage}% off) applied!
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {appliedDiscount &&
+            !paymentData.allPaymentCompleted &&
+            appliedDiscount.description.toLowerCase().includes("student") && (
+              <div className="space-y-3 mb-6">
+                <h2 className="font-medium text-lg">
+                  Student Verification Required
+                </h2>
+                <div className="space-y-2">
+                  <div className="text-sm text-yellow-300 mb-2">
+                    <span className="font-medium">📧 Email Verification</span> -
+                    Please verify your student email to continue with the
+                    discount
+                  </div>
+
+                  <div className="flex space-x-2">
+                    <div className="flex-1">
+                      <input
+                        type="email"
+                        value={userEmail}
+                        onChange={(e) => setUserEmailLocal(e.target.value)}
+                        placeholder="Enter your student email (e.g., you@student.uni.ac.uk)"
+                        className={`w-full border ${
+                          emailError ? "border-red-400" : "border-gray-500"
+                        } bg-[#24242D] text-white rounded-md p-2 text-sm ${
+                          emailError
+                            ? "outline-none ring-2 ring-red-400"
+                            : "focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        }`}
+                        disabled={studentVerified}
+                      />
+                    </div>
+                    {!studentVerified ? (
+                      <button
+                        onClick={() =>
+                          sendStudentVerification(
+                            userEmail,
+                            `/application-step?application_id=${parentVisaApplication?.id}`
+                          )
+                        }
+                        disabled={isSendingVerification || !userEmail}
+                        className="px-4 py-2 bg-yellow-600 text-white text-sm rounded-md hover:bg-yellow-700 transition-colors font-medium disabled:bg-gray-600 disabled:cursor-not-allowed"
+                      >
+                        {isSendingVerification ? "Sending..." : "Verify Email"}
+                      </button>
+                    ) : (
+                      <div className="px-4 py-2 bg-green-600 text-white text-sm rounded-md flex items-center">
+                        ✓ Verified
+                      </div>
+                    )}
+                  </div>
+
+                  {emailError && (
+                    <span className="text-sm text-red-400">{emailError}</span>
+                  )}
+
+                  {studentVerificationSent && !studentVerified && (
+                    <div className="text-sm text-green-400 bg-green-600/20 p-2 rounded-md">
+                      ✓ Verification email sent! Please check your inbox and
+                      click the verification link.
+                    </div>
+                  )}
+
+                  {studentVerified && (
+                    <div className="text-sm text-green-400 bg-green-600/20 p-2 rounded-md">
+                      ✓ Student email verified! You can now proceed with the
+                      student discount.
+                    </div>
+                  )}
                 </div>
               </div>
             )}
 
-            {/* Insurance fees for travelers without documents */}
-            {travelersNeedingInsurance > 0 && (missingTravelerPayment || isAdditionalTraveler) && (
+          <div className="space-y-3 mb-6">
+            {/* Travel fees per traveler */}
+
+            {paymentData?.noOfTravelersNeedingFullPayment > 0 && (
               <div>
                 <div className="flex justify-between">
-                  <span className="text-gray-300">Insurance fees ({travelersNeedingInsurance} traveler{travelersNeedingInsurance > 1 ? 's' : ''})</span>
-                  <span className="font-medium text-white">€{insurancePerTraveler * travelersNeedingInsurance}</span>
+                  <span className="text-gray-300">Travel fees</span>
+                  <span className="font-medium text-white">
+                    ${paymentData?.fullRemainingPayment || 0}
+                  </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-400 ml-4">€{insurancePerTraveler} (per traveller) × {travelersNeedingInsurance} traveler{travelersNeedingInsurance > 1 ? 's' : ''}</span>
-                  <span className="text-gray-300">€{travelersNeedingInsurance * insurancePerTraveler}</span>
+                  <span className="text-gray-400 ml-4">
+                    €
+                    {paymentData?.fullRemainingPayment /
+                      paymentData?.noOfTravelersNeedingFullPayment}{" "}
+                    (per traveller) ×{" "}
+                    {paymentData?.noOfTravelersNeedingFullPayment || 0}
+                  </span>
+                  <span className="text-gray-300">
+                    €{paymentData?.fullRemainingPayment || 0}
+                  </span>
+                </div>
+              </div>
+            )}
+            {paymentData?.allPaymentCompleted && (
+              <div className="flex justify-between">
+                <span className="text-gray-300">Travel fees</span>
+                <span className="font-medium text-white">
+                  €{paymentData?.totalFullPayment || 0}
+                </span>
+              </div>
+            )}
+
+            {paymentData?.totalInsuranceCost > 0 && (
+              <div>
+                <div className="flex justify-between">
+                  <span className="text-gray-300">
+                    Insurance fees ({paymentData?.noOfTravelersNeedingInsurance}{" "}
+                    traveler
+                    {paymentData?.noOfTravelersNeedingInsurance > 1 ? "s" : ""})
+                  </span>
+                  <span className="font-medium text-white">
+                    €{paymentData?.totalInsuranceCost || 0}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400 ml-4">
+                    €
+                    {paymentData?.totalInsuranceCost /
+                      paymentData?.noOfTravelersNeedingInsurance}{" "}
+                    (per traveller) ×{" "}
+                    {paymentData?.noOfTravelersNeedingInsurance} traveler
+                    {paymentData?.noOfTravelersNeedingInsurance > 1 ? "s" : ""}
+                  </span>
+                  <span className="text-gray-300">
+                    €{paymentData?.totalInsuranceCost || 0}
+                  </span>
                 </div>
                 <div className="text-xs text-gray-500 ml-4 mt-1">
                   Insurance calculated for {travelDays} travel days
                 </div>
               </div>
             )}
+            {paymentData?.allPaymentCompleted && (
+              <div className="flex justify-between">
+                <span className="text-gray-300">Insurance fees</span>
+                <span className="font-medium text-white">
+                  €{paymentData?.totalInsurancePayment || 0}
+                </span>
+              </div>
+            )}
 
-            {/* Travel fee breakdown per traveler */}
-            {(missingTravelerPayment || isAdditionalTraveler) && (
+            {/* if discount than add taht steps as well */}
+            {appliedDiscount && !paymentData.allPaymentCompleted && (
               <div className="border-t border-[#423577] pt-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-300">Travel fee breakdown</span>
-                  <div className="flex items-center">
-                    <span className="font-medium text-white">€{teleportTotalEUR} × {travelerCount}</span>
-                  </div>
-                </div>
-                <div className="text-sm text-gray-400 mt-1 ml-4">
-                  <div className="flex justify-between">
-                    <span>Per traveler cost</span>
-                    <span>€{teleportTotalEUR}</span>
-                  </div>
+                <div className="flex justify-between text-sm text-green-400">
+                  <span>
+                    {appliedDiscount.description} ({appliedDiscount.percentage}%
+                    off)
+                  </span>
+                  <span>
+                    -€
+                    {(
+                      ((paymentData?.fullRemainingPayment || 0) +
+                        (paymentData?.totalInsuranceCost || 0)) *
+                      (appliedDiscount.percentage / 100)
+                    ).toFixed(2)}
+                  </span>
                 </div>
               </div>
             )}
 
-            <div className="border-t border-[#423577] pt-4">
-              <div className="flex justify-between items-center text-lg font-bold">
-                <span className="text-white">Grand Total</span>
-                <span className="text-[#7350FF]">€{Math.round(totalPaymentDue)}</span>
+            {(
+              <div className="border-t border-[#423577] pt-4">
+                <div className="flex justify-between items-center text-lg font-bold">
+                  <span className="text-white">Grand Total</span>
+                  <span className="text-[#7350FF]">
+                   {paymentData.allPaymentCompleted
+                      ? `€${
+                          paymentData.totalFullPayment +
+                          paymentData.totalInsurancePayment
+                        }`
+                      : `€${totalPaymentDue.toFixed(2)}`}
+                  </span>
+                </div>
               </div>
-            </div>
+            )}
+           
+
+            {allPaymentsCompleted && (
+              <span className="flex items-center gap-2 py-2">
+                <LockIcon />{" "}
+                <span className="text-sm text-gray-400">
+                  All payments completed. You may now proceed.
+                </span>
+              </span>
+            )}
 
             <button
-              onClick={(isAdditionalTraveler || missingTravelerPayment) && !isPaymentCompleted ? handlePayForTraveler : handleSave}
-              disabled={disabled || isPaying}
+              onClick={
+                (isAdditionalTraveler ||
+                  missingTravelerPayment ||
+                  travelersNeedingInsurance > 0) &&
+                !paymentData.allPaymentCompleted
+                  ? handlePayForTraveler
+                  : handleSave
+              }
+              disabled={
+                disabled ||
+                isPaying ||
+                totalPaymentDue === 0 ||
+                paymentData.allPaymentCompleted
+              }
               className="w-full bg-[#7350FF] text-white py-3 rounded-lg font-semibold text-lg mt-6 hover:bg-[#7350FF]/90 disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors duration-200"
             >
-              {isPaying ? "Processing..." : `Pay €${Math.round(totalPaymentDue)}`}
+              {isPaying
+                ? "Processing..."
+                : totalPaymentDue > 0
+                ? `Pay €${totalPaymentDue.toFixed(2)}`
+                : "Continue"}
             </button>
 
             {paymentError && (
@@ -2942,7 +3581,7 @@ const FullPaymentStep = ({
       </div>
     </div>
   );
-}
+};
 /* Small Icon Components */
 const LockIcon = () => (
   <svg
@@ -2971,4 +3610,5 @@ const ChevronIcon = () => (
     />
   </svg>
 );
+
 export default MultiStepAccordion;

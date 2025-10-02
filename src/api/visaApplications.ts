@@ -45,6 +45,18 @@ export const createOrUpdateApplication = async (token, payload) => {
   });
 };
 
+
+export const updateVisaApplication = async (token, payload) => {
+  return apigateway({
+    endpoint: backendApiEnums.ENDPOINTS.VISA_APPLICATION.UPDATE_APPLICATION,
+    method: backendApiEnums.METHODS.PATCH,
+    token: token,
+    payload,
+    isDisplayResponsePopUp: true,
+    successMessage: successMessagesEnums.Visa_Application.UPDATE,
+  });
+}
+
 export const getVisaApplication = async (token, payload) => {
   return apigateway({
     endpoint: backendApiEnums.ENDPOINTS.VISA_APPLICATION.GET_APPLICATION_BY_ID,

@@ -16,6 +16,7 @@ import { calculatePaymentFees, formatCurrency } from "@/utils/currency";
 import ClientOnly from "./ClientOnly";
 import { useToast } from "@/contexts/ToastContext";
 import QtyInput from "./QtyInput";
+import { setAmountWithoutDiscount } from "@/store/visaSlice";
 
 const VisaCheckout = () => {
   const dispatch = useAppDispatch();
@@ -578,6 +579,7 @@ const VisaCheckout = () => {
     await localStorageGateway("paymentAmount", localStorageEnums.SET,
       String(totalAmountEUR)
     );
+   
     await localStorageGateway(
       "insurancePayment",
       localStorageEnums.SET,
@@ -586,9 +588,12 @@ const VisaCheckout = () => {
     await localStorageGateway(
       "insuranceSelected",
       localStorageEnums.SET,
-      includeInsurance ? "true" : "false"
+      includeInsurance ? true : false
     );
 
+     await localStorageGateway("paymentWithoutInsurance", localStorageEnums.SET,
+      String(visaFeesEUR)
+    );
 
     if (cretingDynamicCheckout) return;
 
@@ -654,7 +659,7 @@ const VisaCheckout = () => {
       amount: String(totalAmountEUR),
       travellers: String(travelers),
       country: String(selectedCountry || ""),
-      insurance: includeInsurance ? "true" : "false", // Simple boolean conversion
+      insurance: includeInsurance ? true : false, // Simple boolean conversion
       phone: phone,
       postcode: postcode,
       paymentMethod: selectedPaymentMethod,
@@ -690,6 +695,13 @@ const VisaCheckout = () => {
           dispatch(setAuthId(returnedUser.id));
         }
       }
+      dispatch(
+        setAmountWithoutDiscount(
+          Number(
+visaFeesEUR
+          )
+        )
+      )
 
       await localStorageGateway("userEmail", localStorageEnums.SET, email);
     }

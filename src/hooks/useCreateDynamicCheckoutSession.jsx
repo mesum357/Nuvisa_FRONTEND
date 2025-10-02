@@ -15,9 +15,11 @@ const useCreateDynamicCheckoutSession = () => {
     paymentType = "application_creation",
     visaTypeId = "",
     currency = "EUR",
+    travelData
   }) => {
     setCreatingDynamicCheckout(true);
-    const successCallbackFunction = () => { };
+    const successCallbackFunction = () => {};
+
 
     console.log("=== PAYMENT HOOK DEBUG ===");
     console.log("Raw input parameters:", {
@@ -35,9 +37,12 @@ const useCreateDynamicCheckoutSession = () => {
 
     // Ensure paymentType uses backend-expected naming for various payment flows
     let normalizedPaymentType = paymentType;
-    if (paymentType === "insurance") normalizedPaymentType = "traveler_insurance";
-    if (paymentType === "insurance_additional") normalizedPaymentType = "additional_traveler_insurance";
-    if (paymentType === "additional_traveler") normalizedPaymentType = "additional_traveler";
+    if (paymentType === "insurance")
+      normalizedPaymentType = "traveler_insurance";
+    if (paymentType === "insurance_additional")
+      normalizedPaymentType = "additional_traveler_insurance";
+    if (paymentType === "additional_traveler")
+      normalizedPaymentType = "additional_traveler";
     if (paymentType === "full_payment") normalizedPaymentType = "full_payment";
 
     // Note: orderId may be provided via sessionStorage or generated below if needed
@@ -58,10 +63,14 @@ const useCreateDynamicCheckoutSession = () => {
       normalizedPaymentType === "full_payment" ||
       normalizedPaymentType === "additional_traveler"
     ) {
-      successUrl = "/payment-success";
-      successUrl += `?payment_type=${encodeURIComponent(normalizedPaymentType)}&application_id=${encodeURIComponent(
-        applicationId
-      )}&traveler_index=${encodeURIComponent(travelerIndex)}`;
+      successUrl = "/payment-success-full";
+      successUrl += `?payment_type=${encodeURIComponent(
+        normalizedPaymentType
+      )}`;
+      successUrl += `&application_id=${encodeURIComponent(applicationId)}`;
+      successUrl += `&traveler_index=${encodeURIComponent(travelerIndex)}`;
+
+    
 
       // Store payment metadata in localStorage as backup
       const paymentMetadata = {
@@ -69,16 +78,20 @@ const useCreateDynamicCheckoutSession = () => {
         applicationId,
         travelerIndex,
         timestamp: Date.now(),
+        travelData: travelData || null
       };
       localStorage.setItem(
-        "paymentMetadata",
+        "insurancePaymentMetadata",
         JSON.stringify(paymentMetadata)
       );
-      console.log("Stored payment metadata:", paymentMetadata);
     }
 
+
     // Normalize payload fields to strings (backend DTO expects strings)
-    const normalizedTravellers = typeof travellers === "string" ? travellers.trim() : String(travellers || "");
+    const normalizedTravellers =
+      typeof travellers === "string"
+        ? travellers.trim()
+        : String(travellers || "");
     const normalizedAmount = String(amount ?? "0");
     const normalizedCountry = String(country ?? "");
     const normalizedInsurance =
@@ -87,7 +100,9 @@ const useCreateDynamicCheckoutSession = () => {
           ? "true"
           : "false"
         : String(insurance ?? "");
-    const normalizedApplicationId = applicationId ? String(applicationId) : undefined;
+    const normalizedApplicationId = applicationId
+      ? String(applicationId)
+      : undefined;
     const normalizedTravelerIndex =
       travelerIndex === undefined || travelerIndex === null
         ? undefined
@@ -95,7 +110,7 @@ const useCreateDynamicCheckoutSession = () => {
 
     const payload = {
       email: String(email || ""),
-      successUrl: successUrl,
+      successUrl,
       cancelUrl: "/cancel-payment",
       amount: normalizedAmount,
       travellers: normalizedTravellers,
@@ -110,13 +125,16 @@ const useCreateDynamicCheckoutSession = () => {
       currency: (currency || "EUR").toString(),
       // ensure an orderId exists for server-side bookkeeping
       orderId:
-        (typeof window !== "undefined" && window.sessionStorage?.getItem("lastOrderId")) ||
+        (typeof window !== "undefined" &&
+          window.sessionStorage?.getItem("lastOrderId")) ||
         undefined,
     };
 
     // If no orderId provided by caller, generate one and persist temporarily
     if (!payload.orderId) {
-      const generated = `order_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+      const generated = `order_${Date.now()}_${Math.random()
+        .toString(36)
+        .slice(2, 9)}`;
       payload.orderId = generated;
       try {
         if (typeof window !== "undefined") {
@@ -131,7 +149,10 @@ const useCreateDynamicCheckoutSession = () => {
     console.log("=== END PAYMENT HOOK DEBUG ===");
 
     try {
-      const response = await createDynamicPaymentSession(payload, successCallbackFunction);
+      const response = await createDynamicPaymentSession(
+        payload,
+        successCallbackFunction
+      );
 
       console.log("=== PAYMENT API RESPONSE ===");
       console.log("Full response:", response);
