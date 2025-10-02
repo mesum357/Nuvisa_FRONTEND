@@ -14,6 +14,7 @@ const DocumentUploadSection = ({
 }) => {
   const fileInputRefs = useRef({});
   const [deletingFiles, setDeletingFiles] = useState(new Set());
+  const [loadingPart, setIsLoading] = useState();
 
   const documentTypes = [
     {
@@ -73,6 +74,7 @@ const DocumentUploadSection = ({
   ];
 
   const handleFileUpload = async (e, docType) => {
+      setIsLoading(docType.field);
     const docId = docType.field
 
     if (disabled || !isOwner) return; // Prevent file upload when disabled or not owner
@@ -111,7 +113,9 @@ const DocumentUploadSection = ({
     }
 
     try {
-      const uploadPromises = filesToUpload.map((file) => uploadFile(file));
+      setIsLoading(docType.field);
+      const uploadPromises = filesToUpload.map(async (file) =>  uploadFile(file));
+    
       const uploadResults = await Promise.all(uploadPromises);
 
       const documentData = filesToUpload.map((file, index) => ({
@@ -166,6 +170,9 @@ const DocumentUploadSection = ({
       if (onUploadError) {
         onUploadError(errorMessage);
       }
+      setIsLoading(null);
+    } finally{
+      setIsLoading(null);
     }
   };
 
@@ -400,16 +407,16 @@ const DocumentUploadSection = ({
                         accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.zip,.env"
                         id={`file-upload-${docType.field}`}
                         multiple={isPassportPhoto || !!docType.multiple}
-                        disabled={disabled || !isOwner || loading}
+                        disabled={disabled || !isOwner || loadingPart === docType.field }
                       />
                       <label
                         htmlFor={`file-upload-${docType.field}`}
-                        className={`${disabled || !isOwner
+                        className={`${disabled || !isOwner || loadingPart === docType.field 
                           ? "bg-gray-400 dark:bg-gray-600 cursor-not-allowed text-white"
                           : "bg-purple-600 text-white cursor-pointer hover:bg-purple-700"
                           } font-semibold px-6 py-2.5 rounded-lg transition-colors `}
                       >
-                        {!isOwner ? "View Only" : (isUploaded && canUploadMore ? "Add More" : loading ? "Uploading..." : "Upload")}
+                        {!isOwner ? "View Only" : (isUploaded && canUploadMore ? "Add More" : loadingPart === docType.field  ? "Uploading..." : "Upload")}
                       </label>
                     </>
                   )}
