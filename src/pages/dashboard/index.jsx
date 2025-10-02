@@ -377,9 +377,7 @@ function ApplicationCard({
       : null,
   };
 
-  const waHref = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER}text=${encodeURIComponent(
-    `Hi, I need help with my application #${app.id?.slice(0, 6)}`
-  )}`;
+  const waHref = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER}`;
 
   return (
     <motion.div
