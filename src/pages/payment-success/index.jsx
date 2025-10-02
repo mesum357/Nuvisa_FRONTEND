@@ -104,8 +104,48 @@ const PaymentSuccess = () => {
 
         setPaymentType(finalPaymentType);
 
+        // Check if this is a full payment or additional traveler payment
+        if (finalPaymentType === "full_payment" || finalPaymentType === "additional_traveler") {
+          console.log(
+            `✅ FULL PAYMENT DETECTED - Processing ${finalPaymentType} payment success`
+          );
+
+          // Update the application payment status without marking fullPayment step as completed
+          // The step will only be completed when ALL travelers have paid
+          try {
+            const updateResponse = await fetch(
+              `${process.env.NEXT_PUBLIC_API_URL}/stripe_payment/update-payment-status`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  paymentType: finalPaymentType,
+                  applicationId: finalApplicationId,
+                  travelerIndex: travelerIndex,
+                  email: currentData.email,
+                  amount: currentData.totalAmount,
+                  sessionId: sessionId,
+                }),
+              }
+            );
+
+            console.log("Payment status update result:", await updateResponse.json());
+          } catch (error) {
+            console.error("Error updating payment status:", error);
+          }
+
+          setTimeout(() => {
+            router.replace(
+              `/application-step/?application_id=${finalApplicationId}`
+            );
+          }, 2000);
+          return;
+        }
+
         console.log(
-          "❌ NOT AN INSURANCE PAYMENT - Proceeding with application creation flow"
+          "❌ NEW APPLICATION CREATION - Proceeding with application creation flow"
         );
         console.log("=== END PAYMENT SUCCESS DEBUG ===");
 
@@ -169,8 +209,8 @@ const PaymentSuccess = () => {
         // Use the actual insurance selection boolean, fallback to fee check for backward compatibility
         const hasInsurance =
           currentData.insuranceSelected === "true" ||
-          (currentData.insuranceSelected === undefined &&
-            Number(currentData.insurancePayment) > 0)
+            (currentData.insuranceSelected === undefined &&
+              Number(currentData.insurancePayment) > 0)
             ? "true"
             : "false";
 
@@ -231,6 +271,15 @@ const PaymentSuccess = () => {
               orderId: null,
               paymentAmount: 0,
             },
+            fullPayment: {
+              paymentStatus: "completed",
+              paymentCompleted: true,
+              paymentAmount: Number(currentData.totalAmount) || 159,
+              paymentDate: new Date().toISOString(),
+              paymentMethod: "stripe",
+              includeInsurance: hasInsurance === "true",
+              insuranceType: hasInsurance === "true" ? "purchase" : "none",
+            },
           })
         );
 
@@ -272,11 +321,11 @@ const PaymentSuccess = () => {
             `✅ INSURANCE PAYMENT DETECTED - Processing ${finalPaymentType} payment success for traveler ${travelerIndex}`
           );
           console.log(
-            "Manually updating traveler insurance status (webhook workaround for localhost)"
+            "Manually updating traveler/application insurance status (webhook workaround for localhost)"
           );
 
           try {
-            const postAmount =
+            const postAmountRaw =
               (usedStoredInsuranceMetadata &&
                 usedStoredInsuranceMetadata.paymentAmount) ||
               (Number.isFinite(Number(currentData.totalAmount))
@@ -287,32 +336,37 @@ const PaymentSuccess = () => {
                 usedStoredInsuranceMetadata.orderId) ||
               undefined;
 
-            await fetch(
-              `${process.env.NEXT_PUBLIC_API_URL}/stripe_payment/test-insurance-payment`,
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  paymentType: finalPaymentType,
-                  travelerIndex: travelerIndex,
-                  applicationId: finalApplicationId,
-                  email: currentData.email,
-                  amount: postAmount,
-                  orderId: postOrderId,
-                }),
-              }
-            );
+            const postAmount = Number(postAmountRaw);
 
-            const insuranceUpdateResponse = await createOrUpdateApplication(
-              "",
-              {
-                ...applicationPayload,
-                insurance: "true",
-                travelersData: initialTravelersData.map((traveler, index) =>
-                  index === travelerIndex
-                    ? {
+            // If travelerIndex is provided, notify backend for that traveler
+            if (travelerIndex !== null && travelerIndex !== undefined && travelerIndex !== "") {
+              await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/stripe_payment/test-insurance-payment`,
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    paymentType: finalPaymentType,
+                    travelerIndex: travelerIndex,
+                    applicationId: finalApplicationId,
+                    email: currentData.email,
+                    amount: postAmount,
+                    orderId: postOrderId,
+                  }),
+                }
+              );
+
+              // Update only the specific traveler locally via API
+              const insuranceUpdateResponse = await createOrUpdateApplication(
+                "",
+                {
+                  ...applicationPayload,
+                  insurance: "true",
+                  travelersData: initialTravelersData.map((traveler, index) =>
+                    index === Number(travelerIndex)
+                      ? {
                         ...traveler,
                         insurance: {
                           orderId: postOrderId || null,
@@ -320,17 +374,53 @@ const PaymentSuccess = () => {
                           insurancePaymentCompleted: true,
                         },
                       }
-                    : traveler
-                ),
-                insurancePaymentCompleted: true,
-              }
-            );
+                      : traveler
+                  ),
+                  insurancePaymentCompleted: true,
+                }
+              );
 
-            const insuranceResult =
-              insuranceUpdateResponse?.data?.data?.results || {};
-            console.log("Insurance update result:", insuranceResult);
+              const insuranceResult =
+                insuranceUpdateResponse?.data?.data?.results || {};
+              console.log("Insurance update result:", insuranceResult);
+            } else {
+              // No travelerIndex -> application-level insurance payment covering all travelers
+              await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/stripe_payment/test-insurance-payment`,
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    paymentType: finalPaymentType,
+                    applicationId: finalApplicationId,
+                    email: currentData.email,
+                    amount: postAmount,
+                    orderId: postOrderId,
+                  }),
+                }
+              );
+
+              // Mark insurance as completed at the application level
+              const insuranceUpdateResponse = await createOrUpdateApplication(
+                "",
+                {
+                  ...applicationPayload,
+                  insurance: "true",
+                  insurancePaymentCompleted: true,
+                  amountPaid: postAmount,
+                  orderId: postOrderId || undefined,
+                }
+              );
+
+              console.log(
+                "Application-level insurance update result:",
+                insuranceUpdateResponse?.data?.data?.results || {}
+              );
+            }
           } catch (error) {
-            console.error("Error updating traveler insurance:", error);
+            console.error("Error updating traveler/application insurance:", error);
           }
 
           setTimeout(() => {
@@ -351,7 +441,7 @@ const PaymentSuccess = () => {
           setTimeout(() => {
             router.replace(
               "/application-step/?application_id=" +
-                applicationResponse?.data?.data?.results?.application?.id
+              applicationResponse?.data?.data?.results?.application?.id
             );
           }, 2000); // 2 second delay
         } else {
@@ -380,11 +470,11 @@ const PaymentSuccess = () => {
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#7350FF] mx-auto mb-4"></div>
         <p className="text-gray-600">
           {paymentType === "additional_traveler_insurance" ||
-          paymentType === "traveler_insurance"
+            paymentType === "traveler_insurance"
             ? "Processing insurance payment and redirecting back to your application..."
             : isCreatingApplication
-            ? "Creating your visa application..."
-            : "Processing payment and redirecting to dashboard..."}
+              ? "Creating your visa application..."
+              : "Processing payment and redirecting to dashboard..."}
         </p>
       </div>
     </div>

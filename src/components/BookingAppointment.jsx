@@ -3,7 +3,7 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { useAppointmentData } from '@/hooks/useAppointmentData';
 
-const BookingAppointment = ({ onComplete, loading, validateAppointment, travelerData, disabled = false }) => {
+const BookingAppointment = ({ onComplete, loading, _validateAppointment, travelerData, disabled = false }) => {
   const { cities, slots, loadingCities, loadingSlots, error } = useAppointmentData();
 
   // Parse existing date strings back to Date objects for DatePicker
@@ -346,13 +346,13 @@ const BookingAppointment = ({ onComplete, loading, validateAppointment, traveler
 
         {/* Action Buttons */}
         <div className="flex justify-end">
-      
+
           <button
             onClick={handleSave}
             disabled={loading || disabled}
             className="px-6 py-2 bg-[#7350FF] text-white rounded-md hover:bg-[#7350FF]/90 disabled:bg-[#7350FF]/30 transition-colors"
           >
-            {loading ? 'Saving...' : 'Save and Continue'}
+            {loading ? 'Processing...' : 'Next'}
           </button>
         </div>
       </div>

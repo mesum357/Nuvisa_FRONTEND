@@ -9,6 +9,7 @@ const DocumentUploadSection = ({
   onUploadError,
   disabled = false,
   isOwner = true,
+  totalTravelers = 1,
 }) => {
   const fileInputRefs = useRef({});
   const [deletingFiles, setDeletingFiles] = useState(new Set());
@@ -49,6 +50,13 @@ const DocumentUploadSection = ({
     },
     {
       id: 6,
+      title: "Travel Insurance Certificate",
+      description: `Upload your travel insurance certificate(s) if you have your own insurance. You can upload up to ${totalTravelers} certificate(s), one per traveler.`,
+      required: false,
+      multiple: true,
+    },
+    {
+      id: 7,
       title: "Other supporting document",
       description: "Optional additional supporting document",
       required: false,
@@ -62,7 +70,8 @@ const DocumentUploadSection = ({
     if (!files.length) return;
 
     const isPassportPhoto = docId === 1;
-    const isAdditionalDoc = docId === 6;
+    const isInsuranceDoc = docId === 6;
+    const isAdditionalDoc = docId === 7;
 
     let filesToUpload = files;
     if (isPassportPhoto) {
@@ -73,8 +82,16 @@ const DocumentUploadSection = ({
         : [];
       const remainingSlots = 2 - currentUploads.length;
       filesToUpload = files.slice(0, remainingSlots);
+    } else if (isInsuranceDoc) {
+      const currentUploads = documents[docId]
+        ? Array.isArray(documents[docId])
+          ? documents[docId]
+          : [documents[docId]]
+        : [];
+      const remainingSlots = totalTravelers - currentUploads.length;
+      filesToUpload = files.slice(0, remainingSlots);
     } else if (isAdditionalDoc) {
-      filesToUpload = files;
+      filesToUpload = files; // Allow multiple additional documents
     } else {
       filesToUpload = files.slice(0, 1);
     }
@@ -108,7 +125,7 @@ const DocumentUploadSection = ({
             [docId]: [...currentDocs, ...documentData].slice(0, 2),
           };
         });
-      } else if (isAdditionalDoc) {
+      } else if (isInsuranceDoc || isAdditionalDoc) {
         setDocuments((prev) => {
           const currentDocs = prev[docId]
             ? Array.isArray(prev[docId])
@@ -129,11 +146,12 @@ const DocumentUploadSection = ({
 
       if (onUploadSuccess) {
         onUploadSuccess(
-          isPassportPhoto ? documentData : documentData[0],
+          (isPassportPhoto || isInsuranceDoc || isAdditionalDoc) ? documentData : documentData[0],
           docId
         );
       }
     } catch (error) {
+      console.error("File upload error:", error);
       const errorMessage = "Failed to upload file. Please try again.";
       if (onUploadError) {
         onUploadError(errorMessage);
@@ -147,7 +165,7 @@ const DocumentUploadSection = ({
     // Get the file to be deleted
     let fileToDelete = null;
     const doc = documents[docId];
-    
+
     if (doc) {
       const isPassportPhoto = docId === 1;
       const isAdditionalDoc = docId === 6;
@@ -161,7 +179,7 @@ const DocumentUploadSection = ({
 
     // Create a unique identifier for this deletion operation
     const deletionId = `${docId}-${fileIndex}`;
-    
+
     // Optimistically update UI first
     setDocuments((prev) => {
       const newDocs = { ...prev };
@@ -197,7 +215,7 @@ const DocumentUploadSection = ({
     // Try to delete from server (don't block UI)
     if (fileToDelete?.preview) {
       setDeletingFiles(prev => new Set(prev).add(deletionId));
-      
+
       try {
         await deleteFile(fileToDelete.preview);
         console.log(`Successfully deleted file: ${fileToDelete.name}`);
@@ -205,7 +223,7 @@ const DocumentUploadSection = ({
         console.error(`Failed to delete file from server: ${fileToDelete.name}`, error);
         // Note: We don't revert the UI change here as the file is already "removed" from the user's perspective
         // The server cleanup failure is logged but doesn't affect the user experience
-        
+
         // Optionally, you could show a toast notification here:
         if (onUploadError) {
           onUploadError(`Warning: File removed from form but server cleanup failed for ${fileToDelete.name}`);
@@ -265,12 +283,12 @@ const DocumentUploadSection = ({
   const completedRequiredCount = documentTypes.filter((doc) => {
     if (!doc.required) return false;
     if (!documents[doc.id]) return false;
-    
+
     if (doc.id === 1) {
       const uploadedFiles = Array.isArray(documents[doc.id]) ? documents[doc.id] : [documents[doc.id]];
       return uploadedFiles.length >= 2;
     }
-    
+
     return true;
   }).length;
 
@@ -300,13 +318,13 @@ const DocumentUploadSection = ({
           const uploadedFiles = Array.isArray(isUploaded)
             ? isUploaded
             : isUploaded
-            ? [isUploaded]
-            : [];
+              ? [isUploaded]
+              : [];
           const canUploadMore =
             (isPassportPhoto && uploadedFiles.length < 2) || docType.multiple;
-          
-          const isComplete = isPassportPhoto 
-            ? uploadedFiles.length >= 2 
+
+          const isComplete = isPassportPhoto
+            ? uploadedFiles.length >= 2
             : !!isUploaded;
 
           return (
@@ -315,11 +333,10 @@ const DocumentUploadSection = ({
                 <div className="flex items-center gap-4 ">
                   <div className="flex items-center gap-4 ">
                     <div
-                      className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                        isComplete
-                          ? "bg-green-600 dark:bg-green-900/50"
-                          : "bg-gray-400 dark:bg-gray-600"
-                      }`}
+                      className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${isComplete
+                        ? "bg-green-600 dark:bg-green-900/50"
+                        : "bg-gray-400 dark:bg-gray-600"
+                        }`}
                     >
                       {isComplete ? (
                         <Check className="w-5 h-5 text-white dark:text-green-400" />
@@ -334,11 +351,10 @@ const DocumentUploadSection = ({
                         </span>
 
                         <span
-                          className={`text-xs font-medium px-2 py-1 rounded-full ${
-                            docType.required
-                              ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                              : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
-                          }`}
+                          className={`text-xs font-medium px-2 py-1 rounded-full ${docType.required
+                            ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                            : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
+                            }`}
                         >
                           {docType.required ? "Required" : "Optional"}
                         </span>
@@ -363,7 +379,7 @@ const DocumentUploadSection = ({
                   </div>
                 </div>
 
-                <div className="self-start">
+                <div className="self-start min-w-30">
                   {(!isUploaded || canUploadMore) && (
                     <>
                       <input
@@ -378,11 +394,10 @@ const DocumentUploadSection = ({
                       />
                       <label
                         htmlFor={`file-upload-${docType.id}`}
-                        className={`${
-                          disabled || !isOwner
-                            ? "bg-gray-400 dark:bg-gray-600 cursor-not-allowed text-white"
-                            : "bg-purple-600 text-white cursor-pointer hover:bg-purple-700"
-                        } font-semibold px-6 py-2.5 rounded-lg transition-colors`}
+                        className={`${disabled || !isOwner
+                          ? "bg-gray-400 dark:bg-gray-600 cursor-not-allowed text-white"
+                          : "bg-purple-600 text-white cursor-pointer hover:bg-purple-700"
+                          } font-semibold px-6 py-2.5 rounded-lg transition-colors `}
                       >
                         {!isOwner ? "View Only" : (isUploaded && canUploadMore ? "Add More" : "Upload")}
                       </label>
@@ -423,23 +438,22 @@ const DocumentUploadSection = ({
                         </button>
                         {isOwner && (
                           <button
-                            onClick={() => 
+                            onClick={() =>
                               !disabled && handleRemoveDocument(
                                 docType.id,
                                 isPassportPhoto ? index : null
                               )
                             }
-                            className={`p-2 transition-colors ${
-                              disabled || deletingFiles.has(`${docType.id}-${isPassportPhoto ? index : null}`)
-                                ? "text-gray-400 dark:text-gray-500 cursor-not-allowed"
-                                : "text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-100 dark:hover:bg-gray-700 cursor-pointer"
-                            } rounded-md`}
+                            className={`p-2 transition-colors ${disabled || deletingFiles.has(`${docType.id}-${isPassportPhoto ? index : null}`)
+                              ? "text-gray-400 dark:text-gray-500 cursor-not-allowed"
+                              : "text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-100 dark:hover:bg-gray-700 cursor-pointer"
+                              } rounded-md`}
                             title={
-                              disabled 
-                                ? "Cannot remove document" 
+                              disabled
+                                ? "Cannot remove document"
                                 : deletingFiles.has(`${docType.id}-${isPassportPhoto ? index : null}`)
-                                ? "Deleting..."
-                                : "Remove document"
+                                  ? "Deleting..."
+                                  : "Remove document"
                             }
                             disabled={disabled || deletingFiles.has(`${docType.id}-${isPassportPhoto ? index : null}`)}
                           >
