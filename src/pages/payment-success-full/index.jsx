@@ -36,7 +36,7 @@ const ApplicationStepPaymentSuccessPage = () => {
       if (finalApplicationId) {
         await updateVisaApplication(token, updatePayload);
 
-        router.push(`/application-step?application_id=${finalApplicationId}`);
+        router.push(`/application-step?application_id=${finalApplicationId}&step=payment`);
       }
     };
     if (applicationId) {

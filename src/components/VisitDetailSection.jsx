@@ -253,56 +253,16 @@ const VisitDetailSection = ({
 }) => {
   const visaState = useAppSelector((state) => state.visa);
   const _selectedCountry = visaState.selectedCountry || "UK";
-  // console.log(
-  //   "parentVisaApplication.id ::: parentVisaApplication.id ::: ",
-  //   parentVisaApplication.id
-  // );
+
   const _token = localStorageGateway("token", localStorageEnums.GET);
 
   const [errors, setErrors] = useState({});
   const [touchedSubmit, setTouchedSubmit] = useState(false);
 
-  // Add useEffect to ensure proper data loading and debugging
-  useEffect(() => {
-    console.log("=== VISIT DETAIL SECTION DATA LOADING ===");
-    console.log("visitData prop received:", visitData);
-    console.log("parentVisaApplication:", parentVisaApplication);
-
-    // If visitData is passed but some fields are missing, log them
-    if (visitData) {
-      console.log("Data presence check:");
-      console.log(
-        "- visitingOtherSchengenCountries:",
-        visitData.visitingOtherSchengenCountries
-      );
-      console.log("- firstCountryOfEntry:", visitData.firstCountryOfEntry);
-      console.log("- hasSchengenVisa:", visitData.hasSchengenVisa);
-      console.log(
-        "- hasDigitalFingerprints:",
-        visitData.hasDigitalFingerprints
-      );
-      console.log("- maritalStatus:", visitData.maritalStatus);
-      console.log("- employmentStatus:", visitData.employmentStatus);
-      console.log("- willAnyonePayForVisit:", visitData.willAnyonePayForVisit);
-
-      // Check if we need to auto-populate any missing fields or set defaults
-      if (visitData && Object.keys(visitData).length > 0) {
-        console.log(
-          "✅ Visit data loaded successfully - form should auto-fill"
-        );
-      } else {
-        console.log("⚠️ Visit data is empty - showing blank form");
-      }
-    } else {
-      console.log("No visitData received - component will show empty form");
-    }
-    console.log("=== END DATA LOADING LOG ===");
-  }, [visitData, parentVisaApplication]);
 
   const handleInputChange = (e) => {
     if (disabled) return;
     const { name, value } = e.target;
-    console.log(`Field changed: ${name} = ${value}`);
     setVisitData((prev) => ({
       ...prev,
       [name]: value,
@@ -311,7 +271,6 @@ const VisitDetailSection = ({
 
   const handleRadioChange = (name, value) => {
     if (disabled) return;
-    console.log(`Radio changed: ${name} = ${value}`);
     setVisitData((prev) => ({
       ...prev,
       [name]: value,
@@ -320,7 +279,6 @@ const VisitDetailSection = ({
 
   const handleMultiSelectChange = (name, selectedOptions) => {
     if (disabled) return;
-    console.log(`MultiSelect changed: ${name} =`, selectedOptions);
     setVisitData((prev) => ({
       ...prev,
       [name]: selectedOptions,
@@ -363,8 +321,6 @@ const VisitDetailSection = ({
   const validateForm = () => {
     const newErrors = {};
 
-    console.log("=== VALIDATING VISIT FORM ===");
-    console.log("Current visit data:", visitData);
 
     // Only validate fields that are actually visible in the current form
 
@@ -374,41 +330,26 @@ const VisitDetailSection = ({
       (Array.isArray(visitData.visitingOtherSchengenCountries) &&
         visitData.visitingOtherSchengenCountries.length === 0)
     ) {
-      console.log("❌ visitingOtherSchengenCountries validation failed");
       newErrors.visitingOtherSchengenCountries =
         "Please select at least one option";
-    } else {
-      console.log("✅ visitingOtherSchengenCountries validation passed");
     }
 
     // 2. First country of entry (always visible)
     if (!visitData?.firstCountryOfEntry) {
-      console.log("❌ firstCountryOfEntry validation failed");
       newErrors.firstCountryOfEntry = "Please select first country of entry";
-    } else {
-      console.log("✅ firstCountryOfEntry validation passed");
     }
 
     // 3. Schengen visa question (always visible)
     if (!visitData?.hasSchengenVisa) {
-      console.log("❌ hasSchengenVisa validation failed");
       newErrors.hasSchengenVisa = "Please select Yes or No";
-    } else {
-      console.log("✅ hasSchengenVisa validation passed");
     }
 
     // 4. Conditional Schengen visa date fields (only required if user selected "Yes")
     if (visitData?.hasSchengenVisa === "Yes") {
       if (!visitData?.lastVisaStartDate) {
-        console.log(
-          "❌ lastVisaStartDate validation failed (required because hasSchengenVisa = Yes)"
-        );
         newErrors.lastVisaStartDate = "Please select last visa start date";
       }
       if (!visitData?.lastVisaEndDate) {
-        console.log(
-          "❌ lastVisaEndDate validation failed (required because hasSchengenVisa = Yes)"
-        );
         newErrors.lastVisaEndDate = "Please select last visa end date";
       }
 
@@ -418,7 +359,6 @@ const VisitDetailSection = ({
         const endDate = new Date(visitData.lastVisaEndDate);
 
         if (endDate <= startDate) {
-          console.log("❌ visa end date is not after start date");
           newErrors.lastVisaEndDate = "End date must be after start date";
         }
       }
@@ -426,10 +366,8 @@ const VisitDetailSection = ({
 
     // 5. Digital fingerprints question (always visible)
     if (!visitData?.hasDigitalFingerprints) {
-      console.log("❌ hasDigitalFingerprints validation failed");
       newErrors.hasDigitalFingerprints = "Please select Yes or No";
     } else {
-      console.log("✅ hasDigitalFingerprints validation passed");
     }
 
     // 6. Conditional previous visa number (only required if user selected "Yes" for digital fingerprints)
@@ -438,9 +376,6 @@ const VisitDetailSection = ({
         !visitData?.previousVisaNumber ||
         visitData.previousVisaNumber.trim() === ""
       ) {
-        console.log(
-          "❌ previousVisaNumber validation failed (required because hasDigitalFingerprints = Yes)"
-        );
         newErrors.previousVisaNumber =
           "Please provide your previous visa number";
       }
@@ -448,27 +383,20 @@ const VisitDetailSection = ({
 
     // 7. Marital status (always visible)
     if (!visitData?.maritalStatus) {
-      console.log("❌ maritalStatus validation failed");
       newErrors.maritalStatus = "Required";
-    } else {
-      console.log("✅ maritalStatus validation passed");
     }
 
     // 8. Conditional partner fields (only required if user selected "Married")
     if (visitData?.maritalStatus === "Married") {
       if (!visitData?.partnerDateOfBirth) {
-        console.log(
-          "❌ partnerDateOfBirth validation failed (required because maritalStatus = Married)"
-        );
+
         newErrors.partnerDateOfBirth = "Please provide partner's date of birth";
       }
       if (
         !visitData?.partnerFullName ||
         visitData.partnerFullName.trim() === ""
       ) {
-        console.log(
-          "❌ partnerFullName validation failed (required because maritalStatus = Married)"
-        );
+
         newErrors.partnerFullName = "Please provide partner's full name";
       }
 
@@ -478,7 +406,6 @@ const VisitDetailSection = ({
         const today = new Date();
 
         if (partnerBirthDate > today) {
-          console.log("❌ partnerDateOfBirth is in the future");
           newErrors.partnerDateOfBirth =
             "Date of birth cannot be in the future";
         }
@@ -487,10 +414,7 @@ const VisitDetailSection = ({
 
     // 9. Employment status (always visible)
     if (!visitData?.employmentStatus) {
-      console.log("❌ employmentStatus validation failed");
       newErrors.employmentStatus = "Required";
-    } else {
-      console.log("✅ employmentStatus validation passed");
     }
 
     // 10. Conditional Student fields (only required if user selected "Student")
@@ -499,30 +423,22 @@ const VisitDetailSection = ({
         !visitData?.institutionName ||
         visitData.institutionName.trim() === ""
       ) {
-        console.log(
-          "❌ institutionName validation failed (required because employmentStatus = Student)"
-        );
+
         newErrors.institutionName = "Please provide institution name";
       }
       if (
         !visitData?.instituteEmail ||
         visitData.instituteEmail.trim() === ""
       ) {
-        console.log(
-          "❌ instituteEmail validation failed (required because employmentStatus = Student)"
-        );
         newErrors.instituteEmail = "Please provide institute email";
       } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(visitData.instituteEmail)) {
-        console.log("❌ instituteEmail format validation failed");
         newErrors.instituteEmail = "Please provide a valid email address";
       }
       if (
         !visitData?.instituteAddress ||
         visitData.instituteAddress.trim() === ""
       ) {
-        console.log(
-          "❌ instituteAddress validation failed (required because employmentStatus = Student)"
-        );
+
         newErrors.instituteAddress = "Please provide institute address";
       }
     }
@@ -530,33 +446,23 @@ const VisitDetailSection = ({
     // 11. Conditional Employed fields (only required if user selected "Employed")
     if (visitData?.employmentStatus === "Employed") {
       if (!visitData?.employerPhone || visitData.employerPhone.trim() === "") {
-        console.log(
-          "❌ employerPhone validation failed (required because employmentStatus = Employed)"
-        );
+
         newErrors.employerPhone = "Please provide employer phone number";
       }
       if (!visitData?.employerName || visitData.employerName.trim() === "") {
-        console.log(
-          "❌ employerName validation failed (required because employmentStatus = Employed)"
-        );
         newErrors.employerName = "Please provide employer name";
       }
       if (!visitData?.employerEmail || visitData.employerEmail.trim() === "") {
-        console.log(
-          "❌ employerEmail validation failed (required because employmentStatus = Employed)"
-        );
+
         newErrors.employerEmail = "Please provide employer email";
       } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(visitData.employerEmail)) {
-        console.log("❌ employerEmail format validation failed");
         newErrors.employerEmail = "Please provide a valid email address";
       }
       if (
         !visitData?.employerAddress ||
         visitData.employerAddress.trim() === ""
       ) {
-        console.log(
-          "❌ employerAddress validation failed (required because employmentStatus = Employed)"
-        );
+
         newErrors.employerAddress = "Please provide employer address";
       }
     }
@@ -567,9 +473,7 @@ const VisitDetailSection = ({
         !visitData?.otherEmploymentStatus ||
         visitData.otherEmploymentStatus.trim() === ""
       ) {
-        console.log(
-          "❌ otherEmploymentStatus validation failed (required because employmentStatus = Other)"
-        );
+
         newErrors.otherEmploymentStatus =
           "Please specify other employment status";
       }
@@ -577,10 +481,7 @@ const VisitDetailSection = ({
 
     // 13. Payment question (always visible)
     if (!visitData?.willAnyonePayForVisit) {
-      console.log("❌ willAnyonePayForVisit validation failed");
       newErrors.willAnyonePayForVisit = "Please select Yes or No";
-    } else {
-      console.log("✅ willAnyonePayForVisit validation passed");
     }
 
     // 14. Conditional funding fields (only required if user selected "Yes" for payment)
@@ -589,23 +490,16 @@ const VisitDetailSection = ({
         !visitData?.fundingPersonName ||
         visitData.fundingPersonName.trim() === ""
       ) {
-        console.log(
-          "❌ fundingPersonName validation failed (required because willAnyonePayForVisit = Yes)"
-        );
+
         newErrors.fundingPersonName =
           "Please provide name of the person/org who will fund";
       }
       if (!visitData?.tripFundedBy) {
-        console.log(
-          "❌ tripFundedBy validation failed (required because willAnyonePayForVisit = Yes)"
-        );
+
         newErrors.tripFundedBy = "Please select who will fund your trip";
       }
     }
 
-    console.log("=== VALIDATION COMPLETE ===");
-    console.log("Errors found:", newErrors);
-    console.log("Form is valid:", Object.keys(newErrors).length === 0);
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -616,17 +510,13 @@ const VisitDetailSection = ({
 
     if (disabled) return; // Prevent form submission when disabled
 
-    console.log("=== VISIT DETAILS FORM SUBMIT ===");
-    console.log("Visit data:", visitData);
+
 
     setTouchedSubmit(true);
 
     const isValid = validateForm();
     if (isValid) {
-      console.log("✅ Form validation passed, calling onComplete");
       onComplete(visitData);
-    } else {
-      console.log("❌ Form validation failed, check errors above");
     }
   };
 

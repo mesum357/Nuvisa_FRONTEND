@@ -58,12 +58,17 @@ export const useCalculatePayment = (applicationId) => {
         let totalInsurancePayment = 0;
         let allPaymentsCompleted = false;
         let noOfInsuranceUploaded = 0;
+        let noOfTravelersNeedingInsurance = application.travelersData.filter(
+          (t) =>
+            !t.insurance?.insurancePaymentCompleted &&
+            !t.insurance?.paidInCheckout
+        ).length
 
         application.travelersData.forEach((traveler) => {
-             const travelDays = calculateTravelDays(
-              traveler.basicDetails.travelStartDate,
-              traveler.basicDetails.travelEndDate
-            );
+          const travelDays = calculateTravelDays(
+            traveler.basicDetails.travelStartDate,
+            traveler.basicDetails.travelEndDate
+          );
           const { fullPayment = {} } = traveler;
           const { insurance = {} } = traveler;
           if (!fullPayment.paidInCheckout) {
@@ -72,7 +77,7 @@ export const useCalculatePayment = (applicationId) => {
           if (!insurance.paidInCheckout) {
             totalInsurancePayment += Number(
               travelDays * 2
-            )|| 0;
+            ) || 0;
           }
           if (
             fullPayment.paymentCompleted &&
@@ -84,31 +89,29 @@ export const useCalculatePayment = (applicationId) => {
             calculatedFullPayment += Number(application.paymentWithoutInsurance);
           }
 
-          if(traveler.documents.documents.insuranceDocument?.[0]?.name ){
+          if (traveler.documents.documents.insuranceDocument?.[0]?.name) {
             noOfInsuranceUploaded += 1;
           }
 
           if (
             !insurance.insurancePaymentCompleted &&
-            !insurance.paymentWithoutInsurance && !traveler.documents.documents.insuranceDocument?.[0]?.name
+            !traveler.documents.documents.insuranceDocument?.[0]?.name
           ) {
             calculatedInsuranceCost += (travelDays * 2)
+          } else {
+            noOfTravelersNeedingInsurance -= 1;
           }
         });
 
-        allPaymentsCompleted = 
-          application.travelersData.every((t) => 
-            t.fullPayment?.paymentCompleted && 
+        allPaymentsCompleted =
+          application.travelersData.every((t) =>
+            t.fullPayment?.paymentCompleted &&
             t.insurance?.insurancePaymentCompleted
           );
         setPaymentData({
           fullRemainingPayment: calculatedFullPayment,
           totalInsuranceCost: calculatedInsuranceCost,
-          noOfTravelersNeedingInsurance: application.travelersData.filter(
-            (t) =>
-              !t.insurance?.insurancePaymentCompleted &&
-              !t.insurance?.paymentWithoutInsurance
-          ).length,
+          noOfTravelersNeedingInsurance: noOfTravelersNeedingInsurance,
           noOfTravelersNeedingFullPayment: application.travelersData.filter(
             (t) =>
               !t.fullPayment?.paymentCompleted && !t.fullPayment?.paymentWithoutInsurance

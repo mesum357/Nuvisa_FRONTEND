@@ -52,13 +52,13 @@ const MultiStepAccordion = () => {
   const [currentTravelerIndex, setCurrentTravelerIndex] = useState(0);
   const [numberOfTravelers, setNumberOfTravelers] = useState(1);
   const [userEmail, setUserEmail] = useState("");
-
   const [confirmationModal, setConfirmationModal] = useState({
     isOpen: false,
     title: '',
     message: '',
     onConfirm: () => { },
   });
+  const currentStep = router.query.step;
 
   const isOwner = parentVisaApplication?.email === userEmail;
 
@@ -83,7 +83,7 @@ const MultiStepAccordion = () => {
   };
 
   const { paymentData } = useCalculatePayment(
-    parentVisaApplication?.id
+    applicationId
   )
 
   const [travelersData, setTravelersData] = useState([
@@ -171,7 +171,6 @@ const MultiStepAccordion = () => {
   ]);
 
   const [steps, setSteps] = useState([
-  
     {
       id: 1,
       title: "Add basic details",
@@ -193,14 +192,13 @@ const MultiStepAccordion = () => {
       open: false,
       stepType: "documents",
     },
-      {
+    {
       id: 4,
       title: "Full Payment",
       completed: false,
       open: false,
       stepType: "fullPayment",
     },
-
     {
       id: 5,
       title: "Book an appointment",
@@ -301,28 +299,32 @@ const MultiStepAccordion = () => {
 
     visibleSteps = visibleSteps.map((step) => {
       if (step.stepType === "completed") {
-        const isAppCompleted = 
-    relevantStepInfo?.isCompleted || 
-    relevantStepInfo?.isSubmitted ||
-    parentVisaApplication?.applicationStatus === "submitted";
+        const isAppCompleted =
+          relevantStepInfo?.isCompleted ||
+          relevantStepInfo?.isSubmitted ||
+          parentVisaApplication?.applicationStatus === "submitted";
         return {
           ...step,
           title: "Application Completed",
           completed: isTravelerCompleted,
-          open:  relevantStepInfo?.currentStep === "completed" ||
-      (relevantStepInfo?.completedSteps?.length >= 6 && isAppCompleted)
+          open: relevantStepInfo?.currentStep === "completed" ||
+            (relevantStepInfo?.completedSteps?.length >= 6 && isAppCompleted)
         };
       }
       return step;
     });
 
-    const showPayment = parentVisaApplication?.travelersData?.every(
-      (traveler) => {
+    const showPayment = !parentVisaApplication?.travelersData?.every(
+      (traveler, index) => {
         const payment = traveler?.fullPayment;
         const insurance = traveler?.insurance;
-        return !insurance?.paidInCheckout || !payment?.paidInCheckout;
+
+        return (insurance?.paidInCheckout ||
+          !!parentVisaApplication?.travelersData?.[index]?.documents?.documents?.insuranceDocument?.[0]?.name
+        ) && payment?.paidInCheckout
       }
-    );
+    )
+
 
     if (!showPayment) {
       visibleSteps = visibleSteps.filter(
@@ -979,13 +981,27 @@ const MultiStepAccordion = () => {
           return traveler;
         });
       }
-
+      if (stepId === 4) {
+        const pathname = router.pathname
+        router.replace(
+          {
+            pathname, query: {
+              application_id: applicationId
+            }
+          },
+          undefined,
+          { shallow: true }
+        );
+      }
       if (
         (stepId === "fullPayment" ||
           stepId === 4 ||
           step?.stepType === "fullPayment") &&
         (stepData.fullPaymentData || stepData.travelerIndex !== undefined)
       ) {
+
+
+
         travelersDataToSend = travelersDataToSend.map((traveler, index) => {
           if (index === currentTravelerIndex) {
             const updatedTraveler = {
@@ -1011,7 +1027,9 @@ const MultiStepAccordion = () => {
         }
       }
 
+
       if (stepId === 6 || step?.stepType === "payment") {
+
         // Update the current traveler's payment data
         travelersDataToSend = travelersDataToSend.map((traveler, index) => {
           if (index === currentTravelerIndex) {
@@ -1157,6 +1175,10 @@ const MultiStepAccordion = () => {
               open: s.id === step.id,
             }))
           );
+
+          document
+            .getElementById(`step-${step.id}`)
+            ?.scrollIntoView({ behavior: "smooth" });
         } else {
           let allPaidHaveStep = true;
           for (let i = 0; i < paidCount; i++) {
@@ -1241,30 +1263,30 @@ const MultiStepAccordion = () => {
     const basicDetails = currentTraveler.basicDetails || {};
 
     // Check all required fields are present
-    const hasBasicInfo = 
-      basicDetails.passportNumber && 
-      basicDetails.firstName && 
-      basicDetails.lastName && 
-      basicDetails.sex && 
-      basicDetails.dateOfBirth && 
+    const hasBasicInfo =
+      basicDetails.passportNumber &&
+      basicDetails.firstName &&
+      basicDetails.lastName &&
+      basicDetails.sex &&
+      basicDetails.dateOfBirth &&
       basicDetails.placeOfBirth;
 
-    const hasPassportInfo = 
-      basicDetails.passportIssuePlace && 
-      basicDetails.passportIssueDate && 
+    const hasPassportInfo =
+      basicDetails.passportIssuePlace &&
+      basicDetails.passportIssueDate &&
       basicDetails.passportExpiryDate;
 
-    const hasAddressInfo = 
-      basicDetails.currentAddress1 && 
-      basicDetails.city && 
+    const hasAddressInfo =
+      basicDetails.currentAddress1 &&
+      basicDetails.city &&
       basicDetails.pincode;
 
-    const hasTravelInfo = 
-      basicDetails.travelStartDate && 
+    const hasTravelInfo =
+      basicDetails.travelStartDate &&
       basicDetails.travelEndDate;
 
-    const hasPassportImages = 
-      basicDetails.passportFront && 
+    const hasPassportImages =
+      basicDetails.passportFront &&
       basicDetails.passportBack;
 
     const hasMobileNumber = basicDetails.mobileNumber && String(basicDetails.mobileNumber).trim();
@@ -1283,7 +1305,7 @@ const MultiStepAccordion = () => {
     if (hasMobileNumber) {
       const digits = String(basicDetails.mobileNumber).trim().replace(/\D/g, "");
       validMobile = (digits.length === 10 || digits.length === 11) &&
-                   (digits.length === 10 ? digits.charAt(0) !== "0" : digits.charAt(0) === "0");
+        (digits.length === 10 ? digits.charAt(0) !== "0" : digits.charAt(0) === "0");
     }
 
     // Check postcode format
@@ -1293,15 +1315,15 @@ const MultiStepAccordion = () => {
       validPostcode = ukPostcodeRegex.test(String(basicDetails.pincode).trim());
     }
 
-    return hasBasicInfo && 
-           hasPassportInfo && 
-           hasAddressInfo && 
-           hasTravelInfo && 
-           hasPassportImages && 
-           hasMobileNumber && 
-           validDates && 
-           validMobile && 
-           validPostcode;
+    return hasBasicInfo &&
+      hasPassportInfo &&
+      hasAddressInfo &&
+      hasTravelInfo &&
+      hasPassportImages &&
+      hasMobileNumber &&
+      validDates &&
+      validMobile &&
+      validPostcode;
   };
 
   // New validation function for all travelers' passport data
@@ -1319,7 +1341,6 @@ const MultiStepAccordion = () => {
         basicDetails.passportIssueDate &&
         basicDetails.passportExpiryDate &&
         basicDetails.currentAddress1 &&
-        basicDetails.state &&
         basicDetails.city &&
         basicDetails.pincode &&
         basicDetails.mobileNumber &&
@@ -1668,7 +1689,26 @@ const MultiStepAccordion = () => {
     if (applicationId) {
       fetchApplicationById();
     }
-  }, [applicationId]);
+  }, [applicationId, paymentData]);
+
+  useEffect(() => {
+    if (currentStep === "payment") {
+      // scroll to payemnt and open
+      const visible = getVisibleSteps();
+      const paymentStep = visible.find((s) => s.stepType === "fullPayment");
+      if (paymentStep) {
+        setSteps((prev) =>
+          prev.map((step) => ({
+            ...step,
+            open: step.id === paymentStep.id,
+          }))
+        );
+        document
+          .getElementById(`step-${paymentStep.id}`)
+          ?.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+  }, [currentStep])
 
   useEffect(() => {
     setIsClient(true);
@@ -1828,6 +1868,7 @@ const MultiStepAccordion = () => {
             return (
               <div
                 key={step.id}
+                id={`step-${step.id}`}
                 className={`border rounded-lg border-[#423577] overflow-hidden transition-all duration-300 ${isLocked ? "opacity-50 cursor-not-allowed" : "opacity-100"
                   }`}
                 style={{ boxShadow: "rgba(0, 0, 0, 0.05) 0px 1px 3px 0px" }}
@@ -1841,8 +1882,8 @@ const MultiStepAccordion = () => {
                   <div className="flex items-center">
                     <div
                       className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 ${step.completed
-                          ? "bg-green-500 text-white"
-                          : "bg-gray-700 text-white"
+                        ? "bg-green-500 text-white"
+                        : "bg-gray-700 text-white"
                         }`}
                     >
                       {step.completed ? "✓" : index + 1}
@@ -1886,8 +1927,8 @@ const MultiStepAccordion = () => {
                                       setCurrentTravelerIndex(index)
                                     }
                                     className={`px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2 ${currentTravelerIndex === index
-                                        ? "bg-[#6366F1] text-white"
-                                        : "bg-[#292933] text-gray-300 hover:bg-[#333340] hover:text-white"
+                                      ? "bg-[#6366F1] text-white"
+                                      : "bg-[#292933] text-gray-300 hover:bg-[#333340] hover:text-white"
                                       }`}
                                   >
                                     <span>
@@ -1920,6 +1961,12 @@ const MultiStepAccordion = () => {
                                           const travelerName = travelersData[index]?.basicDetails?.firstName
                                             ? `${travelersData[index].basicDetails.firstName}`
                                             : `Traveler ${index + 1}`;
+
+                                          const currentTraveler = travelersData[index];
+                                          if (currentTraveler?.insurance?.insurancePaymentCompleted || currentTraveler?.fullPayment?.paymentCompleted) {
+                                            showError(`Cannot delete ${travelerName} as they have completed payment or insurance purchase.`);
+                                            return;
+                                          }
 
                                           setConfirmationModal({
                                             isOpen: true,
@@ -2062,11 +2109,10 @@ const MultiStepAccordion = () => {
                                   })
                                 }
                                 disabled={!canCompleteStep(step.stepType) || loading}
-                                className={`px-6 py-2 rounded-lg font-semibold transition-colors duration-200 ${
-                                  canCompleteStep(step.stepType) && !loading
-                                    ? "bg-[#7350FF] text-white hover:bg-[#7350FF]/90"
-                                    : "bg-gray-600 text-gray-400 cursor-not-allowed"
-                                }`}
+                                className={`px-6 py-2 rounded-lg font-semibold transition-colors duration-200 ${canCompleteStep(step.stepType) && !loading
+                                  ? "bg-[#7350FF] text-white hover:bg-[#7350FF]/90"
+                                  : "bg-gray-600 text-gray-400 cursor-not-allowed"
+                                  }`}
                               >
                                 {loading ? "Processing..." : "Next"}
                               </button>
@@ -2150,6 +2196,7 @@ const MultiStepAccordion = () => {
                             travelersData={travelersData}
                             disabled={!isOwner || isApplicationSubmitted}
                             totalTraveler={totalTraveler}
+                            paymentData={paymentData}
                           />
                         )}
 
@@ -2188,7 +2235,7 @@ const MultiStepAccordion = () => {
                           />
                         )}
                         <div className="mt-6 flex justify-between items-center pt-4">
-                          <div className="text-sm text-gray-400">
+                          {step.stepType !== "completed" && <div className="text-sm text-gray-400">
                             {!canCompleteStep(step.stepType) && (
                               <span className="text-orange-400">
                                 ⚠ Please complete all required fields for this step
@@ -2199,8 +2246,8 @@ const MultiStepAccordion = () => {
                                 ✓ All requirements completed for this step
                               </span>
                             )}
-                          </div>
-                          {step.stepType !== "appointment" && <div className="flex items-center gap-3">
+                          </div>}
+                          {step.stepType !== "appointment" && step.stepType !== "completed" && <div className="flex items-center gap-3">
                             {step.stepType === "basicDetails" ? (
                               <button
                                 onClick={async () => {
@@ -2226,11 +2273,10 @@ const MultiStepAccordion = () => {
                             <button
                               onClick={() => handleCompleteStep(step.id, {})}
                               disabled={!canCompleteStep(step.stepType) || loading}
-                              className={`px-6 py-2 rounded-lg font-semibold transition-colors duration-200 ${
-                                canCompleteStep(step.stepType) && !loading
-                                  ? "bg-[#7350FF] text-white hover:bg-[#7350FF]/90"
-                                  : "bg-gray-600 text-gray-400 cursor-not-allowed"
-                              }`}
+                              className={`px-6 py-2 rounded-lg font-semibold transition-colors duration-200 ${canCompleteStep(step.stepType) && !loading
+                                ? "bg-[#7350FF] text-white hover:bg-[#7350FF]/90"
+                                : "bg-gray-600 text-gray-400 cursor-not-allowed"
+                                }`}
                             >
                               {loading ? "Processing..." : "Next"}
                             </button>
@@ -2950,6 +2996,7 @@ const FullPaymentStep = ({
   _validateFullPayment,
   disabled = false,
   totalTraveler = 1,
+  paymentData
 }) => {
   const [paymentError, setPaymentError] = useState("");
   const [isPaying, setIsPaying] = useState(false);
@@ -3227,10 +3274,9 @@ const FullPaymentStep = ({
   // Show completion only if ALL payments (travel + insurance) are done
   const allPaymentsCompleted = isPaymentCompleted && insuranceHandled;
 
-  const { paymentData } = useCalculatePayment(parentVisaApplication?.id);
+
 
   const calculateTotalPayment = () => {
-    console.log(paymentData, "paymentData");
     const total =
       paymentData?.fullRemainingPayment + paymentData?.totalInsuranceCost;
 
@@ -3585,10 +3631,7 @@ const FullPaymentStep = ({
 
             <button
               onClick={
-                (isAdditionalTraveler ||
-                  missingTravelerPayment ||
-                  travelersNeedingInsurance > 0) &&
-                  !paymentData.allPaymentCompleted
+                !paymentData.allPaymentCompleted
                   ? handlePayForTraveler
                   : handleSave
               }
