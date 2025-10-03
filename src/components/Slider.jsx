@@ -195,9 +195,7 @@ const CountrySlider = () => {
       durationString.includes("-1") ||
       durationString.toLowerCase().includes("invalid")
     ) {
-      console.log(
-        `Invalid duration detected: "${durationString}" -> using default 90 days`
-      );
+
       return 90; // Default fallback for Schengen visas
     }
 
@@ -206,13 +204,10 @@ const CountrySlider = () => {
 
     // If we got a negative or zero value, use default
     if (days <= 0) {
-      console.log(
-        `Invalid duration value: "${durationString}" -> using default 90 days`
-      );
+
       days = 90;
     }
 
-    console.log(`Parsing duration: "${durationString}" -> ${days} days`);
     return days;
   };
   const isValidDate = (d) => d instanceof Date && !isNaN(d.getTime());
@@ -497,7 +492,7 @@ const CountrySlider = () => {
       const next = { ...prev, [itemKey]: !prev[itemKey] };
       return next;
     });
-    if(itemKey === "giftCard" && recommendedItems.giftCard) {
+    if (itemKey === "giftCard" && recommendedItems.giftCard) {
       setGiftCardCount(1);
       dispatch(setGiftCardFees(1));
       return;
@@ -1403,19 +1398,11 @@ const CountrySlider = () => {
       // Override oncancel immediately to prevent any spurious logs
       session.oncancel = () => {
         if (!suppressCancel && !redirecting) {
-          console.log("Apple Pay cancelled by user");
-        } else {
-          console.log("Apple Pay session ended (redirect in progress)");
         }
       };
 
       session.onvalidatemerchant = async (event) => {
         try {
-          console.log(
-            "Apple Pay merchant validation required:",
-            event.validationURL
-          );
-          console.log("Redirecting to checkout (no merchant validation setup)");
 
           // Mark that we're redirecting to prevent cancel logs
           suppressCancel = true;
@@ -1439,7 +1426,6 @@ const CountrySlider = () => {
       };
 
       session.onpaymentauthorized = (event) => {
-        console.log("Apple Pay payment authorized:", event.payment);
         session.completePayment(ApplePaySession.STATUS_SUCCESS);
         try {
           const stored = localStorage.getItem("paymentMetadata");
@@ -1460,7 +1446,6 @@ const CountrySlider = () => {
 
       session.oncancel = () => {
         if (!suppressCancel) {
-          console.log("Apple Pay cancelled by user");
         } else {
           // quietly ignore cancellation caused by our intentional redirect fallback
         }
@@ -1550,7 +1535,6 @@ const CountrySlider = () => {
           onPaymentAuthorized: (paymentData) => {
             return new Promise((resolve) => {
               // Process payment data
-              console.log("Google Pay payment authorized:", paymentData);
 
               // Here you would normally send the payment data to your server
               // For now, we'll simulate success
@@ -1691,11 +1675,9 @@ const CountrySlider = () => {
       const paymentData = await paymentsClient.loadPaymentData(
         paymentDataRequest
       );
-      console.log("Google Pay payment completed:", paymentData);
     } catch (error) {
       console.error("Google Pay error:", error);
       if (error.statusCode === "CANCELED") {
-        console.log("User cancelled Google Pay");
         return;
       }
       alert(
@@ -1891,8 +1873,8 @@ const CountrySlider = () => {
                   resetTimer();
                 }}
                 className={`w-20 aspect-square object-cover cursor-pointer rounded-xl border-2 transition-all border-white ${index === currentIndex
-                    ? "border-none"
-                    : "opacity-70 hover:opacity-100"
+                  ? "border-none"
+                  : "opacity-70 hover:opacity-100"
                   }`}
                 style={{ boxSizing: "border-box" }}
               />
@@ -2017,8 +1999,8 @@ const CountrySlider = () => {
           <div className="my-6">
             <div
               className={`bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden transition-all duration-300 hover:bg-white/10 ${validationErrors.size > 0
-                  ? "!bg-red-500/10 border !border-red-500 shadow-lg"
-                  : ""
+                ? "!bg-red-500/10 border !border-red-500 shadow-lg"
+                : ""
                 }`}
             >
               <h2
@@ -2061,8 +2043,8 @@ const CountrySlider = () => {
 
               <div
                 className={`transition-all duration-300 ease-in-out ${documentsAccordionOpen
-                    ? "max-h-[600px] opacity-100"
-                    : "max-h-0 opacity-0"
+                  ? "max-h-[600px] opacity-100"
+                  : "max-h-0 opacity-0"
                   }`}
               >
                 <div className="px-4 pb-4">
@@ -2070,17 +2052,17 @@ const CountrySlider = () => {
                   <div className="grid grid-cols-1 gap-3">
                     <div
                       className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border ${requiredDocuments.passport
-                          ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
-                          : validationErrors.has("passport")
-                            ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
-                            : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
+                        ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
+                        : validationErrors.has("passport")
+                          ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
+                          : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
                         }`}
                       onClick={() => toggleRequiredDocument("passport")}
                     >
                       <div
                         className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all ${requiredDocuments.passport
-                            ? "bg-[#7350FF] border-2 border-[#7350FF]"
-                            : "bg-transparent border-2 border-white/40"
+                          ? "bg-[#7350FF] border-2 border-[#7350FF]"
+                          : "bg-transparent border-2 border-white/40"
                           }`}
                       >
                         {requiredDocuments.passport && (
@@ -2096,17 +2078,17 @@ const CountrySlider = () => {
                     </div>
                     <div
                       className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border ${requiredDocuments.ukVisa
-                          ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
-                          : validationErrors.has("ukVisa")
-                            ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
-                            : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
+                        ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
+                        : validationErrors.has("ukVisa")
+                          ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
+                          : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
                         }`}
                       onClick={() => toggleRequiredDocument("ukVisa")}
                     >
                       <div
                         className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all ${requiredDocuments.ukVisa
-                            ? "bg-[#7350FF] border-2 border-[#7350FF]"
-                            : "bg-transparent border-2 border-white/40"
+                          ? "bg-[#7350FF] border-2 border-[#7350FF]"
+                          : "bg-transparent border-2 border-white/40"
                           }`}
                       >
                         {requiredDocuments.ukVisa && (
@@ -2122,17 +2104,17 @@ const CountrySlider = () => {
                     </div>
                     <div
                       className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border ${requiredDocuments.photos
-                          ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
-                          : validationErrors.has("photos")
-                            ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
-                            : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
+                        ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
+                        : validationErrors.has("photos")
+                          ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
+                          : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
                         }`}
                       onClick={() => toggleRequiredDocument("photos")}
                     >
                       <div
                         className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all ${requiredDocuments.photos
-                            ? "bg-[#7350FF] border-2 border-[#7350FF]"
-                            : "bg-transparent border-2 border-white/40"
+                          ? "bg-[#7350FF] border-2 border-[#7350FF]"
+                          : "bg-transparent border-2 border-white/40"
                           }`}
                       >
                         {requiredDocuments.photos && (
@@ -2150,17 +2132,17 @@ const CountrySlider = () => {
                     </div>
                     <div
                       className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border ${requiredDocuments.bankStatements
-                          ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
-                          : validationErrors.has("bankStatements")
-                            ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
-                            : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
+                        ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
+                        : validationErrors.has("bankStatements")
+                          ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
+                          : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
                         }`}
                       onClick={() => toggleRequiredDocument("bankStatements")}
                     >
                       <div
                         className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all ${requiredDocuments.bankStatements
-                            ? "bg-[#7350FF] border-2 border-[#7350FF]"
-                            : "bg-transparent border-2 border-white/40"
+                          ? "bg-[#7350FF] border-2 border-[#7350FF]"
+                          : "bg-transparent border-2 border-white/40"
                           }`}
                       >
                         {requiredDocuments.bankStatements && (
@@ -2179,17 +2161,17 @@ const CountrySlider = () => {
                     </div>
                     <div
                       className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border ${requiredDocuments.employmentProof
-                          ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
-                          : validationErrors.has("employmentProof")
-                            ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
-                            : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
+                        ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
+                        : validationErrors.has("employmentProof")
+                          ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
+                          : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
                         }`}
                       onClick={() => toggleRequiredDocument("employmentProof")}
                     >
                       <div
                         className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all ${requiredDocuments.employmentProof
-                            ? "bg-[#7350FF] border-2 border-[#7350FF]"
-                            : "bg-transparent border-2 border-white/40"
+                          ? "bg-[#7350FF] border-2 border-[#7350FF]"
+                          : "bg-transparent border-2 border-white/40"
                           }`}
                       >
                         {requiredDocuments.employmentProof && (
@@ -2208,15 +2190,15 @@ const CountrySlider = () => {
                     </div>
                     <div
                       className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border ${requiredDocuments.insurance
-                          ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
-                          : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
+                        ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
+                        : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
                         }`}
                       onClick={() => toggleRequiredDocument("insurance")}
                     >
                       <div
                         className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all ${requiredDocuments.insurance
-                            ? "bg-[#7350FF] border-2 border-[#7350FF]"
-                            : "bg-transparent border-2 border-white/40"
+                          ? "bg-[#7350FF] border-2 border-[#7350FF]"
+                          : "bg-transparent border-2 border-white/40"
                           }`}
                       >
                         {requiredDocuments.insurance && (
@@ -2256,8 +2238,8 @@ const CountrySlider = () => {
                   >
                     <div
                       className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black ${recommendedItems.insuranceCertificate
-                          ? "bg-[#7350FF] border border-transparent"
-                          : "bg-white border border-gray-500"
+                        ? "bg-[#7350FF] border border-transparent"
+                        : "bg-white border border-gray-500"
                         }`}
                     >
                       {recommendedItems.insuranceCertificate && (
@@ -2382,8 +2364,8 @@ const CountrySlider = () => {
                     >
                       <div
                         className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black ${recommendedItems.giftCard
-                            ? "bg-[#7350FF] border border-transparent"
-                            : "bg-white border border-gray-500"
+                          ? "bg-[#7350FF] border border-transparent"
+                          : "bg-white border border-gray-500"
                           }`}
                       >
                         {recommendedItems.giftCard && (

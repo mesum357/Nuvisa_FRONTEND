@@ -36,7 +36,7 @@ const PaymentSuccess = () => {
         // Get payment data from current session
         const currentData = await getCurrentPaymentData();
 
-        const sessionId = searchParams.get("session_id"); 
+        const sessionId = searchParams.get("session_id");
         if (
           !sessionId &&
           (!currentData ||
@@ -46,8 +46,6 @@ const PaymentSuccess = () => {
           return;
         }
 
-        console.log("=== PAYMENT SUCCESS DEBUG ===");
-        console.log("Current payment data:", currentData);
 
         // Check if this is a traveler insurance payment (both regular and additional)
         // Prioritize URL parameters over localStorage data for insurance payments
@@ -71,10 +69,7 @@ const PaymentSuccess = () => {
                 applicationId = applicationId || metadata.applicationId;
                 travelerIndex = travelerIndex || metadata.travelerIndex;
                 usedStoredInsuranceMetadata = metadata; // preserve for later POST
-                console.log(
-                  "Using stored insurance payment metadata:",
-                  metadata
-                );
+
 
                 // Clean up the stored metadata after use
                 localStorage.removeItem("insurancePaymentMetadata");
@@ -85,11 +80,7 @@ const PaymentSuccess = () => {
           }
         }
 
-        console.log("URL Parameters:");
-        console.log("- session_id:", sessionId);
-        console.log("- payment_type:", paymentTypeParam);
-        console.log("- application_id:", applicationId);
-        console.log("- traveler_index:", travelerIndex);
+
 
         // If URL parameters indicate insurance payment, use those values
         // Otherwise fallback to localStorage data for application creation
@@ -97,13 +88,13 @@ const PaymentSuccess = () => {
           paymentTypeParam || currentData.paymentType || "application_creation";
         const finalApplicationId = applicationId || currentData.applicationId;
 
-   
+
 
         setPaymentType(finalPaymentType);
 
         // Check if this is a full payment or additional traveler payment
         if (finalPaymentType === "full_payment" || finalPaymentType === "additional_traveler") {
-   
+
 
           // Update the application payment status without marking fullPayment step as completed
           // The step will only be completed when ALL travelers have paid
@@ -126,7 +117,6 @@ const PaymentSuccess = () => {
               }
             );
 
-            console.log("Payment status update result:", await updateResponse.json());
           } catch (error) {
             console.error("Error updating payment status:", error);
           }
@@ -139,10 +129,7 @@ const PaymentSuccess = () => {
           return;
         }
 
-        console.log(
-          "❌ NEW APPLICATION CREATION - Proceeding with application creation flow"
-        );
-        console.log("=== END PAYMENT SUCCESS DEBUG ===");
+
 
         // Original application creation payment flow
         const paymentInfo = {
@@ -172,38 +159,13 @@ const PaymentSuccess = () => {
         // Create visa application
         setIsCreatingApplication(true);
 
-        console.log("=== VISA TYPE DEBUG ===");
-        console.log(
-          "Selected visa type from Redux:",
-          visaState.selectedVisaType
-        );
-        console.log("Visa type ID from Redux:", visaState.visaTypeId);
-
-        // Check localStorage for visa type data as fallback
-        let visaTypeFromStorage = null;
-        let visaTypeIdFromStorage = null;
-        try {
-          const storedVisaType = localStorage.getItem("selectedVisaType");
-          const storedVisaTypeId = localStorage.getItem("visaTypeId");
-          if (storedVisaType) {
-            visaTypeFromStorage = JSON.parse(storedVisaType);
-          }
-          if (storedVisaTypeId) {
-            visaTypeIdFromStorage = storedVisaTypeId;
-          }
-          console.log("Visa type from localStorage:", visaTypeFromStorage);
-          console.log("Visa type ID from localStorage:", visaTypeIdFromStorage);
-        } catch (error) {
-          console.error("Error parsing visa type from localStorage:", error);
-        }
-        console.log("=== END VISA TYPE DEBUG ===");
 
         // Initialize travelers data with insurance set for each initial traveler
         const numberOfTravelers = Number(currentData.travelers) || 1;
 
         // Use the actual insurance selection boolean, fallback to fee check for backward compatibility
         const hasInsurance =
-          currentData.insuranceSelected === "true"  ||
+          currentData.insuranceSelected === "true" ||
             (currentData.insuranceSelected === undefined &&
               Number(currentData.insurancePayment) > 0)
             ? true
@@ -211,8 +173,8 @@ const PaymentSuccess = () => {
 
 
         // Determine if this is truly a checkout payment or application step payment
-        const isCheckoutPayment = finalPaymentType === "application_creation" || 
-                                 (!finalPaymentType && !applicationId); // No payment type means initial checkout
+        const isCheckoutPayment = finalPaymentType === "application_creation" ||
+          (!finalPaymentType && !applicationId); // No payment type means initial checkout
 
         const initialTravelersData = Array.from(
           { length: numberOfTravelers },
@@ -268,13 +230,13 @@ const PaymentSuccess = () => {
             insurance: {
               insurance: hasInsurance, // Set insurance for each initial traveler based on payment
               insuranceDetails:
-                hasInsurance  ? { selected: true } : null,
+                hasInsurance ? { selected: true } : null,
               insuranceCertificate: null, // Initialize certificate field,
               orderId: null,
-              paymentAmount: hasInsurance  ? Number(currentData.insurancePayment) || 0 : 0,
-              paidInCheckout: hasInsurance  && isCheckoutPayment, // Only true for actual checkout payments
-              insuranceSource: hasInsurance  && isCheckoutPayment ? "checkout" : null,
-              insurancePaymentCompleted: hasInsurance ,
+              paymentAmount: hasInsurance ? Number(currentData.insurancePayment) || 0 : 0,
+              paidInCheckout: hasInsurance && isCheckoutPayment, // Only true for actual checkout payments
+              insuranceSource: hasInsurance && isCheckoutPayment ? "checkout" : null,
+              insurancePaymentCompleted: hasInsurance,
             },
             fullPayment: {
               paymentStatus: "completed",
@@ -282,8 +244,8 @@ const PaymentSuccess = () => {
               paymentAmount: Number(currentData.totalAmount) || 159,
               paymentDate: new Date().toISOString(),
               paymentMethod: "stripe",
-              includeInsurance: hasInsurance ,
-              insuranceType: hasInsurance  ? "purchase" : "none",
+              includeInsurance: hasInsurance,
+              insuranceType: hasInsurance ? "purchase" : "none",
               paidInCheckout: isCheckoutPayment,
             },
           })
@@ -303,41 +265,24 @@ const PaymentSuccess = () => {
           // Add arrival and departure dates from Redux store for SMV order creation
           arrivalDate: visaState.arrivalDate,
           departureDate: visaState.departureDate,
-          insurancePaymentCompleted: hasInsurance ,
-          initialInsurancePaidTotal: hasInsurance  ? (Number(currentData.insurancePayment) || 0).toString() : "0",
-          insuranceDetails: (hasInsurance  && isCheckoutPayment) ? {
+          insurancePaymentCompleted: hasInsurance,
+          initialInsurancePaidTotal: hasInsurance ? (Number(currentData.insurancePayment) || 0).toString() : "0",
+          insuranceDetails: (hasInsurance && isCheckoutPayment) ? {
             insurancePaymentCompleted: true,
             paymentAmount: Number(currentData.insurancePayment) || 0,
             paymentDate: new Date().toISOString(),
             paidInCheckout: true,
             insuranceSource: "checkout"
           } : null,
-          
+
         };
 
-        console.log("=== APPLICATION PAYLOAD DEBUG ===");
-        console.log("Final payload being sent to backend:", {
-          ...applicationPayload,
-        });
-        console.log("SMV order creation data:", {
-          visaTypeId: applicationPayload.visaTypeId,
-          arrivalDate: applicationPayload.arrivalDate,
-          departureDate: applicationPayload.departureDate,
-          numberOfTravellers: applicationPayload.numberOfTravellers,
-        });
-        console.log("=== END APPLICATION PAYLOAD DEBUG ===");
 
         if (
           (finalPaymentType === "additional_traveler_insurance" ||
             finalPaymentType === "traveler_insurance") &&
           finalApplicationId
         ) {
-          console.log(
-            `✅ INSURANCE PAYMENT DETECTED - Processing ${finalPaymentType} payment success for traveler ${travelerIndex}`
-          );
-          console.log(
-            "Manually updating traveler/application insurance status (webhook workaround for localhost)"
-          );
 
           try {
             const postAmountRaw =
@@ -397,7 +342,6 @@ const PaymentSuccess = () => {
 
               const insuranceResult =
                 insuranceUpdateResponse?.data?.data?.results || {};
-              console.log("Insurance update result:", insuranceResult);
             } else {
               // No travelerIndex -> application-level insurance payment covering all travelers
               await fetch(
@@ -429,10 +373,7 @@ const PaymentSuccess = () => {
                 }
               );
 
-              console.log(
-                "Application-level insurance update result:",
-                insuranceUpdateResponse?.data?.data?.results || {}
-              );
+
             }
           } catch (error) {
             console.error("Error updating traveler/application insurance:", error);
@@ -447,7 +388,6 @@ const PaymentSuccess = () => {
         }
 
         const applicationResponse = await createApplication(applicationPayload);
-        // console.log("Application creation response:", applicationResponse);
         if (
           applicationResponse?.status === 200 ||
           applicationResponse?.status === 201

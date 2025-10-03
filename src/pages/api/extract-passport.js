@@ -33,15 +33,15 @@ export default async function handler(req, res) {
     // Initialize the Mindee ClientV2 with your API key
     const api_key = process.env.MINDEE_API_KEY || "md_rvtU59yTx2sBb89vk75p7DKgTCMSLKKR";
     const model_id = process.env.MINDEE_MODEL_ID || "9bc619aa-f5cd-481d-8add-ac5b3d124039"; // Replace with your actual model ID
-    
+
     const client = new ClientV2({ apiKey: api_key });
 
     // Read file into a buffer
     const buffer = fs.readFileSync(file.filepath);
-    
-  const input_source = new BufferInput({ buffer, filename: file.originalFilename || file.newFilename || "upload.jpg" });
 
-  if (file.mimetype) input_source.mimeType = file.mimetype;
+    const input_source = new BufferInput({ buffer, filename: file.originalFilename || file.newFilename || "upload.jpg" });
+
+    if (file.mimetype) input_source.mimeType = file.mimetype;
 
     // Send for processing using polling with custom model
     // The SDK may expect the model to be an object with an `id` field
@@ -64,12 +64,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: "Failed to get a valid response from the API." });
     }
 
-    // Log full response for debugging
-    try {
-      console.log("Mindee full response:", JSON.stringify(response, null, 2));
-    } catch (e) {
-      console.log("Mindee response (could not stringify):", response);
-    }
+
 
     // Best-effort: find the model's field object in the response. Mindee V2 custom
     // models often return the useful fields under raw.rawHttp.inference.result.fields

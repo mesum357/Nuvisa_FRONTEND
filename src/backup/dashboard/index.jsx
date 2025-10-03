@@ -79,13 +79,11 @@ export default function HeaderSearchSection() {
 
   const handleCheck = async () => {
     const response = await check();
-    console.log("response ::: response ::: response ::: ", response.data.data);
   };
 
   const fetchUserApplications = async () => {
     const response = await getUserVisaApplications(token);
 
-    console.log(response.data.data.results.applications);
     if (/^2\d{2}$/.test(response?.status)) {
       setUserApplications(response.data.data.results.applications);
     }
@@ -153,11 +151,10 @@ export default function HeaderSearchSection() {
           <div className="flex border-b border-gray-200">
             <button
               onClick={() => setActiveTab("all")}
-              className={`px-6 py-4 flex justify-center gap-2 items-center font-medium text-sm md:text-base ${
-                activeTab === "all"
-                  ? "border-b-2 border-[#7350FF] text-[#7350FF]"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
+              className={`px-6 py-4 flex justify-center gap-2 items-center font-medium text-sm md:text-base ${activeTab === "all"
+                ? "border-b-2 border-[#7350FF] text-[#7350FF]"
+                : "text-gray-500 hover:text-gray-700"
+                }`}
             >
               <Image
                 src="/image/Unionapplication.svg"
@@ -260,11 +257,10 @@ function ApplicationCard({ app, type }) {
     >
       <div className="flex justify-between items-start">
         <div className="flex items-center gap-4">
-          {}
+          { }
           <img
-            src={`https://flagcdn.com/w80/${
-              schengenCountries[app.country]
-            }.png`}
+            src={`https://flagcdn.com/w80/${schengenCountries[app.country]
+              }.png`}
             alt={`${app.country} flag`}
             className="w-12 h-8 object-cover rounded-md border border-gray-200"
           />
@@ -301,15 +297,15 @@ function ApplicationCard({ app, type }) {
         </div>
       )}
 
-        <div className="mt-4 flex justify-end items-center">
-          <button
-            onClick={() => handleContinueApplication(app.id)}
-            className="flex items-center gap-2 bg-[#7350FF] hover:bg-[#6247D3] text-white text-sm px-4 py-2 rounded-lg transition cursor-pointer"
-          >
-            {type === "draft" ? "Continue" : "View"} application
-            <FaChevronRight size={12} />
-          </button>
-        </div>
+      <div className="mt-4 flex justify-end items-center">
+        <button
+          onClick={() => handleContinueApplication(app.id)}
+          className="flex items-center gap-2 bg-[#7350FF] hover:bg-[#6247D3] text-white text-sm px-4 py-2 rounded-lg transition cursor-pointer"
+        >
+          {type === "draft" ? "Continue" : "View"} application
+          <FaChevronRight size={12} />
+        </button>
+      </div>
     </motion.div>
   );
 }

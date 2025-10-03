@@ -18,22 +18,9 @@ const useCreateDynamicCheckoutSession = () => {
     travelData
   }) => {
     setCreatingDynamicCheckout(true);
-    const successCallbackFunction = () => {};
+    const successCallbackFunction = () => { };
 
 
-    console.log("=== PAYMENT HOOK DEBUG ===");
-    console.log("Raw input parameters:", {
-      email,
-      amount,
-      travellers,
-      country,
-      insurance,
-      applicationId,
-      travelerIndex,
-      paymentType,
-      visaTypeId,
-      currency,
-    });
 
     // Ensure paymentType uses backend-expected naming for various payment flows
     let normalizedPaymentType = paymentType;
@@ -70,7 +57,7 @@ const useCreateDynamicCheckoutSession = () => {
       successUrl += `&application_id=${encodeURIComponent(applicationId)}`;
       successUrl += `&traveler_index=${encodeURIComponent(travelerIndex)}`;
 
-    
+
 
       // Store payment metadata in localStorage as backup
       const paymentMetadata = {
@@ -145,20 +132,13 @@ const useCreateDynamicCheckoutSession = () => {
       }
     }
 
-    console.log("Final payload being sent to API:", payload);
-    console.log("=== END PAYMENT HOOK DEBUG ===");
-
     try {
       const response = await createDynamicPaymentSession(
         payload,
         successCallbackFunction
       );
 
-      console.log("=== PAYMENT API RESPONSE ===");
-      console.log("Full response:", response);
-      console.log("Response data:", response?.data);
-      console.log("Response status:", response?.status);
-      console.log("=== END PAYMENT API RESPONSE ===");
+
 
       // Backend may return the checkout URL in different shapes.
       const redirectUrl =
@@ -171,10 +151,7 @@ const useCreateDynamicCheckoutSession = () => {
       setCreatingDynamicCheckout(false);
 
       if (redirectUrl && typeof window !== "undefined") {
-        console.log("Redirecting to Stripe checkout:", redirectUrl);
-        // Use assign so browser history keeps track for back button
         window.location.assign(redirectUrl);
-        // Return response in case caller wants to await it
         return response;
       }
 

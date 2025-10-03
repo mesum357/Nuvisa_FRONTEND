@@ -220,7 +220,6 @@ const VisitDetailSection = ({
 
   if (!parentVisaApplication) return null;
 
-  console.log(selectedCountry);
 
   return (
     <form className="space-y-6" onSubmit={handleSubmit}>

@@ -22,7 +22,7 @@ export const COUNTRY_CONFIG: Record<string, CountryConfig> = {
     visaFee: 159,
     insuranceFee: 420,
   },
-  
+
   // Schengen Countries
   AUSTRIA: {
     visaFee: 159,
@@ -144,7 +144,7 @@ export const COUNTRY_CONFIG: Record<string, CountryConfig> = {
     visaFee: 159,
     insuranceFee: 495,
   },
-  
+
   // Additional common destinations
   "UNITED KINGDOM": {
     visaFee: 159,
@@ -202,19 +202,16 @@ export const DEFAULT_CONFIG: CountryConfig = {
 export const getCountryConfig = (countryName: string): CountryConfig => {
   const normalizedCountryName = countryName.toUpperCase().trim();
   const config = COUNTRY_CONFIG[normalizedCountryName] || DEFAULT_CONFIG;
-  
+
   // Debug logging to help troubleshoot
-  console.log(`🏁 Country lookup: "${countryName}" -> "${normalizedCountryName}" -> Insurance Fee: ${config.insuranceFee}`);
-  
+
   return config;
 };
 
 // Debug function to test the configuration
 export const testCountryConfig = () => {
-  console.log("🧪 Testing country configurations:");
   const testCountries = ["FRANCE", "GERMANY", "SPAIN", "NORWAY", "BEGUN"];
   testCountries.forEach(country => {
     const config = getCountryConfig(country);
-    console.log(`  ${country}: ${config.insuranceFee} yen`);
   });
 };

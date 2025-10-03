@@ -12,7 +12,7 @@ export default function ApplicationStatusCard({ application, onSelect, isExpande
   const [documents, setDocuments] = useState([]);
   const [loadingDocuments, setLoadingDocuments] = useState(false);
   const [updatingDocument, setUpdatingDocument] = useState(null);
-  
+
   const token = localStorageGateway("token", localStorageEnums.GET);
   const rawAppId = application?.id ?? application?.applicationId ?? application?.code;
   const rawOrderId = application?.orderId ?? application?.order_id ?? application?.orderCode;
@@ -25,7 +25,7 @@ export default function ApplicationStatusCard({ application, onSelect, isExpande
 
   const fetchApplicationDetails = async () => {
     if (!rawAppId) return null;
-    
+
     try {
       const response = await getApplicationDetails(token, rawAppId);
       if (response?.status >= 200 && response?.status < 300) {
@@ -41,32 +41,30 @@ export default function ApplicationStatusCard({ application, onSelect, isExpande
 
   const fetchDocuments = async () => {
     if (!rawAppId || !documentsOpen) return;
-    
+
     setLoadingDocuments(true);
     try {
       let details = applicationDetails;
       if (!details) {
         details = await fetchApplicationDetails();
       }
-      
+
       const allDocuments = [];
-      
+
       // First, try to extract documents from the application details directly
       if (details?.travelersData && Array.isArray(details.travelersData)) {
-        console.log('Processing travelers data:', details.travelersData);
-        
+
         for (const traveler of details.travelersData) {
           const travelerName = `${traveler.basicDetails?.firstName || 'Unknown'} ${traveler.basicDetails?.lastName || ''}`.trim();
-          
+
           // Extract documents from traveler.documents.documents structure
           if (traveler.documents?.documents) {
             const docsByType = traveler.documents.documents;
-            console.log(`Documents for traveler ${travelerName}:`, docsByType);
-            
+
             Object.entries(docsByType).forEach(([docTypeId, docData]) => {
               // Handle both array and object formats
               const docs = Array.isArray(docData) ? docData : [docData];
-              
+
               docs.forEach((doc, index) => {
                 if (doc && (doc.preview || doc.name)) {
                   const documentObj = {
@@ -85,26 +83,25 @@ export default function ApplicationStatusCard({ application, onSelect, isExpande
                     size: doc.size,
                     mimeType: doc.type
                   };
-                  console.log('Adding document:', documentObj);
                   allDocuments.push(documentObj);
                 }
               });
             });
           }
-          
+
           // Also try to fetch additional documents via API
           if (traveler.id) {
             try {
               const docResponse = await getTravelerDocuments(token, rawAppId, traveler.id);
               if (docResponse?.status >= 200 && docResponse?.status < 300) {
                 const travelerDocs = docResponse.data?.data || docResponse.data || [];
-         
+
                 const docsWithTravelerInfo = (Array.isArray(travelerDocs) ? travelerDocs : []).map(doc => ({
                   ...doc,
                   travelerName: travelerName,
                   travelerId: traveler.id
                 }));
-                
+
                 // Only add if not already in allDocuments
                 docsWithTravelerInfo.forEach(doc => {
                   if (!allDocuments.find(existing => existing.url === doc.url || existing.previewUrl === doc.previewUrl)) {
@@ -118,7 +115,7 @@ export default function ApplicationStatusCard({ application, onSelect, isExpande
           }
         }
       }
-      
+
       if (allDocuments.length === 0) {
         try {
           const docResponse = await getTravelerDocuments(token, rawAppId, '1');
@@ -133,7 +130,7 @@ export default function ApplicationStatusCard({ application, onSelect, isExpande
           console.error("Error fetching default documents:", error);
         }
       }
-      
+
       setDocuments(allDocuments);
     } catch (error) {
       console.error("Error fetching documents:", error);
@@ -166,11 +163,11 @@ export default function ApplicationStatusCard({ application, onSelect, isExpande
         status: newStatus,
         notes
       });
-      
+
       if (response?.status >= 200 && response?.status < 300) {
-        setDocuments(docs => 
-          docs.map(doc => 
-            doc.id === documentId 
+        setDocuments(docs =>
+          docs.map(doc =>
+            doc.id === documentId
               ? { ...doc, status: newStatus, adminNotes: notes }
               : doc
           )
@@ -223,10 +220,10 @@ export default function ApplicationStatusCard({ application, onSelect, isExpande
               {application?.country || application?.countryName || 'Unknown'}
             </h4>
             <p className="text-sm text-white/60 truncate">
-   
+
               {formatApplicationId(appId)}
               <span className="text-xs text-white/50 ml-2">
-              • {formatOrderId(rawOrderId)}
+                • {formatOrderId(rawOrderId)}
               </span>
             </p>
           </div>
@@ -242,7 +239,7 @@ export default function ApplicationStatusCard({ application, onSelect, isExpande
               {application?.email || 'No email'}
             </p>
             <p className="text-xs text-white/60">
-              {application?.createdAt 
+              {application?.createdAt
                 ? `${Math.floor((new Date() - new Date(application.createdAt)) / (1000 * 60 * 60 * 24))} days ago`
                 : 'Recently created'
               }
@@ -261,33 +258,32 @@ export default function ApplicationStatusCard({ application, onSelect, isExpande
             )}
           </div>
           <button className="flex items-center text-white/80 hover:text-white">
-            <ChevronDown 
-              size={20} 
-              className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} 
+            <ChevronDown
+              size={20}
+              className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
             />
           </button>
         </div>
       </div>
-      
+
       {isExpanded && (
         <div className="border-t border-[#423577] bg-[#1a1a22] p-4 space-y-4">
           {/* Quick Actions */}
           <div className="flex items-center gap-3">
-            <button 
-              onClick={onClickView} 
+            <button
+              onClick={onClickView}
               className="flex items-center gap-2 px-4 py-2 bg-[#7350FF] hover:bg-[#6247D3] text-white rounded-lg text-sm font-medium transition-colors duration-200"
             >
               <Eye size={16} />
               View Application
             </button>
-            
-            <button 
+
+            <button
               onClick={() => setDocumentsOpen(!documentsOpen)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
-                documentsOpen 
-                  ? 'bg-orange-600 hover:bg-orange-700 text-white' 
-                  : 'bg-[#3b2b55] hover:bg-[#4a3768] text-white/90'
-              }`}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${documentsOpen
+                ? 'bg-orange-600 hover:bg-orange-700 text-white'
+                : 'bg-[#3b2b55] hover:bg-[#4a3768] text-white/90'
+                }`}
             >
               <FileText size={16} />
               <span>{documentsOpen ? 'Hide' : 'Show'} Documents</span>
@@ -360,7 +356,7 @@ export default function ApplicationStatusCard({ application, onSelect, isExpande
                   Documents ({documents.length})
                 </h4>
               </div>
-              
+
               {loadingDocuments ? (
                 <div className="text-center py-6">
                   <div className="inline-flex items-center gap-2 text-white/60">
@@ -375,7 +371,7 @@ export default function ApplicationStatusCard({ application, onSelect, isExpande
               ) : (
                 <div className="space-y-3">
                   {documents.map((doc) => (
-                    <DocumentItem 
+                    <DocumentItem
                       key={doc.id || `${doc.travelerId}-${doc.type}`}
                       document={doc}
                       onUpdateStatus={updateDocStatus}
@@ -395,7 +391,7 @@ export default function ApplicationStatusCard({ application, onSelect, isExpande
 function DocumentItem({ document, onUpdateStatus, isUpdating }) {
   const getStatusIcon = (status) => {
     const statusLower = String(status || 'pending').toLowerCase();
-    
+
     if (statusLower === 'approved' || statusLower === 'accepted') {
       return <CheckCircle size={14} className="text-green-400" />;
     }
@@ -410,7 +406,7 @@ function DocumentItem({ document, onUpdateStatus, isUpdating }) {
 
   const getStatusBadge = (status) => {
     const statusLower = String(status || 'pending').toLowerCase();
-    
+
     if (statusLower === 'approved' || statusLower === 'accepted') {
       return 'bg-green-500/20 text-green-300 border-green-500/40';
     }
@@ -471,11 +467,11 @@ function DocumentItem({ document, onUpdateStatus, isUpdating }) {
               <Eye size={14} />
             </button>
           )}
-          
-       
+
+
         </div>
       </div>
-      
+
       {(document.adminNotes || document.notes) && (
         <div className="mt-2 p-2 bg-yellow-500/10 border border-yellow-500/30 rounded text-xs">
           <span className="text-yellow-300 font-medium">Note: </span>
@@ -489,7 +485,7 @@ function DocumentItem({ document, onUpdateStatus, isUpdating }) {
 // Helper component for detail rows
 function DetailRow({ icon, label, value }) {
   if (!value) return null;
-  
+
   return (
     <div className="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-all duration-200">
       <div className="flex items-center justify-center w-6 h-6">
@@ -506,7 +502,7 @@ function DetailRow({ icon, label, value }) {
 function StatusPill({ status }) {
   const norm = String(status || 'pending').replace(/_/g, ' ').toLowerCase();
   let color, icon;
-  
+
   if (norm.includes('approved') || norm.includes('complete')) {
     color = 'bg-green-500/20 text-green-300 border-green-500/40';
     icon = <CheckCircle size={12} />;
@@ -520,7 +516,7 @@ function StatusPill({ status }) {
     color = 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40';
     icon = <AlertCircle size={12} />;
   }
-  
+
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border font-medium ${color}`}>
       {icon}

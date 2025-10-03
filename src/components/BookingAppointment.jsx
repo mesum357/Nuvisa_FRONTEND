@@ -175,7 +175,6 @@ const BookingAppointment = ({ onComplete, loading, _validateAppointment, travele
       }
     };
 
-    console.log('Appointment data being saved:', formatted);
     onComplete({ appointmentData: formatted });
   };
 

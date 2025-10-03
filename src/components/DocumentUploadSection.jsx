@@ -1,6 +1,7 @@
 import { Upload, Check, Eye, Download, Trash2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { uploadFile, deleteFile } from "@/api/upload";
+import { Loader } from "lucide-react";
 
 const DocumentUploadSection = ({
   documents,
@@ -23,7 +24,7 @@ const DocumentUploadSection = ({
       description: "Recent passport-sized colour photographs",
       required: true,
       requiredCount: 2,
-      field : "passportPhotos",
+      field: "passportPhotos",
     },
     {
       id: 2,
@@ -31,21 +32,21 @@ const DocumentUploadSection = ({
       description:
         "Last 3 months showing sufficient funds (recommended £50–£80 per day per person)",
       required: true,
-      field : "bankStatements",
+      field: "bankStatements",
     },
     {
       id: 3,
       title: "Employment proof (last 3 months payslips)",
       description: "Payslips for the last 3 months",
       required: true,
-      field : "employmentProof",
+      field: "employmentProof",
     },
     {
       id: 4,
       title: "School/College ID Card",
       description: "",
       required: false,
-      field : "schoolIdCard",
+      field: "schoolIdCard",
     },
     {
       id: 5,
@@ -53,7 +54,7 @@ const DocumentUploadSection = ({
       description:
         "Passport page showing a valid UK visa (must have at least 3 months validity after your travel end date)",
       required: true,
-      field : "ukVisa",
+      field: "ukVisa",
     },
     {
       id: 6,
@@ -61,7 +62,7 @@ const DocumentUploadSection = ({
       description: `Upload your travel insurance certificate(s) if you have your own insurance. You can upload up to ${totalTravelers} certificate(s), one per traveler.`,
       required: false,
       multiple: false,
-      field : "insuranceDocument",
+      field: "insuranceDocument",
     },
     {
       id: 7,
@@ -69,12 +70,12 @@ const DocumentUploadSection = ({
       description: "Optional additional supporting document",
       required: false,
       multiple: true,
-      field : "additionalDocument",
+      field: "additionalDocument",
     },
   ];
 
   const handleFileUpload = async (e, docType) => {
-      setIsLoading(docType.field);
+    setIsLoading(docType.field);
     const docId = docType.field
 
     if (disabled || !isOwner) return; // Prevent file upload when disabled or not owner
@@ -114,8 +115,8 @@ const DocumentUploadSection = ({
 
     try {
       setIsLoading(docType.field);
-      const uploadPromises = filesToUpload.map(async (file) =>  uploadFile(file));
-    
+      const uploadPromises = filesToUpload.map(async (file) => uploadFile(file));
+
       const uploadResults = await Promise.all(uploadPromises);
 
       const documentData = filesToUpload.map((file, index) => ({
@@ -171,7 +172,7 @@ const DocumentUploadSection = ({
         onUploadError(errorMessage);
       }
       setIsLoading(null);
-    } finally{
+    } finally {
       setIsLoading(null);
     }
   };
@@ -235,7 +236,6 @@ const DocumentUploadSection = ({
 
       try {
         await deleteFile(fileToDelete.preview);
-        console.log(`Successfully deleted file: ${fileToDelete.name}`);
       } catch (error) {
         console.error(`Failed to delete file from server: ${fileToDelete.name}`, error);
         // Note: We don't revert the UI change here as the file is already "removed" from the user's perspective
@@ -367,7 +367,7 @@ const DocumentUploadSection = ({
                           {docType.title}
                         </span>
 
-                        {!isUploaded && <span
+                        {!isComplete && <span
                           className={`text-xs font-medium px-2 py-1 rounded-full ${docType.required
                             ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
                             : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
@@ -407,16 +407,16 @@ const DocumentUploadSection = ({
                         accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.zip,.env"
                         id={`file-upload-${docType.field}`}
                         multiple={isPassportPhoto || !!docType.multiple}
-                        disabled={disabled || !isOwner || loadingPart === docType.field }
+                        disabled={disabled || !isOwner || loadingPart === docType.field}
                       />
                       <label
                         htmlFor={`file-upload-${docType.field}`}
-                        className={`${disabled || !isOwner || loadingPart === docType.field 
+                        className={`${disabled || !isOwner || loadingPart === docType.field
                           ? "bg-gray-400 dark:bg-gray-600 cursor-not-allowed text-white"
                           : "bg-purple-600 text-white cursor-pointer hover:bg-purple-700"
-                          } font-semibold px-6 py-2.5 rounded-lg transition-colors `}
+                          } font-semibold px-6 py-2.5 rounded-lg transition-colors min-w-32 `}
                       >
-                        {!isOwner ? "View Only" : (isUploaded && canUploadMore ? "Add More" : loadingPart === docType.field  ? "Uploading..." : "Upload")}
+                        {!isOwner ? "View Only" : (isUploaded && canUploadMore ? "Add More" : loadingPart === docType.field ? "Uploading..." : "Upload")}
                       </label>
                     </>
                   )}

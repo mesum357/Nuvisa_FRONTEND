@@ -21,7 +21,6 @@ const VisaTypeSelector = ({ onVisaTypeSelect }) => {
   const dispatch = useAppDispatch();
   const searchParams = useSearchParams();
 
-  //   console.log(visaTypes);
 
   // Get selected country from URL params or Redux store
   const selectedCountryFromUrl = searchParams.get("selectedCountry");
@@ -86,7 +85,6 @@ const VisaTypeSelector = ({ onVisaTypeSelect }) => {
       // Get country code from the selected country name
       const countryCode = getCountryCodeFromName(selectedCountry);
       const response = await getVisaTypes(countryCode);
-      console.log(response);
 
       // Handle different response structures
       let visaTypesData = [];
@@ -372,11 +370,10 @@ const VisaTypeSelector = ({ onVisaTypeSelect }) => {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => handleVisaTypeSelect(visaType)}
-            className={`p-4 border rounded-lg cursor-pointer transition-all ${
-              selectedVisaTypeId === visaType.id
-                ? "border-purple-500 bg-purple-500/20 ring-2 ring-purple-500/50"
-                : "border-[#423577] hover:border-purple-500 hover:bg-[#423577]/20"
-            }`}
+            className={`p-4 border rounded-lg cursor-pointer transition-all ${selectedVisaTypeId === visaType.id
+              ? "border-purple-500 bg-purple-500/20 ring-2 ring-purple-500/50"
+              : "border-[#423577] hover:border-purple-500 hover:bg-[#423577]/20"
+              }`}
           >
             <div className="flex flex-col h-full">
               <div className="flex justify-between items-start mb-2">
@@ -497,11 +494,10 @@ const VisaTypeSelector = ({ onVisaTypeSelect }) => {
                   e.stopPropagation();
                   handleVisaTypeSelect(visaType);
                 }}
-                className={`mt-4 w-full py-2 px-4 rounded-lg transition-all duration-200 font-medium ${
-                  selectedVisaTypeId === visaType.id
-                    ? "bg-green-600 hover:bg-green-700 text-white"
-                    : "bg-gradient-to-r from-purple-600 to-purple-700 text-white hover:from-purple-700 hover:to-purple-800"
-                }`}
+                className={`mt-4 w-full py-2 px-4 rounded-lg transition-all duration-200 font-medium ${selectedVisaTypeId === visaType.id
+                  ? "bg-green-600 hover:bg-green-700 text-white"
+                  : "bg-gradient-to-r from-purple-600 to-purple-700 text-white hover:from-purple-700 hover:to-purple-800"
+                  }`}
               >
                 {selectedVisaTypeId === visaType.id
                   ? "Selected"
