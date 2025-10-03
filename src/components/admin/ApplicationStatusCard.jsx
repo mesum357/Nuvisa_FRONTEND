@@ -221,9 +221,9 @@ export default function ApplicationStatusCard({ application, onSelect, isExpande
             </h4>
             <p className="text-sm text-white/60 truncate">
 
-              {formatApplicationId(appId)}
+              {appId}
               <span className="text-xs text-white/50 ml-2">
-                • {formatOrderId(rawOrderId)}
+                • {rawOrderId}
               </span>
             </p>
           </div>

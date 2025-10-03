@@ -31,7 +31,8 @@ const ApplicationCompletedSection = ({
   const formatApplicationId = (id) => {
     if (!id) return null;
     if (/^AI\d{6}$/.test(id)) return id;
-    const digits = (id + "").replace(/\D/g, "").slice(0, 6).padEnd(6, "0");
+    const digits =
+      (id + "").replace(/\D/g, "").slice(-6).padStart(6, "0");
     return `AI${digits}`;
   };
 
@@ -303,12 +304,12 @@ const ApplicationCompletedSection = ({
                 </ClientOnly>
               </p>
             </div>
-            <div>
+            {currentStatus?.orderId && <div>
               <label className="text-sm text-gray-400">Order ID</label>
               <p className="text-white font-medium">
-                {formatOrderId(currentStatus?.orderId, currentStatus?.id) || "N/A"}
+                {currentStatus?.orderId || "N/A"}
               </p>
-            </div>
+            </div>}
             <div>
               <label className="text-sm text-gray-400">Submitted On</label>
               <p className="text-white font-medium">

@@ -2641,7 +2641,6 @@ const _InsuranceStep = ({
     try {
       const totalAmount = totalInsuranceCost.toFixed(2);
 
-      // Use the hook's standardized payload (hook will attach orderId and currency)
       await handleCreateDynamicCheckoutSession({
         email: parentVisaApplication?.email || "",
         amount: totalAmount,
@@ -3162,6 +3161,10 @@ const FullPaymentStep = ({
       // Calculate total payment including insurance if documents not uploaded
       const totalAmount = calculateTotalPayment();
 
+      console.log(
+        parentVisaApplication,
+        "paymentData in full payment step"
+      );
       // Create checkout session via hook with normalized metadata
       await handleCreateDynamicCheckoutSession({
         email: parentVisaApplication?.email || "",
@@ -3175,7 +3178,7 @@ const FullPaymentStep = ({
           ? "additional_traveler"
           : "full_payment",
         currency: "EUR",
-        travelData: paymentData.travelData?.map((item) => ({
+        travelData: parentVisaApplication?.travelersData?.map((item) => ({
           ...item,
           insurance: {
             insurance: item.insurance?.insurance || true,
