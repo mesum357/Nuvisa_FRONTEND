@@ -86,7 +86,7 @@ const PaymentSuccess = () => {
         // Otherwise fallback to localStorage data for application creation
         const finalPaymentType =
           paymentTypeParam || currentData.paymentType || "application_creation";
-        const finalApplicationId = applicationId || currentData.applicationId;
+        const finalApplicationId = applicationId
 
 
 
@@ -121,11 +121,11 @@ const PaymentSuccess = () => {
             console.error("Error updating payment status:", error);
           }
 
-          setTimeout(() => {
+          if (finalApplicationId) {
             router.replace(
               `/application-step/?application_id=${finalApplicationId}`
             );
-          }, 2000);
+          }
           return;
         }
 

@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import ClientOnly from "../ClientOnly";
 import ComparisonSection from "../ComparisonSection";
 import FAQSection from "../Faqs";

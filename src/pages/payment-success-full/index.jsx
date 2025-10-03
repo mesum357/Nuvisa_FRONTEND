@@ -36,7 +36,11 @@ const ApplicationStepPaymentSuccessPage = () => {
       if (finalApplicationId) {
         await updateVisaApplication(token, updatePayload);
 
-        router.push(`/application-step?application_id=${finalApplicationId}&step=payment`);
+        setTimeout(() => {
+          router.replace(
+            `/application-step/?application_id=${finalApplicationId}&step=payment`
+          );
+        }, 2000);
       }
     };
     if (applicationId) {
