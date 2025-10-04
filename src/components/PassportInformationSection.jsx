@@ -1,27 +1,19 @@
 import { useRef, useState, useEffect } from "react";
 import { uploadFile, deleteFile } from "@/api/upload";
-import { Upload, X, Calendar, Loader2 } from "lucide-react";
+import { Upload, X, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
 import UK_CITIES from "@/constants/ukCities";
-import { CommonDatePicker } from "@/ui/date-picker";
 
-const getLocalDateString = (date) => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
-
-export default function App({ 
-  passportData, 
-  setPassportData, 
-  handleSave, 
-  loading, 
+export default function App({
+  passportData,
+  setPassportData,
+  handleSave,
+  loading,
   disabled,
   onBack = null,
   onNext = null,
-  showIndividualButtons = true
+  showIndividualButtons = true,
 }) {
   const [isComplete, setIsComplete] = useState(false);
 
@@ -150,25 +142,6 @@ const PassportInformationSection = ({
     if (backInputRef.current) backInputRef.current.value = "";
   }, [travelerIndex]);
 
-  const MIN_SAFE_DAYS_BEFORE_TRAVEL = 15;
-
-  const getDayClassName = (date) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const safeDateThreshold = new Date();
-    safeDateThreshold.setHours(0, 0, 0, 0);
-    safeDateThreshold.setDate(today.getDate() + MIN_SAFE_DAYS_BEFORE_TRAVEL);
-
-    if (date < safeDateThreshold && date >= today) {
-      return "dangerous-date";
-    }
-    if (date >= today) {
-      return "comfortable-date";
-    }
-    return undefined;
-  };
-
   const handleInputChange = (e) => {
     if (disabled) return; // Prevent input changes when disabled
     const { name, value } = e.target;
@@ -213,9 +186,7 @@ const PassportInformationSection = ({
   let maxTravelEndDate = null;
   if (passportData.travelStartDate) {
     const startDate = new Date(passportData.travelStartDate);
-    if (
-      !isNaN(startDate.getTime())
-    ) {
+    if (!isNaN(startDate.getTime())) {
       maxTravelEndDate = new Date(startDate);
       maxTravelEndDate.setDate(startDate.getDate() + 90 - 1);
     }
@@ -306,12 +277,12 @@ const PassportInformationSection = ({
       const simple = data.simpleFields || {};
       const rawFields =
         data.raw &&
-          data.raw.rawHttp &&
-          data.raw.rawHttp.inference &&
-          data.raw.rawHttp.inference.result &&
-          data.raw.rawHttp.inference.result.fields
+        data.raw.rawHttp &&
+        data.raw.rawHttp.inference &&
+        data.raw.rawHttp.inference.result &&
+        data.raw.rawHttp.inference.result.fields
           ? data.raw.rawHttp.inference.result.fields
-          : null;
+          : {};
 
       const extracted = {
         passportNumber:
@@ -320,61 +291,61 @@ const PassportInformationSection = ({
           (rawFields &&
             rawFields.passport_number &&
             rawFields.passport_number.value) ||
-          null,
+          "",
         firstName:
           mapped.firstName ||
           simple.given_names ||
           (rawFields && rawFields.given_names && rawFields.given_names.value) ||
-          null,
+          "",
         lastName:
           mapped.lastName ||
           simple.surnames ||
           (rawFields && rawFields.surnames && rawFields.surnames.value) ||
-          null,
+          "",
         dateOfBirth:
           mapped.dateOfBirth ||
           simple.date_of_birth ||
           (rawFields &&
             rawFields.date_of_birth &&
             rawFields.date_of_birth.value) ||
-          null,
+          "",
         sex:
           mapped.sex ||
           simple.sex ||
           (rawFields && rawFields.sex && rawFields.sex.value) ||
-          null,
+          "",
         passportIssueDate:
           mapped.passportIssueDate ||
           simple.date_of_issue ||
           (rawFields &&
             rawFields.date_of_issue &&
             rawFields.date_of_issue.value) ||
-          null,
+          "",
         passportExpiryDate:
           mapped.passportExpiryDate ||
           simple.date_of_expiry ||
           (rawFields &&
             rawFields.date_of_expiry &&
             rawFields.date_of_expiry.value) ||
-          null,
+          "",
         placeOfBirth:
           mapped.placeOfBirth ||
           simple.place_of_birth ||
           (rawFields &&
             rawFields.place_of_birth &&
             rawFields.place_of_birth.value) ||
-          null,
+          "",
         nationality:
           mapped.nationality ||
           simple.nationality ||
           (rawFields && rawFields.nationality && rawFields.nationality.value) ||
-          null,
+          "",
         mrz_line_1:
           (rawFields && rawFields.mrz_line_1 && rawFields.mrz_line_1.value) ||
-          null,
+          "",
         mrz_line_2:
           (rawFields && rawFields.mrz_line_2 && rawFields.mrz_line_2.value) ||
-          null,
+          "",
       };
 
       const foundFields = Object.values(extracted).filter(
@@ -498,8 +469,15 @@ const PassportInformationSection = ({
   };
 
   const frontBusy =
-    frontOcrLoading || frontUploadLoading || showAutofillAnimation || deletingFront;
-  const backBusy = backOcrLoading || backUploadLoading || showAutofillAnimation || deletingBack;
+    frontOcrLoading ||
+    frontUploadLoading ||
+    showAutofillAnimation ||
+    deletingFront;
+  const backBusy =
+    backOcrLoading ||
+    backUploadLoading ||
+    showAutofillAnimation ||
+    deletingBack;
   // Overall processing state used for disabling actions/UI
   const isProcessing =
     frontUploadLoading ||
@@ -633,15 +611,18 @@ const PassportInformationSection = ({
     if (disabled) return; // Prevent image removal when disabled
 
     // Prevent removing images while upload/OCR/extraction is in progress
-    const frontBusy = frontOcrLoading || isProcessing || showAutofillAnimation || deletingFront;
-    const backBusy = backOcrLoading || isProcessing || showAutofillAnimation || deletingBack;
+    const frontBusy =
+      frontOcrLoading || isProcessing || showAutofillAnimation || deletingFront;
+    const backBusy =
+      backOcrLoading || isProcessing || showAutofillAnimation || deletingBack;
 
     if ((side === "front" && frontBusy) || (side === "back" && backBusy)) {
       return;
     }
 
     // Get the current file URL before removing it
-    const fileUrl = side === "front" ? passportData.passportFront : passportData.passportBack;
+    const fileUrl =
+      side === "front" ? passportData.passportFront : passportData.passportBack;
 
     // Optimistically update UI first
     if (side === "front") {
@@ -663,7 +644,11 @@ const PassportInformationSection = ({
     }
 
     // Try to delete from server (don't block UI)
-    if (fileUrl && typeof fileUrl === "string" && !fileUrl.startsWith("data:")) {
+    if (
+      fileUrl &&
+      typeof fileUrl === "string" &&
+      !fileUrl.startsWith("data:")
+    ) {
       if (side === "front") {
         setDeletingFront(true);
       } else {
@@ -673,7 +658,10 @@ const PassportInformationSection = ({
       try {
         await deleteFile(fileUrl);
       } catch (error) {
-        console.error(`Failed to delete ${side} passport image from server:`, error);
+        console.error(
+          `Failed to delete ${side} passport image from server:`,
+          error
+        );
         // Note: We don't revert the UI change here as the file is already "removed" from the user's perspective
         // The server cleanup failure is logged but doesn't affect the user experience
       } finally {
@@ -683,6 +671,65 @@ const PassportInformationSection = ({
           setDeletingBack(false);
         }
       }
+    }
+  };
+
+  // Real-time validation to check if fields meet requirements
+  const isFieldValid = (fieldName, value = null) => {
+    const fieldValue = value !== null ? value : passportData[fieldName];
+
+    switch (fieldName) {
+      case "passportNumber":
+        return fieldValue && fieldValue.trim() !== "";
+      case "firstName":
+        return fieldValue && fieldValue.trim() !== "";
+      case "lastName":
+        return fieldValue && fieldValue.trim() !== "";
+      case "sex":
+        return fieldValue && fieldValue.trim() !== "";
+      case "dateOfBirth":
+        return (
+          fieldValue &&
+          fieldValue.trim() !== "" &&
+          new Date(fieldValue) <= new Date()
+        );
+      case "placeOfBirth":
+        return fieldValue && fieldValue.trim() !== "";
+      case "passportIssuePlace":
+        return fieldValue && fieldValue.trim() !== "";
+      case "passportIssueDate":
+        return fieldValue && fieldValue.trim() !== "";
+      case "passportExpiryDate":
+        if (!fieldValue || fieldValue.trim() === "") return false;
+        if (passportData.passportIssueDate) {
+          return (
+            new Date(fieldValue) >= new Date(passportData.passportIssueDate)
+          );
+        }
+        return true;
+      case "currentAddress1":
+        return fieldValue && fieldValue.trim() !== "";
+      case "city":
+        return fieldValue && fieldValue.trim() !== "";
+      case "pincode":
+        if (!fieldValue || fieldValue.trim() === "") return false;
+        const ukPostcodeRegex =
+          /^([A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}|GIR\s?0AA)$/i;
+        return ukPostcodeRegex.test(String(fieldValue).trim());
+      case "mobileNumber":
+        if (!fieldValue || fieldValue.toString().trim() === "") return false;
+        const s = String(fieldValue).trim();
+        const digits = s.replace(/\D/g, "");
+        if (!(digits.length === 10 || digits.length === 11)) return false;
+        if (digits.length === 11 && digits.charAt(0) !== "0") return false;
+        if (digits.length === 10 && digits.charAt(0) === "0") return false;
+        return true;
+      case "passportFront":
+        return passportData.passportFront || frontPreview ? true : false;
+      case "passportBack":
+        return passportData.passportBack || backPreview ? true : false;
+      default:
+        return true;
     }
   };
 
@@ -754,11 +801,6 @@ const PassportInformationSection = ({
       }
     }
 
-    if (!passportData.travelStartDate)
-      newErrors.travelStartDate = "Travel start date is required.";
-    if (!passportData.travelEndDate)
-      newErrors.travelEndDate = "Travel end date is required.";
-
     if (passportData.travelStartDate && passportData.travelEndDate) {
       const startDate = new Date(passportData.travelStartDate);
       const endDate = new Date(passportData.travelEndDate);
@@ -811,31 +853,23 @@ const PassportInformationSection = ({
       passportBack,
     } = passportData;
 
-    const hasBasicInfo = 
-      passportNumber && 
-      firstName && 
-      lastName && 
-      sex && 
-      dateOfBirth && 
+    const hasBasicInfo =
+      passportNumber &&
+      firstName &&
+      lastName &&
+      sex &&
+      dateOfBirth &&
       placeOfBirth;
 
-    const hasPassportInfo = 
-      passportIssuePlace && 
-      passportIssueDate && 
-      passportExpiryDate;
+    const hasPassportInfo =
+      passportIssuePlace && passportIssueDate && passportExpiryDate;
 
-    const hasAddressInfo = 
-      currentAddress1 && 
-      city && 
-      pincode;
+    const hasAddressInfo = currentAddress1 && city && pincode;
 
-    const hasTravelInfo = 
-      travelStartDate && 
-      travelEndDate;
+    const hasTravelInfo = travelStartDate && travelEndDate;
 
-    const hasPassportImages = 
-      (passportFront || frontPreview) && 
-      (passportBack || backPreview);
+    const hasPassportImages =
+      (passportFront || frontPreview) && (passportBack || backPreview);
 
     const hasMobileNumber = mobileNumber && String(mobileNumber).trim();
 
@@ -845,33 +879,40 @@ const PassportInformationSection = ({
       validDates = new Date(passportExpiryDate) >= new Date(passportIssueDate);
     }
     if (travelStartDate && travelEndDate) {
-      validDates = validDates && new Date(travelEndDate) > new Date(travelStartDate);
+      validDates =
+        validDates && new Date(travelEndDate) > new Date(travelStartDate);
     }
 
     // Check mobile number format
     let validMobile = true;
     if (hasMobileNumber) {
       const digits = String(mobileNumber).trim().replace(/\D/g, "");
-      validMobile = (digits.length === 10 || digits.length === 11) &&
-                   (digits.length === 10 ? digits.charAt(0) !== "0" : digits.charAt(0) === "0");
+      validMobile =
+        (digits.length === 10 || digits.length === 11) &&
+        (digits.length === 10
+          ? digits.charAt(0) !== "0"
+          : digits.charAt(0) === "0");
     }
 
     // Check postcode format
     let validPostcode = true;
     if (pincode) {
-      const ukPostcodeRegex = /^([A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}|GIR\s?0AA)$/i;
+      const ukPostcodeRegex =
+        /^([A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}|GIR\s?0AA)$/i;
       validPostcode = ukPostcodeRegex.test(String(pincode).trim());
     }
 
-    return hasBasicInfo && 
-           hasPassportInfo && 
-           hasAddressInfo && 
-           hasTravelInfo && 
-           hasPassportImages && 
-           hasMobileNumber && 
-           validDates && 
-           validMobile && 
-           validPostcode;
+    return (
+      hasBasicInfo &&
+      hasPassportInfo &&
+      hasAddressInfo &&
+      hasTravelInfo &&
+      hasPassportImages &&
+      hasMobileNumber &&
+      validDates &&
+      validMobile &&
+      validPostcode
+    );
   };
 
   const handleSubmit = (e) => {
@@ -888,97 +929,13 @@ const PassportInformationSection = ({
     }
   };
 
-
   return (
-    <div className={`relative ${disabled ? 'pointer-events-none' : ''}`}>
+    <div className={`relative ${disabled ? "pointer-events-none" : ""}`}>
       <form onSubmit={handleSubmit} className="space-y-6">
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className=" rounded-xl p-6 border border-[#423577] shadow-sm"
-        >
-          <h2 className="flex items-center text-xl font-semibold mb-6 text-white">
-            <Calendar className="text-white mr-3" size={24} />
-            1. Add your tentative travel dates
-          </h2>
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-            <p className="text-sm text-yellow-800">
-              These dates can be approximate and are only required to get you a
-              visa. You may make changes later as per visa issuance period.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <CommonDatePicker
-                selected={
-                  passportData.travelStartDate
-                    ? new Date(passportData.travelStartDate)
-                    : null
-                }
-
-                minDate={new Date()}
-                dayClassName={getDayClassName}
-                className={`w-full px-4 py-3 border rounded-lg transition outline-none text-white ${disabled ? 'bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400' : 'bg-[#292933] focus:ring-2 focus:ring-purple-500 focus:border-transparent'} ${errors.travelStartDate ? "border-red-500" : disabled ? "border-gray-500" : "border-[#423577]"
-                  }`}
-                onChange={disabled ? () => { } : (date) => handleInputChange({
-                  target: {
-                    name: "travelStartDate",
-                    value: getLocalDateString(date),
-                  }
-                })}
-                dateFormat="yyyy-MM-dd"
-                placeholderText="YYYY-MM-DD"
-                label={"Tentative departure date"}
-                disabled={disabled}
-              />
-              {errors.travelStartDate && (
-                <p className="text-red-400 text-xs mt-1">
-                  {errors.travelStartDate}
-                </p>
-              )}
-            </div>
-            <div>
-
-              <CommonDatePicker
-                label={"Tentative return date"}
-                selected={
-                  passportData.travelEndDate
-                    ? new Date(passportData.travelEndDate)
-                    : null
-                }
-                minDate={
-                  passportData.travelStartDate
-                    ? new Date(passportData.travelStartDate)
-                    : new Date()
-                }
-                onChange={disabled ? () => { } : (date) => handleInputChange({
-                  target: {
-                    name: "travelEndDate",
-                    value: getLocalDateString(date),
-                  }
-                })}
-                maxDate={maxTravelEndDate}
-                dayClassName={getDayClassName}
-                disabled={disabled || !passportData.travelStartDate}
-                className={`w-full backdrop-blur-sm text-white rounded-lg px-4 py-3 font-semibold border-2 transition-all outline-none ${disabled ? 'bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400' : !passportData.travelStartDate ? "bg-gray-700/50 border-gray-600 cursor-not-allowed" : "bg-white/10 border-white/20 hover:border-white/40 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20"}`}
-                dateFormat="dd-MM-yyyy"
-                placeholderText="DD-MM-YYYY"
-              />
-
-              {errors.travelEndDate && (
-                <p className="text-red-400 text-xs pt-2">
-                  {errors.travelEndDate}
-                </p>
-              )}
-            </div>
-          </div>
-          {errors.travelStartDateWarning && (
-            <p className="text-red-400 text-xs mt-1">
-              {errors.travelStartDateWarning}
-            </p>
-          )}
-        </motion.div>
-
+        <h3 className="flex items-center text-lg font-semibold mb-4 text-white">
+          <Upload className="text-[#7350FF] mr-2" size={20} />
+          2. Upload passport
+        </h3>
         <div className="flex flex-col md:flex-row gap-10">
           {/* Passport Upload Section (Left Side) */}
           <motion.div
@@ -988,18 +945,14 @@ const PassportInformationSection = ({
             className="w-full md:w-1/2"
           >
             <div className=" rounded-xl p-6 border border-[#423577] shadow-sm">
-              <h3 className="flex items-center text-lg font-semibold mb-4 text-white">
-                <Upload className="text-[#7350FF] mr-2" size={20} />
-                2. Upload passport
-              </h3>
-
               <div className="space-y-6">
                 {/* Front Side Upload */}
                 <div
-                  className={`shadow-sm shadow-gray-600/60 rounded-xl p-4 transition ${errors.passportFront
-                    ? "border-red-500 bg-red-50"
-                    : " hover:shadow-purple-400/60"
-                    }`}
+                  className={`shadow-sm shadow-gray-600/60 rounded-xl p-4 transition ${
+                    errors.passportFront || !isFieldValid("passportFront")
+                      ? "shadow-red-500"
+                      : " hover:shadow-purple-400/60"
+                  }`}
                 >
                   <label className="block text-sm font-medium  mb-2">
                     Passport Front Page
@@ -1055,15 +1008,21 @@ const PassportInformationSection = ({
                       )}
                       <button
                         type="button"
-                        onClick={() => !disabled && !deletingFront && handleRemoveImage("front")}
+                        onClick={() =>
+                          !disabled &&
+                          !deletingFront &&
+                          handleRemoveImage("front")
+                        }
                         disabled={disabled || deletingFront}
-                        className={`absolute top-2 right-2 rounded-full w-6 h-6 flex items-center justify-center transition-opacity ${disabled || deletingFront
-                          ? "bg-gray-400 text-gray-200 cursor-not-allowed"
-                          : "bg-red-500 text-white"
-                          } ${frontBusy
+                        className={`absolute top-2 right-2 rounded-full w-6 h-6 flex items-center justify-center transition-opacity ${
+                          disabled || deletingFront
+                            ? "bg-gray-400 text-gray-200 cursor-not-allowed"
+                            : "bg-red-500 text-white"
+                        } ${
+                          frontBusy
                             ? "hidden"
                             : "opacity-0 group-hover:opacity-100"
-                          }`}
+                        }`}
                       >
                         {deletingFront ? (
                           <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
@@ -1079,14 +1038,19 @@ const PassportInformationSection = ({
                     </div>
                   ) : (
                     <div className="flex items-center justify-center w-full">
-                      <label className={`flex flex-col items-center justify-center w-full h-40 border border-dashed rounded-lg transition ${disabled
-                        ? "border-gray-500 cursor-not-allowed opacity-50 bg-gray-600/20"
-                        : "border-[#423577] cursor-pointer hover:border-purple-400/60"
-                        }`}>
+                      <label
+                        className={`flex flex-col items-center justify-center w-full h-40 border border-dashed rounded-lg transition ${
+                          disabled
+                            ? "border-gray-500 cursor-not-allowed opacity-50 bg-gray-600/20"
+                            : "border-[#423577] cursor-pointer hover:border-purple-400/60"
+                        }`}
+                      >
                         <div className="flex flex-col items-center justify-center pt-5 pb-6">
                           <Upload className="w-10 h-10 mb-3 text-gray-400" />
                           <p className="mb-2 text-sm text-gray-400">
-                            <span className="font-semibold">Click to upload</span>{" "}
+                            <span className="font-semibold">
+                              Click to upload
+                            </span>{" "}
                             or drag and drop
                           </p>
                           <p className="text-xs text-gray-400">
@@ -1100,7 +1064,11 @@ const PassportInformationSection = ({
                           className="hidden"
                           accept=".pdf,.jpg,.jpeg,.png"
                           disabled={disabled}
-                          onChange={disabled ? () => { } : (e) => handleFileUpload(e, "front")}
+                          onChange={
+                            disabled
+                              ? () => {}
+                              : (e) => handleFileUpload(e, "front")
+                          }
                         />
                       </label>
                     </div>
@@ -1113,10 +1081,11 @@ const PassportInformationSection = ({
                 </div>
                 {/* Back Side Upload */}
                 <div
-                  className={`shadow-sm shadow-gray-600/60 rounded-xl p-4 transition ${errors.passportBack
-                    ? "border-red-500 bg-red-50"
-                    : "hover:shadow-purple-400/60"
-                    }`}
+                  className={`shadow-sm shadow-gray-600/60 rounded-xl p-4 transition ${
+                    errors.passportBack || !isFieldValid("passportBack")
+                      ? "shadow-red-500"
+                      : "hover:shadow-purple-400/60"
+                  }`}
                 >
                   <label className="block text-sm font-medium  mb-2">
                     Passport Back Page
@@ -1183,15 +1152,21 @@ const PassportInformationSection = ({
                       )}
                       <button
                         type="button"
-                        onClick={() => !disabled && !deletingBack && handleRemoveImage("back")}
+                        onClick={() =>
+                          !disabled &&
+                          !deletingBack &&
+                          handleRemoveImage("back")
+                        }
                         disabled={disabled || deletingBack}
-                        className={`absolute top-2 right-2 rounded-full w-6 h-6 flex items-center justify-center transition-opacity ${disabled || deletingBack
-                          ? "bg-gray-400 text-gray-200 cursor-not-allowed"
-                          : "bg-red-500 text-white"
-                          } ${backBusy
+                        className={`absolute top-2 right-2 rounded-full w-6 h-6 flex items-center justify-center transition-opacity ${
+                          disabled || deletingBack
+                            ? "bg-gray-400 text-gray-200 cursor-not-allowed"
+                            : "bg-red-500 text-white"
+                        } ${
+                          backBusy
                             ? "hidden"
                             : "opacity-0 group-hover:opacity-100"
-                          }`}
+                        }`}
                       >
                         {deletingBack ? (
                           <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
@@ -1207,14 +1182,19 @@ const PassportInformationSection = ({
                     </div>
                   ) : (
                     <div className="flex items-center justify-center w-full">
-                      <label className={`flex flex-col items-center justify-center w-full h-40 border border-dashed rounded-lg transition ${disabled
-                        ? "border-gray-500 cursor-not-allowed opacity-50 bg-gray-600/20"
-                        : "border-[#423577] cursor-pointer hover:border-purple-400/60"
-                        }`}>
+                      <label
+                        className={`flex flex-col items-center justify-center w-full h-40 border border-dashed rounded-lg transition ${
+                          disabled
+                            ? "border-gray-500 cursor-not-allowed opacity-50 bg-gray-600/20"
+                            : "border-[#423577] cursor-pointer hover:border-purple-400/60"
+                        }`}
+                      >
                         <div className="flex flex-col items-center justify-center pt-5 pb-6">
                           <Upload className="w-10 h-10 mb-3 text-gray-400" />
                           <p className="mb-2 text-sm text-gray-400">
-                            <span className="font-semibold">Click to upload</span>{" "}
+                            <span className="font-semibold">
+                              Click to upload
+                            </span>{" "}
                             or drag and drop
                           </p>
                           <p className="text-xs text-gray-400">
@@ -1228,7 +1208,11 @@ const PassportInformationSection = ({
                           className="hidden"
                           accept=".pdf,.jpg,.jpeg,.png"
                           disabled={disabled}
-                          onChange={disabled ? () => { } : (e) => handleFileUpload(e, "back")}
+                          onChange={
+                            disabled
+                              ? () => {}
+                              : (e) => handleFileUpload(e, "back")
+                          }
                         />
                       </label>
                     </div>
@@ -1256,8 +1240,8 @@ const PassportInformationSection = ({
                   </h3>
                   <div className="h-2"></div>
                   <p className="text-gray-300 text-sm">
-                    Upload passport to autofill your basic details and start your
-                    application
+                    Upload passport to autofill your basic details and start
+                    your application
                   </p>
                 </div>
               </div>
@@ -1274,7 +1258,9 @@ const PassportInformationSection = ({
                     <h3 className="text-xl font-semibold text-white mb-2">
                       Extracting Information
                     </h3>
-                    <p className="text-gray-300 text-sm mb-4">{extractionStep}</p>
+                    <p className="text-gray-300 text-sm mb-4">
+                      {extractionStep}
+                    </p>
 
                     {/* Progress Bar */}
                     <div className="w-64 h-2 bg-gray-700 rounded-full mx-auto overflow-hidden">
@@ -1304,7 +1290,7 @@ const PassportInformationSection = ({
               <motion.div
                 initial={{ opacity: 0, x: 10 }}
                 animate={{ opacity: 1, x: 0 }}
-              // className="bg-[#23232B] rounded-xl shadow-sm p-6 border border-[#423577]"
+                // className="bg-[#23232B] rounded-xl shadow-sm p-6 border border-[#423577]"
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -1315,13 +1301,21 @@ const PassportInformationSection = ({
                       type="text"
                       name="passportNumber"
                       value={passportData.passportNumber}
-                      onChange={disabled ? () => { } : handleInputChange}
+                      onChange={disabled ? () => {} : handleInputChange}
                       placeholder="Enter passport number"
                       disabled={disabled}
-                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${disabled ? 'bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400' : 'focus:ring-2 focus:ring-purple-500 focus:border-transparent'} ${errors.passportNumber
-                        ? "border-red-500"
-                        : disabled ? "border-gray-500" : "border-[#423577]"
-                        }`}
+                      required
+                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${
+                        disabled
+                          ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
+                          : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      } ${
+                        errors.passportNumber || !isFieldValid("passportNumber")
+                          ? "border-red-500"
+                          : disabled
+                          ? "border-gray-500"
+                          : "border-[#423577]"
+                      }`}
                     />
                     {errors.passportNumber && (
                       <p className="text-red-500 text-xs mt-1">
@@ -1337,11 +1331,21 @@ const PassportInformationSection = ({
                       type="text"
                       name="firstName"
                       value={passportData.firstName}
-                      onChange={disabled ? () => { } : handleInputChange}
+                      onChange={disabled ? () => {} : handleInputChange}
                       placeholder="Name"
                       disabled={disabled}
-                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${disabled ? 'bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400' : 'focus:ring-2 focus:ring-purple-500 focus:border-transparent'} ${errors.firstName ? "border-red-500" : disabled ? "border-gray-500" : "border-[#423577]"
-                        }`}
+                      required
+                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${
+                        disabled
+                          ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
+                          : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      } ${
+                        errors.firstName || !isFieldValid("firstName")
+                          ? "border-red-500"
+                          : disabled
+                          ? "border-gray-500"
+                          : "border-[#423577]"
+                      }`}
                     />
                     {errors.firstName && (
                       <p className="text-red-500 text-xs mt-1">
@@ -1357,11 +1361,21 @@ const PassportInformationSection = ({
                       type="text"
                       name="lastName"
                       value={passportData.lastName}
-                      onChange={disabled ? () => { } : handleInputChange}
+                      onChange={disabled ? () => {} : handleInputChange}
                       placeholder="SurName"
                       disabled={disabled}
-                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${disabled ? 'bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400' : 'focus:ring-2 focus:ring-purple-500 focus:border-transparent'} ${errors.lastName ? "border-red-500" : disabled ? "border-gray-500" : "border-[#423577]"
-                        }`}
+                      required
+                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${
+                        disabled
+                          ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
+                          : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      } ${
+                        errors.lastName || !isFieldValid("lastName")
+                          ? "border-red-500"
+                          : disabled
+                          ? "border-gray-500"
+                          : "border-[#423577]"
+                      }`}
                     />
                     {errors.lastName && (
                       <p className="text-red-500 text-xs mt-1">
@@ -1370,14 +1384,26 @@ const PassportInformationSection = ({
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium  mb-1">Sex</label>
+                    <label className="block text-sm font-medium  mb-1">
+                      Sex
+                    </label>
                     <select
                       name="sex"
                       value={passportData.sex}
-                      onChange={disabled ? () => { } : handleInputChange}
+                      onChange={disabled ? () => {} : handleInputChange}
                       disabled={disabled}
-                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${disabled ? 'bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400' : 'focus:ring-2 focus:ring-purple-500 focus:border-transparent'} ${errors.sex ? "border-red-500" : disabled ? "border-gray-500" : "border-[#423577]"
-                        }`}
+                      required
+                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${
+                        disabled
+                          ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
+                          : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      } ${
+                        errors.sex || !isFieldValid("sex")
+                          ? "border-red-500"
+                          : disabled
+                          ? "border-gray-500"
+                          : "border-[#423577]"
+                      }`}
                     >
                       <option value="">Select gender</option>
                       <option value="Male">Male</option>
@@ -1396,10 +1422,20 @@ const PassportInformationSection = ({
                       type="date"
                       name="dateOfBirth"
                       value={passportData.dateOfBirth}
-                      onChange={disabled ? () => { } : handleInputChange}
+                      onChange={disabled ? () => {} : handleInputChange}
                       disabled={disabled}
-                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white [&::-webkit-calendar-picker-indicator]:invert ${disabled ? 'bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400 [&::-webkit-calendar-picker-indicator]:opacity-40' : 'focus:ring-2 focus:ring-purple-500 focus:border-transparent [&::-webkit-calendar-picker-indicator]:cursor-pointer'} ${errors.dateOfBirth ? "border-red-500" : disabled ? "border-gray-500" : "border-[#423577]"
-                        }`}
+                      required
+                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white [&::-webkit-calendar-picker-indicator]:invert ${
+                        disabled
+                          ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400 [&::-webkit-calendar-picker-indicator]:opacity-40"
+                          : "focus:ring-2 focus:ring-purple-500 focus:border-transparent [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                      } ${
+                        errors.dateOfBirth || !isFieldValid("dateOfBirth")
+                          ? "border-red-500"
+                          : disabled
+                          ? "border-gray-500"
+                          : "border-[#423577]"
+                      }`}
                       style={{
                         colorScheme: "light",
                       }}
@@ -1419,13 +1455,21 @@ const PassportInformationSection = ({
                       type="text"
                       name="placeOfBirth"
                       value={passportData.placeOfBirth}
-                      onChange={disabled ? () => { } : handleInputChange}
+                      onChange={disabled ? () => {} : handleInputChange}
                       placeholder="City, Country"
                       disabled={disabled}
-                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${disabled ? 'bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400' : 'focus:ring-2 focus:ring-purple-500 focus:border-transparent'} ${errors.placeOfBirth
-                        ? "border-red-500"
-                        : disabled ? "border-gray-500" : "border-[#423577]"
-                        }`}
+                      required
+                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${
+                        disabled
+                          ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
+                          : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      } ${
+                        errors.placeOfBirth || !isFieldValid("placeOfBirth")
+                          ? "border-red-500"
+                          : disabled
+                          ? "border-gray-500"
+                          : "border-[#423577]"
+                      }`}
                     />
                     {errors.placeOfBirth && (
                       <p className="text-red-500 text-xs mt-1">
@@ -1441,7 +1485,7 @@ const PassportInformationSection = ({
                 initial={{ opacity: 0, x: 10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.2 }}
-              // className="bg-[#23232B] rounded-xl shadow-sm p-6 border border-[#423577]"
+                // className="bg-[#23232B] rounded-xl shadow-sm p-6 border border-[#423577]"
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
@@ -1452,13 +1496,22 @@ const PassportInformationSection = ({
                       type="text"
                       name="passportIssuePlace"
                       value={passportData.passportIssuePlace}
-                      onChange={disabled ? () => { } : handleInputChange}
+                      onChange={disabled ? () => {} : handleInputChange}
                       placeholder="City, Country"
                       disabled={disabled}
-                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${disabled ? 'bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400' : 'focus:ring-2 focus:ring-purple-500 focus:border-transparent'} ${errors.passportIssuePlace
-                        ? "border-red-500"
-                        : disabled ? "border-gray-500" : "border-[#423577]"
-                        }`}
+                      required
+                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${
+                        disabled
+                          ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
+                          : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      } ${
+                        errors.passportIssuePlace ||
+                        !isFieldValid("passportIssuePlace")
+                          ? "border-red-500"
+                          : disabled
+                          ? "border-gray-500"
+                          : "border-[#423577]"
+                      }`}
                     />
                     {errors.passportIssuePlace && (
                       <p className="text-red-500 text-xs mt-1">
@@ -1474,12 +1527,21 @@ const PassportInformationSection = ({
                       type="date"
                       name="passportIssueDate"
                       value={passportData.passportIssueDate}
-                      onChange={disabled ? () => { } : handleInputChange}
+                      onChange={disabled ? () => {} : handleInputChange}
                       disabled={disabled}
-                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white [&::-webkit-calendar-picker-indicator]:invert ${disabled ? 'bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400 [&::-webkit-calendar-picker-indicator]:opacity-40' : 'focus:ring-2 focus:ring-purple-500 focus:border-transparent [&::-webkit-calendar-picker-indicator]:cursor-pointer'} ${errors.passportIssueDate
-                        ? "border-red-500"
-                        : disabled ? "border-gray-500" : "border-[#423577]"
-                        }`}
+                      required
+                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white [&::-webkit-calendar-picker-indicator]:invert ${
+                        disabled
+                          ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400 [&::-webkit-calendar-picker-indicator]:opacity-40"
+                          : "focus:ring-2 focus:ring-purple-500 focus:border-transparent [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                      } ${
+                        errors.passportIssueDate ||
+                        !isFieldValid("passportIssueDate")
+                          ? "border-red-500"
+                          : disabled
+                          ? "border-gray-500"
+                          : "border-[#423577]"
+                      }`}
                     />
                     {errors.passportIssueDate && (
                       <p className="text-red-500 text-xs mt-1">
@@ -1495,12 +1557,21 @@ const PassportInformationSection = ({
                       type="date"
                       name="passportExpiryDate"
                       value={passportData.passportExpiryDate}
-                      onChange={disabled ? () => { } : handleInputChange}
+                      onChange={disabled ? () => {} : handleInputChange}
                       disabled={disabled}
-                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white [&::-webkit-calendar-picker-indicator]:invert ${disabled ? 'bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400 [&::-webkit-calendar-picker-indicator]:opacity-40' : 'focus:ring-2 focus:ring-purple-500 focus:border-transparent [&::-webkit-calendar-picker-indicator]:cursor-pointer'} ${errors.passportExpiryDate
-                        ? "border-red-500"
-                        : disabled ? "border-gray-500" : "border-[#423577]"
-                        }`}
+                      required
+                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white [&::-webkit-calendar-picker-indicator]:invert ${
+                        disabled
+                          ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400 [&::-webkit-calendar-picker-indicator]:opacity-40"
+                          : "focus:ring-2 focus:ring-purple-500 focus:border-transparent [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                      } ${
+                        errors.passportExpiryDate ||
+                        !isFieldValid("passportExpiryDate")
+                          ? "border-red-500"
+                          : disabled
+                          ? "border-gray-500"
+                          : "border-[#423577]"
+                      }`}
                     />
                     {errors.passportExpiryDate && (
                       <p className="text-red-500 text-xs mt-1">
@@ -1516,7 +1587,7 @@ const PassportInformationSection = ({
                 initial={{ opacity: 0, x: 10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.3 }}
-              // className="bg-[#23232B] rounded-xl shadow-sm p-6 border border-[#423577]"
+                // className="bg-[#23232B] rounded-xl shadow-sm p-6 border border-[#423577]"
               >
                 <div className="space-y-4 pt-2">
                   <div>
@@ -1526,14 +1597,23 @@ const PassportInformationSection = ({
                     <input
                       type="text"
                       name="currentAddress1"
+                      required
                       value={passportData.currentAddress1}
-                      onChange={disabled ? () => { } : handleInputChange}
+                      onChange={disabled ? () => {} : handleInputChange}
                       placeholder="Street address, P.O. box"
                       disabled={disabled}
-                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${disabled ? 'bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400' : 'focus:ring-2 focus:ring-purple-500 focus:border-transparent'} ${errors.currentAddress1
-                        ? "border-red-500"
-                        : disabled ? "border-gray-500" : "border-[#423577]"
-                        }`}
+                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${
+                        disabled
+                          ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
+                          : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      } ${
+                        errors.currentAddress1 ||
+                        !isFieldValid("currentAddress1")
+                          ? "border-red-500"
+                          : disabled
+                          ? "border-gray-500"
+                          : "border-[#423577]"
+                      }`}
                     />
                     {errors.currentAddress1 && (
                       <p className="text-red-500 text-xs mt-1">
@@ -1549,10 +1629,14 @@ const PassportInformationSection = ({
                       type="text"
                       name="currentAddress2"
                       value={passportData.currentAddress2}
-                      onChange={disabled ? () => { } : handleInputChange}
+                      onChange={disabled ? () => {} : handleInputChange}
                       placeholder="Apartment, suite, unit, building, floor"
                       disabled={disabled}
-                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${disabled ? 'bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400' : 'focus:ring-2 focus:ring-purple-500 focus:border-transparent border-[#423577]'}`}
+                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${
+                        disabled
+                          ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
+                          : "focus:ring-2 focus:ring-purple-500 focus:border-transparent border-[#423577]"
+                      }`}
                     />
                   </div>
                   {/* State removed for UK addresses - kept intentionally blank */}
@@ -1566,11 +1650,21 @@ const PassportInformationSection = ({
                         type="text"
                         name="city"
                         value={passportData.city}
-                        onChange={disabled ? () => { } : handleInputChange}
+                        onChange={disabled ? () => {} : handleInputChange}
                         placeholder="City (type or select)"
+                        required
                         disabled={disabled}
-                        className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${disabled ? 'bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400' : 'focus:ring-2 focus:ring-purple-500 focus:border-transparent'} ${errors.city ? "border-red-500" : disabled ? "border-gray-500" : "border-[#423577]"
-                          }`}
+                        className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${
+                          disabled
+                            ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
+                            : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        } ${
+                          errors.city || !isFieldValid("city")
+                            ? "border-red-500"
+                            : disabled
+                            ? "border-gray-500"
+                            : "border-[#423577]"
+                        }`}
                       />
                       <datalist id="city-options">
                         {UK_CITIES && UK_CITIES.length > 0
@@ -1578,7 +1672,9 @@ const PassportInformationSection = ({
                           : null}
                       </datalist>
                       {errors.city && (
-                        <p className="text-red-500 text-xs mt-1">{errors.city}</p>
+                        <p className="text-red-500 text-xs mt-1">
+                          {errors.city}
+                        </p>
                       )}
                     </div>
                     <div>
@@ -1589,11 +1685,21 @@ const PassportInformationSection = ({
                         type="text"
                         name="pincode"
                         value={passportData.pincode}
-                        onChange={disabled ? () => { } : handleInputChange}
+                        onChange={disabled ? () => {} : handleInputChange}
                         placeholder="e.g. SW1A 1AA"
                         disabled={disabled}
-                        className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${disabled ? 'bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400' : 'focus:ring-2 focus:ring-purple-500 focus:border-transparent'} ${errors.pincode ? "border-red-500" : disabled ? "border-gray-500" : "border-[#423577]"
-                          }`}
+                        required
+                        className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${
+                          disabled
+                            ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
+                            : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        } ${
+                          errors.pincode || !isFieldValid("pincode")
+                            ? "border-red-500"
+                            : disabled
+                            ? "border-gray-500"
+                            : "border-[#423577]"
+                        }`}
                       />
                       {errors.pincode && (
                         <p className="text-red-500 text-xs mt-1">
@@ -1610,13 +1716,21 @@ const PassportInformationSection = ({
                       type="tel"
                       name="mobileNumber"
                       value={passportData.mobileNumber || ""}
-                      onChange={disabled ? () => { } : handleInputChange}
+                      onChange={disabled ? () => {} : handleInputChange}
                       placeholder="e.g. 7123456789 or 07123456789"
                       disabled={disabled}
-                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${disabled ? 'bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400' : 'focus:ring-2 focus:ring-purple-500 focus:border-transparent'} ${errors.mobileNumber
-                        ? "border-red-500"
-                        : disabled ? "border-gray-500" : "border-[#423577]"
-                        }`}
+                      required
+                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${
+                        disabled
+                          ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
+                          : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      } ${
+                        errors.mobileNumber || !isFieldValid("mobileNumber")
+                          ? "border-red-500"
+                          : disabled
+                          ? "border-gray-500"
+                          : "border-[#423577]"
+                      }`}
                     />
                     {errors.mobileNumber && (
                       <p className="text-red-500 text-xs mt-1">
@@ -1657,7 +1771,7 @@ const PassportInformationSection = ({
                   Back
                 </button>
               )}
-              
+
               {/* Next button - disabled until form is complete */}
               <button
                 type="submit"
@@ -1673,7 +1787,6 @@ const PassportInformationSection = ({
             </div>
           </div>
         )}
-
       </form>
     </div>
   );

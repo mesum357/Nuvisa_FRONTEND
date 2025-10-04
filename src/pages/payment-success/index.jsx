@@ -46,7 +46,6 @@ const PaymentSuccess = () => {
           return;
         }
 
-
         // Check if this is a traveler insurance payment (both regular and additional)
         // Prioritize URL parameters over localStorage data for insurance payments
         let paymentTypeParam = searchParams.get("payment_type");
@@ -70,7 +69,6 @@ const PaymentSuccess = () => {
                 travelerIndex = travelerIndex || metadata.travelerIndex;
                 usedStoredInsuranceMetadata = metadata; // preserve for later POST
 
-
                 // Clean up the stored metadata after use
                 localStorage.removeItem("insurancePaymentMetadata");
               }
@@ -80,22 +78,19 @@ const PaymentSuccess = () => {
           }
         }
 
-
-
         // If URL parameters indicate insurance payment, use those values
         // Otherwise fallback to localStorage data for application creation
         const finalPaymentType =
           paymentTypeParam || currentData.paymentType || "application_creation";
         const finalApplicationId = applicationId
 
-
-
         setPaymentType(finalPaymentType);
 
         // Check if this is a full payment or additional traveler payment
-        if (finalPaymentType === "full_payment" || finalPaymentType === "additional_traveler") {
-
-
+        if (
+          finalPaymentType === "full_payment" ||
+          finalPaymentType === "additional_traveler"
+        ) {
           // Update the application payment status without marking fullPayment step as completed
           // The step will only be completed when ALL travelers have paid
           try {
@@ -116,7 +111,6 @@ const PaymentSuccess = () => {
                 }),
               }
             );
-
           } catch (error) {
             console.error("Error updating payment status:", error);
           }
@@ -128,8 +122,6 @@ const PaymentSuccess = () => {
           }
           return;
         }
-
-
 
         // Original application creation payment flow
         const paymentInfo = {
@@ -159,21 +151,20 @@ const PaymentSuccess = () => {
         // Create visa application
         setIsCreatingApplication(true);
 
-
         // Initialize travelers data with insurance set for each initial traveler
         const numberOfTravelers = Number(currentData.travelers) || 1;
 
         // Use the actual insurance selection boolean, fallback to fee check for backward compatibility
         const hasInsurance =
           currentData.insuranceSelected === "true" ||
-            (currentData.insuranceSelected === undefined &&
-              Number(currentData.insurancePayment) > 0)
+          (currentData.insuranceSelected === undefined &&
+            Number(currentData.insurancePayment) > 0)
             ? true
             : false;
 
-
         // Determine if this is truly a checkout payment or application step payment
-        const isCheckoutPayment = finalPaymentType === "application_creation" ||
+        const isCheckoutPayment =
+          finalPaymentType === "application_creation" ||
           (!finalPaymentType && !applicationId); // No payment type means initial checkout
 
         const initialTravelersData = Array.from(
@@ -197,8 +188,6 @@ const PaymentSuccess = () => {
               pincode: "",
               passportFront: null,
               passportBack: null,
-              travelStartDate: visaState.arrivalDate || "",
-              travelEndDate: visaState.departureDate || "",
             },
             visitDetails: {
               visitingOtherSchengenCountries: [],
@@ -229,13 +218,15 @@ const PaymentSuccess = () => {
             },
             insurance: {
               insurance: hasInsurance, // Set insurance for each initial traveler based on payment
-              insuranceDetails:
-                hasInsurance ? { selected: true } : null,
+              insuranceDetails: hasInsurance ? { selected: true } : null,
               insuranceCertificate: null, // Initialize certificate field,
               orderId: null,
-              paymentAmount: hasInsurance ? Number(currentData.insurancePayment) || 0 : 0,
+              paymentAmount: hasInsurance
+                ? Number(currentData.insurancePayment) || 0
+                : 0,
               paidInCheckout: hasInsurance && isCheckoutPayment, // Only true for actual checkout payments
-              insuranceSource: hasInsurance && isCheckoutPayment ? "checkout" : null,
+              insuranceSource:
+                hasInsurance && isCheckoutPayment ? "checkout" : null,
               insurancePaymentCompleted: hasInsurance,
             },
             fullPayment: {
@@ -265,25 +256,29 @@ const PaymentSuccess = () => {
           // Add arrival and departure dates from Redux store for SMV order creation
           arrivalDate: visaState.arrivalDate,
           departureDate: visaState.departureDate,
+          travelStartDate: visaState.arrivalDate || "",
+          travelEndDate: visaState.departureDate || "",
           insurancePaymentCompleted: hasInsurance,
-          initialInsurancePaidTotal: hasInsurance ? (Number(currentData.insurancePayment) || 0).toString() : "0",
-          insuranceDetails: (hasInsurance && isCheckoutPayment) ? {
-            insurancePaymentCompleted: true,
-            paymentAmount: Number(currentData.insurancePayment) || 0,
-            paymentDate: new Date().toISOString(),
-            paidInCheckout: true,
-            insuranceSource: "checkout"
-          } : null,
-
+          initialInsurancePaidTotal: hasInsurance
+            ? (Number(currentData.insurancePayment) || 0).toString()
+            : "0",
+          insuranceDetails:
+            hasInsurance && isCheckoutPayment
+              ? {
+                  insurancePaymentCompleted: true,
+                  paymentAmount: Number(currentData.insurancePayment) || 0,
+                  paymentDate: new Date().toISOString(),
+                  paidInCheckout: true,
+                  insuranceSource: "checkout",
+                }
+              : null,
         };
-
 
         if (
           (finalPaymentType === "additional_traveler_insurance" ||
             finalPaymentType === "traveler_insurance") &&
           finalApplicationId
         ) {
-
           try {
             const postAmountRaw =
               (usedStoredInsuranceMetadata &&
@@ -299,7 +294,11 @@ const PaymentSuccess = () => {
             const postAmount = Number(postAmountRaw);
 
             // If travelerIndex is provided, notify backend for that traveler
-            if (travelerIndex !== null && travelerIndex !== undefined && travelerIndex !== "") {
+            if (
+              travelerIndex !== null &&
+              travelerIndex !== undefined &&
+              travelerIndex !== ""
+            ) {
               await fetch(
                 `${process.env.NEXT_PUBLIC_API_URL}/stripe_payment/test-insurance-payment`,
                 {
@@ -327,13 +326,13 @@ const PaymentSuccess = () => {
                   travelersData: initialTravelersData.map((traveler, index) =>
                     index === Number(travelerIndex)
                       ? {
-                        ...traveler,
-                        insurance: {
-                          orderId: postOrderId || null,
-                          paymentAmount: postAmount,
-                          insurancePaymentCompleted: true,
-                        },
-                      }
+                          ...traveler,
+                          insurance: {
+                            orderId: postOrderId || null,
+                            paymentAmount: postAmount,
+                            insurancePaymentCompleted: true,
+                          },
+                        }
                       : traveler
                   ),
                   insurancePaymentCompleted: true,
@@ -372,11 +371,12 @@ const PaymentSuccess = () => {
                   orderId: postOrderId || undefined,
                 }
               );
-
-
             }
           } catch (error) {
-            console.error("Error updating traveler/application insurance:", error);
+            console.error(
+              "Error updating traveler/application insurance:",
+              error
+            );
           }
 
           setTimeout(() => {
@@ -396,7 +396,7 @@ const PaymentSuccess = () => {
           setTimeout(() => {
             router.replace(
               "/application-step/?application_id=" +
-              applicationResponse?.data?.data?.results?.application?.id
+                applicationResponse?.data?.data?.results?.application?.id
             );
           }, 2000); // 2 second delay
         } else {
@@ -425,11 +425,11 @@ const PaymentSuccess = () => {
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#7350FF] mx-auto mb-4"></div>
         <p className="text-gray-600">
           {paymentType === "additional_traveler_insurance" ||
-            paymentType === "traveler_insurance"
+          paymentType === "traveler_insurance"
             ? "Processing insurance payment and redirecting back to your application..."
             : isCreatingApplication
-              ? "Creating your visa application..."
-              : "Processing payment and redirecting to dashboard..."}
+            ? "Creating your visa application..."
+            : "Processing payment and redirecting to dashboard..."}
         </p>
       </div>
     </div>
