@@ -16,16 +16,18 @@ import { calculatePaymentFees, formatCurrency } from "@/utils/currency";
 import ClientOnly from "./ClientOnly";
 import { useToast } from "@/contexts/ToastContext";
 import QtyInput from "./QtyInput";
-import { setAmountWithoutDiscount, setTravelers } from "@/store/visaSlice";
+import { setAmountWithoutDiscount, setCouponCode, setGiftCardFees, setInsuranceFees, setReduxInsuranceCount, setTotalAmount, setTravelers } from "@/store/visaSlice";
 
 const VisaCheckout = () => {
   const dispatch = useAppDispatch();
   const { handleCreateDynamicCheckoutSession, cretingDynamicCheckout } =
     useCreateDynamicCheckoutSession();
 
+   
   // Get data from Redux store first, fallback to URL params if not available
   const visaState = useAppSelector((state) => state.visa);
 
+  const [insuranceCount, setInsuranceCount] = useState(visaState.insuranceCount);
   // Use dynamic visa fee from selected visa type if available, otherwise fallback to base fee
   const baseVisaFee =
     visaState.selectedVisaType && visaState.selectedVisaType.priceGBP
@@ -43,6 +45,13 @@ const VisaCheckout = () => {
       ? Number(visaState.travelers)
       : 1
   );
+
+  const handleTravelersChange = (newCount) => {
+    if(insuranceCount > newCount){
+      setInsuranceCount(newCount);
+    }
+    setTravelersLocal(newCount);
+  }
   let travelDays = 1;
   try {
     const arrival = visaState.arrivalDate
@@ -62,7 +71,7 @@ const VisaCheckout = () => {
   const userEmail = localStorageGateway("userEmail", localStorageEnums.GET);
 
   const insuranceFeesPerTraveller = 2 * travelDays; // EUR per traveller
-  const insuranceFeesTotal = insuranceFeesPerTraveller * travelers; // total EUR
+  const insuranceFeesTotal = insuranceFeesPerTraveller * insuranceCount; // total EUR
   const [includeInsurance, setIncludeInsurance] = useState(
     visaState.recommendedItems?.insuranceCertificate || false
   );
@@ -76,7 +85,7 @@ const VisaCheckout = () => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(
     visaState.selectedPaymentMethod || "stripe"
   );
-  const [couponCode, setCouponCode] = useState(visaState.couponCode || "");
+  const [couponCode, setCouponCodeLocal] = useState(visaState.couponCode || "");
   const [appliedDiscount, setAppliedDiscount] = useState(
     visaState.appliedDiscount || null
   );
@@ -89,6 +98,8 @@ const VisaCheckout = () => {
   const [_isSendingVerification, setIsSendingVerification] = useState(false);
   const verificationPollRef = useRef(null);
   const [pendingCheckoutQuery, _setPendingCheckoutQuery] = useState(null);
+
+
 
   const sendStudentVerification = async (emailToVerify, returnTo = "/visa-checkout") => {
     if (!emailToVerify || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailToVerify)) {
@@ -253,7 +264,7 @@ const VisaCheckout = () => {
 
           if (!appliedDiscount || (appliedDiscount && appliedDiscount.code !== 'STUDENT10')) {
             setAppliedDiscount({ code: 'STUDENT10', percentage: 10, description: 'Student discount' });
-            setCouponCode('STUDENT10');
+            setCouponCodeLocal('STUDENT10');
           }
         }
       }
@@ -372,7 +383,7 @@ const VisaCheckout = () => {
   };
 
   const removeCoupon = () => {
-    setCouponCode("");
+    setCouponCodeLocal("");
     setAppliedDiscount(null);
     setCouponError("");
   };
@@ -525,6 +536,7 @@ const VisaCheckout = () => {
     validateCardDetails();
   };
 
+
   const expectedVisaFeesTotal = baseVisaFee * travelers;
   let visaFeesTotal = 0;
   if (
@@ -580,6 +592,15 @@ const VisaCheckout = () => {
     await localStorageGateway("paymentAmount", localStorageEnums.SET,
       String(totalAmountEUR)
     );
+
+    await localStorageGateway(
+      "insurancePaymentMetadata",
+      localStorageEnums.SET,
+      String(JSON.stringify({
+        insuranceCount: includeInsurance ? insuranceCount : 0,
+        insurancePaymentAmount: discountedInsuranceFeesEUR,
+      }))
+    )
    
     await localStorageGateway(
       "insurancePayment",
@@ -594,7 +615,14 @@ const VisaCheckout = () => {
     await localStorageGateway("travelers", localStorageEnums.SET,
       String(travelers)
     );
+
+    dispatch(setAmountWithoutDiscount(Number(subtotalEUR)));
+    dispatch(setTotalAmount(Number(totalAmountEUR))); 
+    dispatch(setInsuranceFees(Number(insuranceCount * insuranceFeesPerTraveller)));
+    dispatch(setGiftCardFees(Number(giftCardFees)));
+    dispatch(setCouponCode(couponCode.trim().toUpperCase()));
     dispatch(setTravelers(Number(travelers)));
+
 
   
      await localStorageGateway("paymentWithoutInsurance", localStorageEnums.SET,
@@ -660,6 +688,7 @@ const VisaCheckout = () => {
       }
     }
 
+
     const statusResult = await handleCreateDynamicCheckoutSession({
       email: email,
       amount: String(totalAmountEUR),
@@ -671,6 +700,8 @@ const VisaCheckout = () => {
       paymentMethod: selectedPaymentMethod,
       visaTypeId: visaTypeId || visaState.visaTypeId || "",
       currency: "EUR",
+      noOfInsurance: insuranceCount,
+      insurancePaymentAmount: discountedInsuranceFeesEUR,
     });
 
     const results = statusResult.data;
@@ -717,6 +748,19 @@ visaFeesEUR
       window.location.href = redirectUrl; // Redirect user to stripe checkout
     }
   };
+
+
+    const handleInsuranceChange = (increment) => {
+      const newValue = insuranceCount + increment;
+      if (newValue >= 1 && newValue <= travelers) {
+        setInsuranceCount(newValue);
+        dispatch(setReduxInsuranceCount(Number(newValue)));
+  
+        if (newValue > 0 && !includeInsurance) {
+          setIncludeInsurance(true);
+        }
+      }
+    }
 
   return (
     <ClientOnly>
@@ -928,7 +972,7 @@ visaFeesEUR
                       type="text"
                       value={couponCode}
                       onChange={(e) =>
-                        setCouponCode(e.target.value.toUpperCase())
+                        setCouponCodeLocal(e.target.value.toUpperCase())
                       }
                       placeholder="Enter coupon code (e.g., STUDENT10)"
                       className={`w-full border ${couponError ? "border-red-400" : "border-gray-300"
@@ -1650,8 +1694,10 @@ visaFeesEUR
               </div>
 
               <QtyInput
-                onIncrement={(val) => setTravelersLocal(val)}
-                onDecrement={(val) => setTravelersLocal(val)}
+                onIncrement={(val) => 
+                  handleTravelersChange(val)
+                }
+                onDecrement={(val) => handleTravelersChange(val)}
                 value={travelers}
               />
             </div>
@@ -1664,7 +1710,12 @@ visaFeesEUR
             <div className="flex items-center justify-between">
               <div
                 className="flex items-center space-x-2 cursor-pointer"
-                onClick={() => setIncludeInsurance(!includeInsurance)}
+                onClick={() =>{
+                   setIncludeInsurance(!includeInsurance)
+                   if(includeInsurance){
+                    setInsuranceCount(1)
+                   }
+                }}
               >
                 <input
                   type="checkbox"
@@ -1677,6 +1728,12 @@ visaFeesEUR
                 <span className="text-sm">Insurance certificate</span>
               </div>
               <div className="flex items-center space-x-2">
+                <QtyInput
+                    value={insuranceCount}
+                    onIncrement={() => handleInsuranceChange(1)}
+                    onDecrement={() => handleInsuranceChange(-1)}
+                    min={1}
+                  />
                 <span className="text-sm">
                   {includeInsurance
                     ? formatCurrency(baseInsuranceFeesEUR, "EUR")
@@ -1686,7 +1743,7 @@ visaFeesEUR
             </div>
             {includeInsurance && (
               <p className="text-xs text-gray-400">
-                NEWVOU400 (Included for {travelers} traveler
+                NEWVOU400 (Included for {insuranceCount} traveler
                 {travelers > 1 ? "s" : ""})
               </p>
             )}

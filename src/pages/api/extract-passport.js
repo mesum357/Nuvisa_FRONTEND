@@ -27,44 +27,48 @@ export default async function handler(req, res) {
 
     if (!file) {
       // Send a clear error if no file with the name 'file' was found in the form data.
-      return res.status(400).json({ error: "No file with the name 'file' was uploaded." });
+      return res
+        .status(400)
+        .json({ error: "No file with the name 'file' was uploaded." });
     }
 
     // Initialize the Mindee ClientV2 with your API key
-    const api_key = process.env.MINDEE_API_KEY || "md_rvtU59yTx2sBb89vk75p7DKgTCMSLKKR";
-    const model_id = process.env.MINDEE_MODEL_ID || "9bc619aa-f5cd-481d-8add-ac5b3d124039"; // Replace with your actual model ID
+    const api_key =
+      process.env.MINDEE_API_KEY || "md_rvtU59yTx2sBb89vk75p7DKgTCMSLKKR";
+    const model_id =
+      process.env.MINDEE_MODEL_ID || "9bc619aa-f5cd-481d-8add-ac5b3d124039"; // Replace with your actual model ID
 
     const client = new ClientV2({ apiKey: api_key });
 
     // Read file into a buffer
     const buffer = fs.readFileSync(file.filepath);
 
-    const input_source = new BufferInput({ buffer, filename: file.originalFilename || file.newFilename || "upload.jpg" });
+    const input_source = new BufferInput({
+      buffer,
+      filename: file.originalFilename || file.newFilename || "upload.jpg",
+    });
 
     if (file.mimetype) input_source.mimeType = file.mimetype;
 
     // Send for processing using polling with custom model
     // The SDK may expect the model to be an object with an `id` field
-    const response = await client.enqueueAndGetInference(
-      input_source,
-      {
-        model: { id: model_id },
-        // fallback keys in case different naming is expected by the SDK
-        modelId: model_id,
-        model_id: model_id,
-        pollingOptions: {
-          maxRetries: 30,
-          delaySec: 2,
-          initialDelaySec: 1,
-        },
-      }
-    );
+    const response = await client.enqueueAndGetInference(input_source, {
+      model: { id: model_id },
+      // fallback keys in case different naming is expected by the SDK
+      modelId: model_id,
+      model_id: model_id,
+      pollingOptions: {
+        maxRetries: 30,
+        delaySec: 2,
+        initialDelaySec: 1,
+      },
+    });
 
     if (!response || !response.inference) {
-      return res.status(500).json({ error: "Failed to get a valid response from the API." });
+      return res
+        .status(500)
+        .json({ error: "Failed to get a valid response from the API." });
     }
-
-
 
     // Best-effort: find the model's field object in the response. Mindee V2 custom
     // models often return the useful fields under raw.rawHttp.inference.result.fields
@@ -77,11 +81,12 @@ export default async function handler(req, res) {
         resp?.inference?.result?.fields ||
         resp?.result?.fields ||
         resp?.fields ||
-        null
+        {}
       );
     };
 
-    const fieldsObj = getFieldsObj(response) || getFieldsObj(response.inference) || {};
+    const fieldsObj =
+      getFieldsObj(response) || getFieldsObj(response.inference) || {};
 
     // Helper to safely read a field value
     const readVal = (f) => {
@@ -92,25 +97,38 @@ export default async function handler(req, res) {
 
     // Map model fields to frontend fields
     const mapped = {
-      firstName: readVal(fieldsObj.given_names) || readVal(fieldsObj.given_name) || null,
-      lastName: readVal(fieldsObj.surnames) || readVal(fieldsObj.surname) || null,
-      passportNumber: readVal(fieldsObj.passport_number) || readVal(fieldsObj.passport_no) || readVal(fieldsObj.number) || null,
-      dateOfBirth: readVal(fieldsObj.date_of_birth) || readVal(fieldsObj.dob) || null,
+      firstName:
+        readVal(fieldsObj.given_names) || readVal(fieldsObj.given_name) || "",
+      lastName: readVal(fieldsObj.surnames) || readVal(fieldsObj.surname) || "",
+      passportNumber:
+        readVal(fieldsObj.passport_number) ||
+        readVal(fieldsObj.passport_no) ||
+        readVal(fieldsObj.number) ||
+        "",
+      dateOfBirth:
+        readVal(fieldsObj.date_of_birth) || readVal(fieldsObj.dob) || "",
       sex: (() => {
-        const s = readVal(fieldsObj.sex) || readVal(fieldsObj.gender) || null;
-        if (!s) return null;
+        const s = readVal(fieldsObj.sex) || readVal(fieldsObj.gender) || "";
+        if (!s) return "";
         const lower = String(s).toLowerCase();
         if (lower.startsWith("m")) return "Male";
         if (lower.startsWith("f")) return "Female";
         return s;
       })(),
-      passportIssueDate: readVal(fieldsObj.date_of_issue) || readVal(fieldsObj.issue_date) || null,
-      passportExpiryDate: readVal(fieldsObj.date_of_expiry) || readVal(fieldsObj.expiration_date) || null,
-      placeOfBirth: readVal(fieldsObj.place_of_birth) || readVal(fieldsObj.birth_place) || null,
-      nationality: readVal(fieldsObj.nationality) || null,
-      issuingCountry: readVal(fieldsObj.issuing_country) || null,
-      mrzLine1: readVal(fieldsObj.mrz_line_1) || readVal(fieldsObj.mrz1) || null,
-      mrzLine2: readVal(fieldsObj.mrz_line_2) || readVal(fieldsObj.mrz2) || null,
+      passportIssueDate:
+        readVal(fieldsObj.date_of_issue) || readVal(fieldsObj.issue_date) || "",
+      passportExpiryDate:
+        readVal(fieldsObj.date_of_expiry) ||
+        readVal(fieldsObj.expiration_date) ||
+        "",
+      placeOfBirth:
+        readVal(fieldsObj.place_of_birth) ||
+        readVal(fieldsObj.birth_place) ||
+        "",
+      nationality: readVal(fieldsObj.nationality) || "",
+      issuingCountry: readVal(fieldsObj.issuing_country) || "",
+      mrzLine1: readVal(fieldsObj.mrz_line_1) || readVal(fieldsObj.mrz1) || "",
+      mrzLine2: readVal(fieldsObj.mrz_line_2) || readVal(fieldsObj.mrz2) || "",
     };
 
     // Also include any raw simple key-values for developer inspection
@@ -119,11 +137,15 @@ export default async function handler(req, res) {
       simpleFields[k] = readVal(v);
     }
 
-    res.status(200).json({ raw: response, extractedFields: mapped, simpleFields });
-
+    res
+      .status(200)
+      .json({ raw: response, extractedFields: mapped, simpleFields });
   } catch (error) {
     // Provide more specific error details back to the client if possible
-    const errorMessage = error.details || error.message || "A server-side error occurred during parsing.";
+    const errorMessage =
+      error.details ||
+      error.message ||
+      "A server-side error occurred during parsing.";
     const statusCode = error.statusCode || 500;
     console.error("Mindee processing error:", error);
     res.status(statusCode).json({ error: errorMessage });

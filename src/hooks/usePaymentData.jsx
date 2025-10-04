@@ -98,6 +98,11 @@ const usePaymentData = () => {
         "paymentWithoutInsurance",
         localStorageEnums.GET
       );
+      const storedMetadata = 
+        await localStorageGateway(
+          "insurancePaymentMetadata",
+          localStorageEnums.GET
+        )
 
       return {
         email,
@@ -111,6 +116,7 @@ const usePaymentData = () => {
         selectedVisaType: visaState.selectedVisaType,
         visaTypeId: visaState.visaTypeId,
         paymentWithoutInsurance,
+        storedMetadata: JSON.parse(storedMetadata) || null,
       };
     } catch (error) {
       console.error("Error getting current payment data:", error);

@@ -18,6 +18,7 @@ import {
   setGiftCardFees,
   setTotalAmount,
   setInsuranceOnly,
+  setReduxInsuranceCount,
 } from "@/store/visaSlice";
 import ClientOnly from "./ClientOnly";
 import {
@@ -134,6 +135,7 @@ const CountrySlider = () => {
   const [activeTooltip, setActiveTooltip] = useState(null);
   const [insuranceDays, setInsuranceDays] = useState(0);
   const [giftCardCount, setGiftCardCount] = useState(1);
+  const [insuranceCount, setInsuranceCount] = useState(1);
   // Default arrival = today + 15 days, default departure = arrival + 15 days
   const computeDefaultArrival = () => {
     const d = new Date();
@@ -539,7 +541,7 @@ const CountrySlider = () => {
 
   const computedInsuranceTotal =
     recommendedItems.insuranceCertificate && insuranceDays > 0
-      ? perDayInsurancePrice * insuranceDays * travelers
+      ? perDayInsurancePrice * insuranceDays * insuranceCount
       : 0;
 
   const tooltips = {
@@ -653,7 +655,6 @@ const CountrySlider = () => {
     const newValue = giftCardCount + increment;
     if (newValue >= 1) {
       setGiftCardCount(newValue);
-      // Update the recommended items state
       if (newValue > 0 && !recommendedItems.giftCard) {
         setRecommendedItemsLocal((prev) => ({ ...prev, giftCard: true }));
       } else if (newValue === 0 && recommendedItems.giftCard) {
@@ -661,6 +662,21 @@ const CountrySlider = () => {
       }
     }
   };
+
+  const handleInsuranceChange = (increment) => {
+    const newValue = insuranceCount + increment;
+    if (newValue >= 1 && newValue <= travelers) {
+      setInsuranceCount(newValue);
+      dispatch(setReduxInsuranceCount(Number(newValue)));
+
+      if (newValue > 0 && !recommendedItems.insuranceCertificate) {
+        setRecommendedItemsLocal((prev) => ({
+          ...prev,
+          insuranceCertificate: true,
+        }));
+      }
+    }
+  }
 
   const resetTimer = () => {
     if (timerRef.current) {
@@ -981,6 +997,8 @@ const CountrySlider = () => {
     dispatch(setGiftCardFees(giftCardFees || 0));
     dispatch(setTotalAmount(totalAmount || 0));
     dispatch(setInsuranceOnly(hasOnlyInsurance || false));
+    dispatch(setReduxInsuranceCount(insuranceCount || 1));
+
 
     // Store selected visa type information
     if (selectedVisaType) {
@@ -2330,26 +2348,17 @@ const CountrySlider = () => {
                   </p>
                 </div>
               )}
-              {!selectedVisaType && (
-                <div className="mb-2 p-2 bg-blue-600/20 rounded-lg">
-                  <p className="text-xs text-blue-200">
-                    📅 Default maximum stay: 90 days (Select a visa type for
-                    specific limits)
-                  </p>
-                </div>
-              )}
               <div className="flex items-end gap-8">
                 <div className="flex items-center gap-2">
                   <QtyInput
-                    value={travelers}
-                    onChange={(next) => {
-                      const n = Number(next);
-                      setTravelersLocal(n);
-                      dispatch(setReduxTravelers(Number(n)));
-                    }}
+                    value={insuranceCount}
+                    onIncrement={() => handleInsuranceChange(1)}
+                    onDecrement={() => handleInsuranceChange(-1)}
                     min={1}
                   />
-                  <label className="text-md">Travellers</label>
+                  <label className="text-md">
+                    Insurance
+                  </label>
                 </div>
               </div>
             </div>

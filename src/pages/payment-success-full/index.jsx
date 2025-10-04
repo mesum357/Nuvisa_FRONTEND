@@ -22,7 +22,6 @@ const ApplicationStepPaymentSuccessPage = () => {
   const insuranceMetadata = insurancePaymentMetadata
     ? JSON.parse(insurancePaymentMetadata)
     : null;
-
   useEffect(() => {
     const processPaymentSuccess = async () => {
       const currentData = await getCurrentPaymentData();

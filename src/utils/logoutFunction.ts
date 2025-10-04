@@ -20,5 +20,7 @@ export const logoutFunction = async (routeToGo = RoutesEnums.HomePage) => {
   localStorage.removeItem("userEmail");
   localStorage.removeItem("user");
   localStorage.removeItem("token");
+  Cookies.remove("userEmail");
+  Cookies.remove("user");
   await Router.push(routeToGo);
 };

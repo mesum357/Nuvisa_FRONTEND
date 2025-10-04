@@ -51,6 +51,7 @@ export const useCalculatePayment = (applicationId) => {
         if (!application || !application.travelersData) {
           throw new Error("Application data not found.");
         }
+        const remainingNoOfTravelers = application.numberOfTravellers - application.initiallyPaidTraveler
 
         let calculatedFullPayment = 0;
         let calculatedInsuranceCost = 0;
@@ -86,7 +87,7 @@ export const useCalculatePayment = (applicationId) => {
             allPaymentsCompleted = true;
           }
           if (!fullPayment.paymentCompleted && !fullPayment.paymentWithoutInsurance) {
-            calculatedFullPayment += Number(application.paymentWithoutInsurance);
+            calculatedFullPayment += Number(application.paymentWithoutInsurance) / application.initiallyPaidTraveler;
           }
 
           if (traveler.documents.documents.insuranceDocument?.[0]?.name) {
@@ -105,23 +106,24 @@ export const useCalculatePayment = (applicationId) => {
 
         allPaymentsCompleted =
           application.travelersData.every((t) =>
-            t.fullPayment?.paymentCompleted &&
-            t.insurance?.insurancePaymentCompleted
+            t.fullPayment?.paymentCompleted
           );
         setPaymentData({
           fullRemainingPayment: calculatedFullPayment,
-          totalInsuranceCost: calculatedInsuranceCost,
-          noOfTravelersNeedingInsurance: noOfTravelersNeedingInsurance,
+          totalInsuranceCost: 0,
+          noOfTravelersNeedingInsurance: 0,
           noOfTravelersNeedingFullPayment: application.travelersData.filter(
             (t) =>
               !t.fullPayment?.paymentCompleted && !t.fullPayment?.paymentWithoutInsurance
           ).length,
           travelData: application.travelersData,
           allPaymentCompleted: allPaymentsCompleted,
-          totalFullPayment,
+          totalFullPayment: remainingNoOfTravelers * 159,
           totalInsurancePayment,
           noOfInsuranceUploaded
         });
+
+        console.log(paymentData, "paymentData");
       } catch (err) {
         console.error("Failed to calculate payment:", err);
         setError(err.message || "An unexpected error occurred.");

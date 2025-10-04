@@ -33,12 +33,19 @@ import { XIcon } from "lucide-react";
 import { useSendStudentVerification } from "@/hooks/useSendStudentVerification";
 import { useCalculatePayment } from "@/hooks/useCalculatePayment";
 import ConfirmationModal from "@/components/ConfirmationModal";
+import { TravelDates } from "@/components/TravelDates";
+import { InsuranceStep } from "@/components/InsuranceStep";
+import { calculateDays } from "@/utils/calculateDays";
+import { useMemo } from "react";
+
 
 const MultiStepAccordion = () => {
   const token = localStorageGateway("token", localStorageEnums.GET);
   const searchParams = useSearchParams();
   const applicationId = searchParams.get("application_id");
   const visaState = useAppSelector((state) => state.visa);
+  const [travelStartDate, setTravelStartDate] = useState("");
+  const [travelEndDate, setTravelEndDate] = useState("");
   const dispatch = useAppDispatch();
   const { showError } = useToast();
   const router = useRouter();
@@ -54,8 +61,8 @@ const MultiStepAccordion = () => {
   const [userEmail, setUserEmail] = useState("");
   const [confirmationModal, setConfirmationModal] = useState({
     isOpen: false,
-    title: '',
-    message: '',
+    title: "",
+    message: "",
     onConfirm: () => { },
   });
   const currentStep = router.query.step;
@@ -82,9 +89,10 @@ const MultiStepAccordion = () => {
     );
   };
 
-  const { paymentData } = useCalculatePayment(
-    applicationId
-  )
+  const { paymentData } = useCalculatePayment(applicationId);
+
+
+
 
   const [travelersData, setTravelersData] = useState([
     {
@@ -152,9 +160,9 @@ const MultiStepAccordion = () => {
         documents: {},
       },
       insurance: {
-        insurance: false,
-        insuranceDetails: null,
-        insuranceCertificate: null,
+        insurancePaymentCompleted: false,
+        paidInCheckout: null,
+        paymentAmount: null,
       },
       payment: {
         appointmentFees: 2060,
@@ -171,6 +179,7 @@ const MultiStepAccordion = () => {
   ]);
 
   const [steps, setSteps] = useState([
+
     {
       id: 1,
       title: "Add basic details",
@@ -178,6 +187,7 @@ const MultiStepAccordion = () => {
       open: true,
       stepType: "basicDetails",
     },
+
     {
       id: 2,
       title: "Add visit details",
@@ -192,13 +202,22 @@ const MultiStepAccordion = () => {
       open: false,
       stepType: "documents",
     },
+
+    {
+      id: 7,
+      title: "Insurance",
+      completed: false,
+      open: false,
+      stepType: "insurance",
+    },
     {
       id: 4,
-      title: "Full Payment",
+      title: "Payment",
       completed: false,
       open: false,
       stepType: "fullPayment",
     },
+
     {
       id: 5,
       title: "Book an appointment",
@@ -226,9 +245,8 @@ const MultiStepAccordion = () => {
         let isCompleted = relevantStepInfo.completedSteps?.includes(
           step.stepType
         );
-        const isInsuranceComplete = relevantStepInfo.completedSteps?.includes(
-          "insurance"
-        );
+        const isInsuranceComplete =
+          relevantStepInfo.completedSteps?.includes("insurance");
         if (step.stepType === "fullPayment") {
           if (!isInsuranceComplete) {
             isCompleted = false;
@@ -279,14 +297,10 @@ const MultiStepAccordion = () => {
       });
     };
 
+
     // Check if all travelers have insurance handled (either paid or documents uploaded)
     const allInsuranceHandled = () => {
-      const appInsurance = getAppInsurance();
-      const hasAppInsurancePaid =
-        appInsurance?.insurancePaymentCompleted === true;
-      const hasInsuranceDocuments = _hasInsuranceDocuments();
-
-      return hasAppInsurancePaid || hasInsuranceDocuments;
+      return parentVisaApplication?.totalTraveler === insuranceDetails?.length;
     };
 
     // Determine what needs payment
@@ -300,14 +314,15 @@ const MultiStepAccordion = () => {
     visibleSteps = visibleSteps.map((step) => {
       if (step.stepType === "completed") {
         const isAppCompleted =
-          relevantStepInfo?.isCompleted ||
-          relevantStepInfo?.isSubmitted ||
-          parentVisaApplication?.applicationStatus === "submitted";
+          relevantStepInfo?.isCompleted &&
+          relevantStepInfo?.isSubmitted &&
+          relevantStepInfo?.applicationStatus === "submitted";
         return {
           ...step,
           title: "Application Completed",
-          completed: isTravelerCompleted,
-          open: relevantStepInfo?.currentStep === "completed" ||
+          completed: isAppCompleted,
+          open:
+            relevantStepInfo?.currentStep === "completed" ||
             (relevantStepInfo?.completedSteps?.length >= 6 && isAppCompleted)
         };
       }
@@ -319,18 +334,26 @@ const MultiStepAccordion = () => {
         const payment = traveler?.fullPayment;
         const insurance = traveler?.insurance;
 
-        return (insurance?.paidInCheckout ||
-          !!parentVisaApplication?.travelersData?.[index]?.documents?.documents?.insuranceDocument?.[0]?.name
-        ) && payment?.paidInCheckout
+        return (
+          payment?.paidInCheckout
+        );
       }
-    )
-
+    );
 
     if (!showPayment) {
       visibleSteps = visibleSteps.filter(
         (step) => step.stepType !== "fullPayment"
       );
     }
+
+    const showInsurance = !(parentVisaApplication?.insuranceDetails?.paidInCheckout?.noOfInsurance === parentVisaApplication?.totalTraveler)
+
+    if (!showInsurance) {
+      visibleSteps = visibleSteps.filter(
+        (step) => step.stepType !== "insurance"
+      )
+    }
+
 
     return visibleSteps;
   };
@@ -870,7 +893,6 @@ const MultiStepAccordion = () => {
       }
     );
   };
-
   const toggleStep = (stepId) => {
     const visible = getVisibleSteps();
     const visibleIndex = visible.findIndex((s) => s.id === stepId);
@@ -944,11 +966,11 @@ const MultiStepAccordion = () => {
 
       let travelersDataToSend = stepData.updatedTravelersData || travelersData;
 
+
       if (
         (stepId === 3 || step?.stepType === "appointment") &&
         stepData.appointmentData
       ) {
-        // Update the current traveler's appointment data
         travelersDataToSend = travelersDataToSend.map((traveler, index) => {
           if (index === currentTravelerIndex) {
             const updatedTraveler = {
@@ -982,12 +1004,13 @@ const MultiStepAccordion = () => {
         });
       }
       if (stepId === 4) {
-        const pathname = router.pathname
+        const pathname = router.pathname;
         router.replace(
           {
-            pathname, query: {
-              application_id: applicationId
-            }
+            pathname,
+            query: {
+              application_id: applicationId,
+            },
           },
           undefined,
           { shallow: true }
@@ -999,9 +1022,6 @@ const MultiStepAccordion = () => {
           step?.stepType === "fullPayment") &&
         (stepData.fullPaymentData || stepData.travelerIndex !== undefined)
       ) {
-
-
-
         travelersDataToSend = travelersDataToSend.map((traveler, index) => {
           if (index === currentTravelerIndex) {
             const updatedTraveler = {
@@ -1027,9 +1047,7 @@ const MultiStepAccordion = () => {
         }
       }
 
-
       if (stepId === 6 || step?.stepType === "payment") {
-
         // Update the current traveler's payment data
         travelersDataToSend = travelersDataToSend.map((traveler, index) => {
           if (index === currentTravelerIndex) {
@@ -1102,6 +1120,7 @@ const MultiStepAccordion = () => {
       const response = await createOrUpdateApplication(token, payload);
 
       if (response?.status >= 200 && response?.status < 300) {
+        await fetchApplicationById();
         const updatedApplication = response?.data?.data?.results?.application;
 
         if (updatedApplication?.travelersData) {
@@ -1277,53 +1296,62 @@ const MultiStepAccordion = () => {
       basicDetails.passportExpiryDate;
 
     const hasAddressInfo =
-      basicDetails.currentAddress1 &&
-      basicDetails.city &&
-      basicDetails.pincode;
+      basicDetails.currentAddress1 && basicDetails.city && basicDetails.pincode;
 
     const hasTravelInfo =
-      basicDetails.travelStartDate &&
-      basicDetails.travelEndDate;
+      basicDetails.travelStartDate && basicDetails.travelEndDate;
 
     const hasPassportImages =
-      basicDetails.passportFront &&
-      basicDetails.passportBack;
+      basicDetails.passportFront && basicDetails.passportBack;
 
-    const hasMobileNumber = basicDetails.mobileNumber && String(basicDetails.mobileNumber).trim();
+    const hasMobileNumber =
+      basicDetails.mobileNumber && String(basicDetails.mobileNumber).trim();
 
     // Also check for valid date relationships
     let validDates = true;
     if (basicDetails.passportIssueDate && basicDetails.passportExpiryDate) {
-      validDates = new Date(basicDetails.passportExpiryDate) >= new Date(basicDetails.passportIssueDate);
+      validDates =
+        new Date(basicDetails.passportExpiryDate) >=
+        new Date(basicDetails.passportIssueDate);
     }
-    if (basicDetails.travelStartDate && basicDetails.travelEndDate) {
-      validDates = validDates && new Date(basicDetails.travelEndDate) > new Date(basicDetails.travelStartDate);
-    }
+    // if (basicDetails.travelStartDate && basicDetails.travelEndDate) {
+    //   validDates =
+    //     validDates &&
+    //     new Date(basicDetails.travelEndDate) >
+    //       new Date(basicDetails.travelStartDate);
+    // }
 
     // Check mobile number format
     let validMobile = true;
     if (hasMobileNumber) {
-      const digits = String(basicDetails.mobileNumber).trim().replace(/\D/g, "");
-      validMobile = (digits.length === 10 || digits.length === 11) &&
-        (digits.length === 10 ? digits.charAt(0) !== "0" : digits.charAt(0) === "0");
+      const digits = String(basicDetails.mobileNumber)
+        .trim()
+        .replace(/\D/g, "");
+      validMobile =
+        (digits.length === 10 || digits.length === 11) &&
+        (digits.length === 10
+          ? digits.charAt(0) !== "0"
+          : digits.charAt(0) === "0");
     }
 
     // Check postcode format
     let validPostcode = true;
     if (basicDetails.pincode) {
-      const ukPostcodeRegex = /^([A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}|GIR\s?0AA)$/i;
+      const ukPostcodeRegex =
+        /^([A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}|GIR\s?0AA)$/i;
       validPostcode = ukPostcodeRegex.test(String(basicDetails.pincode).trim());
     }
 
-    return hasBasicInfo &&
+    return (
+      hasBasicInfo &&
       hasPassportInfo &&
       hasAddressInfo &&
-      hasTravelInfo &&
       hasPassportImages &&
       hasMobileNumber &&
       validDates &&
       validMobile &&
-      validPostcode;
+      validPostcode
+    );
   };
 
   // New validation function for all travelers' passport data
@@ -1451,9 +1479,7 @@ const MultiStepAccordion = () => {
     });
   };
 
-  // New validation function for all travelers' documents
   const _validateAllTravelersDocuments = () => {
-    // Define required documents with their validation rules
     const requiredDocuments = [
       { id: 1, minCount: 2 }, // Passport photos - need 2
       { id: 2, minCount: 1 }, // Bank statements
@@ -1490,60 +1516,48 @@ const MultiStepAccordion = () => {
     );
   };
 
-  const _validateInsurance = () => {
-    const currentTraveler = getCurrentTravelerData();
-    const insurance = currentTraveler.insurance || {};
+  const currentTravellerForInsurance = useMemo(() => {
+    const filteredTravellers = parentVisaApplication?.travelersData?.filter((traveler) => {
+      const insurance = traveler.insurance || {};
 
-    if (insurance.insurance === "true") {
-      return true;
-    }
-
-    if (
-      insurance.orderId &&
-      insurance.paymentAmount &&
-      insurance.insurancePaymentCompleted
-    ) {
-      updateCurrentTravelerData("insurance", {
-        ...insurance,
-        insurance: "true",
-      });
-      return true;
-    }
-
-    if (insurance.insurance === "purchase") {
-      const hasPaymentInfo = !!(
-        insurance.orderId &&
-        insurance.paymentAmount &&
-        insurance.paymentDate
-      );
-      const paymentCompleted = insurance.insurancePaymentCompleted === true;
-
-      if (hasPaymentInfo && paymentCompleted) {
-        updateCurrentTravelerData("insurance", {
-          ...insurance,
-          insurance: "true",
-        });
-        return true;
+      if (insurance?.paidInCheckout) {
+        return false;
       }
+      return true;
+    });
+    return filteredTravellers?.[currentTravelerIndex] || filteredTravellers?.[0];
+  }, [currentTravelerIndex, travelersData]);
 
-      return paymentCompleted && hasPaymentInfo;
-    }
+  const _validateInsurance = () => {
+    const currentTraveler = currentTravellerForInsurance
+    console.log(currentTraveler, "CURRENT_TRAVELER_FOR_INSURANCE");
 
-    if (insurance.insurance === "own") {
-      return !!(
-        insurance.insuranceCertificate &&
-        insurance.insuranceDetails?.certificateUploaded
-      );
-    }
+    // Check if insurance certificate is uploaded
+    const hasCertificate = currentTraveler?.insurance?.insuranceCertificates
 
-    return false;
+    // Check if payment is completed
+    const hasPayment = !!(
+      currentTraveler?.insurance?.paidInCheckout ||
+      currentTraveler?.insurance?.insurancePaymentCompleted
+    );
+
+    console.log(currentTraveler, hasCertificate, "CURRENT_TRAVELER");
+
+    console.log("Validating insurance:", {
+      travelerId: currentTraveler?.id,
+      hasCertificate,
+      hasPayment,
+      certificateData: currentTraveler?.insurance?.insuranceCertificates,
+      insuranceDetails: currentTraveler?.insurance?.insuranceDetails,
+    });
+
+    return hasCertificate || hasPayment;
   };
 
   const _validateFullPayment = () => {
-    return paymentData?.allPaymentCompleted
+    return paymentData?.allPaymentCompleted;
   };
 
-  // Function to check if a step can be completed (for Next button state)
   const canCompleteStep = (stepType) => {
     switch (stepType) {
       case "basicDetails":
@@ -1708,7 +1722,7 @@ const MultiStepAccordion = () => {
           ?.scrollIntoView({ behavior: "smooth" });
       }
     }
-  }, [currentStep])
+  }, [currentStep]);
 
   useEffect(() => {
     setIsClient(true);
@@ -1783,6 +1797,83 @@ const MultiStepAccordion = () => {
       return changed ? next : current;
     });
   }, [visaState?.arrivalDate, visaState?.departureDate, numberOfTravelers]);
+
+  useEffect(() => {
+    if (parentVisaApplication?.travelStartDate) {
+      setTravelStartDate(parentVisaApplication.travelStartDate || "");
+    }
+  }, [parentVisaApplication?.travelStartDate]);
+  useEffect(() => {
+    if (parentVisaApplication?.travelEndDate) {
+      setTravelEndDate(parentVisaApplication.travelEndDate || "");
+    }
+  }, [parentVisaApplication?.travelEndDate]);
+
+  const handleChangeDates = (name, value) => {
+    if (name === "travelStartDate") {
+      updateVisaApplication(token, {
+        travelStartDate: value,
+        id: applicationId,
+      });
+    }
+    if (name === "travelEndDate") {
+      updateVisaApplication(token, { travelEndDate: value, id: applicationId });
+    }
+  };
+
+  const insuranceDetails = parentVisaApplication?.insuranceDetails;
+  const paidInCheckout = parentVisaApplication?.paidInCheckout;
+  const noOfClaimInsurance =
+    insuranceDetails?.paidInCheckout?.noOfInsurance || 0;
+  const noOfClaimedInsurance =
+    insuranceDetails?.paidInApplication?.noOfInsurance || 0;
+
+  const handleClaimInsurance = async (travelerData) => {
+    const paymentAmount =
+      calculateDays(
+        parentVisaApplication?.travelStartDate,
+        parentVisaApplication?.travelEndDate
+      ) * 2;
+
+    await updateVisaApplication(token, {
+      id: parentVisaApplication?.id,
+      travelersData: parentVisaApplication?.travelersData.map((traveler) => {
+        if (traveler.id === travelerData.id) {
+          return {
+            ...traveler,
+            insurance: {
+              insurancePaymentCompleted: true,
+              paymentAmount: paymentAmount,
+              paidInCheckout: true,
+            },
+          };
+        }
+        return traveler;
+      }),
+      insuranceDetails: {
+        ...parentVisaApplication?.insuranceDetails,
+        paidInApplication: {
+          noOfInsurance:
+            (parentVisaApplication?.insuranceDetails?.paidInApplication
+              ?.noOfInsurance || 0) + 1,
+        },
+      },
+    });
+
+    await fetchApplicationById();
+  };
+
+  const filteredTravellers = travelersData.filter((traveler) => {
+    const insurance = traveler.insurance || {};
+
+    const paidInCheckout = insurance.paidInCheckout || false;
+
+    if (paidInCheckout) {
+      return false;
+    }
+    return true;
+  });
+
 
   return (
     <div className="w-full pri_bg text-white h-full min-h-screen">
@@ -1865,6 +1956,7 @@ const MultiStepAccordion = () => {
               !visibleSteps.slice(0, index).every((s) => s.completed) &&
               index !== 0;
 
+            console.log("Rendering step:", step, "isLocked:", isLocked);
             return (
               <div
                 key={step.id}
@@ -1896,21 +1988,34 @@ const MultiStepAccordion = () => {
                   {isLocked ? <LockIcon /> : step.open ? null : <ChevronIcon />}
                 </div>
 
+                {step.stepType === "basicDetails" && step.open && (
+                  <div>
+                    <TravelDates
+                      disabled={!isOwner || isApplicationSubmitted}
+                      parentVisaApplication={parentVisaApplication}
+                      handleChangeDates={handleChangeDates}
+                      travelStartDate={travelStartDate}
+                      travelEndDate={travelEndDate}
+                      setTravelEndDate={setTravelEndDate}
+                      setTravelStartDate={setTravelStartDate}
+                    />
+                  </div>
+                )}
+
                 {/* Step Content */}
-                {step.open && (
+
+                {step.open && (step.stepType === "insurance" || step.stepType === "appointment" && step.stepType !== "appointment") && (
                   <div className="p-4 border-[#423577] border-t">
                     {/* Tab-based steps for multi-traveler scenarios */}
-                    {(step.stepType === "basicDetails" ||
-                      step.stepType === "visitDetails" ||
-                      step.stepType === "documents") &&
+                    {(
+                      step.stepType === "insurance") &&
                       numberOfTravelers > 1 ? (
                       <div>
                         {/* Traveler Tabs */}
                         <div className="flex flex-wrap gap-2 mb-6 border-b border-[#423577] pb-4 items-center">
-                          {Array.from(
-                            { length: numberOfTravelers },
-                            (_, index) => {
-                              const traveler = travelersData[index] || {};
+                          {filteredTravellers
+                            .map((traveler, index) => {
+
                               const travelerStepInfo =
                                 travelersStepInfo[traveler?.id] ||
                                 traveler?.stepInfo ||
@@ -1958,13 +2063,23 @@ const MultiStepAccordion = () => {
                                       <button
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          const travelerName = travelersData[index]?.basicDetails?.firstName
+                                          const travelerName = travelersData[
+                                            index
+                                          ]?.basicDetails?.firstName
                                             ? `${travelersData[index].basicDetails.firstName}`
                                             : `Traveler ${index + 1}`;
 
-                                          const currentTraveler = travelersData[index];
-                                          if (currentTraveler?.insurance?.insurancePaymentCompleted || currentTraveler?.fullPayment?.paymentCompleted) {
-                                            showError(`Cannot delete ${travelerName} as they have completed payment or insurance purchase.`);
+                                          const currentTraveler =
+                                            travelersData[index];
+                                          if (
+                                            currentTraveler?.insurance
+                                              ?.insurancePaymentCompleted ||
+                                            currentTraveler?.fullPayment
+                                              ?.paymentCompleted
+                                          ) {
+                                            showError(
+                                              `Cannot delete ${travelerName} as they have completed payment or insurance purchase.`
+                                            );
                                             return;
                                           }
 
@@ -1975,8 +2090,11 @@ const MultiStepAccordion = () => {
                                             onConfirm: () => {
                                               const idToRemove = traveler.id;
                                               _removeTraveler(idToRemove);
-                                              setConfirmationModal({ ...confirmationModal, isOpen: false });
-                                            }
+                                              setConfirmationModal({
+                                                ...confirmationModal,
+                                                isOpen: false,
+                                              });
+                                            },
                                           });
                                         }}
                                         title="Remove traveler"
@@ -1987,12 +2105,14 @@ const MultiStepAccordion = () => {
                                     )}
                                 </div>
                               );
-                            }
-                          )}
+                            })
+                            .filter(Boolean)}
                           {step.stepType === "basicDetails" && (
                             <button
                               onClick={async () => {
-                                const uniqueId = `traveler_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+                                const uniqueId = `traveler_${Date.now()}_${Math.floor(
+                                  Math.random() * 1000
+                                )}`;
                                 await _addTraveler(uniqueId);
                               }}
                               className="bg-[#292933] text-gray-300 hover:bg-[#7350FF] hover:text-white px-4 py-1.5 rounded-lg flex items-center gap-2 font-medium transition-colors duration-200 border border-dashed border-gray-500 hover:border-[#7350FF]"
@@ -2002,6 +2122,23 @@ const MultiStepAccordion = () => {
                               <span className="font-medium">Add Traveller</span>
                             </button>
                           )}
+                          {noOfClaimInsurance > noOfClaimedInsurance &&
+                            !travelersData?.[currentTravelerIndex].insurance
+                              ?.paidInCheckout &&
+                            step.stepType === "basicDetails" && (
+                              <div className="flex justify-self-end">
+                                <button
+                                  className="bg-[#292933] text-gray-300 hover:bg-[#7350FF] hover:text-white px-4 py-1.5 rounded-lg flex items-center gap-2 font-medium transition-colors duration-200 border border-dashed border-gray-500 hover:border-[#7350FF]"
+                                  onClick={() =>
+                                    handleClaimInsurance(
+                                      travelersData?.[currentTravelerIndex]
+                                    )
+                                  }
+                                >
+                                  Assign Insurance
+                                </button>
+                              </div>
+                            )}
                         </div>
 
                         {/* Tab Content */}
@@ -2025,7 +2162,7 @@ const MultiStepAccordion = () => {
                               />
                             )}
 
-                          {step.id === 2 &&
+                          {
                             step.stepType === "visitDetails" && (
                               <VisitStep
                                 travelerIndex={currentTravelerIndex}
@@ -2065,12 +2202,36 @@ const MultiStepAccordion = () => {
                             />
                           )}
 
+                          {step.stepType === "insurance" && (
+                            <InsuranceStep
+                              travelerIndex={currentTravelerIndex}
+                              applicationData={parentVisaApplication}
+                              updateCurrentTravelerData={
+                                updateCurrentTravelerData
+                              }
+                              loading={loading}
+                              onComplete={(data) => {
+                                handleCompleteStep(step.id, data);
+                              }}
+                              parentVisaApplication={parentVisaApplication}
+                              showError={showError}
+                              validateInsurance={_validateInsurance}
+                              travelerData={
+                                filteredTravellers[currentTravelerIndex]
+                              }
+                              disabled={!isOwner || isApplicationSubmitted}
+                              isOwner={isOwner}
+                              key={currentTravelerIndex}
+                            />
+                          )}
+
                           {/* Step action buttons (Back / Next) for tab-based steps */}
                           <div className="mt-6 flex justify-between items-center pt-4">
                             <div className="text-sm text-gray-400">
                               {!canCompleteStep(step.stepType) && (
                                 <span className="text-orange-400">
-                                  ⚠ Please complete all required fields for this step
+                                  ⚠ Please complete all required fields for this
+                                  step
                                 </span>
                               )}
                               {canCompleteStep(step.stepType) && (
@@ -2083,7 +2244,9 @@ const MultiStepAccordion = () => {
                               {step.stepType === "basicDetails" ? (
                                 <button
                                   onClick={async () => {
-                                    const uniqueId = `traveler_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+                                    const uniqueId = `traveler_${Date.now()}_${Math.floor(
+                                      Math.random() * 1000
+                                    )}`;
                                     await _addTraveler(uniqueId);
                                   }}
                                   className="bg-gray-700 text-white px-4 py-1.5 rounded-lg hover:bg-gray-600 disabled:opacity-50 flex items-center gap-2 transition-colors duration-200"
@@ -2108,7 +2271,9 @@ const MultiStepAccordion = () => {
                                     allTravelersCompleted: true,
                                   })
                                 }
-                                disabled={!canCompleteStep(step.stepType) || loading}
+                                disabled={
+                                  !canCompleteStep(step.stepType) || loading
+                                }
                                 className={`px-6 py-2 rounded-lg font-semibold transition-colors duration-200 ${canCompleteStep(step.stepType) && !loading
                                   ? "bg-[#7350FF] text-white hover:bg-[#7350FF]/90"
                                   : "bg-gray-600 text-gray-400 cursor-not-allowed"
@@ -2179,6 +2344,513 @@ const MultiStepAccordion = () => {
                           />
                         )}
 
+                        {step.stepType === "insurance" && (
+                          <InsuranceStep
+                            travelerIndex={currentTravelerIndex}
+                            applicationData={parentVisaApplication}
+                            updateCurrentTravelerData={
+                              updateCurrentTravelerData
+                            }
+                            loading={loading}
+                            onComplete={(data) => {
+                              handleCompleteStep(step.id, data);
+                            }}
+                            parentVisaApplication={parentVisaApplication}
+                            showError={showError}
+                            validateInsurance={_validateInsurance}
+                            travelerData={travelersData[currentTravelerIndex]}
+                            disabled={!isOwner || isApplicationSubmitted}
+                            isOwner={isOwner}
+                          />
+                        )}
+
+                        {step.id === 4 && step.stepType === "fullPayment" && (
+                          <FullPaymentStep
+                            travelerIndex={currentTravelerIndex}
+                            travelerData={getCurrentTravelerData()}
+                            updateCurrentTravelerData={
+                              updateCurrentTravelerData
+                            }
+                            _validateFullPayment={_validateFullPayment}
+                            onComplete={(data) =>
+                              handleCompleteStep(step.id, data)
+                            }
+                            loading={loading}
+                            parentVisaApplication={parentVisaApplication}
+                            showError={showError}
+                            travelersData={travelersData}
+                            disabled={!isOwner || isApplicationSubmitted}
+                            totalTraveler={totalTraveler}
+                            paymentData={paymentData}
+                            key={currentTravelerIndex}
+                          />
+                        )}
+
+                        {step.id === 5 && step.stepType === "appointment" && (
+                          <BookingAppointment
+                            travelerData={getCurrentTravelerData()}
+                            updateCurrentTravelerData={
+                              updateCurrentTravelerData
+                            }
+                            validateAppointment={validateAppointment}
+                            onComplete={(data) =>
+                              handleCompleteStep(step.id, data)
+                            }
+                            loading={loading}
+                            disabled={!isOwner || isApplicationSubmitted}
+                          />
+                        )}
+
+                        {step.id === 6 && step.stepType === "completed" && (
+                          <ApplicationCompletedSection
+                            parentVisaApplication={parentVisaApplication}
+                            applicationId={applicationId}
+                            onAddTraveler={async () => {
+                              const uniqueId = `traveler_${Date.now()}_${Math.floor(
+                                Math.random() * 1000
+                              )}`;
+                              await _addTraveler(uniqueId);
+                            }}
+                            onUploadDocument={() => {
+                              // Navigate back to documents step for current traveler
+                              const documentsStep = steps.find(
+                                (s) => s.stepType === "documents"
+                              );
+                              if (documentsStep) {
+                                toggleStep(documentsStep.id);
+                              }
+                            }}
+                          />
+                        )}
+                        <div className="mt-6 flex justify-between items-center pt-4">
+                          {step.stepType !== "completed" && (
+                            <div className="text-sm text-gray-400">
+                              {!canCompleteStep(step.stepType) && (
+                                <span className="text-orange-400">
+                                  ⚠ Please complete all required fields for this
+                                  step
+                                </span>
+                              )}
+                              {canCompleteStep(step.stepType) && (
+                                <span className="text-green-400">
+                                  ✓ All requirements completed for this step
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          {step.stepType !== "appointment" &&
+                            step.stepType !== "completed" && (
+                              <div className="flex items-center gap-3">
+                                {step.stepType === "basicDetails" ? (
+                                  <button
+                                    onClick={async () => {
+                                      const uniqueId = `traveler_${Date.now()}_${Math.floor(
+                                        Math.random() * 1000
+                                      )}`;
+                                      await _addTraveler(uniqueId);
+                                    }}
+                                    className="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-600 disabled:opacity-50 flex items-center gap-2 transition-colors duration-200"
+                                    title="Add Traveler"
+                                  >
+                                    <span className="text-lg">+</span>
+                                    <span className="font-medium">
+                                      Add Traveler
+                                    </span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => goToPreviousStep()}
+                                    className="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-600 disabled:opacity-50 transition-colors duration-200"
+                                  >
+                                    Back
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() =>
+                                    handleCompleteStep(step.id, {})
+                                  }
+                                  disabled={
+                                    !canCompleteStep(step.stepType) || loading
+                                  }
+                                  className={`px-6 py-2 rounded-lg font-semibold transition-colors duration-200 ${canCompleteStep(step.stepType) && !loading
+                                    ? "bg-[#7350FF] text-white hover:bg-[#7350FF]/90"
+                                    : "bg-gray-600 text-gray-400 cursor-not-allowed"
+                                    }`}
+                                >
+                                  {loading ? "Processing..." : "Next"}
+                                </button>
+                              </div>
+                            )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* Step Content */}
+
+                {step.open && step.stepType !== "insurance" && (
+                  <div className="p-4 border-[#423577] border-t">
+                    {/* Tab-based steps for multi-traveler scenarios */}
+                    {(step.stepType === "basicDetails" ||
+                      step.stepType === "visitDetails" ||
+                      step.stepType === "documents") &&
+                      numberOfTravelers > 1 ? (
+                      <div>
+                        {/* Traveler Tabs */}
+                        <div className="flex flex-wrap gap-2 mb-6 border-b border-[#423577] pb-4 items-center">
+                          {Array.from({ length: numberOfTravelers })
+                            .map((_, index) => {
+                              console.log(travelersData, "TRAVELERS DATA");
+                              const traveler = travelersData[index];
+                              const travelerStepInfo =
+                                travelersStepInfo[traveler?.id] ||
+                                traveler?.stepInfo ||
+                                {};
+                              const isCompleted =
+                                travelerStepInfo?.completedSteps?.includes(
+                                  step.stepType
+                                ) || false;
+
+                              return (
+                                <div key={index} className="relative group">
+                                  <button
+                                    onClick={() =>
+                                      setCurrentTravelerIndex(index)
+                                    }
+                                    className={`px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2 ${currentTravelerIndex === index
+                                      ? "bg-[#6366F1] text-white"
+                                      : "bg-[#292933] text-gray-300 hover:bg-[#333340] hover:text-white"
+                                      }`}
+                                  >
+                                    <span>
+                                      {travelersData[index]?.basicDetails
+                                        ?.firstName
+                                        ? `${travelersData[index].basicDetails.firstName}`
+                                        : `Traveler ${index + 1}`}
+                                    </span>
+                                    {isCompleted && (
+                                      <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                                        <svg
+                                          className="w-3 h-3 text-white"
+                                          fill="currentColor"
+                                          viewBox="0 0 20 20"
+                                        >
+                                          <path
+                                            fillRule="evenodd"
+                                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                            clipRule="evenodd"
+                                          />
+                                        </svg>
+                                      </div>
+                                    )}
+                                  </button>
+                                  {numberOfTravelers > 1 &&
+                                    step.stepType === "basicDetails" && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          const travelerName = travelersData[
+                                            index
+                                          ]?.basicDetails?.firstName
+                                            ? `${travelersData[index].basicDetails.firstName}`
+                                            : `Traveler ${index + 1}`;
+
+                                          const currentTraveler =
+                                            travelersData[index];
+                                          if (
+                                            currentTraveler?.insurance
+                                              ?.insurancePaymentCompleted ||
+                                            currentTraveler?.fullPayment
+                                              ?.paymentCompleted
+                                          ) {
+                                            showError(
+                                              `Cannot delete ${travelerName} as they have completed payment or insurance purchase.`
+                                            );
+                                            return;
+                                          }
+
+                                          setConfirmationModal({
+                                            isOpen: true,
+                                            title: `Delete ${travelerName}`,
+                                            message: `Are you sure you want to delete ${travelerName}? This action cannot be undone.`,
+                                            onConfirm: () => {
+                                              const idToRemove = traveler.id;
+                                              _removeTraveler(idToRemove);
+                                              setConfirmationModal({
+                                                ...confirmationModal,
+                                                isOpen: false,
+                                              });
+                                            },
+                                          });
+                                        }}
+                                        title="Remove traveler"
+                                        className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center rounded-full bg-red-500 text-white text-xs hover:bg-red-600 transition-all duration-200 opacity-0 group-hover:opacity-100 z-10 shadow-lg"
+                                      >
+                                        <XIcon className="w-3 h-3" />
+                                      </button>
+                                    )}
+                                </div>
+                              );
+                            })
+                            .filter(Boolean)}
+                          {step.stepType === "basicDetails" && (
+                            <button
+                              onClick={async () => {
+                                const uniqueId = `traveler_${Date.now()}_${Math.floor(
+                                  Math.random() * 1000
+                                )}`;
+                                await _addTraveler(uniqueId);
+                              }}
+                              className="bg-[#292933] text-gray-300 hover:bg-[#7350FF] hover:text-white px-4 py-1.5 rounded-lg flex items-center gap-2 font-medium transition-colors duration-200 border border-dashed border-gray-500 hover:border-[#7350FF]"
+                              title="Add Traveller"
+                            >
+                              <span className="text-lg">+</span>
+                              <span className="font-medium">Add Traveller</span>
+                            </button>
+                          )}
+                          {noOfClaimInsurance > noOfClaimedInsurance &&
+                            !travelersData?.[currentTravelerIndex]?.insurance
+                              ?.paidInCheckout &&
+                            step.stepType === "basicDetails" && (
+                              <div className="flex justify-self-end">
+                                <button
+                                  className="bg-[#292933] text-gray-300 hover:bg-[#7350FF] hover:text-white px-4 py-1.5 rounded-lg flex items-center gap-2 font-medium transition-colors duration-200 border border-dashed border-gray-500 hover:border-[#7350FF]"
+                                  onClick={() =>
+                                    handleClaimInsurance(
+                                      travelersData?.[currentTravelerIndex]
+                                    )
+                                  }
+                                >
+                                  Assign Insurance
+                                </button>
+                              </div>
+                            )}
+                        </div>
+
+                        {/* Tab Content */}
+                        <div>
+                          {step.id === 1 &&
+                            step.stepType === "basicDetails" && (
+                              <PassportStep
+                                travelerIndex={currentTravelerIndex}
+                                travelerData={getCurrentTravelerData()}
+                                travelersData={travelersData}
+                                updateCurrentTravelerData={
+                                  updateCurrentTravelerData
+                                }
+                                validatePassportData={validatePassportData}
+                                onComplete={(data) =>
+                                  handleCompleteStep(step.id, data)
+                                }
+                                loading={loading}
+                                showError={showError}
+                                disabled={!isOwner || isApplicationSubmitted}
+                              />
+                            )}
+
+                          {step.id === 2 &&
+                            step.stepType === "visitDetails" && (
+                              <VisitStep
+                                travelerIndex={currentTravelerIndex}
+                                travelerData={getCurrentTravelerData()}
+                                updateCurrentTravelerData={
+                                  updateCurrentTravelerData
+                                }
+                                validateVisitData={validateVisitData}
+                                parentVisaApplication={parentVisaApplication}
+                                setParentVisaApplication={
+                                  setParentVisaApplication
+                                }
+                                onComplete={(data) =>
+                                  handleCompleteStep(step.id, data)
+                                }
+                                loading={loading}
+                                showError={showError}
+                                disabled={!isOwner || isApplicationSubmitted}
+                              />
+                            )}
+
+                          {step.id === 3 && step.stepType === "documents" && (
+                            <DocumentStep
+                              travelerIndex={currentTravelerIndex}
+                              travelerData={getCurrentTravelerData()}
+                              updateCurrentTravelerData={
+                                updateCurrentTravelerData
+                              }
+                              validateDocuments={validateDocuments}
+                              onComplete={(data) =>
+                                handleCompleteStep(step.id, data)
+                              }
+                              loading={loading}
+                              showError={showError}
+                              disabled={!isOwner}
+                              isOwner={isOwner}
+                            />
+                          )}
+
+                          {step.stepType === "insurance" && (
+                            <InsuranceStep
+                              travelerIndex={currentTravelerIndex}
+                              applicationData={parentVisaApplication}
+                              updateCurrentTravelerData={
+                                updateCurrentTravelerData
+                              }
+                              loading={loading}
+                              onComplete={(data) => {
+                                handleCompleteStep(step.id, data);
+                              }}
+                              parentVisaApplication={parentVisaApplication}
+                              showError={showError}
+                              validateInsurance={_validateInsurance}
+                              travelerData={
+                                filteredTravellers[currentTravelerIndex]
+                              }
+                              disabled={!isOwner || isApplicationSubmitted}
+                              isOwner={isOwner}
+                              key={currentTravelerIndex}
+                            />
+                          )}
+
+                          {/* Step action buttons (Back / Next) for tab-based steps */}
+                          <div className="mt-6 flex justify-between items-center pt-4">
+                            <div className="text-sm text-gray-400">
+                              {!canCompleteStep(step.stepType) && (
+                                <span className="text-orange-400">
+                                  ⚠ Please complete all required fields for this
+                                  step
+                                </span>
+                              )}
+                              {canCompleteStep(step.stepType) && (
+                                <span className="text-green-400">
+                                  ✓ All requirements completed for this step
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3">
+                              {step.stepType === "basicDetails" ? (
+                                <button
+                                  onClick={async () => {
+                                    const uniqueId = `traveler_${Date.now()}_${Math.floor(
+                                      Math.random() * 1000
+                                    )}`;
+                                    await _addTraveler(uniqueId);
+                                  }}
+                                  className="bg-gray-700 text-white px-4 py-1.5 rounded-lg hover:bg-gray-600 disabled:opacity-50 flex items-center gap-2 transition-colors duration-200"
+                                  title="Add Traveller"
+                                >
+                                  <span className="text-lg">+</span>
+                                  <span className="font-medium">
+                                    Add Traveller
+                                  </span>
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => goToPreviousStep()}
+                                  className="bg-gray-700 text-white px-4 py-1.5 rounded-lg hover:bg-gray-600 disabled:opacity-50 transition-colors duration-200"
+                                >
+                                  Back
+                                </button>
+                              )}
+                              <button
+                                onClick={() =>
+                                  handleCompleteStep(step.id, {
+                                    allTravelersCompleted: true,
+                                  })
+                                }
+                                disabled={
+                                  !canCompleteStep(step.stepType) || loading
+                                }
+                                className={`px-6 py-2 rounded-lg font-semibold transition-colors duration-200 ${canCompleteStep(step.stepType) && !loading
+                                  ? "bg-[#7350FF] text-white hover:bg-[#7350FF]/90"
+                                  : "bg-gray-600 text-gray-400 cursor-not-allowed"
+                                  }`}
+                              >
+                                {loading ? "Processing..." : "Next"}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Single traveler or non-tab steps */
+                      <>
+                        {step.id === 1 && step.stepType === "basicDetails" && (
+                          <PassportStep
+                            travelerIndex={currentTravelerIndex}
+                            travelerData={getCurrentTravelerData()}
+                            travelersData={travelersData}
+                            updateCurrentTravelerData={
+                              updateCurrentTravelerData
+                            }
+                            validatePassportData={validatePassportData}
+                            onComplete={(data) =>
+                              handleCompleteStep(step.id, data)
+                            }
+                            loading={loading}
+                            showError={showError}
+                            disabled={!isOwner || isApplicationSubmitted}
+                          />
+                        )}
+
+                        {step.id === 2 && step.stepType === "visitDetails" && (
+                          <VisitStep
+                            travelerIndex={currentTravelerIndex}
+                            travelerData={getCurrentTravelerData()}
+                            updateCurrentTravelerData={
+                              updateCurrentTravelerData
+                            }
+                            validateVisitData={validateVisitData}
+                            parentVisaApplication={parentVisaApplication}
+                            setParentVisaApplication={setParentVisaApplication}
+                            onComplete={(data) =>
+                              handleCompleteStep(step.id, data)
+                            }
+                            loading={loading}
+                            showError={showError}
+                            disabled={!isOwner || isApplicationSubmitted}
+                          />
+                        )}
+
+                        {step.id === 3 && step.stepType === "documents" && (
+                          <DocumentStep
+                            travelerIndex={currentTravelerIndex}
+                            travelerData={getCurrentTravelerData()}
+                            updateCurrentTravelerData={
+                              updateCurrentTravelerData
+                            }
+                            validateDocuments={validateDocuments}
+                            onComplete={(data) =>
+                              handleCompleteStep(step.id, data)
+                            }
+                            loading={loading}
+                            showError={showError}
+                            disabled={!isOwner}
+                            isOwner={isOwner}
+                            totalTraveler={totalTraveler}
+                          />
+                        )}
+
+                        {step.stepType === "insurance" && (
+                          <InsuranceStep
+                            travelerIndex={currentTravelerIndex}
+                            applicationData={parentVisaApplication}
+                            updateCurrentTravelerData={
+                              updateCurrentTravelerData
+                            }
+                            loading={loading}
+                            onComplete={(data) => {
+                              handleCompleteStep(step.id, data);
+                            }}
+                            parentVisaApplication={parentVisaApplication}
+                            showError={showError}
+                            validateInsurance={_validateInsurance}
+                            travelerData={travelersData[currentTravelerIndex]}
+                            disabled={!isOwner || isApplicationSubmitted}
+                            isOwner={isOwner}
+                          />
+                        )}
+
                         {step.id === 4 && step.stepType === "fullPayment" && (
                           <FullPaymentStep
                             travelerIndex={currentTravelerIndex}
@@ -2212,6 +2884,7 @@ const MultiStepAccordion = () => {
                             }
                             loading={loading}
                             disabled={!isOwner || isApplicationSubmitted}
+                            application={parentVisaApplication}
                           />
                         )}
 
@@ -2220,7 +2893,9 @@ const MultiStepAccordion = () => {
                             parentVisaApplication={parentVisaApplication}
                             applicationId={applicationId}
                             onAddTraveler={async () => {
-                              const uniqueId = `traveler_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+                              const uniqueId = `traveler_${Date.now()}_${Math.floor(
+                                Math.random() * 1000
+                              )}`;
                               await _addTraveler(uniqueId);
                             }}
                             onUploadDocument={() => {
@@ -2235,66 +2910,85 @@ const MultiStepAccordion = () => {
                           />
                         )}
                         <div className="mt-6 flex justify-between items-center pt-4">
-                          {step.stepType !== "completed" && <div className="text-sm text-gray-400">
-                            {!canCompleteStep(step.stepType) && (
-                              <span className="text-orange-400">
-                                ⚠ Please complete all required fields for this step
-                              </span>
-                            )}
-                            {canCompleteStep(step.stepType) && (
-                              <span className="text-green-400">
-                                ✓ All requirements completed for this step
-                              </span>
-                            )}
-                          </div>}
-                          {step.stepType !== "appointment" && step.stepType !== "completed" && <div className="flex items-center gap-3">
-                            {step.stepType === "basicDetails" ? (
-                              <button
-                                onClick={async () => {
-                                  const uniqueId = `traveler_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-                                  await _addTraveler(uniqueId);
-                                }}
-                                className="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-600 disabled:opacity-50 flex items-center gap-2 transition-colors duration-200"
-                                title="Add Traveler"
-                              >
-                                <span className="text-lg">+</span>
-                                <span className="font-medium">
-                                  Add Traveler
+                          {step.stepType !== "completed" && (
+                            <div className="text-sm text-gray-400">
+                              {!canCompleteStep(step.stepType) && (
+                                <span className="text-orange-400">
+                                  ⚠ Please complete all required fields for this
+                                  step
                                 </span>
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => goToPreviousStep()}
-                                className="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-600 disabled:opacity-50 transition-colors duration-200"
-                              >
-                                Back
-                              </button>
+                              )}
+                              {canCompleteStep(step.stepType) && (
+                                <span className="text-green-400">
+                                  ✓ All requirements completed for this step
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          {step.stepType !== "appointment" &&
+                            step.stepType !== "completed" && (
+                              <div className="flex items-center gap-3">
+                                {step.stepType === "basicDetails" ? (
+                                  <button
+                                    onClick={async () => {
+                                      const uniqueId = `traveler_${Date.now()}_${Math.floor(
+                                        Math.random() * 1000
+                                      )}`;
+                                      await _addTraveler(uniqueId);
+                                    }}
+                                    className="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-600 disabled:opacity-50 flex items-center gap-2 transition-colors duration-200"
+                                    title="Add Traveler"
+                                  >
+                                    <span className="text-lg">+</span>
+                                    <span className="font-medium">
+                                      Add Traveler
+                                    </span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => goToPreviousStep()}
+                                    className="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-600 disabled:opacity-50 transition-colors duration-200"
+                                  >
+                                    Back
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() =>
+                                    handleCompleteStep(step.id, {})
+                                  }
+                                  disabled={
+                                    !canCompleteStep(step.stepType) || loading
+                                  }
+                                  className={`px-6 py-2 rounded-lg font-semibold transition-colors duration-200 ${canCompleteStep(step.stepType) && !loading
+                                    ? "bg-[#7350FF] text-white hover:bg-[#7350FF]/90"
+                                    : "bg-gray-600 text-gray-400 cursor-not-allowed"
+                                    }`}
+                                >
+                                  {loading ? "Processing..." : "Next"}
+                                </button>
+                              </div>
                             )}
-                            <button
-                              onClick={() => handleCompleteStep(step.id, {})}
-                              disabled={!canCompleteStep(step.stepType) || loading}
-                              className={`px-6 py-2 rounded-lg font-semibold transition-colors duration-200 ${canCompleteStep(step.stepType) && !loading
-                                ? "bg-[#7350FF] text-white hover:bg-[#7350FF]/90"
-                                : "bg-gray-600 text-gray-400 cursor-not-allowed"
-                                }`}
-                            >
-                              {loading ? "Processing..." : "Next"}
-                            </button>
-                          </div>}
                         </div>
                       </>
                     )}
                   </div>
                 )}
+
+
               </div>
             );
           })}
         </div>
+
+
+
       </div>
 
       <ConfirmationModal
         isOpen={confirmationModal.isOpen}
-        onClose={() => setConfirmationModal({ ...confirmationModal, isOpen: false })}
+        onClose={() =>
+          setConfirmationModal({ ...confirmationModal, isOpen: false })
+        }
         onConfirm={confirmationModal.onConfirm}
         title={confirmationModal.title}
         message={confirmationModal.message}
@@ -2385,8 +3079,8 @@ const PassportStep = ({
         city: updatedBasicDetails.city,
         pincode: updatedBasicDetails.pincode,
         mobileNumber: updatedBasicDetails.mobileNumber,
-        travelStartDate: updatedBasicDetails.travelStartDate,
-        travelEndDate: updatedBasicDetails.travelEndDate,
+        // travelStartDate: updatedBasicDetails.travelStartDate,
+        // travelEndDate: updatedBasicDetails.travelEndDate,
         passportFront: passportFrontBase64,
         passportBack: passportBackBase64,
         travelerIndex: travelerIndex,
@@ -2590,7 +3284,7 @@ const _InsuranceStep = ({
     travelerData?.insurance?.insurance || ""
   );
   const [uploadedCertificate, setUploadedCertificate] = useState(
-    travelerData?.insurance?.insuranceCertificate || null
+    travelerData?.insurance?.insuranceCertificates || null
   );
 
   // Initialize payment hook
@@ -2995,8 +3689,11 @@ const FullPaymentStep = ({
   _validateFullPayment,
   disabled = false,
   totalTraveler = 1,
-  paymentData
 }) => {
+  const { paymentData } = useCalculatePayment(
+    parentVisaApplication?.id
+  )
+  console.log(paymentData, "paymentData");
   const [paymentError, setPaymentError] = useState("");
   const [isPaying, setIsPaying] = useState(false);
   const [appliedDiscount, setAppliedDiscountLocal] = useState(null);
@@ -3161,10 +3858,7 @@ const FullPaymentStep = ({
       // Calculate total payment including insurance if documents not uploaded
       const totalAmount = calculateTotalPayment();
 
-      console.log(
-        parentVisaApplication,
-        "paymentData in full payment step"
-      );
+      console.log(parentVisaApplication, "paymentData in full payment step");
       // Create checkout session via hook with normalized metadata
       await handleCreateDynamicCheckoutSession({
         email: parentVisaApplication?.email || "",
@@ -3180,37 +3874,16 @@ const FullPaymentStep = ({
         currency: "EUR",
         travelData: parentVisaApplication?.travelersData?.map((item) => ({
           ...item,
-          insurance: {
-            insurance: item.insurance?.insurance || true,
-            paymentAmount:
-              item.insurance?.paymentAmount > 0
-                ? item.insurance?.paymentAmount
-                : calculateTravelDays(
-                  item.basicDetails.startDate,
-                  item.basicDetails.endDate
-                ) *
-                2 -
-                (appliedDiscount && appliedDiscount.percentage
-                  ? (calculateTravelDays(
-                    item.basicDetails.startDate,
-                    item.basicDetails.endDate
-                  ) *
-                    2 *
-                    appliedDiscount.percentage) /
-                  100
-                  : 0),
-            insurancePaymentCompleted:
-              item.insurance?.insurancePaymentCompleted || true,
-            paidInCheckout: item.insurance?.paidInCheckout || false,
-          },
           fullPayment: {
             ...item.fullPayment,
             paymentAmount:
               Number(item.fullPayment) > 0
-                ? Number(item.fullPayment)
+                ? Number(totalAmount)
                 : Number(teleportTotalEUR),
             paymentCompleted: item.fullPayment?.paymentCompleted || true,
-            paymentStatus: item.fullPayment?.paymentStatus || "completed",
+            paymentStatus: "completed",
+            paymentMethod: "stripe",
+            paymentDate: new Date().toISOString(),
           },
         })),
       });
@@ -3277,11 +3950,9 @@ const FullPaymentStep = ({
   // Show completion only if ALL payments (travel + insurance) are done
   const allPaymentsCompleted = isPaymentCompleted && insuranceHandled;
 
-
-
   const calculateTotalPayment = () => {
     const total =
-      paymentData?.fullRemainingPayment + paymentData?.totalInsuranceCost;
+      paymentData?.fullRemainingPayment
 
     if (appliedDiscount && appliedDiscount.percentage) {
       const discountAmount = (total * appliedDiscount.percentage) / 100;
@@ -3307,6 +3978,7 @@ const FullPaymentStep = ({
     try {
       const key = "nuvisa.verifiedStudentEmail";
       const raw = localStorage.getItem(key);
+
       if (raw) {
         const payload = JSON.parse(raw);
         if (
@@ -3338,10 +4010,16 @@ const FullPaymentStep = ({
     } catch { }
   }, []);
 
+  useEffect(() => {
+    const token = localStorageGateway("token", localStorageEnums.GET);
+    getVisaApplication(token, {
+      id: parentVisaApplication?.id
+    })
+  }, [parentVisaApplication]);
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-white mb-2">Full Payment</h2>
+        <h2 className="text-2xl font-bold text-white mb-2">Payment</h2>
         <p className="text-gray-300">
           {isAdditionalTraveler
             ? "Payment required for additional traveler"
@@ -3361,11 +4039,10 @@ const FullPaymentStep = ({
                   <div className="w-3 h-3 bg-[#7350FF] rounded-full"></div>
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-white">Full payment</h3>
+                  <h3 className="text-xl font-bold text-white">Payment</h3>
                   <div className="text-3xl font-bold text-[#7350FF]">
-                    {paymentData.allPaymentCompleted
-                      ? `€${paymentData.totalFullPayment +
-                      paymentData.totalInsurancePayment
+                    {paymentData.totalFullPayment
+                      ? `€${paymentData.totalFullPayment
                       }`
                       : `€${totalPaymentDue.toFixed(2)}`}
                   </div>
@@ -3549,44 +4226,7 @@ const FullPaymentStep = ({
               </div>
             )}
 
-            {paymentData?.totalInsuranceCost > 0 && (
-              <div>
-                <div className="flex justify-between">
-                  <span className="text-gray-300">
-                    Insurance fees ({paymentData?.noOfTravelersNeedingInsurance}{" "}
-                    traveler
-                    {paymentData?.noOfTravelersNeedingInsurance > 1 ? "s" : ""})
-                  </span>
-                  <span className="font-medium text-white">
-                    €{paymentData?.totalInsuranceCost || 0}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-400 ml-4">
-                    €
-                    {paymentData?.totalInsuranceCost /
-                      paymentData?.noOfTravelersNeedingInsurance}{" "}
-                    (per traveller) ×{" "}
-                    {paymentData?.noOfTravelersNeedingInsurance} traveler
-                    {paymentData?.noOfTravelersNeedingInsurance > 1 ? "s" : ""}
-                  </span>
-                  <span className="text-gray-300">
-                    €{paymentData?.totalInsuranceCost || 0}
-                  </span>
-                </div>
-                <div className="text-xs text-gray-500 ml-4 mt-1">
-                  Insurance calculated for {travelDays} travel days
-                </div>
-              </div>
-            )}
-            {paymentData?.allPaymentCompleted && (
-              <div className="flex justify-between">
-                <span className="text-gray-300">Insurance fees</span>
-                <span className="font-medium text-white">
-                  €{paymentData?.totalInsurancePayment || 0}
-                </span>
-              </div>
-            )}
+
 
             {/* if discount than add taht steps as well */}
             {appliedDiscount && !paymentData.allPaymentCompleted && (
@@ -3599,8 +4239,7 @@ const FullPaymentStep = ({
                   <span>
                     -€
                     {(
-                      ((paymentData?.fullRemainingPayment || 0) +
-                        (paymentData?.totalInsuranceCost || 0)) *
+                      ((paymentData?.fullRemainingPayment || 0)) *
                       (appliedDiscount.percentage / 100)
                     ).toFixed(2)}
                   </span>
@@ -3608,20 +4247,7 @@ const FullPaymentStep = ({
               </div>
             )}
 
-            {
-              <div className="border-t border-[#423577] pt-4">
-                <div className="flex justify-between items-center text-lg font-bold">
-                  <span className="text-white">Grand Total</span>
-                  <span className="text-[#7350FF]">
-                    {paymentData.allPaymentCompleted
-                      ? `€${paymentData.totalFullPayment +
-                      paymentData.totalInsurancePayment
-                      }`
-                      : `€${totalPaymentDue.toFixed(2)}`}
-                  </span>
-                </div>
-              </div>
-            }
+
 
             {allPaymentsCompleted && (
               <span className="flex items-center gap-2 py-2">
