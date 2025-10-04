@@ -13,13 +13,12 @@ const BookingAppointment = ({
   onComplete,
   loading,
   _validateAppointment,
-  travelerData,
   disabled = false,
   application,
+  isStepCompleted = false,
 }) => {
   const { cities, slots, loadingCities, loadingSlots, error } =
     useAppointmentData();
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Parse existing date strings back to Date objects for DatePicker
   const parseDate = (dateStr) => {
@@ -34,7 +33,7 @@ const BookingAppointment = ({
 
   // Extract date range from existing data if it exists
   const getInitialDates = (preference) => {
-    const existingData = travelerData?.appointment?.[preference];
+    const existingData = application?.appointment?.[preference];
     if (existingData?.dateRange) {
       const dateRange = existingData.dateRange;
       if (dateRange.includes(" - ")) {
@@ -53,16 +52,18 @@ const BookingAppointment = ({
 
   const [appointmentData, setAppointmentData] = useState({
     preference1: {
-      city: travelerData?.appointment?.preference1?.city || "",
+      city: application?.appointment?.preference1?.city || "",
       ...getInitialDates("preference1"),
-      slot: travelerData?.appointment?.preference1?.slot || "",
+      slot: application?.appointment?.preference1?.slot || "",
     },
     preference2: {
-      city: travelerData?.appointment?.preference2?.city || "",
+      city: application?.appointment?.preference2?.city || "",
       ...getInitialDates("preference2"),
-      slot: travelerData?.appointment?.preference2?.slot || "",
+      slot: application?.appointment?.preference2?.slot || "",
     },
   });
+
+  console.log(application?.appointment, "application?.appointment");
 
   const [errors, setErrors] = useState({
     preference1: { city: "", dateRange: "", slot: "" },
@@ -194,10 +195,10 @@ const BookingAppointment = ({
         city: appointmentData.preference2.city,
         dateRange:
           appointmentData.preference2.dateRangeStart &&
-          appointmentData.preference2.dateRangeEnd
+            appointmentData.preference2.dateRangeEnd
             ? `${formatDate(
-                appointmentData.preference2.dateRangeStart
-              )} - ${formatDate(appointmentData.preference2.dateRangeEnd)}`
+              appointmentData.preference2.dateRangeStart
+            )} - ${formatDate(appointmentData.preference2.dateRangeEnd)}`
             : "",
         slot: appointmentData.preference2.slot,
         // Also keep the individual date fields for validation
@@ -211,26 +212,14 @@ const BookingAppointment = ({
 
   const token = localStorageGateway("token", localStorageEnums.GET);
 
-  const handleSubmit = async () => {
-    setIsSubmitting(true);
-    await updateVisaApplication(token, {
-      id: application.id,
-      applicationStatus: "submitted",
-    });
 
-    await getVisaApplication(token, {
-      id: application.id,
-    });
-    handleSave();
-    setIsSubmitting(false);
-  };
 
   return (
     <div className="space-y-6">
       {/* Appointment Information */}
       <div className="bg-[#23232B] border border-[#423577] rounded-lg p-6">
         <h3 className="text-lg font-semibold text-white mb-4">
-          Appointment for {travelerData?.basicDetails?.firstName}
+          Appointment for {application?.basicDetails?.firstName}
         </h3>
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
           <p className="text-sm text-gray-700">
@@ -262,11 +251,10 @@ const BookingAppointment = ({
                 onChange={(e) =>
                   handleInputChange("preference1", "city", e.target.value)
                 }
-                className={`w-full px-3 py-2 bg-[#292933] border text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:border-transparent ${
-                  errors.preference1.city
-                    ? "border-red-500"
-                    : "border-[#423577]"
-                } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                className={`w-full px-3 py-2 bg-[#292933] border text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:border-transparent ${errors.preference1.city
+                  ? "border-red-500"
+                  : "border-[#423577]"
+                  } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
                 disabled={loadingCities || disabled}
               >
                 <option value="">Select</option>
@@ -299,11 +287,10 @@ const BookingAppointment = ({
                 minDate={new Date()}
                 dateFormat="dd/MM/yyyy"
                 placeholderText="Select date range"
-                className={`w-full px-3 py-2 bg-[#292933] border text-white placeholder-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:border-transparent ${
-                  errors.preference1.dateRange
-                    ? "border-red-500"
-                    : "border-[#423577]"
-                } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                className={`w-full px-3 py-2 bg-[#292933] border text-white placeholder-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:border-transparent ${errors.preference1.dateRange
+                  ? "border-red-500"
+                  : "border-[#423577]"
+                  } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
                 disabled={disabled}
               />
               {errors.preference1.dateRange && (
@@ -321,11 +308,10 @@ const BookingAppointment = ({
                 onChange={(e) =>
                   handleInputChange("preference1", "slot", e.target.value)
                 }
-                className={`w-full px-3 py-2 bg-[#292933] border text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:border-transparent ${
-                  errors.preference1.slot
-                    ? "border-red-500"
-                    : "border-[#423577]"
-                } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                className={`w-full px-3 py-2 bg-[#292933] border text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:border-transparent ${errors.preference1.slot
+                  ? "border-red-500"
+                  : "border-[#423577]"
+                  } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
                 disabled={loadingSlots || disabled}
               >
                 <option value="">Select</option>
@@ -365,11 +351,10 @@ const BookingAppointment = ({
                 onChange={(e) =>
                   handleInputChange("preference2", "city", e.target.value)
                 }
-                className={`w-full px-3 py-2 bg-[#292933] border text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:border-transparent ${
-                  errors.preference2.city
-                    ? "border-red-500"
-                    : "border-[#423577]"
-                } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                className={`w-full px-3 py-2 bg-[#292933] border text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:border-transparent ${errors.preference2.city
+                  ? "border-red-500"
+                  : "border-[#423577]"
+                  } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
                 disabled={loadingCities || disabled}
               >
                 <option value="">Select</option>
@@ -399,11 +384,10 @@ const BookingAppointment = ({
                 minDate={new Date()}
                 dateFormat="dd/MM/yyyy"
                 placeholderText="Select date range (optional)"
-                className={`w-full px-3 py-2 bg-[#292933] border text-white placeholder-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:border-transparent ${
-                  errors.preference2.dateRange
-                    ? "border-red-500"
-                    : "border-[#423577]"
-                } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                className={`w-full px-3 py-2 bg-[#292933] border text-white placeholder-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:border-transparent ${errors.preference2.dateRange
+                  ? "border-red-500"
+                  : "border-[#423577]"
+                  } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
                 disabled={disabled}
               />
               {errors.preference2.dateRange && (
@@ -421,11 +405,10 @@ const BookingAppointment = ({
                 onChange={(e) =>
                   handleInputChange("preference2", "slot", e.target.value)
                 }
-                className={`w-full px-3 py-2 bg-[#292933] border text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:border-transparent ${
-                  errors.preference2.slot
-                    ? "border-red-500"
-                    : "border-[#423577]"
-                } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                className={`w-full px-3 py-2 bg-[#292933] border text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:border-transparent ${errors.preference2.slot
+                  ? "border-red-500"
+                  : "border-[#423577]"
+                  } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
                 disabled={loadingSlots || disabled}
               >
                 <option value="">Select</option>
@@ -448,22 +431,15 @@ const BookingAppointment = ({
         <div className="flex justify-end mb-4">
           <button
             onClick={handleSave}
-            disabled={loading || disabled}
+            disabled={loading || disabled || isStepCompleted}
             className="px-6 py-2 bg-[#7350FF] text-white rounded-md hover:bg-[#7350FF]/90 disabled:bg-[#7350FF]/30 transition-colors"
           >
             {loading ? "Processing..." : "Save"}
           </button>
         </div>
-        <div className="flex justify-end">
-          <button
-            onClick={handleSubmit}
-            disabled={isSubmitting || disabled}
-            className="px-6 py-2 bg-[#7350FF] text-white rounded-md hover:bg-[#7350FF]/90 disabled:bg-[#7350FF]/30 transition-colors"
-          >
-            {isSubmitting ? "Loading..." : "Submit"}
-          </button>
-        </div>
       </div>
+
+
     </div>
   );
 };

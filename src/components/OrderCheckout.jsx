@@ -23,7 +23,7 @@ const VisaCheckout = () => {
   const { handleCreateDynamicCheckoutSession, cretingDynamicCheckout } =
     useCreateDynamicCheckoutSession();
 
-   
+
   // Get data from Redux store first, fallback to URL params if not available
   const visaState = useAppSelector((state) => state.visa);
 
@@ -47,7 +47,7 @@ const VisaCheckout = () => {
   );
 
   const handleTravelersChange = (newCount) => {
-    if(insuranceCount > newCount){
+    if (insuranceCount > newCount) {
       setInsuranceCount(newCount);
     }
     setTravelersLocal(newCount);
@@ -93,11 +93,12 @@ const VisaCheckout = () => {
 
   const { showSuccess } = useToast();
 
-  const [_studentVerificationSent, setStudentVerificationSent] = useState(false);
+  const [studentVerificationSent, setStudentVerificationSent] = useState(false);
   const [studentVerified, setStudentVerified] = useState(false);
-  const [_isSendingVerification, setIsSendingVerification] = useState(false);
+  const [isSendingVerification, setIsSendingVerification] = useState(false);
   const verificationPollRef = useRef(null);
-  const [pendingCheckoutQuery, _setPendingCheckoutQuery] = useState(null);
+  const [pendingCheckoutQuery, setPendingCheckoutQuery] = useState(null);
+  const [stundentEmail, setStudentEmail] = useState("")
 
 
 
@@ -289,13 +290,18 @@ const VisaCheckout = () => {
   const [billingPhone, setBillingPhone] = useState("");
   const [billingPhoneError, setBillingPhoneError] = useState("");
 
+
+  const [groupAutoApplied, setGroupAutoApplied] = useState(false);
+  const [_showStudentModal, _setShowStudentModal] = useState(false);
+  const [_studentEmail, _setStudentEmail] = useState("");
+  const [_studentOtp, _setStudentOtp] = useState("");
+  const [_isVerifyingOtp, _setIsVerifyingOtp] = useState(false);
+
   // Card validation errors
   const [cardErrors, setCardErrors] = useState({});
 
   // Function to apply coupon code
-  const applyCouponCode = async () => {
-    setCouponError("");
-
+  const applyCouponCode = () => {
     if (!couponCode.trim()) {
       setCouponError("Please enter a coupon code");
       return;
@@ -307,79 +313,56 @@ const VisaCheckout = () => {
         percentage: 10,
       },
       GROUP20: {
-        description: "Group discount",
+        description: "Group discount (3+ travellers)",
         percentage: 20,
         requiresMinTravellers: 3,
       },
+
     };
 
     const discount = availableDiscounts[couponCode.toUpperCase()];
+
     if (!discount) {
-      setCouponError("Invalid coupon code. Available codes: STUDENT10, GROUP20");
+      setCouponError("Invalid coupon code");
       return;
     }
 
-    if (discount.requiresMinTravellers && travelers < discount.requiresMinTravellers) {
-      setCouponError(`This coupon requires at least ${discount.requiresMinTravellers} travellers`);
-      return;
-    }
-
-    if (couponCode.toUpperCase() === "STUDENT10") {
-      if (!email) {
-        setEmailError("Please enter your email to verify student discount");
-        setCouponError("Enter an email to verify student discount");
-        return;
-      }
-
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        setEmailError("Please enter a valid email address");
-        setCouponError("Please provide a valid email for student verification");
-        return;
-      }
-
-      const educationalDomains = [
-        ".edu",
-        ".ac.uk",
-        ".edu.au",
-        ".edu.ca",
-        ".ac.nz",
-        ".edu.sg",
-        ".uni-",
-        ".university",
-        ".college",
-        ".ac.",
-        ".edu.",
-      ];
-      const isEducationalEmail = educationalDomains.some((domain) =>
-        email.toLowerCase().includes(domain)
+    // Check group requirement
+    if (
+      discount.requiresMinTravellers &&
+      travelers < discount.requiresMinTravellers
+    ) {
+      setCouponError(
+        `This coupon requires at least ${discount.requiresMinTravellers} travellers`
       );
-
-      if (!isEducationalEmail) {
-        setCouponError("Please use your educational institution email address (.edu, .ac.uk, etc.)");
-        return;
-      }
-
-      setAppliedDiscount({
-        code: couponCode.toUpperCase(),
-        percentage: discount.percentage,
-        description: discount.description,
-      });
-      setCouponError("");
-
-      try {
-        await sendStudentVerification(email, "/visa-checkout");
-      } catch {
-      }
-
       return;
     }
 
-    setAppliedDiscount({
-      code: couponCode.toUpperCase(),
-      percentage: discount.percentage,
-      description: discount.description,
-    });
+    // Apply immediately
+    const currentBaseFee =
+      selectedVisaType && selectedVisaType.priceGBP
+        ? Number(selectedVisaType.priceGBP)
+        : selectedVisaType && selectedVisaType.price
+          ? Math.round(Number(selectedVisaType.price) / 100)
+          : 159; // baseFee
+    const currentVisaFees = currentBaseFee * travelers;
+    const calculatedDiscountAmount =
+      (currentVisaFees * discount.percentage) / 100;
+
+    const discountWithAmount = {
+      ...discount,
+      discountAmount: Math.round(calculatedDiscountAmount),
+    };
+
+    setAppliedDiscount(discountWithAmount);
     setCouponError("");
+    // If user manually applied GROUP20, mark it as manual (not auto-applied)
+    if (couponCode.toUpperCase() === "GROUP20") {
+      setGroupAutoApplied(false);
+    }
+
+    if (discount && discount.description.toLowerCase().includes("student")) {
+    }
   };
 
   const removeCoupon = () => {
@@ -601,7 +584,7 @@ const VisaCheckout = () => {
         insurancePaymentAmount: discountedInsuranceFeesEUR,
       }))
     )
-   
+
     await localStorageGateway(
       "insurancePayment",
       localStorageEnums.SET,
@@ -617,15 +600,15 @@ const VisaCheckout = () => {
     );
 
     dispatch(setAmountWithoutDiscount(Number(subtotalEUR)));
-    dispatch(setTotalAmount(Number(totalAmountEUR))); 
+    dispatch(setTotalAmount(Number(totalAmountEUR)));
     dispatch(setInsuranceFees(Number(insuranceCount * insuranceFeesPerTraveller)));
     dispatch(setGiftCardFees(Number(giftCardFees)));
     dispatch(setCouponCode(couponCode.trim().toUpperCase()));
     dispatch(setTravelers(Number(travelers)));
 
 
-  
-     await localStorageGateway("paymentWithoutInsurance", localStorageEnums.SET,
+
+    await localStorageGateway("paymentWithoutInsurance", localStorageEnums.SET,
       String(visaFeesEUR)
     );
 
@@ -735,7 +718,7 @@ const VisaCheckout = () => {
       dispatch(
         setAmountWithoutDiscount(
           Number(
-visaFeesEUR
+            visaFeesEUR
           )
         )
       )
@@ -750,17 +733,46 @@ visaFeesEUR
   };
 
 
-    const handleInsuranceChange = (increment) => {
-      const newValue = insuranceCount + increment;
-      if (newValue >= 1 && newValue <= travelers) {
-        setInsuranceCount(newValue);
-        dispatch(setReduxInsuranceCount(Number(newValue)));
-  
-        if (newValue > 0 && !includeInsurance) {
-          setIncludeInsurance(true);
-        }
+  const handleInsuranceChange = (increment) => {
+    const newValue = insuranceCount + increment;
+    if (newValue >= 1 && newValue <= travelers) {
+      setInsuranceCount(newValue);
+      dispatch(setReduxInsuranceCount(Number(newValue)));
+
+      if (newValue > 0 && !includeInsurance) {
+        setIncludeInsurance(true);
       }
     }
+  }
+
+  useEffect(() => {
+    try {
+      const key = 'nuvisa.verifiedStudentEmail';
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        const payload = JSON.parse(raw);
+        if (payload && payload.email && payload.expiresAt && Date.now() < payload.expiresAt) {
+          setStudentVerified(true);
+          setStudentVerificationSent(false);
+
+          // Pre-fill user email field if it's empty so user sees which address was verified
+          try {
+            if (!_studentEmail && payload.email) _setStudentEmail(payload.email);
+          } catch {
+            /* ignore */
+          }
+
+          // Auto-apply STUDENT10 if not already applied
+          if (!appliedDiscount || (appliedDiscount && appliedDiscount.code !== 'STUDENT10')) {
+            setAppliedDiscount({ code: 'STUDENT10', percentage: 10, description: 'Student discount' });
+            setCouponCodeLocal('STUDENT10');
+          }
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
 
   return (
     <ClientOnly>
@@ -1013,29 +1025,7 @@ visaFeesEUR
                   </div>
                 )}
 
-                {appliedDiscount &&
-                  appliedDiscount.description &&
-                  appliedDiscount.description.toLowerCase().includes("student") &&
-                  !studentVerified && (
-                    <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
-                      <p className="mb-2">
-                        Student discount requires email verification. We have sent a verification email to the address above. Please check your inbox and click the verification link to continue.
-                      </p>
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => sendStudentVerification(email)}
-                          className="px-3 py-1 bg-black text-white rounded text-sm"
-                        >
-                          Resend verification email
-                        </button>
-                        {_studentVerificationSent && (
-                          <span className="text-sm text-gray-700">
-                            Verification sent — check your inbox
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  )}
+
 
                 <div className="text-xs text-gray-600">
                   <p>Available discounts:</p>
@@ -1043,9 +1033,76 @@ visaFeesEUR
                     • <span className="font-semibold">STUDENT10</span> - 10%
                     student discount
                   </p>
+                  <p>
+                    • <span className="font-semibold">GROUP20</span> - 20% group
+                    discount (3 or more travellers)
+                  </p>
+
                 </div>
               </div>
             </div>
+
+
+            {appliedDiscount &&
+              appliedDiscount.description.toLowerCase().includes("student") && (
+                <div className="space-y-3 mb-6">
+                  <h2 className="font-medium text-lg">
+                    Student Verification Required
+                  </h2>
+                  <div className="space-y-2">
+                    <div className="text-sm">
+                      <span className="font-medium">📧 Email Verification</span> -
+                      Please verify your student email to continue with the
+                      discount
+                    </div>
+
+                    <div className="flex space-x-2">
+                      <div className="flex-1">
+                        <input
+                          type="email"
+                          value={_studentEmail}
+                          onChange={(e) => _setStudentEmail(e.target.value)}
+                          placeholder="Enter your student email (e.g., you@student.uni.ac.uk)"
+                          className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                          disabled={studentVerified}
+                        />
+                      </div>
+                      {!studentVerified ? (
+                        <button
+                          onClick={() => sendStudentVerification(_studentEmail)}
+                          disabled={isSendingVerification || !_studentEmail}
+                          className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+                        >
+                          {isSendingVerification ? "Sending..." : "Verify Email"}
+                        </button>
+                      ) : (
+                        <div className="px-4 py-2 bg-green-600 text-white text-sm rounded-md flex items-center">
+                          ✓ Verified
+                        </div>
+                      )}
+                    </div>
+
+                    {emailError && (
+                      <span className="text-sm text-red-400">{emailError}</span>
+                    )}
+
+                    {studentVerificationSent && !studentVerified && (
+                      <div className="text-sm text-green-600 bg-green-50 p-2 rounded-md">
+                        ✓ Verification email sent! Please check your inbox and
+                        click the verification link.
+                      </div>
+                    )}
+
+                    {studentVerified && (
+                      <div className="text-sm text-green-600 bg-green-50 p-2 rounded-md">
+                        ✓ Student email verified! You can now proceed with the
+                        student discount.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
 
             <div className="space-y-3">
               <h2 className="font-medium text-lg">Payment Method</h2>
@@ -1694,7 +1751,7 @@ visaFeesEUR
               </div>
 
               <QtyInput
-                onIncrement={(val) => 
+                onIncrement={(val) =>
                   handleTravelersChange(val)
                 }
                 onDecrement={(val) => handleTravelersChange(val)}
@@ -1710,11 +1767,11 @@ visaFeesEUR
             <div className="flex items-center justify-between">
               <div
                 className="flex items-center space-x-2 cursor-pointer"
-                onClick={() =>{
-                   setIncludeInsurance(!includeInsurance)
-                   if(includeInsurance){
+                onClick={() => {
+                  setIncludeInsurance(!includeInsurance)
+                  if (includeInsurance) {
                     setInsuranceCount(1)
-                   }
+                  }
                 }}
               >
                 <input
@@ -1729,11 +1786,11 @@ visaFeesEUR
               </div>
               <div className="flex items-center space-x-2">
                 <QtyInput
-                    value={insuranceCount}
-                    onIncrement={() => handleInsuranceChange(1)}
-                    onDecrement={() => handleInsuranceChange(-1)}
-                    min={1}
-                  />
+                  value={insuranceCount}
+                  onIncrement={() => handleInsuranceChange(1)}
+                  onDecrement={() => handleInsuranceChange(-1)}
+                  min={1}
+                />
                 <span className="text-sm">
                   {includeInsurance
                     ? formatCurrency(baseInsuranceFeesEUR, "EUR")

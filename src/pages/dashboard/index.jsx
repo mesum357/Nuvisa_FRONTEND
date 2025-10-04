@@ -295,70 +295,89 @@ function ApplicationCard({
     router.push(`/application-step?application_id=${id}`);
   };
 
-  const getApplicantData = () => {
-    let traveler = null;
+  const getAllTravelersData = () => {
+    let travelers = [];
+
     if (
       app?.travelersData &&
       Array.isArray(app.travelersData) &&
       app.travelersData.length > 0
     ) {
-      traveler = app.travelersData[0];
+      travelers = app.travelersData;
     } else if (app?.travelersData && typeof app.travelersData === "string") {
       try {
         const parsed = JSON.parse(app.travelersData);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          traveler = parsed[0];
+        if (Array.isArray(parsed)) {
+          travelers = parsed;
         }
       } catch (e) {
         console.error("Failed to parse travelersData", e);
       }
     }
 
-    const firstName = (traveler?.basicDetails?.firstName || "").trim();
-    const lastName = (traveler?.basicDetails?.lastName || "").trim();
+    return travelers.map((traveler, index) => {
+      const firstName = (traveler?.basicDetails?.firstName || "").trim();
+      const lastName = (traveler?.basicDetails?.lastName || "").trim();
 
-    // Prefer traveler name when available; otherwise derive from application email
-    let fullName = `${firstName} ${lastName}`.trim();
+      let fullName = `${firstName} ${lastName}`.trim();
 
-    // fallback: if no name available, show the full email instead of a derived name
-    const email =
-      traveler?.basicDetails?.email || app?.email || "no-email@provided.com";
-    if (!fullName) {
-      fullName = email;
-    }
-    const dob = traveler?.basicDetails?.dateOfBirth;
-
-    // generate initials: prefer name initials, else use email local-part chars
-    let initials = "";
-    const nameParts = fullName.split(" ").filter(Boolean);
-    if (nameParts.length > 0) {
-      initials = nameParts
-        .slice(0, 2)
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase();
-    }
-    if (!initials) {
-      const localEmail = (email.split("@")[0] || "").replace(
-        /[^a-zA-Z0-9]/g,
-        ""
-      );
-      initials = localEmail.slice(0, 2).toUpperCase() || "AP";
-    }
-
-    let age = "";
-    if (dob) {
-      const birthDate = new Date(dob);
-      const today = new Date();
-      let calculatedAge = today.getFullYear() - birthDate.getFullYear();
-      const m = today.getMonth() - birthDate.getMonth();
-      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-        calculatedAge--;
+      const email =
+        traveler?.basicDetails?.email || app?.email || "no-email@provided.com";
+      if (!fullName) {
+        fullName = email;
       }
-      age = `${calculatedAge} yrs`;
-    }
+      const dob = traveler?.basicDetails?.dateOfBirth;
 
-    return { fullName, initials, email, age };
+      let initials = "";
+      const nameParts = fullName.split(" ").filter(Boolean);
+      if (nameParts.length > 0) {
+        initials = nameParts
+          .slice(0, 2)
+          .map((n) => n[0])
+          .join("")
+          .toUpperCase();
+      }
+      if (!initials) {
+        const localEmail = (email.split("@")[0] || "").replace(
+          /[^a-zA-Z0-9]/g,
+          ""
+        );
+        initials = localEmail.slice(0, 2).toUpperCase() || "AP";
+      }
+
+      let age = "";
+      if (dob) {
+        const birthDate = new Date(dob);
+        const today = new Date();
+        let calculatedAge = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+          calculatedAge--;
+        }
+        age = `${calculatedAge} yrs`;
+      }
+
+      return {
+        fullName,
+        initials,
+        email,
+        age,
+        index: index + 1,
+        travelerNumber: `Traveler ${index + 1}`
+      };
+    });
+  };
+
+  const getApplicantData = () => {
+    const allTravelers = getAllTravelersData();
+    return allTravelers.length > 0 ? allTravelers[0] : {
+      fullName: app?.email || "no-email@provided.com",
+      initials: "AP",
+      email: app?.email || "no-email@provided.com",
+      age: "",
+      index: 1,
+      travelerNumber: "Traveler 1"
+    };
   };
 
   const { fullName, initials, email, age } = getApplicantData();
@@ -423,10 +442,61 @@ function ApplicationCard({
         </div>
 
         <div className="flex items-center gap-3 w-1/2 justify-center">
-          <div className="w-8 h-8 rounded-full bg-[#4A3B65] text-[#C1A2F4] flex items-center justify-center font-bold text-sm">
-            {initials}
-          </div>
-          <p className="text-sm font-medium text-white">{fullName}</p>
+          {(() => {
+            const allTravelers = getAllTravelersData();
+            const displayTravelers = allTravelers.slice(0, 3); // Show max 3 travelers in compact view
+            const remainingCount = Math.max(0, allTravelers.length - 3);
+
+            if (allTravelers.length === 0) {
+              return (
+                <>
+                  <div className="w-8 h-8 rounded-full bg-[#4A3B65] text-[#C1A2F4] flex items-center justify-center font-bold text-sm">
+                    {initials}
+                  </div>
+                  <p className="text-sm font-medium text-white">{fullName}</p>
+                </>
+              );
+            }
+
+            return (
+              <div className="flex items-center gap-2">
+                {/* Traveler avatars */}
+                <div className="flex -space-x-2">
+                  {displayTravelers.map((traveler, index) => (
+                    <div
+                      key={index}
+                      className="w-8 h-8 rounded-full bg-[#4A3B65] text-[#C1A2F4] flex items-center justify-center font-bold text-sm border-2 border-[#23232B] relative z-10"
+                      title={traveler.fullName}
+                      style={{ zIndex: displayTravelers.length - index }}
+                    >
+                      {traveler.initials}
+                    </div>
+                  ))}
+                  {remainingCount > 0 && (
+                    <div className="w-8 h-8 rounded-full bg-[#6B5B95] text-white flex items-center justify-center font-bold text-xs border-2 border-[#23232B]">
+                      +{remainingCount}
+                    </div>
+                  )}
+                </div>
+
+                {/* Primary traveler name and travelers count */}
+                <div className="flex flex-col">
+                  <p className="text-sm font-medium text-white">
+                    {allTravelers[0]?.fullName}
+                    {allTravelers.length > 1 && (
+                      <span className="text-xs text-white/60 ml-1">
+                        + {allTravelers.length - 1} other{allTravelers.length > 2 ? 's' : ''}
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-xs text-white/50">
+                    {allTravelers.length} traveler{allTravelers.length !== 1 ? 's' : ''}
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
+
           <p className="text-sm text-white/60">
             <ClientOnly>
               {Math.floor(
@@ -511,7 +581,7 @@ function ApplicationCard({
                   View application <span className="font-bold">&gt;</span>
                 </button>
 
-                      {type !== "archived" && onRequestArchive && (
+                {type !== "archived" && onRequestArchive && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -534,10 +604,11 @@ function ApplicationCard({
                 </a>
               </div>
 
-        
+
               <ProgressTimeline
                 currentStatus={app.progressStatus}
                 applicant={{ fullName, age, email, initials }}
+                allTravelers={getAllTravelersData()}
                 currentLabel={statusInfo.message}
               />
             </div>
@@ -548,7 +619,7 @@ function ApplicationCard({
   );
 }
 
-const ProgressTimeline = ({ currentStatus, applicant, currentLabel }) => {
+const ProgressTimeline = ({ currentStatus, applicant, allTravelers = [], currentLabel }) => {
   const steps = [
     { id: "under_review", label: "Under Review", icon: <FileText size={20} /> },
     { id: "appointment_booked", label: "Appointment booked", icon: <CalendarDays size={20} /> },
@@ -624,21 +695,52 @@ const ProgressTimeline = ({ currentStatus, applicant, currentLabel }) => {
         })}
       </div>
 
-      {/* Applicant Details Bar */}
-      <div className="mt-6 flex items-center gap-4 bg-[#2c2c3a] p-3 rounded-lg">
-        <div className="w-8 h-8 rounded-full bg-[#4A3B65] text-[#C1A2F4] flex items-center justify-center font-bold text-sm flex-shrink-0">
-          {applicant.initials}
+      <div className="mt-6 space-y-3">
+        <div className="flex items-center justify-between">
+          <h4 className="text-sm font-medium text-white">
+            Travelers ({allTravelers.length})
+          </h4>
+          <div className="bg-[#7350FF]/20 text-[#C1A2F4] text-xs font-semibold px-3 py-1 rounded-full">
+            {currentLabel || "Under Review"}
+          </div>
         </div>
-        <div className="text-sm font-medium text-white">
-          {applicant.fullName}
-        </div>
-        <div className="text-sm text-white/60">{applicant.age}</div>
-        <div className="text-sm text-white/60 truncate flex-1">
-          {applicant.email}
-        </div>
-        <div className="bg-[#7350FF]/20 text-[#C1A2F4] text-xs font-semibold px-3 py-1 rounded-full">
-          {currentLabel || "Under Review"}
-        </div>
+
+        {allTravelers.length > 0 ? (
+          <div className="space-y-2">
+            {allTravelers.map((traveler, index) => (
+              <div key={index} className="flex items-center gap-4 bg-[#2c2c3a] p-3 rounded-lg">
+                <div className="w-8 h-8 rounded-full bg-[#4A3B65] text-[#C1A2F4] flex items-center justify-center font-bold text-sm flex-shrink-0">
+                  {traveler.initials}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-white">
+                    {traveler.fullName}
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-white/60">
+                    <span>{traveler.age}</span>
+                    <span className="truncate">{traveler.email}</span>
+                  </div>
+                </div>
+                <div className="text-xs text-white/50 bg-[#3a3a4a] px-2 py-1 rounded">
+                  {traveler.travelerNumber}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex items-center gap-4 bg-[#2c2c3a] p-3 rounded-lg">
+            <div className="w-8 h-8 rounded-full bg-[#4A3B65] text-[#C1A2F4] flex items-center justify-center font-bold text-sm flex-shrink-0">
+              {applicant.initials}
+            </div>
+            <div className="text-sm font-medium text-white">
+              {applicant.fullName}
+            </div>
+            <div className="text-sm text-white/60">{applicant.age}</div>
+            <div className="text-sm text-white/60 truncate flex-1">
+              {applicant.email}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

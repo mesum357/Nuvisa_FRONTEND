@@ -234,6 +234,8 @@ const MultiStepAccordion = () => {
     },
   ]);
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const updateStepsFromStepInfo = (stepInfo = null) => {
     const appStepInfo = parentVisaApplication?.stepInfo;
     const relevantStepInfo =
@@ -1095,7 +1097,7 @@ const MultiStepAccordion = () => {
       ];
 
       // Map internal step types to backend-allowed types
-      let typeToSend = step.stepType;
+      let typeToSend = step?.stepType;
       if (!allowedTypes.includes(typeToSend)) {
         const typeMapping = {
           appointment: "documents", // appointment data is merged into travelersData; send under documents
@@ -1508,7 +1510,7 @@ const MultiStepAccordion = () => {
 
   const validateAppointment = () => {
     const currentTraveler = getCurrentTravelerData();
-    const appointment = currentTraveler.appointment || {};
+    const appointment = parentVisaApplication.appointment || {};
 
     const pref1 = appointment.preference1 || {};
     return (
@@ -1517,23 +1519,30 @@ const MultiStepAccordion = () => {
   };
 
   const currentTravellerForInsurance = useMemo(() => {
-    const filteredTravellers = parentVisaApplication?.travelersData?.filter((traveler) => {
-      const insurance = traveler.insurance || {};
+    const currentTraveler = travelersData[currentTravelerIndex];
 
-      if (insurance?.paidInCheckout) {
-        return false;
-      }
-      return true;
-    });
-    return filteredTravellers?.[currentTravelerIndex] || filteredTravellers?.[0];
-  }, [currentTravelerIndex, travelersData]);
+    if (!currentTraveler) {
+      return null;
+    }
+
+    const matchingTraveler = parentVisaApplication?.travelersData?.find(
+      (traveler) => traveler.id === currentTraveler.id
+    );
+
+    return matchingTraveler || currentTraveler;
+  }, [currentTravelerIndex, travelersData, parentVisaApplication?.id]);
 
   const _validateInsurance = () => {
-    const currentTraveler = currentTravellerForInsurance
+    const currentTraveler = currentTravellerForInsurance;
     console.log(currentTraveler, "CURRENT_TRAVELER_FOR_INSURANCE");
 
+    if (!currentTraveler) {
+      console.log("No current traveler found for insurance validation");
+      return false;
+    }
+
     // Check if insurance certificate is uploaded
-    const hasCertificate = currentTraveler?.insurance?.insuranceCertificates
+    const hasCertificate = currentTraveler?.insurance?.insuranceCertificates;
 
     // Check if payment is completed
     const hasPayment = !!(
@@ -1864,16 +1873,37 @@ const MultiStepAccordion = () => {
   };
 
   const filteredTravellers = travelersData.filter((traveler) => {
-    const insurance = traveler.insurance || {};
 
-    const paidInCheckout = insurance.paidInCheckout || false;
-
-    if (paidInCheckout) {
-      return false;
-    }
     return true;
   });
 
+  const handleSubmit = async () => {
+    setConfirmationModal({
+      isOpen: true,
+      title: "Submit Application",
+      message: "Are you ready to submit?\n\nApplications are not editable once submitted.\n\nPlease make sure all information is correct before proceeding.",
+      onConfirm: async () => {
+        setConfirmationModal({ ...confirmationModal, isOpen: false });
+        setIsSubmitting(true);
+
+        try {
+          await updateVisaApplication(token, {
+            id: parentVisaApplication.id,
+            applicationStatus: "submitted",
+          });
+
+          await getVisaApplication(token, {
+            id: parentVisaApplication.id,
+          });
+        } catch (error) {
+          console.error("Error submitting application:", error);
+        } finally {
+          setIsSubmitting(false);
+          window.location.reload();
+        }
+      },
+    });
+  };
 
   return (
     <div className="w-full pri_bg text-white h-full min-h-screen">
@@ -2127,16 +2157,26 @@ const MultiStepAccordion = () => {
                               ?.paidInCheckout &&
                             step.stepType === "basicDetails" && (
                               <div className="flex justify-self-end">
-                                <button
-                                  className="bg-[#292933] text-gray-300 hover:bg-[#7350FF] hover:text-white px-4 py-1.5 rounded-lg flex items-center gap-2 font-medium transition-colors duration-200 border border-dashed border-gray-500 hover:border-[#7350FF]"
-                                  onClick={() =>
-                                    handleClaimInsurance(
-                                      travelersData?.[currentTravelerIndex]
-                                    )
-                                  }
-                                >
-                                  Assign Insurance
-                                </button>
+                                <div className="relative group">
+                                  <button
+                                    className="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white px-5 py-2 rounded-lg flex items-center gap-3 font-medium transition-all duration-300 shadow-lg hover:shadow-emerald-500/25 transform hover:scale-105 border border-emerald-400/30"
+                                    onClick={() =>
+                                      handleClaimInsurance(
+                                        travelersData?.[currentTravelerIndex]
+                                      )
+                                    }
+                                  >
+                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                    </svg>
+                                    <span className="font-semibold">Assign Insurance</span>
+                                  </button>
+                                  <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                                    <div className="bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                                      Assign available insurance to this traveler
+                                    </div>
+                                  </div>
+                                </div>
                               </div>
                             )}
                         </div>
@@ -2216,12 +2256,11 @@ const MultiStepAccordion = () => {
                               parentVisaApplication={parentVisaApplication}
                               showError={showError}
                               validateInsurance={_validateInsurance}
-                              travelerData={
-                                filteredTravellers[currentTravelerIndex]
-                              }
+                              travelerData={currentTravellerForInsurance}
                               disabled={!isOwner || isApplicationSubmitted}
                               isOwner={isOwner}
                               key={currentTravelerIndex}
+                              setParentVisaApplication={setParentVisaApplication}
                             />
                           )}
 
@@ -2614,16 +2653,26 @@ const MultiStepAccordion = () => {
                               ?.paidInCheckout &&
                             step.stepType === "basicDetails" && (
                               <div className="flex justify-self-end">
-                                <button
-                                  className="bg-[#292933] text-gray-300 hover:bg-[#7350FF] hover:text-white px-4 py-1.5 rounded-lg flex items-center gap-2 font-medium transition-colors duration-200 border border-dashed border-gray-500 hover:border-[#7350FF]"
-                                  onClick={() =>
-                                    handleClaimInsurance(
-                                      travelersData?.[currentTravelerIndex]
-                                    )
-                                  }
-                                >
-                                  Assign Insurance
-                                </button>
+                                <div className="relative group pl-2">
+                                  <button
+                                    className="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white px-5 py-2 rounded-lg flex items-center gap-3 font-medium transition-all duration-300 shadow-lg hover:shadow-emerald-500/25 transform hover:scale-105 border border-emerald-400/30"
+                                    onClick={() =>
+                                      handleClaimInsurance(
+                                        travelersData?.[currentTravelerIndex]
+                                      )
+                                    }
+                                  >
+                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                    </svg>
+                                    <span className="font-semibold">Assign Insurance</span>
+                                  </button>
+                                  <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                                    <div className="bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                                      Assign available insurance to this traveler
+                                    </div>
+                                  </div>
+                                </div>
                               </div>
                             )}
                         </div>
@@ -2703,9 +2752,7 @@ const MultiStepAccordion = () => {
                               parentVisaApplication={parentVisaApplication}
                               showError={showError}
                               validateInsurance={_validateInsurance}
-                              travelerData={
-                                filteredTravellers[currentTravelerIndex]
-                              }
+                              travelerData={currentTravellerForInsurance}
                               disabled={!isOwner || isApplicationSubmitted}
                               isOwner={isOwner}
                               key={currentTravelerIndex}
@@ -2845,7 +2892,7 @@ const MultiStepAccordion = () => {
                             parentVisaApplication={parentVisaApplication}
                             showError={showError}
                             validateInsurance={_validateInsurance}
-                            travelerData={travelersData[currentTravelerIndex]}
+                            travelerData={currentTravellerForInsurance}
                             disabled={!isOwner || isApplicationSubmitted}
                             isOwner={isOwner}
                           />
@@ -2885,6 +2932,7 @@ const MultiStepAccordion = () => {
                             loading={loading}
                             disabled={!isOwner || isApplicationSubmitted}
                             application={parentVisaApplication}
+                            isStepCompleted={step.completed}
                           />
                         )}
 
@@ -2980,6 +3028,17 @@ const MultiStepAccordion = () => {
           })}
         </div>
 
+        {
+          parentVisaApplication?.stepInfo?.completedSteps?.includes("appointment") &&
+          <div className="flex w-full justify-end">
+            <button
+              onClick={handleSubmit}
+              disabled={isSubmitting || loading || !isOwner || isApplicationSubmitted}
+              className="px-6 py-2 bg-[#7350FF] text-white rounded-md hover:bg-[#7350FF]/90 disabled:bg-[#7350FF]/30 transition-colors"
+            >
+              {isSubmitting ? "Loading..." : "Submit"}
+            </button>
+          </div>}
 
 
       </div>
