@@ -795,7 +795,6 @@ const CountrySlider = () => {
       return;
     }
 
-    // Apply immediately
     const currentBaseFee =
       selectedVisaType && selectedVisaType.priceGBP
         ? Number(selectedVisaType.priceGBP)

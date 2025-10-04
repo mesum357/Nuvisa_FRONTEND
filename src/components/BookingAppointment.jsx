@@ -63,7 +63,6 @@ const BookingAppointment = ({
     },
   });
 
-  console.log(application?.appointment, "application?.appointment");
 
   const [errors, setErrors] = useState({
     preference1: { city: "", dateRange: "", slot: "" },
