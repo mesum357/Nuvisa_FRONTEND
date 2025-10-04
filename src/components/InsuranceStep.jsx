@@ -10,6 +10,7 @@ import {
 } from "@/api/visaApplications";
 import { localStorageGateway } from "@/gateways/localStoragegateway";
 import { localStorageEnums } from "@/enums/localstorage.enums";
+import { useRouter } from "next/router";
 
 export const InsuranceStep = ({
   travelerIndex,
@@ -30,6 +31,7 @@ export const InsuranceStep = ({
     if (!certificates) return {};
     return certificates;
   });
+  const router = useRouter();
   const [insuranceError, setInsuranceError] = useState("");
   const [isPaying, setIsPaying] = useState(false);
   const [paymentError, setPaymentError] = useState("");
@@ -138,11 +140,6 @@ export const InsuranceStep = ({
 
       setFileUrl(documentData.data || documentData.preview);
 
-      setSaveData((prevSave) => ({
-        ...prevSave,
-        certificate: documentData.data || documentData.preview,
-        file: documentData,
-      }));
 
       console.log(travelerData, "TEMPPPP");
 
@@ -181,6 +178,14 @@ export const InsuranceStep = ({
           id: applicationData?.id
         }
       )
+
+
+      setSaveData((prevSave) => ({
+        ...prevSave,
+        certificate: documentData.data || documentData.preview,
+        file: documentData,
+      }));
+
     } catch (error) {
       console.error("File upload error:", error);
       const errorMessage = "Failed to upload file. Please try again.";
@@ -231,7 +236,7 @@ export const InsuranceStep = ({
   };
 
   const handleRemoveDocument = async () => {
-    if (disabled || !isOwner || !uploadedCertificates?.certificateUploaded || uploadedCertificates?.file) return; // Prevent document removal when disabled or not owner
+    if (disabled || !isOwner || !uploadedCertificates?.certificateUploaded) return; // Prevent document removal when disabled or not owner
 
     const certificateToDelete = uploadedCertificates?.file;
     const deletionId = `certificate-0`;
@@ -243,13 +248,15 @@ export const InsuranceStep = ({
       fileInputRef.current.value = "";
     }
 
+    await deleteFile(
+      certificateToDelete.data || certificateToDelete.preview
+    );
+
     if (certificateToDelete?.data || certificateToDelete?.preview) {
       setDeletingFiles((prev) => new Set(prev).add(deletionId));
 
       try {
-        await deleteFile(
-          certificateToDelete.data || certificateToDelete.preview
-        );
+
 
         updateCurrentTravelerData("insurance", {
           insuranceCertificates: null,
@@ -599,7 +606,7 @@ export const InsuranceStep = ({
               </div>
             </div>
 
-            {!!uploadedCertificates?.certificateUploaded || uploadedCertificates?.file && (
+            {!!uploadedCertificates?.certificateUploaded && (
               <div className="border-t border-gray-700 bg-green-900/10">
                 <div className="p-4">
                   <div className="flex items-center justify-between bg-gray-800 p-3 rounded-lg border border-green-600/30">
