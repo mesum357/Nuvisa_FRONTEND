@@ -17,6 +17,7 @@ export default function ApplicationStatusCard({ application, onSelect, isExpande
   const rawAppId = application?.id ?? application?.applicationId ?? application?.code;
   const rawOrderId = application?.orderId ?? application?.order_id ?? application?.orderCode;
   const appId = useMemo(() => formatApplicationId(rawAppId), [rawAppId]);
+  const orderId = useMemo(() => formatOrderId(rawOrderId), [rawOrderId]);
 
   const onClickView = () => {
     if (rawOrderId) saveOrderId(rawOrderId);
@@ -223,7 +224,7 @@ export default function ApplicationStatusCard({ application, onSelect, isExpande
 
               {appId}
               <span className="text-xs text-white/50 ml-2">
-                • {rawOrderId}
+                • {orderId}
               </span>
             </p>
           </div>

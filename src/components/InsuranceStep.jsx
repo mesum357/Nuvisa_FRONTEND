@@ -24,6 +24,7 @@ export const InsuranceStep = ({
   travelerData,
   disabled = false,
   isOwner = true,
+  setParentVisaApplication
 }) => {
   const fileInputRef = useRef(null);
   const [uploadedCertificates, setUploadedCertificates] = useState(() => {
@@ -141,16 +142,8 @@ export const InsuranceStep = ({
       setFileUrl(documentData.data || documentData.preview);
 
 
-      console.log(travelerData, "TEMPPPP");
 
-      updateCurrentTravelerData("insurance", {
-        ...travelerData?.insurance,
-        insuranceCertificates: documentData.data || documentData.preview,
-        insuranceDetails: {
-          file: documentData,
-          certificateUploaded: true,
-        },
-      });
+
       await updateVisaApplication(token, {
         travelersData: applicationData?.travelersData.map((traveler, idx) => {
           if (travelerData.id === traveler?.id) {
@@ -171,14 +164,28 @@ export const InsuranceStep = ({
         }),
         id: applicationData?.id,
       });
-
-      await getVisaApplication(
+      const response = await getVisaApplication(
         token,
         {
           id: applicationData?.id
         }
       )
 
+      if (response?.status === 200) {
+        setParentVisaApplication(response?.data?.data?.results?.application)
+      }
+
+
+      await updateCurrentTravelerData(
+        "insurance",
+        {
+          insuranceCertificates: documentData.data || documentData.preview,
+          insuranceDetails: {
+            certificateUploaded: true,
+            file: documentData,
+          },
+        }
+      );
 
       setSaveData((prevSave) => ({
         ...prevSave,
@@ -257,7 +264,6 @@ export const InsuranceStep = ({
 
       try {
 
-
         updateCurrentTravelerData("insurance", {
           insuranceCertificates: null,
           insuranceDetails: {
@@ -285,10 +291,25 @@ export const InsuranceStep = ({
           id: applicationData?.id,
         });
 
-        await getVisaApplication(
+        const response = await getVisaApplication(
           token,
           {
             id: applicationData?.id
+          }
+        );
+
+        if (response?.status === 200) {
+          setParentVisaApplication(response?.data?.data?.results?.application)
+        }
+
+        await updateCurrentTravelerData(
+          "insurance",
+          {
+            insuranceCertificates: null,
+            insuranceDetails: {
+              certificateUploaded: false,
+              file: null,
+            },
           }
         );
       } catch (error) {
