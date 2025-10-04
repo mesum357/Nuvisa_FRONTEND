@@ -563,7 +563,7 @@ export const InsuranceStep = ({
                 </div>
 
                 <div className="self-start min-w-30">
-                  {!uploadedCertificates?.certificateUploaded || uploadedCertificates?.file && (
+                  {!uploadedCertificates?.certificateUploaded && (
                     <>
                       <input
                         type="file"

@@ -541,7 +541,7 @@ const CountrySlider = () => {
 
   const computedInsuranceTotal =
     recommendedItems.insuranceCertificate && insuranceDays > 0
-      ? perDayInsurancePrice * insuranceDays * travelers
+      ? perDayInsurancePrice * insuranceDays * insuranceCount
       : 0;
 
   const tooltips = {
@@ -998,7 +998,7 @@ const CountrySlider = () => {
     dispatch(setTotalAmount(totalAmount || 0));
     dispatch(setInsuranceOnly(hasOnlyInsurance || false));
     dispatch(setReduxInsuranceCount(insuranceCount || 1));
-    
+
 
     // Store selected visa type information
     if (selectedVisaType) {

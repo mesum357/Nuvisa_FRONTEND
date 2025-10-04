@@ -36,6 +36,7 @@ import ConfirmationModal from "@/components/ConfirmationModal";
 import { TravelDates } from "@/components/TravelDates";
 import { InsuranceStep } from "@/components/InsuranceStep";
 import { calculateDays } from "@/utils/calculateDays";
+import { useMemo } from "react";
 
 
 const MultiStepAccordion = () => {
@@ -179,9 +180,6 @@ const MultiStepAccordion = () => {
 
   const [steps, setSteps] = useState([
 
-
-
-
     {
       id: 1,
       title: "Add basic details",
@@ -190,13 +188,6 @@ const MultiStepAccordion = () => {
       stepType: "basicDetails",
     },
 
-    {
-      id: 4,
-      title: "Payment",
-      completed: false,
-      open: false,
-      stepType: "fullPayment",
-    },
     {
       id: 2,
       title: "Add visit details",
@@ -211,6 +202,7 @@ const MultiStepAccordion = () => {
       open: false,
       stepType: "documents",
     },
+
     {
       id: 7,
       title: "Insurance",
@@ -218,8 +210,13 @@ const MultiStepAccordion = () => {
       open: false,
       stepType: "insurance",
     },
-
-
+    {
+      id: 4,
+      title: "Payment",
+      completed: false,
+      open: false,
+      stepType: "fullPayment",
+    },
 
     {
       id: 5,
@@ -978,7 +975,7 @@ const MultiStepAccordion = () => {
           if (index === currentTravelerIndex) {
             const updatedTraveler = {
               ...traveler,
-              appointment: stepData.appointmentData,ßß
+              appointment: stepData.appointmentData,
             };
 
             return updatedTraveler;
@@ -1519,7 +1516,7 @@ const MultiStepAccordion = () => {
     );
   };
 
-  const currentTravellerForInsurance = () => {
+  const currentTravellerForInsurance = useMemo(() => {
     const filteredTravellers = parentVisaApplication?.travelersData?.filter((traveler) => {
       const insurance = traveler.insurance || {};
 
@@ -1528,11 +1525,11 @@ const MultiStepAccordion = () => {
       }
       return true;
     });
-    return filteredTravellers[currentTravelerIndex] || filteredTravellers[0];
-  };
+    return filteredTravellers?.[currentTravelerIndex] || filteredTravellers?.[0];
+  }, [currentTravelerIndex, travelersData]);
 
   const _validateInsurance = () => {
-    const currentTraveler = currentTravellerForInsurance();
+    const currentTraveler = currentTravellerForInsurance
     console.log(currentTraveler, "CURRENT_TRAVELER_FOR_INSURANCE");
 
     // Check if insurance certificate is uploaded
@@ -3884,7 +3881,9 @@ const FullPaymentStep = ({
                 ? Number(totalAmount)
                 : Number(teleportTotalEUR),
             paymentCompleted: item.fullPayment?.paymentCompleted || true,
-            paymentStatus: item.fullPayment?.paymentStatus || "completed",
+            paymentStatus: "completed",
+            paymentMethod: "stripe",
+            paymentDate: new Date().toISOString(),
           },
         })),
       });
