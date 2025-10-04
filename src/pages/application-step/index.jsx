@@ -317,13 +317,13 @@ const MultiStepAccordion = () => {
     visibleSteps = visibleSteps.map((step) => {
       if (step.stepType === "completed") {
         const isAppCompleted =
-          relevantStepInfo?.isCompleted ||
-          relevantStepInfo?.isSubmitted ||
-          parentVisaApplication?.applicationStatus === "submitted";
+          relevantStepInfo?.isCompleted &&
+          relevantStepInfo?.isSubmitted &&
+          relevantStepInfo?.applicationStatus === "submitted";
         return {
           ...step,
           title: "Application Completed",
-          completed: isTravelerCompleted,
+          completed: isAppCompleted,
           open:
             relevantStepInfo?.currentStep === "completed" ||
             (relevantStepInfo?.completedSteps?.length >= 6 && isAppCompleted)
@@ -978,7 +978,7 @@ const MultiStepAccordion = () => {
           if (index === currentTravelerIndex) {
             const updatedTraveler = {
               ...traveler,
-              appointment: stepData.appointmentData,
+              appointment: stepData.appointmentData,ßß
             };
 
             return updatedTraveler;
@@ -2887,6 +2887,7 @@ const MultiStepAccordion = () => {
                             }
                             loading={loading}
                             disabled={!isOwner || isApplicationSubmitted}
+                            application={parentVisaApplication}
                           />
                         )}
 

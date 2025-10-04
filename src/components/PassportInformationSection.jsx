@@ -349,7 +349,7 @@ const PassportInformationSection = ({
       };
 
       const foundFields = Object.values(extracted).filter(
-        (v) => v != null
+        (v) => v != null && v !== "" && v !== "null"
       ).length;
 
       if (foundFields > 0) {
@@ -357,10 +357,17 @@ const PassportInformationSection = ({
           const updates = {};
 
           const assignIfPresent = (key, value) => {
-            if (value !== null && value !== undefined && value !== "") {
+            if (
+              value !== null &&
+              value !== "null" &&
+              value !== undefined &&
+              value !== ""
+            ) {
               updates[key] = value;
             }
           };
+
+          console.log(assignIfPresent, extracted, "assignIfPresent");
 
           assignIfPresent("passportNumber", extracted.passportNumber);
           assignIfPresent("firstName", extracted.firstName);
