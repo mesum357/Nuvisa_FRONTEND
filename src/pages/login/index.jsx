@@ -56,7 +56,7 @@ const Index = () => {
         dispatch(setAuthId(results?.data?.data?.results?.user?.id));
       }
 
-      router.push("/dashboard");
+      router.push("/admin");
     }
   };
 

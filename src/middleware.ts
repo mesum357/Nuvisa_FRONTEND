@@ -6,23 +6,10 @@ export function middleware(request) {
   const token = rawToken?.value ?? rawToken ?? null;
   const url = request.url;
 
-  let email = null;
-  try {
     const userEmailCookie = request.cookies.get("userEmail");
-    const userEmailValue = userEmailCookie?.value ?? userEmailCookie ?? null;
-    if (userEmailValue) {
-      email = userEmailValue;
-    } else {
-      const userCookie = request.cookies.get("user");
-      const userValue = userCookie?.value ?? userCookie ?? null;
-      if (userValue) {
-        const userObj = JSON.parse(userValue);
-        email = userObj?.email || null;
-      }
-    }
-  } catch {
-    email = null;
-  }
+    const email = userEmailCookie?.value 
+    
+
  const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || ""
     if (url.includes('/admin')) {
       if (email !== adminEmail) {

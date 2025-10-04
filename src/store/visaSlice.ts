@@ -40,6 +40,7 @@ export interface IVisaState {
   totalAmount: number;
   insuranceOnly: boolean;
   amountWithoutDiscount: number;
+  insuranceCount?: number;
 }
 
 const initialState: IVisaState = {
@@ -71,6 +72,7 @@ const initialState: IVisaState = {
   totalAmount: 0,
   insuranceOnly: false,
   amountWithoutDiscount: 0,
+  insuranceCount: 0,
 };
 
 export const visaSlice = createSlice({
@@ -131,9 +133,12 @@ export const visaSlice = createSlice({
     setAmountWithoutDiscount: (state, action: PayloadAction<number>) => {
       state.amountWithoutDiscount = action.payload;
     },
+    setReduxInsuranceCount: (state, action: PayloadAction<number>) => {
+      state.insuranceCount = action.payload;
+    },
     clearVisaData: (state) => {
       state.selectedCountry = "";
-  state.visaFees = 0;
+      state.visaFees = 0;
       state.insuranceFees = 0; // Will be set dynamically
       state.travelers = 1;
       state.visaTypeId = "";
@@ -159,6 +164,8 @@ export const visaSlice = createSlice({
       state.giftCardFees = 0;
       state.totalAmount = 0;
       state.insuranceOnly = false;
+      state.amountWithoutDiscount = 0;
+      state.insuranceCount = 0;
     },
   },
 });
@@ -183,5 +190,6 @@ export const {
   setInsuranceOnly,
   clearVisaData,
   setAmountWithoutDiscount,
+  setReduxInsuranceCount,
 } = visaSlice.actions;
 export const visaReducer = visaSlice.reducer;

@@ -11,12 +11,11 @@ import VisaSolution from "../VisaSolution";
 
 const VisaInformation = () => {
   return (
+    <ClientOnly>
     <div className="bg-[#1E1E27] text-white">
       <Navbar />
       <div className=" mx-auto flex-col gap-0 flex items-center justify-center mt-5">
-        <ClientOnly>
           <CountrySlider />
-        </ClientOnly>
 
         {/* Visa Type Selection */}
 
@@ -171,6 +170,7 @@ const VisaInformation = () => {
         <Footer />
       </div>
     </div>
+    </ClientOnly> 
   );
 };
 

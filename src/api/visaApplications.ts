@@ -56,14 +56,11 @@ export const updateVisaApplication = async (token, payload) => {
   });
 };
 
-export const getVisaApplication = async (token, payload) => {
+export const getVisaApplication = async (token, {id}) => {
   return apigateway({
-    endpoint:
-      backendApiEnums.ENDPOINTS.VISA_APPLICATION.GET_APPLICATION_BY_ID +
-      `?id=${payload.id}`,
+    endpoint: backendApiEnums.ENDPOINTS.VISA_APPLICATION.GET_APPLICATION_BY_ID + `?id=${id}`,
     method: backendApiEnums.METHODS.GET,
     token: token,
-    payload,
   });
 };
 

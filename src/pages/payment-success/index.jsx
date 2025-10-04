@@ -13,6 +13,7 @@ import usePaymentData from "@/hooks/usePaymentData";
 import { createApplication } from "@/api/visa";
 import { createOrUpdateApplication } from "@/api/visaApplications";
 
+
 const PaymentSuccess = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -35,6 +36,7 @@ const PaymentSuccess = () => {
       try {
         // Get payment data from current session
         const currentData = await getCurrentPaymentData();
+
 
         const sessionId = searchParams.get("session_id");
         if (
@@ -157,8 +159,8 @@ const PaymentSuccess = () => {
         // Use the actual insurance selection boolean, fallback to fee check for backward compatibility
         const hasInsurance =
           currentData.insuranceSelected === "true" ||
-          (currentData.insuranceSelected === undefined &&
-            Number(currentData.insurancePayment) > 0)
+            (currentData.insuranceSelected === undefined &&
+              Number(currentData.insurancePayment) > 0)
             ? true
             : false;
 
@@ -166,6 +168,19 @@ const PaymentSuccess = () => {
         const isCheckoutPayment =
           finalPaymentType === "application_creation" ||
           (!finalPaymentType && !applicationId); // No payment type means initial checkout
+
+        const insurancePayload = numberOfTravelers === currentData?.storedMetadata?.insuranceCount ? {
+          insurance: hasInsurance,
+          insuranceDetails:
+            hasInsurance ? { selected: true } : null,
+          insuranceCertificate: null,
+          orderId: null,
+          paymentAmount: hasInsurance ? Number(currentData.insurancePayment) || 0 : 0,
+          paidInCheckout: hasInsurance && isCheckoutPayment,
+          insuranceSource: hasInsurance && isCheckoutPayment ? "checkout" : null,
+          insurancePaymentCompleted: hasInsurance,
+        } : {}
+
 
         const initialTravelersData = Array.from(
           { length: numberOfTravelers },
@@ -216,23 +231,11 @@ const PaymentSuccess = () => {
             documents: {
               documents: {},
             },
-            insurance: {
-              insurance: hasInsurance, // Set insurance for each initial traveler based on payment
-              insuranceDetails: hasInsurance ? { selected: true } : null,
-              insuranceCertificate: null, // Initialize certificate field,
-              orderId: null,
-              paymentAmount: hasInsurance
-                ? Number(currentData.insurancePayment) || 0
-                : 0,
-              paidInCheckout: hasInsurance && isCheckoutPayment, // Only true for actual checkout payments
-              insuranceSource:
-                hasInsurance && isCheckoutPayment ? "checkout" : null,
-              insurancePaymentCompleted: hasInsurance,
-            },
+            insurance: insurancePayload,
             fullPayment: {
               paymentStatus: "completed",
               paymentCompleted: true,
-              paymentAmount: Number(currentData.totalAmount) || 159,
+              paymentAmount: 159,
               paymentDate: new Date().toISOString(),
               paymentMethod: "stripe",
               includeInsurance: hasInsurance,
@@ -242,10 +245,18 @@ const PaymentSuccess = () => {
           })
         );
 
+
         const applicationPayload = {
           type: "createApplication",
           email: currentData.email,
-          insurance: hasInsurance, // Keep for backward compatibility during transition (string value)
+          insuranceDetails: {
+            paidInCheckout: {
+              noOfInsurance: currentData?.storedMetadata?.insuranceCount || 0,
+              paymentAmount: currentData?.storedMetadata?.insurancePaymentAmount || 0,
+            },
+            certificateCount: 0,
+            certificate: [],
+          }, // Keep for backward compatibility during transition (string value)
           country: currentData.selectedCountry,
           amountPaid: currentData.totalAmount?.toString(),
           paymentWithoutInsurance: Number(currentData?.paymentWithoutInsurance),
@@ -262,16 +273,8 @@ const PaymentSuccess = () => {
           initialInsurancePaidTotal: hasInsurance
             ? (Number(currentData.insurancePayment) || 0).toString()
             : "0",
-          insuranceDetails:
-            hasInsurance && isCheckoutPayment
-              ? {
-                  insurancePaymentCompleted: true,
-                  paymentAmount: Number(currentData.insurancePayment) || 0,
-                  paymentDate: new Date().toISOString(),
-                  paidInCheckout: true,
-                  insuranceSource: "checkout",
-                }
-              : null,
+          initialInsurancePaidTotal: hasInsurance ? (Number(currentData.insurancePayment) || 0).toString() : "0",
+
         };
 
         if (
@@ -326,13 +329,13 @@ const PaymentSuccess = () => {
                   travelersData: initialTravelersData.map((traveler, index) =>
                     index === Number(travelerIndex)
                       ? {
-                          ...traveler,
-                          insurance: {
-                            orderId: postOrderId || null,
-                            paymentAmount: postAmount,
-                            insurancePaymentCompleted: true,
-                          },
-                        }
+                        ...traveler,
+                        insurance: {
+                          orderId: postOrderId || null,
+                          paymentAmount: postAmount,
+                          insurancePaymentCompleted: true,
+                        },
+                      }
                       : traveler
                   ),
                   insurancePaymentCompleted: true,
@@ -396,7 +399,7 @@ const PaymentSuccess = () => {
           setTimeout(() => {
             router.replace(
               "/application-step/?application_id=" +
-                applicationResponse?.data?.data?.results?.application?.id
+              applicationResponse?.data?.data?.results?.application?.id
             );
           }, 2000); // 2 second delay
         } else {
@@ -425,11 +428,11 @@ const PaymentSuccess = () => {
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#7350FF] mx-auto mb-4"></div>
         <p className="text-gray-600">
           {paymentType === "additional_traveler_insurance" ||
-          paymentType === "traveler_insurance"
+            paymentType === "traveler_insurance"
             ? "Processing insurance payment and redirecting back to your application..."
             : isCreatingApplication
-            ? "Creating your visa application..."
-            : "Processing payment and redirecting to dashboard..."}
+              ? "Creating your visa application..."
+              : "Processing payment and redirecting to dashboard..."}
         </p>
       </div>
     </div>

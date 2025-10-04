@@ -1,7 +1,7 @@
 import { createDynamicPaymentSession } from "@/api/payment";
 import React, { useState } from "react";
 
-const useCreateDynamicCheckoutSession = () => {
+const   useCreateDynamicCheckoutSession = () => {
   const [cretingDynamicCheckout, setCreatingDynamicCheckout] = useState(false);
 
   const handleCreateDynamicCheckoutSession = async ({
@@ -15,7 +15,9 @@ const useCreateDynamicCheckoutSession = () => {
     paymentType = "application_creation",
     visaTypeId = "",
     currency = "EUR",
-    travelData
+    travelData,
+    noOfInsurance,
+    insurancePaymentAmount
   }) => {
     setCreatingDynamicCheckout(true);
     const successCallbackFunction = () => { };
@@ -23,7 +25,7 @@ const useCreateDynamicCheckoutSession = () => {
 
 
     // Ensure paymentType uses backend-expected naming for various payment flows
-    let normalizedPaymentType = paymentType;
+  let normalizedPaymentType = paymentType;
     if (paymentType === "insurance")
       normalizedPaymentType = "traveler_insurance";
     if (paymentType === "insurance_additional")
@@ -65,7 +67,9 @@ const useCreateDynamicCheckoutSession = () => {
         applicationId,
         travelerIndex,
         timestamp: Date.now(),
-        travelData: travelData || null
+        travelData: travelData || null,
+        noOfInsurance: noOfInsurance || 0,
+        insurancePaymentAmount: insurancePaymentAmount || 0,
       };
       localStorage.setItem(
         "insurancePaymentMetadata",

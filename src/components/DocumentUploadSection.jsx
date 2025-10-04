@@ -57,14 +57,6 @@ const DocumentUploadSection = ({
       field: "ukVisa",
     },
     {
-      id: 6,
-      title: "Travel Insurance Certificate",
-      description: `Upload your travel insurance certificate(s) if you have your own insurance. You can upload up to ${totalTravelers} certificate(s), one per traveler.`,
-      required: false,
-      multiple: false,
-      field: "insuranceDocument",
-    },
-    {
       id: 7,
       title: "Other supporting document",
       description: "Optional additional supporting document",
