@@ -23,7 +23,7 @@ import {
 import { COUNTRY_CONFIG } from "@/constants/countryConfig";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Loader2 } from "lucide-react";
 import { useToast } from "@/contexts/ToastContext";
 import BookingAppointment from "@/components/BookingAppointment";
 import useCreateDynamicCheckoutSession from "@/hooks/useCreateDynamicCheckoutSession";
@@ -37,6 +37,7 @@ import { TravelDates } from "@/components/TravelDates";
 import { InsuranceStep } from "@/components/InsuranceStep";
 import { calculateDays } from "@/utils/calculateDays";
 import { useMemo } from "react";
+import { CheckCircle } from "lucide-react";
 
 
 const MultiStepAccordion = () => {
@@ -88,6 +89,7 @@ const MultiStepAccordion = () => {
       Number(initial) > 0
     );
   };
+  const [isInsuranceAssigning, setIsInsuranceAssigning] = useState(false);
 
   const { paymentData } = useCalculatePayment(applicationId);
 
@@ -1843,31 +1845,38 @@ const MultiStepAccordion = () => {
         parentVisaApplication?.travelStartDate,
         parentVisaApplication?.travelEndDate
       ) * 2;
+    setIsInsuranceAssigning(true)
 
-    await updateVisaApplication(token, {
-      id: parentVisaApplication?.id,
-      travelersData: parentVisaApplication?.travelersData.map((traveler) => {
-        if (traveler.id === travelerData.id) {
-          return {
-            ...traveler,
-            insurance: {
-              insurancePaymentCompleted: true,
-              paymentAmount: paymentAmount,
-              paidInCheckout: true,
-            },
-          };
-        }
-        return traveler;
-      }),
-      insuranceDetails: {
-        ...parentVisaApplication?.insuranceDetails,
-        paidInApplication: {
-          noOfInsurance:
-            (parentVisaApplication?.insuranceDetails?.paidInApplication
-              ?.noOfInsurance || 0) + 1,
+    try {
+      await updateVisaApplication(token, {
+        id: parentVisaApplication?.id,
+        travelersData: parentVisaApplication?.travelersData.map((traveler) => {
+          if (traveler.id === travelerData.id) {
+            return {
+              ...traveler,
+              insurance: {
+                insurancePaymentCompleted: true,
+                paymentAmount: paymentAmount,
+                paidInCheckout: true,
+              },
+            };
+          }
+          return traveler;
+        }),
+        insuranceDetails: {
+          ...parentVisaApplication?.insuranceDetails,
+          paidInApplication: {
+            noOfInsurance:
+              (parentVisaApplication?.insuranceDetails?.paidInApplication
+                ?.noOfInsurance || 0) + 1,
+          },
         },
-      },
-    });
+      });
+    } catch (error) {
+      setIsInsuranceAssigning(false);
+    } finally {
+      setIsInsuranceAssigning(false);
+    }
 
     await fetchApplicationById();
   };
@@ -2159,17 +2168,22 @@ const MultiStepAccordion = () => {
                               <div className="flex justify-self-end">
                                 <div className="relative group">
                                   <button
-                                    className="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white px-5 py-2 rounded-lg flex items-center gap-3 font-medium transition-all duration-300 shadow-lg hover:shadow-emerald-500/25 transform hover:scale-105 border border-emerald-400/30"
+                                    className="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white px-5 py-2 rounded-lg flex items-center gap-3 font-medium transition-all duration-300 shadow-lg hover:shadow-emerald-500/25 transform hover:scale-105 border border-emerald-400/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                                     onClick={() =>
                                       handleClaimInsurance(
                                         travelersData?.[currentTravelerIndex]
                                       )
                                     }
+                                    disabled={isInsuranceAssigning}
                                   >
-                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                    </svg>
-                                    <span className="font-semibold">Assign Insurance</span>
+                                    {isInsuranceAssigning ? (
+                                      <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                      <CheckCircle className="h-4 w-4" />
+                                    )}
+                                    <span className="font-semibold">
+                                      {isInsuranceAssigning ? "Assigning..." : "Assign Insurance"}
+                                    </span>
                                   </button>
                                   <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
                                     <div className="bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
@@ -2656,17 +2670,22 @@ const MultiStepAccordion = () => {
                               <div className="flex justify-self-end">
                                 <div className="relative group pl-2">
                                   <button
-                                    className="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white px-5 py-2 rounded-lg flex items-center gap-3 font-medium transition-all duration-300 shadow-lg hover:shadow-emerald-500/25 transform hover:scale-105 border border-emerald-400/30"
+                                    className="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white px-5 py-2 rounded-lg flex items-center gap-3 font-medium transition-all duration-300 shadow-lg hover:shadow-emerald-500/25 transform hover:scale-105 border border-emerald-400/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                                     onClick={() =>
                                       handleClaimInsurance(
                                         travelersData?.[currentTravelerIndex]
                                       )
                                     }
+                                    disabled={isInsuranceAssigning}
                                   >
-                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                    </svg>
-                                    <span className="font-semibold">Assign Insurance</span>
+                                    {isInsuranceAssigning ? (
+                                      <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                      <CheckCircle className="h-4 w-4" />
+                                    )}
+                                    <span className="font-semibold">
+                                      {isInsuranceAssigning ? "Assigning..." : "Assign Insurance"}
+                                    </span>
                                   </button>
                                   <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
                                     <div className="bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap">

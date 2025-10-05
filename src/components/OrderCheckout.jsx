@@ -1773,9 +1773,7 @@ const VisaCheckout = () => {
                 className="flex items-center space-x-2 cursor-pointer"
                 onClick={() => {
                   setIncludeInsurance(!includeInsurance)
-                  if (includeInsurance) {
-                    setInsuranceCount(1)
-                  }
+                  setInsuranceCount(1)
                 }}
               >
                 <input

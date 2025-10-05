@@ -927,7 +927,7 @@ const CountrySlider = () => {
       missingDocs.length === requiredFields.length;
 
     // If there are missing required docs and it's not insurance-only checkout, block and highlight
-    if (missingDocs.length > 0 && !hasOnlyInsurance) {
+    if (missingDocs.length > 0) {
       setValidationErrors(new Set(missingDocs));
       return;
     }
