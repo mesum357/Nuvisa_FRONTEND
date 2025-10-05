@@ -28,83 +28,86 @@ const VisaSolution = () => {
     router.push(
       `/visa-checkout?selectedCountry=${encodeURIComponent(
         countryName
-      )}&visaFees=${countryConfig.visaFee}&insuranceFees=${
-        countryConfig.insuranceFee
+      )}&visaFees=${countryConfig.visaFee}&insuranceFees=${countryConfig.insuranceFee
       }&travelers=1`
     );
   };
 
   const destinations = [
     {
-      name: "FRANCE",
-      image: "https://www.nuvisa.co.uk/public/img/countries/France.jpg",
+      name: "Germany",
+      image:
+        "/image/country/Germany.jpg",
+      landmark: "Brandenburg Gate",
     },
     {
-      name: "SWITZERLAND",
-      image: "https://www.nuvisa.co.uk/public/img/countries/Switzerland.jpg",
+      name: "Netherlands",
+      image:
+        "/image/country/Netherlands.jpg",
+      landmark: "Amsterdam Canal Houses",
     },
     {
-      name: "ITALY",
-      image: "https://www.nuvisa.co.uk/public/img/countries/Italy.jpg",
+      name: "Belgium",
+      image:
+        "/image/country/Belgium.jpg",
+      landmark: "Atomium Brussels",
     },
     {
-      name: "GERMANY",
-      image: "https://www.nuvisa.co.uk/public/img/countries/Germany.jpg",
+      name: "France",
+      image:
+        "/image/country/France.jpg",
+      landmark: "Eiffel Tower",
     },
     {
-      name: "NETHERLANDS",
-      image: "https://www.nuvisa.co.uk/public/img/countries/Netherlands.jpg",
+      name: "Italy",
+      image:
+        "/image/country/Italy.jpg",
+      landmark: "Colosseum Rome",
     },
     {
-      name: "BELGIUM",
-      image: "https://www.nuvisa.co.uk/public/img/countries/Belgium.jpg",
+      name: "Bulgaria",
+      image:
+        "/image/country/Bulgaria.jpg",
+      landmark: "Sagrada Familia",
     },
     {
-      name: "SPAIN",
-      image: "https://www.nuvisa.co.uk/public/img/countries/Spain.jpg",
+      name: "Estonia",
+      image:
+        "/image/country/Estonia.jpg",
+      landmark: "Tallinn Old Town",
     },
     {
-      name: "PORTUGAL",
-      image: "https://www.nuvisa.co.uk/public/img/countries/Portugal.jpg",
+      name: "Hungary",
+      image:
+        "/image/country/Hungary.jpg",
+      landmark: "Parliament Building",
     },
     {
-      name: "POLAND",
-      image: "https://www.nuvisa.co.uk/public/img/countries/Poland.jpg",
-    },
-    // Duplicate items for infinite scroll effect
-    {
-      name: "FRANCE",
-      image: "https://www.nuvisa.co.uk/public/img/countries/France.jpg",
+      name: "Portugal",
+      image:
+        "/image/country/Portugal.jpg",
+      landmark: "Pena Palace",
     },
     {
-      name: "SWITZERLAND",
-      image: "https://www.nuvisa.co.uk/public/img/countries/Switzerland.jpg",
+      name: "Iceland",
+      image:
+        "/image/country/Iceland.jpg",
+      landmark: "Blue Lagoon",
     },
     {
-      name: "ITALY",
-      image: "https://www.nuvisa.co.uk/public/img/countries/Italy.jpg",
+      name: "Poland",
+      image:
+        "/image/country/Poland.jpg",
+      landmark: "Warsaw Old Town",
     },
     {
-      name: "GERMANY",
-      image: "https://www.nuvisa.co.uk/public/img/countries/Germany.jpg",
-    },
-    {
-      name: "NETHERLANDS",
-      image: "https://www.nuvisa.co.uk/public/img/countries/Netherlands.jpg",
-    },
-    {
-      name: "BELGIUM",
-      image: "https://www.nuvisa.co.uk/public/img/countries/Belgium.jpg",
-    },
-    {
-      name: "SPAIN",
-      image: "https://www.nuvisa.co.uk/public/img/countries/Spain.jpg",
-    },
-    {
-      name: "PORTUGAL",
-      image: "https://www.nuvisa.co.uk/public/img/countries/Portugal.jpg",
+      name: "NORWAY",
+      image:
+        "/image/country/Norway.jpg",
+      landmark: "Norwegian Fjords",
     },
   ];
+
 
   const galleryRef = useRef(null);
   const [isPaused, setIsPaused] = useState(false);
@@ -163,7 +166,7 @@ const VisaSolution = () => {
             poster="//magic.fit/cdn/shop/files/Video_Overlay_1.png?v=1668943316&width=1200"
           >
             <source
-              src="https://www.nuvisa.co.uk/public/video/video.mp4"
+              src="/video/nuvisa.mp4"
               type="video/mp4"
             />
             <source

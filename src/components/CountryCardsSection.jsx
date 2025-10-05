@@ -39,73 +39,73 @@ const CountryCardsSection = () => {
     {
       name: "Germany",
       image:
-        "https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=400&h=300&fit=crop",
+        "/image/country/Germany.jpg",
       landmark: "Brandenburg Gate",
     },
     {
       name: "Netherlands",
       image:
-        "https://images.unsplash.com/photo-1534351590666-13e3e96b5017?w=400&h=300&fit=crop",
+        "/image/country/Netherlands.jpg",
       landmark: "Amsterdam Canal Houses",
     },
     {
       name: "Belgium",
       image:
-        "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop",
+        "/image/country/Belgium.jpg",
       landmark: "Atomium Brussels",
     },
     {
       name: "France",
       image:
-        "https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?w=400&h=300&fit=crop",
+        "/image/country/France.jpg",
       landmark: "Eiffel Tower",
     },
     {
       name: "Italy",
       image:
-        "https://images.unsplash.com/photo-1515542622106-78bda8ba0e5b?w=400&h=300&fit=crop",
+        "/image/country/Italy.jpg",
       landmark: "Colosseum Rome",
     },
     {
-      name: "Spain",
+      name: "Bulgaria",
       image:
-        "https://images.unsplash.com/photo-1539037116277-4db20889f2d4?w=400&h=300&fit=crop",
+        "/image/country/Bulgaria.jpg",
       landmark: "Sagrada Familia",
     },
     {
-      name: "Austria",
+      name: "Estonia",
       image:
-        "https://images.unsplash.com/photo-1516550893923-42d28e5677af?w=400&h=300&fit=crop",
-      landmark: "Hallstatt Village",
+        "/image/country/Estonia.jpg",
+      landmark: "Tallinn Old Town",
     },
     {
-      name: "Switzerland",
+      name: "Hungary",
       image:
-        "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop",
-      landmark: "Matterhorn",
+        "/image/country/Hungary.jpg",
+      landmark: "Parliament Building",
     },
     {
       name: "Portugal",
       image:
-        "https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=400&h=300&fit=crop",
+        "/image/country/Portugal.jpg",
       landmark: "Pena Palace",
     },
     {
-      name: "Greece",
+      name: "Iceland",
       image:
-        "https://images.unsplash.com/photo-1613395877344-13d4a8e0d49e?w=400&h=300&fit=crop",
-      landmark: "Santorini",
+        "/image/country/Iceland.jpg",
+      landmark: "Blue Lagoon",
     },
     {
-      name: "Czech Republic",
+      name: "Poland",
       image:
-        "https://images.unsplash.com/photo-1541849546-216549ae216d?w=400&h=300&fit=crop",
-      landmark: "Prague Castle",
+        "/image/country/Poland.jpg",
+      landmark: "Warsaw Old Town",
     },
     {
       name: "NORWAY",
       image:
-        "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400&h=300&fit=crop",
+        "/image/country/Norway.jpg",
       landmark: "Norwegian Fjords",
     },
   ];
