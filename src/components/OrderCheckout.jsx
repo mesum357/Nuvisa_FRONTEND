@@ -86,9 +86,14 @@ const VisaCheckout = () => {
     visaState.selectedPaymentMethod || "stripe"
   );
   const [couponCode, setCouponCodeLocal] = useState(visaState.couponCode || "");
+  const [insuranceCouponCode, setInsuranceCouponCode] = useState();
   const [appliedDiscount, setAppliedDiscount] = useState(
     visaState.appliedDiscount || null
   );
+  const [appliedInsuranceDiscount, setAppliedInsuranceDiscount] = useState(
+    null
+  )
+  const [insuranceCouponError, setInsuranceCouponError] = useState("");
   const [couponError, setCouponError] = useState("");
 
   const { showSuccess } = useToast();
@@ -98,7 +103,6 @@ const VisaCheckout = () => {
   const [isSendingVerification, setIsSendingVerification] = useState(false);
   const verificationPollRef = useRef(null);
   const [pendingCheckoutQuery, setPendingCheckoutQuery] = useState(null);
-  const [stundentEmail, setStudentEmail] = useState("")
 
 
 
@@ -273,6 +277,39 @@ const VisaCheckout = () => {
     }
   }, []);
 
+  useEffect(() => {
+    if (insuranceCount >= 3) {
+      setAppliedInsuranceDiscount({ code: 'GROUP20', percentage: 20, description: 'Group discount on insurance' })
+      setInsuranceCouponCode("GROUP20")
+      setCouponError("")
+    } else {
+      setAppliedInsuranceDiscount(null)
+      setInsuranceCouponCode("")
+      if (appliedDiscount && couponCode === 'STUDENT10') {
+        setAppliedInsuranceDiscount({
+          code: 'STUDENT10',
+          percentage: 10,
+          description: 'Student discount'
+        })
+      }
+    }
+  }, [insuranceCount, appliedDiscount])
+
+  useEffect(() => {
+    if (travelers < 3) {
+      if (appliedDiscount && appliedDiscount.code === 'GROUP20' && !groupAutoApplied) {
+        setAppliedDiscount(null);
+        setCouponCodeLocal("");
+        setCouponError("");
+      }
+    } else {
+      if ((!appliedDiscount || (appliedDiscount && appliedDiscount.code !== 'GROUP20')) && !groupAutoApplied) {
+        setAppliedDiscount({ code: 'GROUP20', percentage: 20, description: 'Group discount (3+ travellers)' });
+        setCouponCodeLocal("GROUP20");
+      }
+    }
+  }, [travelers]);
+
   const [cardNumber, setCardNumber] = useState("");
   const [expirationDate, setExpirationDate] = useState("");
   const [securityCode, setSecurityCode] = useState("");
@@ -322,6 +359,7 @@ const VisaCheckout = () => {
 
     const discount = availableDiscounts[couponCode.toUpperCase()];
 
+
     if (!discount) {
       setCouponError("Invalid coupon code");
       return;
@@ -361,9 +399,35 @@ const VisaCheckout = () => {
       setGroupAutoApplied(false);
     }
 
+    if (couponCode.toUpperCase() === "STUDENT10") {
+      setAppliedInsuranceDiscount(
+        {
+          code: 'STUDENT10',
+          percentage: 10,
+          description: 'Student discount'
+        }
+      )
+    }
+
     if (discount && discount.description.toLowerCase().includes("student")) {
     }
   };
+  const applyInsuranceCode = () => {
+    if (insuranceCount >= 3) {
+      setInsuranceCouponCode("GROUP20")
+      setAppliedInsuranceDiscount({ code: 'GROUP20', percentage: 20, description: 'Group discount on insurance' })
+      setInsuranceCouponError("")
+    } else {
+      setInsuranceCouponError("This coupon requires at least 3 insurances")
+      setAppliedInsuranceDiscount(null)
+    }
+  }
+
+  const removeInsuranceCoupon = () => {
+    setInsuranceCouponCode("");
+    setAppliedInsuranceDiscount(null);
+    setInsuranceCouponError("");
+  }
 
   const removeCoupon = () => {
     setCouponCodeLocal("");
@@ -535,12 +599,15 @@ const VisaCheckout = () => {
 
   const insuranceFees = includeInsurance ? insuranceFeesTotal : 0;
   const giftCardFees = Number(visaState.giftCardFees) || 0;
+  const insuranceWithDiscount = appliedInsuranceDiscount && includeInsurance ?
+    insuranceFees - (insuranceFees * appliedInsuranceDiscount.percentage) / 100 : insuranceFees;
+  const visaFeesWithDiscount = appliedDiscount ?
+    visaFeesTotal - (visaFeesTotal * appliedDiscount.percentage) / 100 : visaFeesTotal;
   const eVisaFees = 0; // Currently free
   const subtotal = visaFeesTotal + insuranceFees + giftCardFees + eVisaFees;
-
-  const discountAmount = appliedDiscount
-    ? (subtotal * appliedDiscount.percentage) / 100
-    : 0;
+  const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVisaFees;
+  const insuranceDiscountAmount = appliedInsuranceDiscount && includeInsurance ? (insuranceFees * appliedInsuranceDiscount.percentage) / 100 : 0;
+  const discountAmount = insuranceDiscountAmount + (appliedDiscount ? (visaFeesTotal * appliedDiscount.percentage) / 100 : 0);
 
   const discountedSubtotal = subtotal - discountAmount;
 
@@ -550,13 +617,15 @@ const VisaCheckout = () => {
 
   // Calculate dynamic values based on user selections in EUR
   const visaFeesEUR = calculatePaymentFees(visaFeesTotal, "EUR");
+  const discountedVisaFeesEUR = visaFeesEUR - (visaFeesEUR * appliedDiscount?.percentage) / 100;
 
   // Calculate discounted insurance fees
   const baseInsuranceFeesEUR = includeInsurance
-    ? calculatePaymentFees(insuranceFees, "EUR")
-    : 0;
-  const discountedInsuranceFeesEUR = appliedDiscount && includeInsurance
-    ? baseInsuranceFeesEUR - (baseInsuranceFeesEUR * appliedDiscount.percentage) / 100
+    ? appliedInsuranceDiscount ? calculatePaymentFees(insuranceFees, "EUR") - (calculatePaymentFees(insuranceFees, "EUR") * appliedInsuranceDiscount.percentage) / 100 : calculatePaymentFees(insuranceFees, "EUR")
+    : 0
+    ;
+  const discountedInsuranceFeesEUR = appliedInsuranceDiscount && includeInsurance
+    ? baseInsuranceFeesEUR - (baseInsuranceFeesEUR * appliedInsuranceDiscount.percentage) / 100
     : baseInsuranceFeesEUR;
 
   const _giftCardFeesEUR = calculatePaymentFees(giftCardFees, "EUR");
@@ -576,12 +645,13 @@ const VisaCheckout = () => {
       String(totalAmountEUR)
     );
 
+
     await localStorageGateway(
       "insurancePaymentMetadata",
       localStorageEnums.SET,
       String(JSON.stringify({
         insuranceCount: includeInsurance ? insuranceCount : 0,
-        insurancePaymentAmount: discountedInsuranceFeesEUR,
+        insurancePaymentAmount: discountedInsuranceFeesEUR
       }))
     )
 
@@ -601,7 +671,9 @@ const VisaCheckout = () => {
 
     dispatch(setAmountWithoutDiscount(Number(subtotalEUR)));
     dispatch(setTotalAmount(Number(totalAmountEUR)));
-    dispatch(setInsuranceFees(Number(insuranceCount * insuranceFeesPerTraveller)));
+    dispatch(setInsuranceFees(
+      Number(discountedInsuranceFeesEUR)
+    ));
     dispatch(setGiftCardFees(Number(giftCardFees)));
     dispatch(setCouponCode(couponCode.trim().toUpperCase()));
     dispatch(setTravelers(Number(travelers)));
@@ -1106,6 +1178,67 @@ const VisaCheckout = () => {
                   </div>
                 </div>
               )}
+
+            <div className="space-y-3">
+              <h2 className="font-medium text-md">Insurance Code</h2>
+              <div className="space-y-2">
+                <div className="flex space-x-2">
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      value={insuranceCouponCode}
+                      onChange={(e) =>
+                        setInsuranceCouponCode(e.target.value.toUpperCase())
+                      }
+                      placeholder="Enter coupon code (e.g., GROUP20)"
+                      className={`w-full border ${insuranceCouponError ? "border-red-400" : "border-gray-300"
+                        } rounded-md p-2 text-sm ${couponError
+                          ? "outline-none ring-2 ring-red-400"
+                          : "focus:outline-none focus:ring-2 focus:ring-black"
+                        }`}
+                      disabled={appliedInsuranceDiscount && (insuranceCouponCode === "GROUP20")}
+                    />
+                  </div>
+                  {!appliedInsuranceDiscount || !(insuranceCouponCode === "GROUP20") ? (
+                    <button
+                      onClick={applyInsuranceCode}
+                      className="px-4 py-2 bg-black text-white text-sm rounded-md hover:bg-gray-900 transition-colors"
+                    >
+                      Apply
+                    </button>
+                  ) : (
+                    <button
+                      onClick={removeInsuranceCoupon}
+                      className="px-4 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+
+                {insuranceCouponError && (insuranceCouponCode === "GROUP20") && (
+                  <span className="text-sm text-red-400">{insuranceCouponError}</span>
+                )}
+
+                {appliedInsuranceDiscount && (insuranceCouponCode === "GROUP20") && (
+                  <div className="flex items-center space-x-2 text-sm text-green-600 bg-green-50 p-2 rounded-md">
+                    <span>
+                      ✓ {appliedInsuranceDiscount.description} (
+                      {appliedInsuranceDiscount.percentage}% off) applied!
+                    </span>
+                  </div>
+                )}
+
+                <div className="text-xs text-gray-600">
+                  <p>Available discounts:</p>
+                  <p>
+                    • <span className="font-semibold">GROUP20</span> - 20% group
+                    discount (3 or more insurances)
+                  </p>
+                </div>
+              </div>
+            </div>
+
 
 
             <div className="space-y-3">
@@ -1761,11 +1894,21 @@ const VisaCheckout = () => {
                 onDecrement={(val) => handleTravelersChange(val)}
                 value={travelers}
               />
+
+
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="line-through"></span>
-              <span>{formatCurrency(visaFeesEUR, "EUR")}</span>
+
+            <div className="flex items-center gap-2 justify-end">
+              <span className={
+                appliedDiscount && "line-through"
+              }>{formatCurrency(visaFeesEUR, "EUR")}</span>
+
+              {appliedDiscount && <span className="text-sm font-medium">
+                {formatCurrency(discountedVisaFeesEUR, "EUR")}
+              </span>}
+
             </div>
+
 
             {/* Insurance */}
             <div className="flex items-center justify-between">
@@ -1786,18 +1929,24 @@ const VisaCheckout = () => {
                 <FaShieldAlt />
                 <span className="text-sm">Insurance certificate</span>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex flex-col gap-2 items-end">
                 <QtyInput
                   value={insuranceCount}
                   onIncrement={() => handleInsuranceChange(1)}
                   onDecrement={() => handleInsuranceChange(-1)}
                   min={1}
                 />
-                <span className="text-sm">
-                  {includeInsurance
-                    ? formatCurrency(baseInsuranceFeesEUR, "EUR")
-                    : formatCurrency(0, "EUR")}
-                </span>
+                <div className="flex item-center gap-2">
+                  {appliedInsuranceDiscount && <span className="line-through">
+                    {formatCurrency(insuranceFeesPerTraveller * insuranceCount, "EUR")}
+                  </span>}
+                  <span className={`text-sm `}>
+                    {includeInsurance
+                      ? formatCurrency(baseInsuranceFeesEUR, "EUR")
+                      : formatCurrency(0, "EUR")}
+                  </span>
+
+                </div>
               </div>
             </div>
             {includeInsurance && (
@@ -1825,14 +1974,14 @@ const VisaCheckout = () => {
             </div>
 
             {/* Discount */}
-            {appliedDiscount && (
+            {/* {appliedDiscount && (
               <div className="flex justify-between text-sm text-green-400">
                 <span>
                   {appliedDiscount.description} (-{appliedDiscount.percentage}%)
                 </span>
                 <span>-{formatCurrency(discountAmountEUR, "EUR")}</span>
               </div>
-            )}
+            )} */}
 
             {/* You Save */}
             <div className="flex justify-between text-sm text-green-400">
@@ -1843,7 +1992,7 @@ const VisaCheckout = () => {
             {/* Total */}
             <div className="flex justify-between font-gilroy-bold text-xl pt-2 border-t border-gray-700">
               <span>Total</span>
-              <span>{formatCurrency(totalAmountEUR, "EUR")} EUR</span>
+              <span>{formatCurrency(total, "EUR")} EUR</span>
             </div>
 
             {/* Risk Free */}

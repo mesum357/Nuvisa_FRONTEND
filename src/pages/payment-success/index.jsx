@@ -249,7 +249,7 @@ const PaymentSuccess = () => {
         const applicationPayload = {
           type: "createApplication",
           email: currentData.email,
-          insuranceDetails: {
+          insuranceDetails: numberOfTravelers === currentData?.storedMetadata?.insuranceCount ? null : {
             paidInCheckout: {
               noOfInsurance: currentData?.storedMetadata?.insuranceCount || 0,
               paymentAmount: currentData?.storedMetadata?.insurancePaymentAmount || 0,
@@ -427,12 +427,7 @@ const PaymentSuccess = () => {
       <div className="text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#7350FF] mx-auto mb-4"></div>
         <p className="text-gray-600">
-          {paymentType === "additional_traveler_insurance" ||
-            paymentType === "traveler_insurance"
-            ? "Processing insurance payment and redirecting back to your application..."
-            : isCreatingApplication
-              ? "Creating your visa application..."
-              : "Processing payment and redirecting to dashboard..."}
+          Creating your visa application..
         </p>
       </div>
     </div>

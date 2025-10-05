@@ -5,6 +5,7 @@ import { saveOrderId } from '@/utils/adminStorage';
 import { getApplicationDetails, getTravelerDocuments, updateDocumentStatus } from '@/api/admin';
 import { localStorageGateway } from '@/gateways/localStoragegateway';
 import { localStorageEnums } from '@/enums/localstorage.enums';
+import { countryCodeMap } from '@/utils/countryCodeMap';
 
 export default function ApplicationStatusCard({ application, onSelect, isExpanded, onToggle }) {
   const [documentsOpen, setDocumentsOpen] = useState(false);
@@ -213,7 +214,18 @@ export default function ApplicationStatusCard({ application, onSelect, isExpande
         <div className="flex items-center gap-3 w-1/4">
           <div className="flex items-center justify-center w-10 h-7 rounded-sm border border-[#454553] overflow-hidden bg-gray-800">
             <span className="text-white text-xs font-bold">
-              {(application?.country || application?.countryName || '??').slice(0, 2).toUpperCase()}
+              {countryCodeMap[application?.country] ? (
+                <img
+                  src={`https://flagcdn.com/w80/${countryCodeMap[application?.country]
+                    }.png`}
+                  alt={`${application?.country} flag`}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-white text-xs font-bold">
+                  {application?.country?.slice(0, 2)?.toUpperCase() || "??"}
+                </span>
+              )}
             </span>
           </div>
           <div>

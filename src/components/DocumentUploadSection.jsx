@@ -291,10 +291,10 @@ const DocumentUploadSection = ({
   const requiredCount = documentTypes.filter((doc) => doc.required).length;
   const completedRequiredCount = documentTypes.filter((doc) => {
     if (!doc.required) return false;
-    if (!documents[doc.id]) return false;
+    if (!documents[doc.field]) return false;
 
-    if (doc.id === 1) {
-      const uploadedFiles = Array.isArray(documents[doc.id]) ? documents[doc.id] : [documents[doc.id]];
+    if (doc.field === "passportPhotos") {
+      const uploadedFiles = Array.isArray(documents[doc.field]) ? documents[doc.field] : [documents[doc.field]];
       return uploadedFiles.length >= 2;
     }
 

@@ -68,7 +68,7 @@ export const TravelDates = ({
             if (
               travelEndDate &&
               new Date(travelEndDate + "T00:00:00") <
-                new Date(value + "T00:00:00")
+              new Date(value + "T00:00:00")
             ) {
               setTravelEndDate("");
             }
@@ -119,8 +119,6 @@ export const TravelDates = ({
     }
   }
 
-  console.log(travelStartDate, travelEndDate, errors);
-
   return (
     <motion.div
       initial={{ opacity: 0, y: -10 }}
@@ -143,27 +141,25 @@ export const TravelDates = ({
             selected={travelStartDate ? new Date(travelStartDate) : null}
             minDate={new Date()}
             dayClassName={getDayClassName}
-            className={`w-full px-4 py-3 border rounded-lg transition outline-none text-white ${
-              disabled
+            className={`w-full px-4 py-3 border rounded-lg transition outline-none text-white ${disabled
                 ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
                 : "bg-[#292933] focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            } ${
-              errors.travelStartDate
+              } ${errors.travelStartDate
                 ? "border-red-500"
                 : disabled
-                ? "border-gray-500"
-                : "border-[#423577]"
-            }`}
+                  ? "border-gray-500"
+                  : "border-[#423577]"
+              }`}
             onChange={
               disabled
-                ? () => {}
+                ? () => { }
                 : (date) =>
-                    handleInputChange({
-                      target: {
-                        name: "travelStartDate",
-                        value: getLocalDateString(date),
-                      },
-                    })
+                  handleInputChange({
+                    target: {
+                      name: "travelStartDate",
+                      value: getLocalDateString(date),
+                    },
+                  })
             }
             dateFormat="yyyy-MM-dd"
             placeholderText="YYYY-MM-DD"
@@ -182,25 +178,24 @@ export const TravelDates = ({
             selected={travelEndDate ? new Date(travelEndDate) : null}
             onChange={
               disabled
-                ? () => {}
+                ? () => { }
                 : (date) =>
-                    handleInputChange({
-                      target: {
-                        name: "travelEndDate",
-                        value: getLocalDateString(date),
-                      },
-                    })
+                  handleInputChange({
+                    target: {
+                      name: "travelEndDate",
+                      value: getLocalDateString(date),
+                    },
+                  })
             }
             maxDate={maxTravelEndDate}
             dayClassName={getDayClassName}
             disabled={disabled || !travelStartDate}
-            className={`w-full backdrop-blur-sm text-white rounded-lg px-4 py-3 font-semibold border-2 transition-all outline-none ${
-              disabled
+            className={`w-full backdrop-blur-sm text-white rounded-lg px-4 py-3 font-semibold border-2 transition-all outline-none ${disabled
                 ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
                 : !travelStartDate
-                ? "bg-gray-700/50 border-gray-600 cursor-not-allowed"
-                : "bg-white/10 border-white/20 hover:border-white/40 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20"
-            }`}
+                  ? "bg-gray-700/50 border-gray-600 cursor-not-allowed"
+                  : "bg-white/10 border-white/20 hover:border-white/40 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20"
+              }`}
             dateFormat="dd-MM-yyyy"
             placeholderText="DD-MM-YYYY"
           />

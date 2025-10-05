@@ -26,4 +26,10 @@ export const countryCodeMap = {
     "Luxembourg": "lu",
     "Liechtenstein": "li",
     "United Kingdom": "gb",
+    "GERMANY": "de",
+    "NETHERLANDS": "nl",
+    "BELGIUM": "be",
+    "FRANCE": "fr",
+    "ITALY": "it",
+    "SPAIN": "es",
 };

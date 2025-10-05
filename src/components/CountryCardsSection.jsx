@@ -21,17 +21,16 @@ const CountryCardsSection = () => {
     const countryConfig = getCountryConfig(countryName);
 
     // Store the selected country and dynamic fees in Redux
-    dispatch(setSelectedCountry(countryName));
-    dispatch(setVisaFees(countryConfig.visaFee));
-    dispatch(setInsuranceFees(countryConfig.insuranceFee));
-    dispatch(setTravelers(1));
+    dispatch(setSelectedCountry(String(countryName)));
+    dispatch(setVisaFees(Number(countryConfig.visaFee)));
+    dispatch(setInsuranceFees(Number(countryConfig.insuranceFee)));
+    dispatch(setTravelers(Number(1)));
 
     // Redirect to checkout with dynamic country information
     router.push(
       `/visa-checkout?selectedCountry=${encodeURIComponent(
         countryName
-      )}&visaFees=${countryConfig.visaFee}&insuranceFees=${
-        countryConfig.insuranceFee
+      )}&visaFees=${countryConfig.visaFee}&insuranceFees=${countryConfig.insuranceFee
       }&travelers=1`
     );
   };

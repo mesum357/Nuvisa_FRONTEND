@@ -277,10 +277,10 @@ const PassportInformationSection = ({
       const simple = data.simpleFields || {};
       const rawFields =
         data.raw &&
-        data.raw.rawHttp &&
-        data.raw.rawHttp.inference &&
-        data.raw.rawHttp.inference.result &&
-        data.raw.rawHttp.inference.result.fields
+          data.raw.rawHttp &&
+          data.raw.rawHttp.inference &&
+          data.raw.rawHttp.inference.result &&
+          data.raw.rawHttp.inference.result.fields
           ? data.raw.rawHttp.inference.result.fields
           : {};
 
@@ -367,7 +367,6 @@ const PassportInformationSection = ({
             }
           };
 
-          console.log(assignIfPresent, extracted, "assignIfPresent");
 
           assignIfPresent("passportNumber", extracted.passportNumber);
           assignIfPresent("firstName", extracted.firstName);
@@ -955,11 +954,10 @@ const PassportInformationSection = ({
               <div className="space-y-6">
                 {/* Front Side Upload */}
                 <div
-                  className={`shadow-sm shadow-gray-600/60 rounded-xl p-4 transition ${
-                    errors.passportFront || !isFieldValid("passportFront")
+                  className={`shadow-sm shadow-gray-600/60 rounded-xl p-4 transition ${errors.passportFront || !isFieldValid("passportFront")
                       ? "shadow-red-500"
                       : " hover:shadow-purple-400/60"
-                  }`}
+                    }`}
                 >
                   <label className="block text-sm font-medium  mb-2">
                     Passport Front Page
@@ -1021,15 +1019,13 @@ const PassportInformationSection = ({
                           handleRemoveImage("front")
                         }
                         disabled={disabled || deletingFront}
-                        className={`absolute top-2 right-2 rounded-full w-6 h-6 flex items-center justify-center transition-opacity ${
-                          disabled || deletingFront
+                        className={`absolute top-2 right-2 rounded-full w-6 h-6 flex items-center justify-center transition-opacity ${disabled || deletingFront
                             ? "bg-gray-400 text-gray-200 cursor-not-allowed"
                             : "bg-red-500 text-white"
-                        } ${
-                          frontBusy
+                          } ${frontBusy
                             ? "hidden"
                             : "opacity-0 group-hover:opacity-100"
-                        }`}
+                          }`}
                       >
                         {deletingFront ? (
                           <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
@@ -1046,11 +1042,10 @@ const PassportInformationSection = ({
                   ) : (
                     <div className="flex items-center justify-center w-full">
                       <label
-                        className={`flex flex-col items-center justify-center w-full h-40 border border-dashed rounded-lg transition ${
-                          disabled
+                        className={`flex flex-col items-center justify-center w-full h-40 border border-dashed rounded-lg transition ${disabled
                             ? "border-gray-500 cursor-not-allowed opacity-50 bg-gray-600/20"
                             : "border-[#423577] cursor-pointer hover:border-purple-400/60"
-                        }`}
+                          }`}
                       >
                         <div className="flex flex-col items-center justify-center pt-5 pb-6">
                           <Upload className="w-10 h-10 mb-3 text-gray-400" />
@@ -1073,7 +1068,7 @@ const PassportInformationSection = ({
                           disabled={disabled}
                           onChange={
                             disabled
-                              ? () => {}
+                              ? () => { }
                               : (e) => handleFileUpload(e, "front")
                           }
                         />
@@ -1088,11 +1083,10 @@ const PassportInformationSection = ({
                 </div>
                 {/* Back Side Upload */}
                 <div
-                  className={`shadow-sm shadow-gray-600/60 rounded-xl p-4 transition ${
-                    errors.passportBack || !isFieldValid("passportBack")
+                  className={`shadow-sm shadow-gray-600/60 rounded-xl p-4 transition ${errors.passportBack || !isFieldValid("passportBack")
                       ? "shadow-red-500"
                       : "hover:shadow-purple-400/60"
-                  }`}
+                    }`}
                 >
                   <label className="block text-sm font-medium  mb-2">
                     Passport Back Page
@@ -1165,15 +1159,13 @@ const PassportInformationSection = ({
                           handleRemoveImage("back")
                         }
                         disabled={disabled || deletingBack}
-                        className={`absolute top-2 right-2 rounded-full w-6 h-6 flex items-center justify-center transition-opacity ${
-                          disabled || deletingBack
+                        className={`absolute top-2 right-2 rounded-full w-6 h-6 flex items-center justify-center transition-opacity ${disabled || deletingBack
                             ? "bg-gray-400 text-gray-200 cursor-not-allowed"
                             : "bg-red-500 text-white"
-                        } ${
-                          backBusy
+                          } ${backBusy
                             ? "hidden"
                             : "opacity-0 group-hover:opacity-100"
-                        }`}
+                          }`}
                       >
                         {deletingBack ? (
                           <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
@@ -1190,11 +1182,10 @@ const PassportInformationSection = ({
                   ) : (
                     <div className="flex items-center justify-center w-full">
                       <label
-                        className={`flex flex-col items-center justify-center w-full h-40 border border-dashed rounded-lg transition ${
-                          disabled
+                        className={`flex flex-col items-center justify-center w-full h-40 border border-dashed rounded-lg transition ${disabled
                             ? "border-gray-500 cursor-not-allowed opacity-50 bg-gray-600/20"
                             : "border-[#423577] cursor-pointer hover:border-purple-400/60"
-                        }`}
+                          }`}
                       >
                         <div className="flex flex-col items-center justify-center pt-5 pb-6">
                           <Upload className="w-10 h-10 mb-3 text-gray-400" />
@@ -1217,7 +1208,7 @@ const PassportInformationSection = ({
                           disabled={disabled}
                           onChange={
                             disabled
-                              ? () => {}
+                              ? () => { }
                               : (e) => handleFileUpload(e, "back")
                           }
                         />
@@ -1297,7 +1288,7 @@ const PassportInformationSection = ({
               <motion.div
                 initial={{ opacity: 0, x: 10 }}
                 animate={{ opacity: 1, x: 0 }}
-                // className="bg-[#23232B] rounded-xl shadow-sm p-6 border border-[#423577]"
+              // className="bg-[#23232B] rounded-xl shadow-sm p-6 border border-[#423577]"
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -1308,21 +1299,19 @@ const PassportInformationSection = ({
                       type="text"
                       name="passportNumber"
                       value={passportData.passportNumber}
-                      onChange={disabled ? () => {} : handleInputChange}
+                      onChange={disabled ? () => { } : handleInputChange}
                       placeholder="Enter passport number"
                       disabled={disabled}
                       required
-                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${
-                        disabled
+                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${disabled
                           ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
                           : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      } ${
-                        errors.passportNumber || !isFieldValid("passportNumber")
+                        } ${errors.passportNumber || !isFieldValid("passportNumber")
                           ? "border-red-500"
                           : disabled
-                          ? "border-gray-500"
-                          : "border-[#423577]"
-                      }`}
+                            ? "border-gray-500"
+                            : "border-[#423577]"
+                        }`}
                     />
                     {errors.passportNumber && (
                       <p className="text-red-500 text-xs mt-1">
@@ -1338,21 +1327,19 @@ const PassportInformationSection = ({
                       type="text"
                       name="firstName"
                       value={passportData.firstName}
-                      onChange={disabled ? () => {} : handleInputChange}
+                      onChange={disabled ? () => { } : handleInputChange}
                       placeholder="Name"
                       disabled={disabled}
                       required
-                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${
-                        disabled
+                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${disabled
                           ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
                           : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      } ${
-                        errors.firstName || !isFieldValid("firstName")
+                        } ${errors.firstName || !isFieldValid("firstName")
                           ? "border-red-500"
                           : disabled
-                          ? "border-gray-500"
-                          : "border-[#423577]"
-                      }`}
+                            ? "border-gray-500"
+                            : "border-[#423577]"
+                        }`}
                     />
                     {errors.firstName && (
                       <p className="text-red-500 text-xs mt-1">
@@ -1368,21 +1355,19 @@ const PassportInformationSection = ({
                       type="text"
                       name="lastName"
                       value={passportData.lastName}
-                      onChange={disabled ? () => {} : handleInputChange}
+                      onChange={disabled ? () => { } : handleInputChange}
                       placeholder="SurName"
                       disabled={disabled}
                       required
-                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${
-                        disabled
+                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${disabled
                           ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
                           : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      } ${
-                        errors.lastName || !isFieldValid("lastName")
+                        } ${errors.lastName || !isFieldValid("lastName")
                           ? "border-red-500"
                           : disabled
-                          ? "border-gray-500"
-                          : "border-[#423577]"
-                      }`}
+                            ? "border-gray-500"
+                            : "border-[#423577]"
+                        }`}
                     />
                     {errors.lastName && (
                       <p className="text-red-500 text-xs mt-1">
@@ -1397,20 +1382,18 @@ const PassportInformationSection = ({
                     <select
                       name="sex"
                       value={passportData.sex}
-                      onChange={disabled ? () => {} : handleInputChange}
+                      onChange={disabled ? () => { } : handleInputChange}
                       disabled={disabled}
                       required
-                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${
-                        disabled
+                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${disabled
                           ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
                           : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      } ${
-                        errors.sex || !isFieldValid("sex")
+                        } ${errors.sex || !isFieldValid("sex")
                           ? "border-red-500"
                           : disabled
-                          ? "border-gray-500"
-                          : "border-[#423577]"
-                      }`}
+                            ? "border-gray-500"
+                            : "border-[#423577]"
+                        }`}
                     >
                       <option value="">Select gender</option>
                       <option value="Male">Male</option>
@@ -1429,20 +1412,18 @@ const PassportInformationSection = ({
                       type="date"
                       name="dateOfBirth"
                       value={passportData.dateOfBirth}
-                      onChange={disabled ? () => {} : handleInputChange}
+                      onChange={disabled ? () => { } : handleInputChange}
                       disabled={disabled}
                       required
-                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white [&::-webkit-calendar-picker-indicator]:invert ${
-                        disabled
+                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white [&::-webkit-calendar-picker-indicator]:invert ${disabled
                           ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400 [&::-webkit-calendar-picker-indicator]:opacity-40"
                           : "focus:ring-2 focus:ring-purple-500 focus:border-transparent [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                      } ${
-                        errors.dateOfBirth || !isFieldValid("dateOfBirth")
+                        } ${errors.dateOfBirth || !isFieldValid("dateOfBirth")
                           ? "border-red-500"
                           : disabled
-                          ? "border-gray-500"
-                          : "border-[#423577]"
-                      }`}
+                            ? "border-gray-500"
+                            : "border-[#423577]"
+                        }`}
                       style={{
                         colorScheme: "light",
                       }}
@@ -1462,21 +1443,19 @@ const PassportInformationSection = ({
                       type="text"
                       name="placeOfBirth"
                       value={passportData.placeOfBirth}
-                      onChange={disabled ? () => {} : handleInputChange}
+                      onChange={disabled ? () => { } : handleInputChange}
                       placeholder="City, Country"
                       disabled={disabled}
                       required
-                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${
-                        disabled
+                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${disabled
                           ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
                           : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      } ${
-                        errors.placeOfBirth || !isFieldValid("placeOfBirth")
+                        } ${errors.placeOfBirth || !isFieldValid("placeOfBirth")
                           ? "border-red-500"
                           : disabled
-                          ? "border-gray-500"
-                          : "border-[#423577]"
-                      }`}
+                            ? "border-gray-500"
+                            : "border-[#423577]"
+                        }`}
                     />
                     {errors.placeOfBirth && (
                       <p className="text-red-500 text-xs mt-1">
@@ -1492,7 +1471,7 @@ const PassportInformationSection = ({
                 initial={{ opacity: 0, x: 10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.2 }}
-                // className="bg-[#23232B] rounded-xl shadow-sm p-6 border border-[#423577]"
+              // className="bg-[#23232B] rounded-xl shadow-sm p-6 border border-[#423577]"
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
@@ -1503,22 +1482,20 @@ const PassportInformationSection = ({
                       type="text"
                       name="passportIssuePlace"
                       value={passportData.passportIssuePlace}
-                      onChange={disabled ? () => {} : handleInputChange}
+                      onChange={disabled ? () => { } : handleInputChange}
                       placeholder="City, Country"
                       disabled={disabled}
                       required
-                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${
-                        disabled
+                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${disabled
                           ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
                           : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      } ${
-                        errors.passportIssuePlace ||
-                        !isFieldValid("passportIssuePlace")
+                        } ${errors.passportIssuePlace ||
+                          !isFieldValid("passportIssuePlace")
                           ? "border-red-500"
                           : disabled
-                          ? "border-gray-500"
-                          : "border-[#423577]"
-                      }`}
+                            ? "border-gray-500"
+                            : "border-[#423577]"
+                        }`}
                     />
                     {errors.passportIssuePlace && (
                       <p className="text-red-500 text-xs mt-1">
@@ -1534,21 +1511,19 @@ const PassportInformationSection = ({
                       type="date"
                       name="passportIssueDate"
                       value={passportData.passportIssueDate}
-                      onChange={disabled ? () => {} : handleInputChange}
+                      onChange={disabled ? () => { } : handleInputChange}
                       disabled={disabled}
                       required
-                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white [&::-webkit-calendar-picker-indicator]:invert ${
-                        disabled
+                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white [&::-webkit-calendar-picker-indicator]:invert ${disabled
                           ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400 [&::-webkit-calendar-picker-indicator]:opacity-40"
                           : "focus:ring-2 focus:ring-purple-500 focus:border-transparent [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                      } ${
-                        errors.passportIssueDate ||
-                        !isFieldValid("passportIssueDate")
+                        } ${errors.passportIssueDate ||
+                          !isFieldValid("passportIssueDate")
                           ? "border-red-500"
                           : disabled
-                          ? "border-gray-500"
-                          : "border-[#423577]"
-                      }`}
+                            ? "border-gray-500"
+                            : "border-[#423577]"
+                        }`}
                     />
                     {errors.passportIssueDate && (
                       <p className="text-red-500 text-xs mt-1">
@@ -1564,21 +1539,19 @@ const PassportInformationSection = ({
                       type="date"
                       name="passportExpiryDate"
                       value={passportData.passportExpiryDate}
-                      onChange={disabled ? () => {} : handleInputChange}
+                      onChange={disabled ? () => { } : handleInputChange}
                       disabled={disabled}
                       required
-                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white [&::-webkit-calendar-picker-indicator]:invert ${
-                        disabled
+                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white [&::-webkit-calendar-picker-indicator]:invert ${disabled
                           ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400 [&::-webkit-calendar-picker-indicator]:opacity-40"
                           : "focus:ring-2 focus:ring-purple-500 focus:border-transparent [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                      } ${
-                        errors.passportExpiryDate ||
-                        !isFieldValid("passportExpiryDate")
+                        } ${errors.passportExpiryDate ||
+                          !isFieldValid("passportExpiryDate")
                           ? "border-red-500"
                           : disabled
-                          ? "border-gray-500"
-                          : "border-[#423577]"
-                      }`}
+                            ? "border-gray-500"
+                            : "border-[#423577]"
+                        }`}
                     />
                     {errors.passportExpiryDate && (
                       <p className="text-red-500 text-xs mt-1">
@@ -1594,7 +1567,7 @@ const PassportInformationSection = ({
                 initial={{ opacity: 0, x: 10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.3 }}
-                // className="bg-[#23232B] rounded-xl shadow-sm p-6 border border-[#423577]"
+              // className="bg-[#23232B] rounded-xl shadow-sm p-6 border border-[#423577]"
               >
                 <div className="space-y-4 pt-2">
                   <div>
@@ -1606,21 +1579,19 @@ const PassportInformationSection = ({
                       name="currentAddress1"
                       required
                       value={passportData.currentAddress1}
-                      onChange={disabled ? () => {} : handleInputChange}
+                      onChange={disabled ? () => { } : handleInputChange}
                       placeholder="Street address, P.O. box"
                       disabled={disabled}
-                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${
-                        disabled
+                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${disabled
                           ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
                           : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      } ${
-                        errors.currentAddress1 ||
-                        !isFieldValid("currentAddress1")
+                        } ${errors.currentAddress1 ||
+                          !isFieldValid("currentAddress1")
                           ? "border-red-500"
                           : disabled
-                          ? "border-gray-500"
-                          : "border-[#423577]"
-                      }`}
+                            ? "border-gray-500"
+                            : "border-[#423577]"
+                        }`}
                     />
                     {errors.currentAddress1 && (
                       <p className="text-red-500 text-xs mt-1">
@@ -1636,14 +1607,13 @@ const PassportInformationSection = ({
                       type="text"
                       name="currentAddress2"
                       value={passportData.currentAddress2}
-                      onChange={disabled ? () => {} : handleInputChange}
+                      onChange={disabled ? () => { } : handleInputChange}
                       placeholder="Apartment, suite, unit, building, floor"
                       disabled={disabled}
-                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${
-                        disabled
+                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${disabled
                           ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
                           : "focus:ring-2 focus:ring-purple-500 focus:border-transparent border-[#423577]"
-                      }`}
+                        }`}
                     />
                   </div>
                   {/* State removed for UK addresses - kept intentionally blank */}
@@ -1657,21 +1627,19 @@ const PassportInformationSection = ({
                         type="text"
                         name="city"
                         value={passportData.city}
-                        onChange={disabled ? () => {} : handleInputChange}
+                        onChange={disabled ? () => { } : handleInputChange}
                         placeholder="City (type or select)"
                         required
                         disabled={disabled}
-                        className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${
-                          disabled
+                        className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${disabled
                             ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
                             : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                        } ${
-                          errors.city || !isFieldValid("city")
+                          } ${errors.city || !isFieldValid("city")
                             ? "border-red-500"
                             : disabled
-                            ? "border-gray-500"
-                            : "border-[#423577]"
-                        }`}
+                              ? "border-gray-500"
+                              : "border-[#423577]"
+                          }`}
                       />
                       <datalist id="city-options">
                         {UK_CITIES && UK_CITIES.length > 0
@@ -1692,21 +1660,19 @@ const PassportInformationSection = ({
                         type="text"
                         name="pincode"
                         value={passportData.pincode}
-                        onChange={disabled ? () => {} : handleInputChange}
+                        onChange={disabled ? () => { } : handleInputChange}
                         placeholder="e.g. SW1A 1AA"
                         disabled={disabled}
                         required
-                        className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${
-                          disabled
+                        className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${disabled
                             ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
                             : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                        } ${
-                          errors.pincode || !isFieldValid("pincode")
+                          } ${errors.pincode || !isFieldValid("pincode")
                             ? "border-red-500"
                             : disabled
-                            ? "border-gray-500"
-                            : "border-[#423577]"
-                        }`}
+                              ? "border-gray-500"
+                              : "border-[#423577]"
+                          }`}
                       />
                       {errors.pincode && (
                         <p className="text-red-500 text-xs mt-1">
@@ -1723,21 +1689,19 @@ const PassportInformationSection = ({
                       type="tel"
                       name="mobileNumber"
                       value={passportData.mobileNumber || ""}
-                      onChange={disabled ? () => {} : handleInputChange}
+                      onChange={disabled ? () => { } : handleInputChange}
                       placeholder="e.g. 7123456789 or 07123456789"
                       disabled={disabled}
                       required
-                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${
-                        disabled
+                      className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${disabled
                           ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
                           : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      } ${
-                        errors.mobileNumber || !isFieldValid("mobileNumber")
+                        } ${errors.mobileNumber || !isFieldValid("mobileNumber")
                           ? "border-red-500"
                           : disabled
-                          ? "border-gray-500"
-                          : "border-[#423577]"
-                      }`}
+                            ? "border-gray-500"
+                            : "border-[#423577]"
+                        }`}
                     />
                     {errors.mobileNumber && (
                       <p className="text-red-500 text-xs mt-1">
@@ -1782,11 +1746,10 @@ const PassportInformationSection = ({
               {/* Next button - disabled until form is complete */}
               <button
                 type="submit"
-                className={`px-6 py-2 rounded-lg font-semibold transition-colors duration-200 ${
-                  isFormComplete() && !disabled
+                className={`px-6 py-2 rounded-lg font-semibold transition-colors duration-200 ${isFormComplete() && !disabled
                     ? "bg-[#7350FF] text-white hover:bg-[#7350FF]/90"
                     : "bg-gray-600 text-gray-400 cursor-not-allowed"
-                }`}
+                  }`}
                 disabled={!isFormComplete() || disabled || isProcessing}
               >
                 {isProcessing ? "Processing..." : "Next"}
