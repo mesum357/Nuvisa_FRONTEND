@@ -217,8 +217,8 @@ const BookingAppointment = ({
     <div className="space-y-6">
       {/* Appointment Information */}
       <div className="bg-[#23232B] border border-[#423577] rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">
-          Appointment for {application?.basicDetails?.firstName}
+        <h3 className="text-md font-semibold text-white mb-4">
+          Appointment for {application?.travelersData?.map(t => t.basicDetails.firstName).join(", ")}
         </h3>
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
           <p className="text-sm text-gray-700">
@@ -430,7 +430,7 @@ const BookingAppointment = ({
         <div className="flex justify-end mb-4">
           <button
             onClick={handleSave}
-            disabled={loading || disabled || isStepCompleted}
+            disabled={loading || disabled}
             className="px-6 py-2 bg-[#7350FF] text-white rounded-md hover:bg-[#7350FF]/90 disabled:bg-[#7350FF]/30 transition-colors"
           >
             {loading ? "Processing..." : "Save"}

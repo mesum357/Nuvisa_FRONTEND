@@ -612,6 +612,10 @@ const VisaCheckout = () => {
       String(visaFeesEUR)
     );
 
+    await localStorageGateway("paymentWithDiscount", localStorageEnums.SET,
+      String(discountedSubtotalEUR - insuranceFees)
+    )
+
     if (cretingDynamicCheckout) return;
 
     if (!email) {
@@ -1769,9 +1773,7 @@ const VisaCheckout = () => {
                 className="flex items-center space-x-2 cursor-pointer"
                 onClick={() => {
                   setIncludeInsurance(!includeInsurance)
-                  if (includeInsurance) {
-                    setInsuranceCount(1)
-                  }
+                  setInsuranceCount(1)
                 }}
               >
                 <input

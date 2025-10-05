@@ -409,6 +409,10 @@ export const InsuranceStep = ({
               insurance: {
                 insurancePaymentCompleted: true,
                 paymentAmount: totalWithFee,
+                insuranceDay: calculateDays(
+                  applicationData?.travelStartDate,
+                  applicationData?.travelEndDate
+                )
               },
             };
           }
@@ -789,10 +793,11 @@ export const InsuranceStep = ({
                 <div className="flex justify-between">
                   <span className="text-gray-300">Coverage period:</span>
                   <span className="text-white font-medium">
-                    {calculateDays(
-                      applicationData?.travelStartDate,
-                      applicationData?.travelEndDate
-                    )}{" "}
+                    {applicationData?.travelersData?.[travelerIndex]
+                      ?.insurance?.insuranceDay || calculateDays(
+                        applicationData?.travelStartDate,
+                        applicationData?.travelEndDate
+                      )}{" "}
                     days
                   </span>
                 </div>

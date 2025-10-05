@@ -98,11 +98,14 @@ const usePaymentData = () => {
         "paymentWithoutInsurance",
         localStorageEnums.GET
       );
-      const storedMetadata = 
+      const storedMetadata =
         await localStorageGateway(
           "insurancePaymentMetadata",
           localStorageEnums.GET
         )
+      const amountWithDiscount = await localStorageGateway("paymentWithDiscount",
+        localStorageEnums.GET
+      )
 
       return {
         email,
@@ -117,6 +120,7 @@ const usePaymentData = () => {
         visaTypeId: visaState.visaTypeId,
         paymentWithoutInsurance,
         storedMetadata: JSON.parse(storedMetadata) || null,
+        amountWithDiscount
       };
     } catch (error) {
       console.error("Error getting current payment data:", error);
@@ -130,13 +134,13 @@ const usePaymentData = () => {
       visa_type_id: visaState.visaTypeId || visaState.selectedVisaType?.id,
       travel_start_date: visaState.arrivalDate
         ? new Date(visaState.arrivalDate)
-            .toLocaleDateString("en-GB")
-            .replace(/\//g, "/")
+          .toLocaleDateString("en-GB")
+          .replace(/\//g, "/")
         : undefined,
       travel_end_date: visaState.departureDate
         ? new Date(visaState.departureDate)
-            .toLocaleDateString("en-GB")
-            .replace(/\//g, "/")
+          .toLocaleDateString("en-GB")
+          .replace(/\//g, "/")
         : undefined,
       no_of_travelers: parseInt(visaState.travelers) || 1,
     };
