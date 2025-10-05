@@ -2423,6 +2423,7 @@ const MultiStepAccordion = () => {
                             travelerData={travelersData[currentTravelerIndex]}
                             disabled={!isOwner || isApplicationSubmitted}
                             isOwner={isOwner}
+                            setParentVisaApplication={setParentVisaApplication}
                           />
                         )}
 
@@ -2784,6 +2785,7 @@ const MultiStepAccordion = () => {
                               disabled={!isOwner || isApplicationSubmitted}
                               isOwner={isOwner}
                               key={currentTravelerIndex}
+                              setParentVisaApplication={setParentVisaApplication}
                             />
                           )}
 
@@ -2923,6 +2925,7 @@ const MultiStepAccordion = () => {
                             travelerData={currentTravellerForInsurance}
                             disabled={!isOwner || isApplicationSubmitted}
                             isOwner={isOwner}
+                            setParentVisaApplication={setParentVisaApplication}
                           />
                         )}
 
