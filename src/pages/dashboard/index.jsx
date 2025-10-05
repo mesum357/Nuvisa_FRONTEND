@@ -24,6 +24,7 @@ import {
 import { FaWhatsapp } from "react-icons/fa";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
+import { countryCodeMap } from "@/utils/countryCodeMap";
 
 export default function HeaderSearchSection() {
   const token = localStorageGateway("token", localStorageEnums.GET);
@@ -415,9 +416,9 @@ function ApplicationCard({
       >
         <div className="flex items-center gap-3 w-1/4">
           <div className="flex items-center justify-center w-10 h-7 rounded-sm border border-[#454553] overflow-hidden bg-gray-800">
-            {schengenCountries[app?.country] ? (
+            {countryCodeMap[app?.country] ? (
               <img
-                src={`https://flagcdn.com/w80/${schengenCountries[app?.country]
+                src={`https://flagcdn.com/w80/${countryCodeMap[app?.country]
                   }.png`}
                 alt={`${app?.country} flag`}
                 className="w-full h-full object-cover"
