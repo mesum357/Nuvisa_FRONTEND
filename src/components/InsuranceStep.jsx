@@ -147,7 +147,6 @@ export const InsuranceStep = ({
       await updateVisaApplication(token, {
         travelersData: applicationData?.travelersData.map((traveler, idx) => {
           if (travelerData.id === traveler?.id) {
-            console.log(traveler, "TEMPPPPPPPPPPPPPPPP");
             return {
               ...traveler,
               insurance: {
@@ -219,7 +218,6 @@ export const InsuranceStep = ({
 
     try {
       const url = certificate.data || certificate.preview;
-      console.log(url, "DOWNLOAD");
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -275,7 +273,6 @@ export const InsuranceStep = ({
         await updateVisaApplication(token, {
           travelersData: applicationData?.travelersData.map((traveler, idx) => {
             if (travelerData.id === traveler?.id) {
-              console.log(traveler, "TEMP_REMOVE");
               return {
                 ...traveler,
                 insurance: {

@@ -93,9 +93,6 @@ const MultiStepAccordion = () => {
 
   const { paymentData } = useCalculatePayment(applicationId);
 
-
-
-
   const [travelersData, setTravelersData] = useState([
     {
       id: 1,
@@ -950,17 +947,27 @@ const MultiStepAccordion = () => {
   const goToPreviousStep = () => {
     const visible = getVisibleSteps();
     const currentIndex = visible.findIndex((s) => s.open);
+
     if (currentIndex > 0) {
       const prev = visible[currentIndex - 1];
       setCurrentTravelerIndex(0); // reset to first traveler when going back
+
       setSteps((prevSteps) =>
         prevSteps.map((s) => ({
           ...s,
           open: s.id === prev.id,
         }))
       );
+
+      // Scroll to the previous step
+      setTimeout(() => {
+        document.getElementById(`step-${prev.id}`)?.scrollIntoView({
+          behavior: "smooth",
+          block: "start"
+        });
+      }, 100);
     }
-  };
+  }
   const handleCompleteStep = async (stepId, stepData = {}) => {
     setLoading(true);
     let updatedTravelersDataParsed = undefined;
@@ -1250,6 +1257,13 @@ const MultiStepAccordion = () => {
                   open: s.id === nextVisibleStep.id,
                 }))
               );
+
+              setTimeout(() => {
+                document.getElementById(`step-${nextVisibleStep.id}`)?.scrollIntoView({
+                  behavior: "smooth",
+                  block: "start"
+                });
+              }, 100);
             }
           }
         }
@@ -1301,9 +1315,6 @@ const MultiStepAccordion = () => {
 
     const hasAddressInfo =
       basicDetails.currentAddress1 && basicDetails.city && basicDetails.pincode;
-
-    const hasTravelInfo =
-      basicDetails.travelStartDate && basicDetails.travelEndDate;
 
     const hasPassportImages =
       basicDetails.passportFront && basicDetails.passportBack;
@@ -1536,10 +1547,8 @@ const MultiStepAccordion = () => {
 
   const _validateInsurance = () => {
     const currentTraveler = currentTravellerForInsurance;
-    console.log(currentTraveler, "CURRENT_TRAVELER_FOR_INSURANCE");
 
     if (!currentTraveler) {
-      console.log("No current traveler found for insurance validation");
       return false;
     }
 
@@ -1552,15 +1561,6 @@ const MultiStepAccordion = () => {
       currentTraveler?.insurance?.insurancePaymentCompleted
     );
 
-    console.log(currentTraveler, hasCertificate, "CURRENT_TRAVELER");
-
-    console.log("Validating insurance:", {
-      travelerId: currentTraveler?.id,
-      hasCertificate,
-      hasPayment,
-      certificateData: currentTraveler?.insurance?.insuranceCertificates,
-      insuranceDetails: currentTraveler?.insurance?.insuranceDetails,
-    });
 
     return hasCertificate || hasPayment;
   };
@@ -1995,7 +1995,6 @@ const MultiStepAccordion = () => {
               !visibleSteps.slice(0, index).every((s) => s.completed) &&
               index !== 0;
 
-            console.log("Rendering step:", step, "isLocked:", isLocked);
             return (
               <div
                 key={step.id}
@@ -2555,7 +2554,6 @@ const MultiStepAccordion = () => {
                         <div className="flex flex-wrap gap-2 mb-6 border-b border-[#423577] pb-4 items-center">
                           {Array.from({ length: numberOfTravelers })
                             .map((_, index) => {
-                              console.log(travelersData, "TRAVELERS DATA");
                               const traveler = travelersData[index];
                               const travelerStepInfo =
                                 travelersStepInfo[traveler?.id] ||
@@ -3771,7 +3769,6 @@ const FullPaymentStep = ({
   const { paymentData } = useCalculatePayment(
     parentVisaApplication?.id
   )
-  console.log(paymentData, "paymentData");
   const [paymentError, setPaymentError] = useState("");
   const [isPaying, setIsPaying] = useState(false);
   const [appliedDiscount, setAppliedDiscountLocal] = useState(null);
@@ -3936,7 +3933,6 @@ const FullPaymentStep = ({
       // Calculate total payment including insurance if documents not uploaded
       const totalAmount = calculateTotalPayment();
 
-      console.log(parentVisaApplication, "paymentData in full payment step");
       // Create checkout session via hook with normalized metadata
       await handleCreateDynamicCheckoutSession({
         email: parentVisaApplication?.email || "",
