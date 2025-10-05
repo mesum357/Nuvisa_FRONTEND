@@ -797,7 +797,7 @@ export const InsuranceStep = ({
                       ?.insurance?.insuranceDay || calculateDays(
                         applicationData?.travelStartDate,
                         applicationData?.travelEndDate
-                      )}
+                      )}{" "}
                     days
                   </span>
                 </div>
