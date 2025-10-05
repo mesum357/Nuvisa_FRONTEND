@@ -539,7 +539,7 @@ const CountrySlider = () => {
     }));
   };
 
-  const [baseFee] = useState(159);
+  const [baseFee] = useState(149);
 
   const perDayInsurancePrice = 2;
 
@@ -809,7 +809,7 @@ const CountrySlider = () => {
         ? Number(selectedVisaType.priceGBP)
         : selectedVisaType && selectedVisaType.price
           ? Math.round(Number(selectedVisaType.price) / 100)
-          : 159; // baseFee
+          : 149; // baseFee
     const currentVisaFees = currentBaseFee * travelers;
     const calculatedDiscountAmount =
       (currentVisaFees * discount.percentage) / 100;
@@ -904,7 +904,7 @@ const CountrySlider = () => {
               ? Number(selectedVisaType.priceGBP)
               : selectedVisaType && selectedVisaType.price
                 ? Math.round(Number(selectedVisaType.price) / 100)
-                : 159; // baseFee
+                : 149; // baseFee
           const currentVisaFees = currentBaseFee * travelers;
           const calculatedDiscountAmount = (currentVisaFees * 20) / 100;
 
@@ -1378,7 +1378,7 @@ const CountrySlider = () => {
         ? Number(selectedVisaType.priceGBP)
         : selectedVisaType && selectedVisaType.price
           ? Math.round(Number(selectedVisaType.price) / 100)
-          : 159; // baseFee
+          : 149; // baseFee
 
     let visaFees = currentBaseFee * travelers;
 
@@ -1598,7 +1598,7 @@ const CountrySlider = () => {
         ? Number(selectedVisaType.priceGBP)
         : selectedVisaType && selectedVisaType.price
           ? Math.round(Number(selectedVisaType.price) / 100)
-          : 159; // baseFee
+          : 149; // baseFee
 
     let visaFees = currentBaseFee * travelers;
 

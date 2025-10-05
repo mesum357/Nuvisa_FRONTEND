@@ -43,7 +43,7 @@ const index = () => {
   };
 
   // Dynamic pricing calculation based on user selections
-  const baseVisaFee = 159;
+  const baseVisaFee = 149;
   const baseInsuranceFee = 400;
   const eVisaFee = 0; // Currently free
 
@@ -147,11 +147,10 @@ const index = () => {
                 <button
                   onClick={() => handleTravelerChange(-1)}
                   disabled={travelers <= 1}
-                  className={`p-1 rounded-full ${
-                    travelers <= 1
+                  className={`p-1 rounded-full ${travelers <= 1
                       ? "text-gray-300"
                       : "text-[#7350FF] hover:bg-purple-50"
-                  }`}
+                    }`}
                 >
                   <ChevronDown size={20} />
                 </button>

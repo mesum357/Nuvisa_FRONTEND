@@ -28,7 +28,7 @@ const CountryCardsSection = () => {
 
     // Redirect to checkout with dynamic country information
     router.push(
-      `/visa-checkout?selectedCountry=${encodeURIComponent(
+      `/get-the-visa?selectedCountry=${encodeURIComponent(
         countryName
       )}&visaFees=${countryConfig.visaFee}&insuranceFees=${countryConfig.insuranceFee
       }&travelers=1`
@@ -37,67 +37,67 @@ const CountryCardsSection = () => {
 
   const countries = [
     {
-      name: "GERMANY",
+      name: "Germany",
       image:
         "https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=400&h=300&fit=crop",
       landmark: "Brandenburg Gate",
     },
     {
-      name: "NETHERLANDS",
+      name: "Netherlands",
       image:
         "https://images.unsplash.com/photo-1534351590666-13e3e96b5017?w=400&h=300&fit=crop",
       landmark: "Amsterdam Canal Houses",
     },
     {
-      name: "BELGIUM",
+      name: "Belgium",
       image:
         "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop",
       landmark: "Atomium Brussels",
     },
     {
-      name: "FRANCE",
+      name: "France",
       image:
         "https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?w=400&h=300&fit=crop",
       landmark: "Eiffel Tower",
     },
     {
-      name: "ITALY",
+      name: "Italy",
       image:
         "https://images.unsplash.com/photo-1515542622106-78bda8ba0e5b?w=400&h=300&fit=crop",
       landmark: "Colosseum Rome",
     },
     {
-      name: "SPAIN",
+      name: "Spain",
       image:
         "https://images.unsplash.com/photo-1539037116277-4db20889f2d4?w=400&h=300&fit=crop",
       landmark: "Sagrada Familia",
     },
     {
-      name: "AUSTRIA",
+      name: "Austria",
       image:
         "https://images.unsplash.com/photo-1516550893923-42d28e5677af?w=400&h=300&fit=crop",
       landmark: "Hallstatt Village",
     },
     {
-      name: "SWITZERLAND",
+      name: "Switzerland",
       image:
         "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop",
       landmark: "Matterhorn",
     },
     {
-      name: "PORTUGAL",
+      name: "Portugal",
       image:
         "https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=400&h=300&fit=crop",
       landmark: "Pena Palace",
     },
     {
-      name: "GREECE",
+      name: "Greece",
       image:
         "https://images.unsplash.com/photo-1613395877344-13d4a8e0d49e?w=400&h=300&fit=crop",
       landmark: "Santorini",
     },
     {
-      name: "CZECH REPUBLIC",
+      name: "Czech Republic",
       image:
         "https://images.unsplash.com/photo-1541849546-216549ae216d?w=400&h=300&fit=crop",
       landmark: "Prague Castle",
@@ -131,18 +131,13 @@ const CountryCardsSection = () => {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
 
-              {/* Country Name Overlay */}
-              <div className="absolute bottom-5 md:bottom-8 left-4">
-                <h3 className="text-sm md:text-[16px] font-medium text-white drop-shadow-lg">
-                  {country.name}
-                </h3>
-              </div>
+
             </div>
 
             {/* Card Content */}
             <div className="p-3">
               <div className="mb-4 text-sm md:text-base font-medium text-white">
-                £159 fee for your first visa with us, then £200
+                {country.name.toUpperCase()}
               </div>
 
               <div className="text-sm md:text-base font-medium text-white">
