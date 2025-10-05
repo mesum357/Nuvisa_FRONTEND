@@ -430,7 +430,7 @@ const BookingAppointment = ({
         <div className="flex justify-end mb-4">
           <button
             onClick={handleSave}
-            disabled={loading || disabled || isStepCompleted}
+            disabled={loading || disabled}
             className="px-6 py-2 bg-[#7350FF] text-white rounded-md hover:bg-[#7350FF]/90 disabled:bg-[#7350FF]/30 transition-colors"
           >
             {loading ? "Processing..." : "Save"}
