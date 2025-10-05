@@ -17,7 +17,7 @@ const useCreateDynamicCheckoutSession = () => {
     currency = "EUR",
     travelData,
     noOfInsurance,
-    insurancePaymentAmount
+    insurancePaymentAmount,
   }) => {
     setCreatingDynamicCheckout(true);
     const successCallbackFunction = () => { };
@@ -72,6 +72,7 @@ const useCreateDynamicCheckoutSession = () => {
         insurancePaymentAmount: insurancePaymentAmount || 0,
         paymentMethod: "stripe",
         paymentDate: new Date().toISOString(),
+        simplePaymentType: paymentType
       };
       localStorage.setItem(
         "insurancePaymentMetadata",

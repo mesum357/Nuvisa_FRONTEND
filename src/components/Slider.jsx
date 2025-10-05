@@ -170,7 +170,11 @@ const CountrySlider = () => {
 
   const [couponCode, setCouponCodeLocal] = useState("");
   const [couponError, setCouponError] = useState("");
+  const [insuranceCouponCode, setInsuranceCouponCode] = useState("");
+  const [insuranceCouponError, setInsuranceCouponError] = useState("");
   const [appliedDiscount, setAppliedDiscountLocal] = useState(null);
+  const [appliedInsuranceDiscount, setAppliedInsuranceDiscount] = useState(null);
+  const [insuranceAutoApplied, setInsuranceAutoApplied] = useState(false);
   const [groupAutoApplied, setGroupAutoApplied] = useState(false);
   const [_showStudentModal, _setShowStudentModal] = useState(false);
   const [pendingCheckoutQuery, setPendingCheckoutQuery] = useState(null);
@@ -675,6 +679,8 @@ const CountrySlider = () => {
           insuranceCertificate: true,
         }));
       }
+
+
     }
   }
 
@@ -704,25 +710,32 @@ const CountrySlider = () => {
           : baseFee;
 
     const basePrice = currentBaseFee * travelers;
-    const insuranceCost = recommendedItems.insuranceCertificate && insuranceDays > 0
-      ? perDayInsurancePrice * insuranceDays * travelers
-      : 0;
+    // Gift card cost
     const giftCardCost = recommendedItems.giftCard ? 188 * giftCardCount : 0;
 
-    const totalPrice = basePrice + insuranceCost + giftCardCost;
+    let insuranceCost = computedInsuranceTotal;
 
-    if (appliedDiscount) {
-      const discountAmount = (totalPrice * appliedDiscount.percentage) / 100;
-      return totalPrice - discountAmount;
+    if (appliedInsuranceDiscount && insuranceCost > 0) {
+      const insDiscountAmount = (insuranceCost * appliedInsuranceDiscount.percentage) / 100;
+      insuranceCost = Math.max(0, insuranceCost - insDiscountAmount);
     }
 
-    return totalPrice;
+    let visaNet = basePrice;
+    if (appliedDiscount && appliedDiscount.percentage) {
+      const visaDiscountAmount = (basePrice * appliedDiscount.percentage) / 100;
+      visaNet = Math.max(0, basePrice - visaDiscountAmount);
+    }
+
+    return (visaNet + insuranceCost + giftCardCost).toFixed(2);
   };
 
   const calculateDiscountedInsurancePrice = () => {
     const originalPrice = computedInsuranceTotal;
-    if (appliedDiscount && originalPrice > 0) {
-      const discountAmount = (originalPrice * appliedDiscount.percentage) / 100;
+    if (appliedInsuranceDiscount && originalPrice > 0) {
+      let discountAmount
+
+      discountAmount = (originalPrice * appliedInsuranceDiscount.percentage) / 100;
+
       return originalPrice - discountAmount;
     }
     return originalPrice;
@@ -771,10 +784,6 @@ const CountrySlider = () => {
         percentage: 20,
         requiresMinTravellers: 3,
       },
-      SAVE10: {
-        description: "Save 10%",
-        percentage: 10,
-      },
     };
 
     const discount = availableDiscounts[couponCode.toUpperCase()];
@@ -810,9 +819,15 @@ const CountrySlider = () => {
       discountAmount: Math.round(calculatedDiscountAmount),
     };
 
-    setAppliedDiscountLocal(discountWithAmount);
+
+    if (couponCode.toUpperCase() === "STUDENT10") {
+      setAppliedInsuranceDiscount({ ...discountWithAmount, code: "STUDENT10" });
+      setInsuranceCouponCode("STUDENT10");
+    } else {
+      setAppliedDiscountLocal(discountWithAmount);
+    }
+
     setCouponError("");
-    // If user manually applied GROUP20, mark it as manual (not auto-applied)
     if (couponCode.toUpperCase() === "GROUP20") {
       setGroupAutoApplied(false);
     }
@@ -821,8 +836,51 @@ const CountrySlider = () => {
     }
   };
 
+  const applyInsuranceCoupon = () => {
+    if (!insuranceCouponCode.trim()) {
+      setInsuranceCouponError("Please enter a coupon code for insurance");
+      return;
+    }
+
+    const code = insuranceCouponCode.toUpperCase();
+    if (code !== "GROUP20") {
+      setInsuranceCouponError("Invalid insurance coupon code");
+      return;
+    }
+
+    if (!recommendedItems.insuranceCertificate || insuranceDays <= 0) {
+      setInsuranceCouponError("Select insurance and travel dates before applying this code");
+      return;
+    }
+
+    const discount = {
+      description: "Insurance group discount (3+ insurances)",
+      percentage: 20,
+      requiresMinInsurances: 3,
+    };
+
+    if (discount.requiresMinInsurances && insuranceCount < discount.requiresMinInsurances) {
+      setInsuranceCouponError(`This coupon requires at least ${discount.requiresMinInsurances} insurances`);
+      return;
+    }
+
+    const originalInsurance = computedInsuranceTotal;
+    const discountAmount = Math.round((originalInsurance * discount.percentage) / 100);
+    setAppliedInsuranceDiscount({ ...discount, discountAmount, code: "GROUP-20" });
+    setInsuranceCouponError("");
+    setInsuranceAutoApplied(false);
+    showSuccess && showSuccess("Insurance coupon applied — 20% off insurance");
+  };
+
+  const removeInsuranceCoupon = () => {
+    setAppliedInsuranceDiscount(null);
+    setInsuranceCouponCode("");
+    setInsuranceCouponError("");
+  };
+
   const removeCoupon = () => {
     setAppliedDiscountLocal(null);
+    setAppliedInsuranceDiscount(null);
     setCouponCodeLocal("");
     setCouponError("");
     // email verification reset not required
@@ -879,6 +937,21 @@ const CountrySlider = () => {
       // ignore
     }
   }, [travelers]);
+
+  useEffect(() => {
+    if (insuranceCount >= 3) {
+      setAppliedInsuranceDiscount({
+        description: "Insurance group discount (3+ insurances)",
+        percentage: 20,
+        requiresMinInsurances: 3,
+      })
+      setInsuranceCouponCode("GROUP20");
+      showSuccess("Insurance group-20 applied — 20% off for 3+ insurances");
+    } else {
+      setInsuranceCouponCode(null)
+      setAppliedInsuranceDiscount(null)
+    }
+  }, [insuranceCount])
 
   useEffect(() => {
     if (arrivalDate && departureDate) {
@@ -975,9 +1048,13 @@ const CountrySlider = () => {
       visaFees = visaFees - discountAmount;
     }
 
-    const insuranceFees = recommendedItems.insuranceCertificate
-      ? perDayInsurancePrice * insuranceDays * travelers
+    let insuranceFees = recommendedItems.insuranceCertificate
+      ? perDayInsurancePrice * insuranceDays * insuranceCount
       : 0;
+    if (appliedInsuranceDiscount && insuranceFees > 0) {
+      const insDisc = (insuranceFees * appliedInsuranceDiscount.percentage) / 100;
+      insuranceFees = Math.max(0, Math.round(insuranceFees - insDisc));
+    }
     const giftCardFees = recommendedItems.giftCard ? 188 * giftCardCount : 0;
     const totalAmount = Math.round(visaFees + insuranceFees + giftCardFees);
 
@@ -990,6 +1067,7 @@ const CountrySlider = () => {
     dispatch(setRequiredDocuments(requiredDocuments || {}));
     dispatch(setRecommendedItems(recommendedItems || {}));
     dispatch(setAppliedDiscount(appliedDiscount || null));
+
     dispatch(setCouponCode(couponCode || ""));
     dispatch(setUserEmail(userEmail || ""));
     dispatch(setSelectedPaymentMethod(selectedPaymentMethod || "stripe"));
@@ -2284,9 +2362,9 @@ const CountrySlider = () => {
                       <span className="font-gilroy-bold text-2xl">
                         £{Math.round(calculateDiscountedInsurancePrice())}
                       </span>
-                      {appliedDiscount && computedInsuranceTotal > 0 && (
+                      {appliedInsuranceDiscount && computedInsuranceTotal > 0 && (
                         <span className="text-xs bg-green-600/20 text-green-400 px-2 py-1 rounded-full">
-                          -{appliedDiscount.percentage}%
+                          -{appliedInsuranceDiscount.percentage}%
                         </span>
                       )}
                     </div>
@@ -2524,6 +2602,47 @@ const CountrySlider = () => {
                   </span>
                 </div>
               )}
+
+              <div className="mt-3">
+                <label className="text-sm text-gray-300 block mb-1">Insurance Coupon</label>
+                <div className="flex space-x-2">
+                  <input
+                    type="text"
+                    value={insuranceCouponCode}
+                    onChange={(e) => setInsuranceCouponCode(e.target.value.toUpperCase())}
+                    placeholder="Enter insurance coupon (GROUP20)"
+                    className={`w-full border ${insuranceCouponError ? "border-red-400" : "border-gray-500"} bg-[#24242D] text-white rounded-md p-2 text-sm ${insuranceCouponError ? "outline-none ring-2 ring-red-400" : "focus:outline-none focus:ring-2 focus:ring-purple-500"}`}
+                    disabled={!!appliedInsuranceDiscount && !insuranceAutoApplied}
+                  />
+                  {!appliedInsuranceDiscount ? (
+                    <button
+                      onClick={applyInsuranceCoupon}
+                      className="px-4 py-2 bg-white text-black text-sm rounded-md hover:bg-gray-200 transition-colors font-medium"
+                    >
+                      Apply
+                    </button>
+                  ) : (
+                    <button
+                      onClick={removeInsuranceCoupon}
+                      className="px-4 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+                {insuranceCouponError && (
+                  <span className="text-sm text-red-400">{insuranceCouponError}</span>
+                )}
+
+                {appliedInsuranceDiscount && (
+                  <div className="flex items-center space-x-2 text-sm text-green-400 bg-green-600/20 p-2 rounded-md mt-2">
+                    <span>
+                      ✓ {appliedInsuranceDiscount.description} (
+                      {appliedInsuranceDiscount.percentage}% off) applied!
+                    </span>
+                  </div>
+                )}
+              </div>
 
               <div className="text-xs text-gray-400">
                 <p className="font-medium text-gray-300">
