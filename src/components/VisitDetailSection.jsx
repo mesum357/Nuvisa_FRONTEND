@@ -154,6 +154,103 @@ const MultiSelectDropdown = ({
   );
 };
 
+// Single-select dropdown component
+const SingleSelectDropdown = ({
+  name,
+  options,
+  value,
+  onChange,
+  disabled = false,
+  placeholder,
+  errors,
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const dropdownRef = useRef(null);
+
+  // Filter options based on search term
+  const filteredOptions = options.filter((option) =>
+    option.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Handle clicking outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const handleOptionSelect = (optionName) => {
+    if (disabled) return;
+    onChange(optionName);
+    setIsOpen(false);
+  };
+
+  const getDisplayText = () => {
+    if (!value) return placeholder;
+    return value;
+  };
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <div
+        className={`w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-[#7350FF] focus:border-transparent flex items-center justify-between ${disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+          }`}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+      >
+        <span
+          className={
+            !value ? "text-white/50" : "text-white"
+          }
+        >
+          {getDisplayText()}
+        </span>
+        <ChevronDown
+          className={`w-5 h-5 transition-transform ${isOpen ? "rotate-180" : ""
+            }`}
+        />
+      </div>
+
+      {isOpen && !disabled && (
+        <div className="absolute z-50 w-full mt-1 sec_bg public_border_clr text-white rounded-lg border shadow-lg max-h-80 overflow-hidden">
+          <div className="p-3">
+            <input
+              type="text"
+              placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#7350FF] !text-white"
+            />
+          </div>
+
+          <div className="max-h-60 overflow-y-auto">
+            {filteredOptions.map((option) => (
+              <div
+                key={option.code}
+                className="px-3 py-2 hover:bg-white/10 cursor-pointer"
+                onClick={() => handleOptionSelect(option.name)}
+              >
+                <span className="text-white">{option.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {errors && errors[name] && (
+        <p className="text-red-500 text-xs mt-1">{errors[name]}</p>
+      )}
+    </div>
+  );
+};
+
 // Move component definitions outside to prevent recreation on every render
 const QuestionCard = ({ icon: _icon, title, children }) => (
   <div className="rounded-xl">
@@ -282,6 +379,14 @@ const VisitDetailSection = ({
     setVisitData((prev) => ({
       ...prev,
       [name]: selectedOptions,
+    }));
+  };
+
+  const handleSingleSelectChange = (name, selectedOption) => {
+    if (disabled) return;
+    setVisitData((prev) => ({
+      ...prev,
+      [name]: selectedOption,
     }));
   };
 
@@ -559,34 +664,17 @@ const VisitDetailSection = ({
           icon={<Globe size={20} />}
           title="What is your first country of entry?"
         >
-          <select
+          <SingleSelectDropdown
             name="firstCountryOfEntry"
+            options={schengenCountries}
             value={visitData?.firstCountryOfEntry || ""}
-            onChange={handleInputChange}
-            className={`w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-[#7350FF] focus:border-transparent ${disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"
-              }`}
-            required
+            onChange={(selectedOption) =>
+              handleSingleSelectChange("firstCountryOfEntry", selectedOption)
+            }
+            placeholder="Select"
+            errors={errors}
             disabled={disabled}
-          >
-            <option value="" className="text-black">
-              Select
-            </option>
-
-            {schengenCountries.map((country) => (
-              <option
-                key={country.code}
-                value={country.name}
-                className="text-black"
-              >
-                {country.name}
-              </option>
-            ))}
-          </select>
-          {errors.firstCountryOfEntry && (
-            <p className="text-red-500 text-xs mt-1">
-              {errors.firstCountryOfEntry}
-            </p>
-          )}
+          />
         </QuestionCard>
       </div>
 
