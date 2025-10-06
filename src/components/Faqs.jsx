@@ -44,7 +44,7 @@ const FAQSection = () => {
     {
       question: "What's the minimum bank balance required?",
       answer:
-        "Requirements vary by country but generally you should show €60-100 per day of your stay. For a 10-day trip, that would be €600-1000 in your bank account or equivalent in your local currency.",
+        "Requirements vary by country but generally you should show £60-100 per day of your stay. For a 10-day trip, that would be £600-1000 in your bank account or equivalent in your local currency.",
     },
     {
       question: "Can I extend my Schengen visa while in Europe?",
