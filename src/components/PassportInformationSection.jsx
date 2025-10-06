@@ -199,11 +199,7 @@ const PassportInformationSection = ({
       setFrontOcrLoading(true);
       setFrontOcrError(null);
       setFrontOcrSuccessMessage("");
-    } else {
-      setBackOcrLoading(true);
-      setBackOcrError(null);
-      setBackOcrSuccessMessage("");
-    }
+    } 
 
     // Start autofill animation when processing begins
     setExtractionProgress(startProgress);
@@ -954,10 +950,10 @@ const PassportInformationSection = ({
               <div className="space-y-6">
                 {/* Front Side Upload */}
                 <div
-                  className={`shadow-sm shadow-gray-600/60 rounded-xl p-4 transition ${errors.passportFront || !isFieldValid("passportFront")
+                  className={`shadow-sm shadow-gray-600/60 rounded-xl p-4 transition  ${errors.passportFront || !isFieldValid("passportFront")
                       ? "shadow-red-500"
                       : " hover:shadow-purple-400/60"
-                    }`}
+                    } `}
                 >
                   <label className="block text-sm font-medium  mb-2">
                     Passport Front Page
@@ -1042,7 +1038,7 @@ const PassportInformationSection = ({
                   ) : (
                     <div className="flex items-center justify-center w-full">
                       <label
-                        className={`flex flex-col items-center justify-center w-full h-40 border border-dashed rounded-lg transition ${disabled
+                        className={`flex flex-col items-center justify-center w-full h-40 border border-dashed rounded-lg transition ${disabled || frontOcrLoading || frontUploadLoading || showAutofillAnimation
                             ? "border-gray-500 cursor-not-allowed opacity-50 bg-gray-600/20"
                             : "border-[#423577] cursor-pointer hover:border-purple-400/60"
                           }`}
@@ -1065,7 +1061,7 @@ const PassportInformationSection = ({
                           ref={frontInputRef}
                           className="hidden"
                           accept=".pdf,.jpg,.jpeg,.png"
-                          disabled={disabled}
+                          disabled={disabled || frontOcrLoading || frontUploadLoading || showAutofillAnimation}
                           onChange={
                             disabled
                               ? () => { }
@@ -1182,8 +1178,8 @@ const PassportInformationSection = ({
                   ) : (
                     <div className="flex items-center justify-center w-full">
                       <label
-                        className={`flex flex-col items-center justify-center w-full h-40 border border-dashed rounded-lg transition ${disabled
-                            ? "border-gray-500 cursor-not-allowed opacity-50 bg-gray-600/20"
+                        className={`flex flex-col items-center justify-center w-full h-40 border border-dashed rounded-lg transition ${disabled || frontOcrLoading || showAutofillAnimation
+                            ? "border-gray-500 cursor-not-allowed opacity-50 bg-gray-600/20 cursor-not-allowed"
                             : "border-[#423577] cursor-pointer hover:border-purple-400/60"
                           }`}
                       >
@@ -1205,7 +1201,7 @@ const PassportInformationSection = ({
                           ref={backInputRef}
                           className="hidden"
                           accept=".pdf,.jpg,.jpeg,.png"
-                          disabled={disabled}
+                          disabled={disabled || backOcrLoading || backUploadLoading || showAutofillAnimation}
                           onChange={
                             disabled
                               ? () => { }

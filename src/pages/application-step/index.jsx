@@ -3447,7 +3447,7 @@ const _InsuranceStep = ({
     }
   };
 
-  // Compute insurance per traveler from each traveler's travel days × €2
+  // Compute insurance per traveler from each traveler's travel days × £2
   const computeInsuranceBreakdown = () => {
     const allTravelers = parentVisaApplication?.travelersData || [];
     const msPerDay = 1000 * 60 * 60 * 24;
@@ -3465,7 +3465,7 @@ const _InsuranceStep = ({
       // Inclusive days
       const diff = end.getTime() - start.getTime();
       const days = Math.ceil(diff / msPerDay) + 1;
-      return days * 2; // €2 per travel day
+      return days * 2; // £2 per travel day
     });
 
     const total = perTravelerCosts.reduce((s, v) => s + v, 0);
@@ -3525,11 +3525,11 @@ const _InsuranceStep = ({
                     Insurance Coverage
                   </h3>
                   <div className="text-3xl font-bold text-[#7350FF]">
-                    €{totalInsuranceCost}
+                    £{totalInsuranceCost}
                   </div>
                   {perTravelerDisplay ? (
                     <div className="text-sm text-gray-400">
-                      €{perTravelerDisplay} per traveler × {totalTraveler}{" "}
+                      £{perTravelerDisplay} per traveler × {totalTraveler}{" "}
                       traveler{totalTraveler > 1 ? "s" : ""}
                     </div>
                   ) : (
@@ -3538,12 +3538,12 @@ const _InsuranceStep = ({
                         <div className="space-y-1">
                           {perTravelerCosts.map((c, i) => (
                             <div key={i}>
-                              Traveler {i + 1}: €{c}
+                              Traveler {i + 1}: £{c}
                             </div>
                           ))}
                         </div>
                       ) : (
-                        <div>€0 per traveler</div>
+                        <div>£0 per traveler</div>
                       )}
                     </div>
                   )}
@@ -3581,7 +3581,7 @@ const _InsuranceStep = ({
             <div className="flex justify-between text-sm">
               <span className="text-gray-300">Per Traveler:</span>
               <span className="text-white">
-                {perTravelerDisplay ? `€${perTravelerDisplay}` : "Varies"}
+                {perTravelerDisplay ? `£${perTravelerDisplay}` : "Varies"}
               </span>
             </div>
             <div className="flex justify-between text-sm">
@@ -3591,7 +3591,7 @@ const _InsuranceStep = ({
             <div className="border-t border-[#423577] pt-3">
               <div className="flex justify-between font-semibold">
                 <span className="text-white">Total:</span>
-                <span className="text-[#7350FF]">€{totalInsuranceCost}</span>
+                <span className="text-[#7350FF]">£{totalInsuranceCost}</span>
               </div>
             </div>
           </div>
@@ -3636,7 +3636,7 @@ const _InsuranceStep = ({
             />
             <div>
               <span className="font-medium text-white">
-                Purchase insurance (€{totalInsuranceCost})
+                Purchase insurance (£{totalInsuranceCost})
               </span>
               <p className="text-sm text-gray-400">
                 Comprehensive travel insurance coverage for all travelers
@@ -3699,7 +3699,7 @@ const _InsuranceStep = ({
                   Processing Payment...
                 </>
               ) : (
-                `Pay €${totalInsuranceCost} for Insurance`
+                `Pay £${totalInsuranceCost} for Insurance`
               )}
             </button>
             {paymentError && (
@@ -4114,7 +4114,9 @@ const FullPaymentStep = ({
   const unpaidPayment = allPayments?.filter((el) => el?.payment?.paymentCompleted === false)
 
 
-  const paidPayment = allPayments?.filter((el) => el?.payment?.paymentCompleted === true).reduce((acc, curr) => {
+  const paidPayment = allPayments?.filter((el) => el?.payment?.paymentCompleted === true)
+
+  const paidPaymentAmount =  allPayments?.filter((el) => el?.payment?.paymentCompleted === true).reduce((acc, curr) => {
     return acc + (curr?.payment?.paymentAmount || 0);
   }, 0);
 
@@ -4139,8 +4141,8 @@ const FullPaymentStep = ({
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Payment Plan Selection */}
-        <div className="lg:col-span-1">
-          <div className="border-2 border-[#7350FF] rounded-lg p-6 bg-[#423577]/20">
+        <div className={` ${allPaymentsCompleted ? 'flex items-center justify-between gap-4 col-span-2' : 'lg:col-span-1 flex flex-col gap-4'}`}>
+          <div className="border-2 border-[#7350FF] rounded-lg p-6 bg-[#423577]/20 w-full">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 border-2 border-[#7350FF] rounded-full flex items-center justify-center">
@@ -4149,9 +4151,9 @@ const FullPaymentStep = ({
                 <div>
                   <h3 className="text-xl font-bold text-white">Payment</h3>
                   <div className="text-3xl font-bold text-[#7350FF]">
-                    €{
+                    £{
                       unpaidPayment?.length > 0 ?
-                        calculatePaidToPayment()?.toFixed(2) : paidPayment?.toFixed(2)
+                        calculatePaidToPayment()?.toFixed(2) : paidPaymentAmount?.toFixed(2)
                     }
                   </div>
                 </div>
@@ -4174,10 +4176,35 @@ const FullPaymentStep = ({
               </div>
             </div>
           </div>
+
+           <div className="flex flex-col gap-2 w-full items-center  ">
+              {
+                paidPayment?.map((el) => {
+                  return <div className={`flex items-center justify-betweeen gap-6 ${el.paymentCompleted ? 'text-green-600' : ""
+                    }`}>
+                    <span>{el.name}</span>
+                    <div className="flex items-center gap-2">
+                      <span className=" text-gray-400">
+                        {
+                          el.payment?.paymentCompleted ? `£${el.payment?.paymentAmount || 0}` : `£${paymentFees}`
+                        }
+                      </span>
+                      <span className={
+                        `${el.payment.paymentCompleted ? "bg-green-900/20 text-green-400" : "bg-yellow-900/20 text-yellow-400"}`
+                      } >
+                        {
+                          el.payment.paymentCompleted ? "recieved" : "pending"
+                        }
+                      </span>
+                    </div>
+                  </div>
+                })
+              }
+            </div>
         </div>
 
         {/* Payment Summary */}
-        <div className="bg-[#292933] rounded-lg p-6 border border-[#423577]">
+      {!allPaymentsCompleted &&  <div className="bg-[#292933] rounded-lg p-6 border border-[#423577]">
           {!paymentData.allPaymentCompleted && (
             <div className="flex flex-col gap-4 pb-4">
               <h3 className="text-lg font-semibold text-white">Summary</h3>
@@ -4305,14 +4332,14 @@ const FullPaymentStep = ({
 
             <div className="flex flex-col gap-2">
               {
-                allPayments?.map((el) => {
+                unpaidPayment?.map((el) => {
                   return <div className={`flex items-center justify-betweeen gap-6 ${el.paymentCompleted ? 'text-green-600' : ""
                     }`}>
                     <span>{el.name}</span>
                     <div className="flex items-center gap-2">
                       <span className=" text-gray-400">
                         {
-                          el.payment?.paymentCompleted ? `€${el.payment?.paymentAmount || 0}` : `€${paymentFees}`
+                          el.payment?.paymentCompleted ? `£${el.payment?.paymentAmount || 0}` : `£${paymentFees}`
                         }
                       </span>
                       <span className={
@@ -4337,7 +4364,7 @@ const FullPaymentStep = ({
                     off)
                   </span>
                   <span>
-                    -€
+                    -£
                     {(
                       ((paymentData?.fullRemainingPayment || 0)) *
                       (appliedDiscount.percentage / 100)
@@ -4355,8 +4382,8 @@ const FullPaymentStep = ({
               <span>
                 {
                   unpaidPayment?.length > 0
-                    ? `Total Due: €${totalPaymentDue.toFixed(2)}`
-                    : `Total Paid: €${paidPayment}`
+                    ? `Total Due: £${totalPaymentDue.toFixed(2)}`
+                    : `Total Paid: £${paidPaymentAmount}`
                 }
               </span>
 
@@ -4385,7 +4412,7 @@ const FullPaymentStep = ({
               {isPaying
                 ? "Processing..."
                 : totalPaymentDue > 0
-                  ? `Pay €${totalPaymentDue.toFixed(2)}`
+                  ? `Pay £${totalPaymentDue.toFixed(2)}`
                   : "Continue"}
             </button>
 
@@ -4395,7 +4422,7 @@ const FullPaymentStep = ({
               </div>
             )}
           </div>
-        </div>
+        </div>}
       </div>
     </div>
   );
