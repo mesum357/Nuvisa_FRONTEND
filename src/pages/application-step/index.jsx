@@ -507,32 +507,20 @@ const MultiStepAccordion = () => {
       try {
         setLoading(true);
         const payload = {
-          insuranceDetails: parentVisaApplication?.insuranceDetails || null,
-          paymentWithoutInsurance: Number(parentVisaApplication?.paymentWithoutInsurance) || 0,
-          type: "createApplication",
-          applicationId: applicationId,
-          currentTravelerIndex: travelersData.length,
+          id: applicationId,
           travelersData: newTravelersData,
-          numberOfTravellers: newTravelersData.length,
-          totalTraveler: Math.max(totalTraveler, newTravelersData.length),
-          isAdditionalTraveler: true,
-          email: parentVisaApplication?.email,
-          country: parentVisaApplication?.country,
-          visaTypeId: parentVisaApplication?.visaTypeId,
-          selectedVisaType: parentVisaApplication?.selectedVisaType,
-          orderId: parentVisaApplication?.orderId,
-          amountPaid: parentVisaApplication?.amountPaid,
-          amountPaidTotal: parentVisaApplication?.amountPaidTotal,
-          applicationStatus: parentVisaApplication?.applicationStatus,
-          initiallyPaidTraveler: parentVisaApplication?.initiallyPaidTraveler,
-          paymentStatus: parentVisaApplication?.paymentStatus,
-          paymentMethod: parentVisaApplication?.paymentMethod,
-          stepInfo: parentVisaApplication?.stepInfo,
         };
 
-        const response = await createOrUpdateApplication(token, payload);
+        const response = await updateVisaApplication(token, payload);
 
         if (response?.status >= 200 && response?.status < 300) {
+          const response = applicationId && await getVisaApplication(
+            token,
+            {
+              id: applicationId,
+            }
+          )
+
           const updatedApplication = response?.data?.data?.results?.application;
 
           setParentVisaApplication(updatedApplication);
@@ -1915,9 +1903,11 @@ const MultiStepAccordion = () => {
             applicationStatus: "submitted",
           });
 
-          await getVisaApplication(token, {
-            id: parentVisaApplication.id,
-          });
+          if (parentVisaApplication?.id) {
+            await getVisaApplication(token, {
+              id: parentVisaApplication.id,
+            });
+          }
         } catch (error) {
           console.error("Error submitting application:", error);
         } finally {
@@ -4099,9 +4089,11 @@ const FullPaymentStep = ({
 
   useEffect(() => {
     const token = localStorageGateway("token", localStorageEnums.GET);
-    getVisaApplication(token, {
-      id: parentVisaApplication?.id
-    })
+    if (parentVisaApplication?.id) {
+      getVisaApplication(token, {
+        id: parentVisaApplication?.id
+      })
+    }
   }, [parentVisaApplication]);
 
 

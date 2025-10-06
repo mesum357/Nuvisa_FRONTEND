@@ -461,7 +461,7 @@ export const InsuranceStep = ({
                   setSelectedInsuranceType("own");
                 }
               }}
-              disabled={disabled || !isOwner}
+              disabled={disabled || !isOwner || isInsurancePaymentCompleted()}
               className="w-4 h-4 text-purple-600 border-gray-300 focus:ring-purple-500 disabled:opacity-60"
             />
             <div className="flex-1">
@@ -501,7 +501,7 @@ export const InsuranceStep = ({
                   setSelectedInsuranceType("purchase");
                 }
               }}
-              disabled={disabled || !isOwner}
+              disabled={disabled || !isOwner || isCertificateUploaded()}
               className="w-4 h-4 text-purple-600 border-gray-300 focus:ring-purple-500 disabled:opacity-60"
             />
             <div className="flex-1">
@@ -772,16 +772,11 @@ export const InsuranceStep = ({
                   <span className="text-gray-300">Amount paid:</span>
                   <span className="text-white font-medium">
                     £
-                    {(
-                      applicationData?.travelersData?.[travelerIndex]?.insurance
-                        ?.paymentAmount ||
-                      applicationData?.insurance?.paymentAmount ||
-                      insuranceAmount
-                    ).toFixed
+                    {(applicationData?.travelersData?.[travelerIndex]?.insurance
+                      ?.paymentAmount)
                       ? (
                         applicationData?.travelersData?.[travelerIndex]
                           ?.insurance?.paymentAmount ||
-                        applicationData?.insurance?.paymentAmount ||
                         insuranceAmount
                       ).toFixed(2)
                       : insuranceAmount.toFixed(2)}
@@ -791,10 +786,7 @@ export const InsuranceStep = ({
                   <span className="text-gray-300">Coverage period:</span>
                   <span className="text-white font-medium">
                     {applicationData?.travelersData?.[travelerIndex]
-                      ?.insurance?.insuranceDay || calculateDays(
-                        applicationData?.travelStartDate,
-                        applicationData?.travelEndDate
-                      )}{" "}
+                      ?.insurance?.paymentAmount / 2}{" "}
                     days
                   </span>
                 </div>

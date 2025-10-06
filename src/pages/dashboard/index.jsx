@@ -316,11 +316,11 @@ function ApplicationCard({
       }
     }
 
-    return travelers.map((traveler, index) => {
+    return app.travelersData.map((traveler, index) => {
       const firstName = (traveler?.basicDetails?.firstName || "").trim();
       const lastName = (traveler?.basicDetails?.lastName || "").trim();
 
-      let fullName = `${firstName} ${lastName}`.trim();
+      let fullName = `${firstName}`
 
       const email =
         traveler?.basicDetails?.email || app?.email || "no-email@provided.com";

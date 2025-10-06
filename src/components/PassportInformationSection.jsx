@@ -117,6 +117,12 @@ const PassportInformationSection = ({
   ]);
 
   useEffect(() => {
+    if (passportData.passportBack) {
+      setBackPreview(passportData.passportBack);
+    }
+  }, [passportData?.passportBack]);
+
+  useEffect(() => {
     if (frontInputRef.current) frontInputRef.current.value = "";
     if (backInputRef.current) backInputRef.current.value = "";
   }, [travelerIndex]);
@@ -540,10 +546,7 @@ const PassportInformationSection = ({
       } else {
         setBackPreview(reader.result);
 
-        setPassportData((prev) => ({
-          ...prev,
-          passportBack: file, // temporary
-        }));
+
         setErrors((prev) => ({ ...prev, passportBack: "" }));
 
         // Upload file to backend and store returned URL
