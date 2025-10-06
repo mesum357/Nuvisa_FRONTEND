@@ -1179,65 +1179,7 @@ const VisaCheckout = () => {
                 </div>
               )}
 
-            <div className="space-y-3">
-              <h2 className="font-medium text-md">Insurance Code</h2>
-              <div className="space-y-2">
-                <div className="flex space-x-2">
-                  <div className="flex-1">
-                    <input
-                      type="text"
-                      value={insuranceCouponCode}
-                      onChange={(e) =>
-                        setInsuranceCouponCode(e.target.value.toUpperCase())
-                      }
-                      placeholder="Enter coupon code (e.g., GROUP20)"
-                      className={`w-full border ${insuranceCouponError ? "border-red-400" : "border-gray-300"
-                        } rounded-md p-2 text-sm ${couponError
-                          ? "outline-none ring-2 ring-red-400"
-                          : "focus:outline-none focus:ring-2 focus:ring-black"
-                        }`}
-                      disabled={appliedInsuranceDiscount && (insuranceCouponCode === "GROUP20")}
-                    />
-                  </div>
-                  {!appliedInsuranceDiscount || !(insuranceCouponCode === "GROUP20") ? (
-                    <button
-                      onClick={applyInsuranceCode}
-                      className="px-4 py-2 bg-black text-white text-sm rounded-md hover:bg-gray-900 transition-colors"
-                    >
-                      Apply
-                    </button>
-                  ) : (
-                    <button
-                      onClick={removeInsuranceCoupon}
-                      className="px-4 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors"
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
 
-                {insuranceCouponError && (insuranceCouponCode === "GROUP20") && (
-                  <span className="text-sm text-red-400">{insuranceCouponError}</span>
-                )}
-
-                {appliedInsuranceDiscount && (insuranceCouponCode === "GROUP20") && (
-                  <div className="flex items-center space-x-2 text-sm text-green-600 bg-green-50 p-2 rounded-md">
-                    <span>
-                      ✓ {appliedInsuranceDiscount.description} (
-                      {appliedInsuranceDiscount.percentage}% off) applied!
-                    </span>
-                  </div>
-                )}
-
-                <div className="text-xs text-gray-600">
-                  <p>Available discounts:</p>
-                  <p>
-                    • <span className="font-semibold">GROUP20</span> - 20% group
-                    discount (3 or more insurances)
-                  </p>
-                </div>
-              </div>
-            </div>
 
 
 

@@ -726,7 +726,7 @@ const CountrySlider = () => {
       visaNet = Math.max(0, basePrice - visaDiscountAmount);
     }
 
-    return (visaNet + insuranceCost + giftCardCost).toFixed(2);
+    return (visaNet)?.toFixed(2);
   };
 
   const calculateDiscountedInsurancePrice = () => {
@@ -764,7 +764,7 @@ const CountrySlider = () => {
       : 0;
     const giftCardOriginalPrice = recommendedItems.giftCard ? 245 * giftCardCount : 0;
 
-    return baseOriginalPrice + insuranceOriginalPrice + giftCardOriginalPrice;
+    return baseOriginalPrice
   };
 
   // Apply coupon immediately (no verification at apply time)
@@ -2603,46 +2603,7 @@ const CountrySlider = () => {
                 </div>
               )}
 
-              <div className="mt-3">
-                <label className="text-sm text-gray-300 block mb-1">Insurance Coupon</label>
-                <div className="flex space-x-2">
-                  <input
-                    type="text"
-                    value={insuranceCouponCode}
-                    onChange={(e) => setInsuranceCouponCode(e.target.value.toUpperCase())}
-                    placeholder="Enter insurance coupon (GROUP20)"
-                    className={`w-full border ${insuranceCouponError ? "border-red-400" : "border-gray-500"} bg-[#24242D] text-white rounded-md p-2 text-sm ${insuranceCouponError ? "outline-none ring-2 ring-red-400" : "focus:outline-none focus:ring-2 focus:ring-purple-500"}`}
-                    disabled={!!appliedInsuranceDiscount && !insuranceAutoApplied}
-                  />
-                  {!appliedInsuranceDiscount ? (
-                    <button
-                      onClick={applyInsuranceCoupon}
-                      className="px-4 py-2 bg-white text-black text-sm rounded-md hover:bg-gray-200 transition-colors font-medium"
-                    >
-                      Apply
-                    </button>
-                  ) : (
-                    <button
-                      onClick={removeInsuranceCoupon}
-                      className="px-4 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors"
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
-                {insuranceCouponError && (
-                  <span className="text-sm text-red-400">{insuranceCouponError}</span>
-                )}
 
-                {appliedInsuranceDiscount && (
-                  <div className="flex items-center space-x-2 text-sm text-green-400 bg-green-600/20 p-2 rounded-md mt-2">
-                    <span>
-                      ✓ {appliedInsuranceDiscount.description} (
-                      {appliedInsuranceDiscount.percentage}% off) applied!
-                    </span>
-                  </div>
-                )}
-              </div>
 
               <div className="text-xs text-gray-400">
                 <p className="font-medium text-gray-300">
