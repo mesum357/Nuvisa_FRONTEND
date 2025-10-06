@@ -4037,7 +4037,6 @@ const FullPaymentStep = ({
     isInsurancePaid || hasInsuranceDocuments || hasIndividualInsurancePaid;
 
   // Show completion only if ALL payments (travel + insurance) are done
-  const allPaymentsCompleted = isPaymentCompleted && insuranceHandled;
 
   const calculateTotalPayment = () => {
     const total =
@@ -4111,12 +4110,15 @@ const FullPaymentStep = ({
     name: el.basicDetails.firstName
   }))
 
+  const allPaymentsCompleted = allPayments?.every((el) => el?.payment?.paymentCompleted === true)
+
+
   const unpaidPayment = allPayments?.filter((el) => el?.payment?.paymentCompleted === false)
 
 
   const paidPayment = allPayments?.filter((el) => el?.payment?.paymentCompleted === true)
 
-  const paidPaymentAmount =  allPayments?.filter((el) => el?.payment?.paymentCompleted === true).reduce((acc, curr) => {
+  const paidPaymentAmount = allPayments?.filter((el) => el?.payment?.paymentCompleted === true).reduce((acc, curr) => {
     return acc + (curr?.payment?.paymentAmount || 0);
   }, 0);
 
@@ -4177,34 +4179,34 @@ const FullPaymentStep = ({
             </div>
           </div>
 
-           <div className="flex flex-col gap-2 w-full items-center  ">
-              {
-                paidPayment?.map((el) => {
-                  return <div className={`flex items-center justify-betweeen gap-6 ${el.paymentCompleted ? 'text-green-600' : ""
-                    }`}>
-                    <span>{el.name}</span>
-                    <div className="flex items-center gap-2">
-                      <span className=" text-gray-400">
-                        {
-                          el.payment?.paymentCompleted ? `£${el.payment?.paymentAmount || 0}` : `£${paymentFees}`
-                        }
-                      </span>
-                      <span className={
-                        `${el.payment.paymentCompleted ? "bg-green-900/20 text-green-400" : "bg-yellow-900/20 text-yellow-400"}`
-                      } >
-                        {
-                          el.payment.paymentCompleted ? "recieved" : "pending"
-                        }
-                      </span>
-                    </div>
+          <div className="flex flex-col gap-2 w-full items-center  ">
+            {
+              paidPayment?.map((el) => {
+                return <div className={`flex items-center justify-betweeen gap-6 ${el.paymentCompleted ? 'text-green-600' : ""
+                  }`}>
+                  <span>{el.name}</span>
+                  <div className="flex items-center gap-2">
+                    <span className=" text-gray-400">
+                      {
+                        el.payment?.paymentCompleted ? `£${el.payment?.paymentAmount || 0}` : `£${paymentFees}`
+                      }
+                    </span>
+                    <span className={
+                      `${el.payment.paymentCompleted ? "bg-green-900/20 text-green-400" : "bg-yellow-900/20 text-yellow-400"}`
+                    } >
+                      {
+                        el.payment.paymentCompleted ? "Paid" : "Pending"
+                      }
+                    </span>
                   </div>
-                })
-              }
-            </div>
+                </div>
+              })
+            }
+          </div>
         </div>
 
         {/* Payment Summary */}
-      {!allPaymentsCompleted &&  <div className="bg-[#292933] rounded-lg p-6 border border-[#423577]">
+        {!allPaymentsCompleted && <div className="bg-[#292933] rounded-lg p-6 border border-[#423577]">
           {!paymentData.allPaymentCompleted && (
             <div className="flex flex-col gap-4 pb-4">
               <h3 className="text-lg font-semibold text-white">Summary</h3>
@@ -4346,7 +4348,7 @@ const FullPaymentStep = ({
                         `${el.payment.paymentCompleted ? "bg-green-900/20 text-green-400" : "bg-yellow-900/20 text-yellow-400"}`
                       } >
                         {
-                          el.payment.paymentCompleted ? "recieved" : "pending"
+                          el.payment.paymentCompleted ? "Paid" : "Pending"
                         }
                       </span>
                     </div>
