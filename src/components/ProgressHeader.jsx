@@ -2,6 +2,7 @@ import React from "react";
 
 const ProgressHeader = ({ steps }) => {
   const completedSteps = steps.filter((s) => s.completed).length;
+  const currentStep = steps.find((s) => s.open);
   const progressPercent = (completedSteps / steps.length) * 100;
 
   return (
@@ -24,10 +25,9 @@ const ProgressHeader = ({ steps }) => {
             <div key={step.id} className="flex-1 flex flex-col items-center z-10">
               <div
                 className={`w-10 h-10 rounded-full flex items-center justify-center
-                  ${
-                    step.completed
-                      ? "bg-green-500 text-white"
-                      : isActive
+                  ${step.completed
+                    ? "bg-green-500 text-white"
+                    : isActive
                       ? "bg-[#7350FF] text-white"
                       : "bg-[#292933]"
                   }`}
@@ -51,9 +51,8 @@ const ProgressHeader = ({ steps }) => {
                 )}
               </div>
               <span
-                className={`mt-2 text-center text-sm font-medium w-28 truncate ${
-                  isActive ? "text-[#7350FF]" : "text-gray-400"
-                }`}
+                className={`mt-2 text-center text-sm font-medium w-28 truncate ${isActive ? "text-[#7350FF]" : "text-gray-400"
+                  }`}
                 title={step.title}
               >
                 {step.title}

@@ -253,7 +253,7 @@ const BookingAppointment = ({
                 className={`w-full px-3 py-2 bg-[#292933] border text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:border-transparent ${errors.preference1.city
                   ? "border-red-500"
                   : "border-[#423577]"
-                  } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                  }`}
                 disabled={loadingCities || disabled}
               >
                 <option value="">Select</option>
@@ -289,7 +289,7 @@ const BookingAppointment = ({
                 className={`w-full px-3 py-2 bg-[#292933] border text-white placeholder-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:border-transparent ${errors.preference1.dateRange
                   ? "border-red-500"
                   : "border-[#423577]"
-                  } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                  } `}
                 disabled={disabled}
               />
               {errors.preference1.dateRange && (
@@ -310,7 +310,7 @@ const BookingAppointment = ({
                 className={`w-full px-3 py-2 bg-[#292933] border text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:border-transparent ${errors.preference1.slot
                   ? "border-red-500"
                   : "border-[#423577]"
-                  } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                  } `}
                 disabled={loadingSlots || disabled}
               >
                 <option value="">Select</option>
@@ -353,7 +353,7 @@ const BookingAppointment = ({
                 className={`w-full px-3 py-2 bg-[#292933] border text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:border-transparent ${errors.preference2.city
                   ? "border-red-500"
                   : "border-[#423577]"
-                  } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                  } `}
                 disabled={loadingCities || disabled}
               >
                 <option value="">Select</option>
@@ -386,7 +386,7 @@ const BookingAppointment = ({
                 className={`w-full px-3 py-2 bg-[#292933] border text-white placeholder-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:border-transparent ${errors.preference2.dateRange
                   ? "border-red-500"
                   : "border-[#423577]"
-                  } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                  }`}
                 disabled={disabled}
               />
               {errors.preference2.dateRange && (
@@ -407,7 +407,7 @@ const BookingAppointment = ({
                 className={`w-full px-3 py-2 bg-[#292933] border text-white rounded-md focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:border-transparent ${errors.preference2.slot
                   ? "border-red-500"
                   : "border-[#423577]"
-                  } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                  } `}
                 disabled={loadingSlots || disabled}
               >
                 <option value="">Select</option>

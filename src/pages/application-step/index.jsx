@@ -346,7 +346,11 @@ const MultiStepAccordion = () => {
       );
     }
 
-    const showInsurance = parentVisaApplication?.insuranceDetails ? !(parentVisaApplication?.insuranceDetails?.paidInCheckout?.noOfInsurance === parentVisaApplication?.totalTraveler) : false
+    const allPaidInCheckout = parentVisaApplication?.travelersData?.every(
+      (traveler) => traveler?.insurance?.paidInCheckout
+    )
+
+    const showInsurance = parentVisaApplication?.insuranceDetails ? !(parentVisaApplication?.insuranceDetails?.paidInCheckout?.noOfInsurance === parentVisaApplication?.totalTraveler) : !allPaidInCheckout
 
     if (!showInsurance) {
       if (parentVisaApplication?.stepInfo?.applicationStatus === "submitted") {
@@ -4147,7 +4151,7 @@ const FullPaymentStep = ({
                   <div className="text-3xl font-bold text-[#7350FF]">
                     €{
                       unpaidPayment?.length > 0 ?
-                        calculatePaidToPayment().toFixed(2) : paidPayment.toFixed(2)
+                        calculatePaidToPayment()?.toFixed(2) : paidPayment?.toFixed(2)
                     }
                   </div>
                 </div>
