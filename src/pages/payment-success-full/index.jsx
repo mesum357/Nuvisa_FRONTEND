@@ -37,7 +37,7 @@ const ApplicationStepPaymentSuccessPage = () => {
 
         setTimeout(() => {
           router.replace(
-            `/application-step/?application_id=${finalApplicationId}&step=${visaState.currentStep}`
+            `/application-step/?application_id=${finalApplicationId}&step=${insuranceMetadata?.paymentType}`
           );
         }, 2000);
       }

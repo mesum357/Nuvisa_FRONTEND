@@ -565,20 +565,20 @@ export const InsuranceStep = ({
                     <div
                       className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${!!uploadedCertificates?.certificateUploaded || uploadedCertificates?.file
                         ? "bg-green-600"
-                        : "bg-gray-400 dark:bg-gray-600"
+                        : "bg-gray-600"
                         }`}
                     >
                       {!!uploadedCertificates?.certificateUploaded || uploadedCertificates?.file ? (
                         <Check className="w-5 h-5 text-white" />
                       ) : (
-                        <div className="w-2 h-2 bg-white dark:bg-gray-300 rounded-full"></div>
+                        <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
                       )}
                     </div>
                     <div>
                       <h4 className="text-base font-semibold text-gray-100 flex items-center gap-2">
                         Insurance Certificate
                         {!uploadedCertificates?.certificateUploaded || uploadedCertificates?.file && (
-                          <span className="text-xs font-medium px-2 py-1 rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                          <span className="text-xs font-medium px-2 py-1 rounded-full bg-red-900/30 text-red-400">
                             Required
                           </span>
                         )}
