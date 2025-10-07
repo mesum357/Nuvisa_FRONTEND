@@ -57,9 +57,9 @@ const StatusTracker = ({ applicationId, className = "", initialStatus = null, on
       switch (s) {
         case 'submitted': return 25;
         case 'under_review': return 50;
-        case 'payment_required': return 75;
-        case 'approved':
-        case 'rejected': return 100;
+        case 'appointment_booked': return 75;
+        case 'at_embassy': return 90;
+        case 'decision': return 100;
         default: return 0;
       }
     };
@@ -82,11 +82,18 @@ const StatusTracker = ({ applicationId, className = "", initialStatus = null, on
         current: progress >= 25 && progress < 75
       },
       {
-        id: 'payment',
-        title: 'Payment',
-        description: 'Complete any outstanding payments',
+        id: 'appointment',
+        title: 'Appointment booked',
+        description: 'Schedule and attend your visa appointment',
         completed: progress >= 75,
         current: progress >= 50 && progress < 100
+      },
+      {
+        title: "At Embassy",
+        id: "at_embassy",
+        description: "Your documents are with the embassy",
+        completed: progress >= 90,
+        current: progress >= 75 && progress < 100
       },
       {
         id: 'decision',

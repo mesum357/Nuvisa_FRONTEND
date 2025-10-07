@@ -1011,7 +1011,7 @@ const MultiStepAccordion = () => {
           return traveler;
         });
       }
-      if (stepId === 4) {
+      if (step.stepType === "fullPayment" || step.stepType === "insurance") {
         const pathname = router.pathname;
         router.replace(
           {
@@ -1718,7 +1718,7 @@ const MultiStepAccordion = () => {
   }, [applicationId, paymentData]);
 
   useEffect(() => {
-    if (currentStep === "payment") {
+    if (currentStep === "payment" || currentStep === "full_payment") {
       // scroll to payemnt and open
       const visible = getVisibleSteps();
       const paymentStep = visible.find((s) => s.stepType === "fullPayment");
@@ -1733,7 +1733,23 @@ const MultiStepAccordion = () => {
           .getElementById(`step-${paymentStep.id}`)
           ?.scrollIntoView({ behavior: "smooth" });
       }
+    } else if (currentStep === "traveler_insurance" || "currentStep" === "insurance") {
+      const visible = getVisibleSteps();
+      const insuranceStep = visible.find((s) => s.stepType === "insurance");
+      if (insuranceStep) {
+        setSteps((prev) =>
+          prev.map((step) => ({
+            ...step,
+            open: step.id === insuranceStep.id,
+          }))
+        );
+        document
+          .getElementById(`step-${insuranceStep.id}`)
+          ?.scrollIntoView({ behavior: "smooth" });
+      }
     }
+
+
   }, [currentStep]);
 
   useEffect(() => {
@@ -2568,6 +2584,7 @@ const MultiStepAccordion = () => {
                                 travelerStepInfo?.completedSteps?.includes(
                                   step.stepType
                                 ) || false;
+
 
                               return (
                                 <div key={index} className="relative group">

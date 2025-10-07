@@ -101,33 +101,36 @@ const CountrySlider = () => {
   ];
 
   const schengenCountries = [
+    "Austria",
+    "Belgium",
+    "Bulgaria",
+    "Czech Republic",
+    "Denmark",
+    "Estonia",
+    "Finland",
     "France",
     "Germany",
-    "Italy",
-    "Spain",
-    "Netherlands",
-    "Belgium",
-    "Austria",
     "Greece",
-    "Portugal",
-    "Switzerland",
-    "Norway",
-    "Sweden",
-    "Denmark",
-    "Finland",
-    "Iceland",
-    "Poland",
-    "Czech Republic",
     "Hungary",
+    "Iceland",
+    "Italy",
+    "Latvia",
+    "Liechtenstein",
+    "Lithuania",
+    "Luxembourg",
+    "Malta",
+    "Netherlands",
+    "Norway",
+    "Poland",
+    "Portugal",
+    "Romania",
     "Slovakia",
     "Slovenia",
-    "Estonia",
-    "Latvia",
-    "Lithuania",
-    "Malta",
-    "Luxembourg",
-    "Liechtenstein",
+    "Spain",
+    "Sweden",
+    "Switzerland"
   ];
+
 
   const [travelers, setTravelersLocal] = useState(1);
   const [_isCountryOpen, setIsCountryOpen] = useState(false);
@@ -2144,7 +2147,7 @@ const CountrySlider = () => {
               >
                 <div className="px-4 pb-4">
                   <div className="h-px bg-white/10 mb-4"></div>
-                  <div className="grid grid-cols-1 gap-3">
+                  <div className="grid grid-cols-2 gap-3">
                     <div
                       className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border ${requiredDocuments.passport
                         ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
