@@ -354,7 +354,7 @@ const MultiStepAccordion = () => {
 
     if (!showInsurance) {
       if (parentVisaApplication?.stepInfo?.applicationStatus === "submitted") {
-        return;
+        return visibleSteps
       }
       visibleSteps = visibleSteps.filter(
         (step) => step.stepType !== "insurance"
