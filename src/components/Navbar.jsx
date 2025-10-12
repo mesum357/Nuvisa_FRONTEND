@@ -12,7 +12,7 @@ const Navbar = () => {
       <div className="text-white">
         <div className="sec_bg px-4 py-2.5 text-center border-[#423577] border-b text-sm rounded-b-[23px]">
           <span className="font-medium md:font-semibold">
-            NEW CUSTOMER OFFER - £149 fee for your first visa with us, then £200
+            ❤️ NEW CUSTOMER OFFER - £149 fee for your first visa with us, then £200
           </span>
           <button className="ml-4 underline decoration-[#7351ff] public_text_clr rounded-md text-white font-medium transition-colors">
             Get now
@@ -48,6 +48,18 @@ const Navbar = () => {
           <div className="flex items-center gap-2">
             <div className="max-sm:hidden">
               <GetTheVisaButton removeArrow={true} />
+            </div>
+
+            <div className="hidden md:block">
+              <button
+                className="border border-white/40 px-4 py-2 rounded-full font-medium text-sm text-white/60 cursor-not-allowed select-none hover:border-white/50 transition-colors relative overflow-hidden flex flex-col"
+                disabled
+                aria-disabled="true"
+              >
+                <span className="relative z-10">Holiday Packages</span>
+                <span className="text-[10px]">Coming Soon</span>
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse"></div>
+              </button>
             </div>
 
             {isAuthenticated ? (

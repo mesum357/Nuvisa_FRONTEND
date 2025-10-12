@@ -113,8 +113,11 @@ const CountryCardsSection = () => {
   const displayedCountries = showAll ? countries : countries.slice(0, 6);
 
   return (
-    <div className="max-w-6xl mx-auto mt-8 px-6">
+    <div className="max-w-6xl mx-auto  px-6">
       {/* Cards Grid */}
+      <span className="text-xl text-center font-gilroy-bold text-white flex item-center justify-center pb-8">
+        Choose Your Country
+      </span>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {displayedCountries.map((country, index) => (
           <div
