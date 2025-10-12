@@ -6,8 +6,8 @@ export const getApplicationStatus = async (token, applicationId) => {
   try {
     const response = await apigateway({
       endpoint:
-        backendApiEnums.ENDPOINTS.VISA_APPLICATION.GET_APPLICATION_BY_ID,
-      method: backendApiEnums.METHODS.POST,
+        backendApiEnums.ENDPOINTS.VISA_APPLICATION.GET_APPLICATION_BY_ID + `?id=${applicationId}`,
+      method: backendApiEnums.METHODS.GET,
       token: token,
       payload: { id: applicationId },
       isDisplayResponsePopUp: false,

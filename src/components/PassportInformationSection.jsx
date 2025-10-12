@@ -105,37 +105,22 @@ const PassportInformationSection = ({
       setFrontPreview(null);
     }
 
-    if (passportData.passportBack) {
-      if (
-        typeof passportData.passportBack === "string" &&
-        passportData.passportBack.startsWith("data:")
-      ) {
-        setBackPreview(passportData.passportBack);
-      } else if (passportData.passportBack instanceof File) {
-        const reader = new FileReader();
-        reader.onloadend = () => setBackPreview(reader.result);
-        reader.readAsDataURL(passportData.passportBack);
-      } else if (
-        typeof passportData.passportBack === "string" &&
-        !passportData.passportBack.startsWith("data:")
-      ) {
-        setBackPreview(passportData.passportBack);
-      }
-    } else {
-      setBackPreview(null);
-    }
+
 
     if (hasBothImages && frontOcrDone && backOcrDone) {
       setShowUploadCard(false);
     }
   }, [
     passportData.passportFront,
-    passportData.passportBack,
     travelerIndex,
-    hasBothImages,
     frontOcrDone,
-    backOcrDone,
   ]);
+
+  useEffect(() => {
+    if (passportData.passportBack) {
+      setBackPreview(passportData.passportBack);
+    }
+  }, [passportData?.passportBack]);
 
   useEffect(() => {
     if (frontInputRef.current) frontInputRef.current.value = "";
@@ -199,10 +184,6 @@ const PassportInformationSection = ({
       setFrontOcrLoading(true);
       setFrontOcrError(null);
       setFrontOcrSuccessMessage("");
-    } else {
-      setBackOcrLoading(true);
-      setBackOcrError(null);
-      setBackOcrSuccessMessage("");
     }
 
     // Start autofill animation when processing begins
@@ -565,10 +546,7 @@ const PassportInformationSection = ({
       } else {
         setBackPreview(reader.result);
 
-        setPassportData((prev) => ({
-          ...prev,
-          passportBack: file, // temporary
-        }));
+
         setErrors((prev) => ({ ...prev, passportBack: "" }));
 
         // Upload file to backend and store returned URL
@@ -584,10 +562,6 @@ const PassportInformationSection = ({
             setExtractionStep("File uploaded.");
 
             setPassportData((prev) => ({ ...prev, passportBack: res.url }));
-
-            setBackOcrDone(true);
-            setBackOcrSuccessMessage("Back image uploaded (OCR disabled).");
-            setTimeout(() => setBackOcrSuccessMessage(""), 4000);
           } else {
             throw new Error("Upload API did not return a URL.");
           }
@@ -954,10 +928,10 @@ const PassportInformationSection = ({
               <div className="space-y-6">
                 {/* Front Side Upload */}
                 <div
-                  className={`shadow-sm shadow-gray-600/60 rounded-xl p-4 transition ${errors.passportFront || !isFieldValid("passportFront")
-                      ? "shadow-red-500"
-                      : " hover:shadow-purple-400/60"
-                    }`}
+                  className={`shadow-sm shadow-gray-600/60 rounded-xl p-4 transition  ${errors.passportFront || !isFieldValid("passportFront")
+                    ? "shadow-red-500"
+                    : " hover:shadow-purple-400/60"
+                    } `}
                 >
                   <label className="block text-sm font-medium  mb-2">
                     Passport Front Page
@@ -1020,8 +994,8 @@ const PassportInformationSection = ({
                         }
                         disabled={disabled || deletingFront}
                         className={`absolute top-2 right-2 rounded-full w-6 h-6 flex items-center justify-center transition-opacity ${disabled || deletingFront
-                            ? "bg-gray-400 text-gray-200 cursor-not-allowed"
-                            : "bg-red-500 text-white"
+                          ? "bg-gray-400 text-gray-200 cursor-not-allowed"
+                          : "bg-red-500 text-white"
                           } ${frontBusy
                             ? "hidden"
                             : "opacity-0 group-hover:opacity-100"
@@ -1042,9 +1016,9 @@ const PassportInformationSection = ({
                   ) : (
                     <div className="flex items-center justify-center w-full">
                       <label
-                        className={`flex flex-col items-center justify-center w-full h-40 border border-dashed rounded-lg transition ${disabled
-                            ? "border-gray-500 cursor-not-allowed opacity-50 bg-gray-600/20"
-                            : "border-[#423577] cursor-pointer hover:border-purple-400/60"
+                        className={`flex flex-col items-center justify-center w-full h-40 border border-dashed rounded-lg transition ${disabled || frontOcrLoading || frontUploadLoading || showAutofillAnimation
+                          ? "border-gray-500 cursor-not-allowed opacity-50 bg-gray-600/20"
+                          : "border-[#423577] cursor-pointer hover:border-purple-400/60"
                           }`}
                       >
                         <div className="flex flex-col items-center justify-center pt-5 pb-6">
@@ -1065,7 +1039,7 @@ const PassportInformationSection = ({
                           ref={frontInputRef}
                           className="hidden"
                           accept=".pdf,.jpg,.jpeg,.png"
-                          disabled={disabled}
+                          disabled={disabled || frontOcrLoading || frontUploadLoading || showAutofillAnimation}
                           onChange={
                             disabled
                               ? () => { }
@@ -1084,8 +1058,8 @@ const PassportInformationSection = ({
                 {/* Back Side Upload */}
                 <div
                   className={`shadow-sm shadow-gray-600/60 rounded-xl p-4 transition ${errors.passportBack || !isFieldValid("passportBack")
-                      ? "shadow-red-500"
-                      : "hover:shadow-purple-400/60"
+                    ? "shadow-red-500"
+                    : "hover:shadow-purple-400/60"
                     }`}
                 >
                   <label className="block text-sm font-medium  mb-2">
@@ -1160,8 +1134,8 @@ const PassportInformationSection = ({
                         }
                         disabled={disabled || deletingBack}
                         className={`absolute top-2 right-2 rounded-full w-6 h-6 flex items-center justify-center transition-opacity ${disabled || deletingBack
-                            ? "bg-gray-400 text-gray-200 cursor-not-allowed"
-                            : "bg-red-500 text-white"
+                          ? "bg-gray-400 text-gray-200 cursor-not-allowed"
+                          : "bg-red-500 text-white"
                           } ${backBusy
                             ? "hidden"
                             : "opacity-0 group-hover:opacity-100"
@@ -1182,9 +1156,9 @@ const PassportInformationSection = ({
                   ) : (
                     <div className="flex items-center justify-center w-full">
                       <label
-                        className={`flex flex-col items-center justify-center w-full h-40 border border-dashed rounded-lg transition ${disabled
-                            ? "border-gray-500 cursor-not-allowed opacity-50 bg-gray-600/20"
-                            : "border-[#423577] cursor-pointer hover:border-purple-400/60"
+                        className={`flex flex-col items-center justify-center w-full h-40 border border-dashed rounded-lg transition ${disabled || frontOcrLoading || showAutofillAnimation
+                          ? "border-gray-500 cursor-not-allowed opacity-50 bg-gray-600/20 cursor-not-allowed"
+                          : "border-[#423577] cursor-pointer hover:border-purple-400/60"
                           }`}
                       >
                         <div className="flex flex-col items-center justify-center pt-5 pb-6">
@@ -1205,7 +1179,7 @@ const PassportInformationSection = ({
                           ref={backInputRef}
                           className="hidden"
                           accept=".pdf,.jpg,.jpeg,.png"
-                          disabled={disabled}
+                          disabled={disabled || backOcrLoading || backUploadLoading || showAutofillAnimation}
                           onChange={
                             disabled
                               ? () => { }
@@ -1304,8 +1278,8 @@ const PassportInformationSection = ({
                       disabled={disabled}
                       required
                       className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${disabled
-                          ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
-                          : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
+                        : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         } ${errors.passportNumber || !isFieldValid("passportNumber")
                           ? "border-red-500"
                           : disabled
@@ -1332,8 +1306,8 @@ const PassportInformationSection = ({
                       disabled={disabled}
                       required
                       className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${disabled
-                          ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
-                          : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
+                        : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         } ${errors.firstName || !isFieldValid("firstName")
                           ? "border-red-500"
                           : disabled
@@ -1360,8 +1334,8 @@ const PassportInformationSection = ({
                       disabled={disabled}
                       required
                       className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${disabled
-                          ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
-                          : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
+                        : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         } ${errors.lastName || !isFieldValid("lastName")
                           ? "border-red-500"
                           : disabled
@@ -1386,8 +1360,8 @@ const PassportInformationSection = ({
                       disabled={disabled}
                       required
                       className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${disabled
-                          ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
-                          : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
+                        : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         } ${errors.sex || !isFieldValid("sex")
                           ? "border-red-500"
                           : disabled
@@ -1416,8 +1390,8 @@ const PassportInformationSection = ({
                       disabled={disabled}
                       required
                       className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white [&::-webkit-calendar-picker-indicator]:invert ${disabled
-                          ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400 [&::-webkit-calendar-picker-indicator]:opacity-40"
-                          : "focus:ring-2 focus:ring-purple-500 focus:border-transparent [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                        ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400 [&::-webkit-calendar-picker-indicator]:opacity-40"
+                        : "focus:ring-2 focus:ring-purple-500 focus:border-transparent [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                         } ${errors.dateOfBirth || !isFieldValid("dateOfBirth")
                           ? "border-red-500"
                           : disabled
@@ -1448,8 +1422,8 @@ const PassportInformationSection = ({
                       disabled={disabled}
                       required
                       className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${disabled
-                          ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
-                          : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
+                        : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         } ${errors.placeOfBirth || !isFieldValid("placeOfBirth")
                           ? "border-red-500"
                           : disabled
@@ -1487,8 +1461,8 @@ const PassportInformationSection = ({
                       disabled={disabled}
                       required
                       className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${disabled
-                          ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
-                          : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
+                        : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         } ${errors.passportIssuePlace ||
                           !isFieldValid("passportIssuePlace")
                           ? "border-red-500"
@@ -1515,8 +1489,8 @@ const PassportInformationSection = ({
                       disabled={disabled}
                       required
                       className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white [&::-webkit-calendar-picker-indicator]:invert ${disabled
-                          ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400 [&::-webkit-calendar-picker-indicator]:opacity-40"
-                          : "focus:ring-2 focus:ring-purple-500 focus:border-transparent [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                        ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400 [&::-webkit-calendar-picker-indicator]:opacity-40"
+                        : "focus:ring-2 focus:ring-purple-500 focus:border-transparent [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                         } ${errors.passportIssueDate ||
                           !isFieldValid("passportIssueDate")
                           ? "border-red-500"
@@ -1543,8 +1517,8 @@ const PassportInformationSection = ({
                       disabled={disabled}
                       required
                       className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white [&::-webkit-calendar-picker-indicator]:invert ${disabled
-                          ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400 [&::-webkit-calendar-picker-indicator]:opacity-40"
-                          : "focus:ring-2 focus:ring-purple-500 focus:border-transparent [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                        ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400 [&::-webkit-calendar-picker-indicator]:opacity-40"
+                        : "focus:ring-2 focus:ring-purple-500 focus:border-transparent [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                         } ${errors.passportExpiryDate ||
                           !isFieldValid("passportExpiryDate")
                           ? "border-red-500"
@@ -1583,8 +1557,8 @@ const PassportInformationSection = ({
                       placeholder="Street address, P.O. box"
                       disabled={disabled}
                       className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${disabled
-                          ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
-                          : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
+                        : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         } ${errors.currentAddress1 ||
                           !isFieldValid("currentAddress1")
                           ? "border-red-500"
@@ -1611,8 +1585,8 @@ const PassportInformationSection = ({
                       placeholder="Apartment, suite, unit, building, floor"
                       disabled={disabled}
                       className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${disabled
-                          ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
-                          : "focus:ring-2 focus:ring-purple-500 focus:border-transparent border-[#423577]"
+                        ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
+                        : "focus:ring-2 focus:ring-purple-500 focus:border-transparent border-[#423577]"
                         }`}
                     />
                   </div>
@@ -1632,8 +1606,8 @@ const PassportInformationSection = ({
                         required
                         disabled={disabled}
                         className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${disabled
-                            ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
-                            : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
+                          : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                           } ${errors.city || !isFieldValid("city")
                             ? "border-red-500"
                             : disabled
@@ -1665,8 +1639,8 @@ const PassportInformationSection = ({
                         disabled={disabled}
                         required
                         className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${disabled
-                            ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
-                            : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
+                          : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                           } ${errors.pincode || !isFieldValid("pincode")
                             ? "border-red-500"
                             : disabled
@@ -1694,8 +1668,8 @@ const PassportInformationSection = ({
                       disabled={disabled}
                       required
                       className={`w-full px-4 py-2 border rounded-lg transition outline-none bg-[#292933] text-white ${disabled
-                          ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
-                          : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        ? "bg-gray-600/50 border-gray-500 cursor-not-allowed opacity-60 text-gray-400"
+                        : "focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         } ${errors.mobileNumber || !isFieldValid("mobileNumber")
                           ? "border-red-500"
                           : disabled
@@ -1747,8 +1721,8 @@ const PassportInformationSection = ({
               <button
                 type="submit"
                 className={`px-6 py-2 rounded-lg font-semibold transition-colors duration-200 ${isFormComplete() && !disabled
-                    ? "bg-[#7350FF] text-white hover:bg-[#7350FF]/90"
-                    : "bg-gray-600 text-gray-400 cursor-not-allowed"
+                  ? "bg-[#7350FF] text-white hover:bg-[#7350FF]/90"
+                  : "bg-gray-600 text-gray-400 cursor-not-allowed"
                   }`}
                 disabled={!isFormComplete() || disabled || isProcessing}
               >

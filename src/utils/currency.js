@@ -70,7 +70,7 @@ export const formatCurrency = (amount, currency) => {
 
   switch (currency) {
     case 'EUR':
-      return `€${formattedAmount}`;
+      return `£${formattedAmount}`;
     case 'GBP':
       return `£${formattedAmount}`;
     case 'INR':

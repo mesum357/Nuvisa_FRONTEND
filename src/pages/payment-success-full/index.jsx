@@ -37,7 +37,7 @@ const ApplicationStepPaymentSuccessPage = () => {
 
         setTimeout(() => {
           router.replace(
-            `/application-step/?application_id=${finalApplicationId}&step=payment`
+            `/application-step/?application_id=${finalApplicationId}&step=${insuranceMetadata?.paymentType}`
           );
         }, 2000);
       }

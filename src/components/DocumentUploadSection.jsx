@@ -248,7 +248,7 @@ const DocumentUploadSection = ({
   };
 
   const handleViewDocument = (docId, fileIndex = 0) => {
-    const doc = documents[docId];
+    const doc = documents?.[docId];
     if (doc) {
       const targetDoc = Array.isArray(doc) ? doc[fileIndex] : doc;
       if (targetDoc) {
@@ -337,23 +337,23 @@ const DocumentUploadSection = ({
             : !!isUploaded;
 
           return (
-            <div key={docType.id} className="p-6 border   dark:border-gray-700">
+            <div key={docType.id} className="p-6 border   border-gray-700">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4 ">
                   <div className="flex items-center gap-4 ">
                     <div
                       className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${isComplete
-                        ? "bg-green-600 dark:bg-green-900/50"
-                        : "bg-gray-400 dark:bg-gray-600"
+                        ? "bg-green-900/50"
+                        : "bg-gray-600"
                         }`}
                     >
                       {isComplete ? (
-                        <Check className="w-5 h-5 text-white dark:text-green-400" />
+                        <Check className="w-5 h-5 text-green-400" />
                       ) : (
-                        <div className="w-2 h-2 bg-white dark:bg-gray-300 rounded-full"></div>
+                        <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
                       )}
                     </div>
-                    <div className="text-base font-semibold text-gray-900 dark:text-gray-100  flex items-center gap-2 w-full">
+                    <div className="text-base font-semibold text-gray-100  flex items-center gap-2 w-full">
                       <div className="flex items-center gap-2">
                         <span className="max-w-40 min-w-40">
                           {docType.title}
@@ -361,22 +361,22 @@ const DocumentUploadSection = ({
 
                         {!isComplete && <span
                           className={`text-xs font-medium px-2 py-1 rounded-full ${docType.required
-                            ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                            : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
+                            ? "bg-red-900/30 text-red-400"
+                            : "bg-gray-700 text-gray-400"
                             }`}
                         >
                           {docType.required ? "Required" : "Optional"}
                         </span>}
 
                         {isPassportPhoto && (
-                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                          <span className="text-xs text-gray-400">
                             ({uploadedFiles.length}/2)
                           </span>
                         )}
                       </div>
                     </div>
                   </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 ">
+                  <p className="text-sm :text-gray-400 mt-1 ">
                     {docType.description}
                   </p>
                   <div className="flex-1">
@@ -404,7 +404,7 @@ const DocumentUploadSection = ({
                       <label
                         htmlFor={`file-upload-${docType.field}`}
                         className={`${disabled || !isOwner || loadingPart === docType.field
-                          ? "bg-gray-400 dark:bg-gray-600 cursor-not-allowed text-white"
+                          ? "bg-gray-600 cursor-not-allowed text-white"
                           : "bg-purple-600 text-white cursor-pointer hover:bg-purple-700"
                           } font-semibold px-6 py-2.5 rounded-lg transition-colors min-w-32 `}
                       >
@@ -420,9 +420,9 @@ const DocumentUploadSection = ({
                   {uploadedFiles.map((file, index) => (
                     <div
                       key={index}
-                      className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 p-3 rounded-lg"
+                      className="flex items-center justify-between bg-gray-800 p-3 rounded-lg"
                     >
-                      <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">
+                      <p className="text-sm text-gray-300 font-medium">
                         {file.name}
                         {isPassportPhoto && (
                           <span className="ml-2 text-xs text-gray-500">
@@ -432,15 +432,15 @@ const DocumentUploadSection = ({
                       </p>
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => handleViewDocument(docType.id, index)}
-                          className="p-2 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+                          onClick={() => handleViewDocument(docType?.field, index)}
+                          className="p-2 text-gray-400 hover:text-blue-400 hover:bg-gray-700 rounded-md transition-colors"
                           title="View document"
                         >
                           <Eye className="w-5 h-5" />
                         </button>
                         <button
                           onClick={() => handleDownloadDocument(file)}
-                          className="p-2 text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+                          className="p-2 text-gray-400 hover:text-green-400 hover:bg-gray-700 rounded-md transition-colors"
                           title="Download document"
                         >
                           <Download className="w-5 h-5" />
@@ -454,8 +454,8 @@ const DocumentUploadSection = ({
                               )
                             }
                             className={`p-2 transition-colors ${disabled || deletingFiles.has(`${docType.id}-${isPassportPhoto ? index : null}`)
-                              ? "text-gray-400 dark:text-gray-500 cursor-not-allowed"
-                              : "text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-100 dark:hover:bg-gray-700 cursor-pointer"
+                              ? ":text-gray-500 cursor-not-allowed"
+                              : "text-gray-400 hover:text-red-400 hover:bg-gray-700 cursor-pointer"
                               } rounded-md`}
                             title={
                               disabled
