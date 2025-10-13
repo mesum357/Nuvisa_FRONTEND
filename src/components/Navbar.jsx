@@ -46,20 +46,15 @@ const Navbar = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="max-sm:hidden">
-              <GetTheVisaButton removeArrow={true} />
-            </div>
-
             <div className="hidden md:block">
-              <button
-                className="border border-white/40 px-4 py-2 rounded-full font-medium text-sm text-white/60 cursor-not-allowed select-none hover:border-white/50 transition-colors relative overflow-hidden flex flex-col"
-                disabled
-                aria-disabled="true"
-              >
-                <span className="relative z-10">Holiday Packages</span>
-                <span className="text-[10px]">Coming Soon</span>
+              <button className="border border-white px-4 py-[7px] pb-[18px] rounded-full font-medium text-sm text-white select-none transition-colors relative overflow-hidden">
+                <span className="relative z-10 leading-none text-md block">Holiday Packages</span>
+                <span className="absolute bottom-[2px] left-1/2 -translate-x-1/2 z-10 text-[9px] leading-none opacity-70">Coming Soon</span>
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse"></div>
               </button>
+            </div>
+            <div className="max-sm:hidden">
+              <GetTheVisaButton removeArrow={true} />
             </div>
 
             {isAuthenticated ? (
