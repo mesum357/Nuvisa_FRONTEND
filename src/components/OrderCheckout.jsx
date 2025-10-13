@@ -34,7 +34,7 @@ const VisaCheckout = () => {
       ? Number(visaState.selectedVisaType.priceGBP)
       : visaState.selectedVisaType && visaState.selectedVisaType.price
         ? Math.round(Number(visaState.selectedVisaType.price) / 100)
-        : 159;
+        : 149;
 
   const selectedCountry = visaState.selectedCountry;
   const selectedVisaType = visaState.selectedVisaType;
@@ -382,7 +382,7 @@ const VisaCheckout = () => {
         ? Number(selectedVisaType.priceGBP)
         : selectedVisaType && selectedVisaType.price
           ? Math.round(Number(selectedVisaType.price) / 100)
-          : 159; // baseFee
+          : 149; // baseFee
     const currentVisaFees = currentBaseFee * travelers;
     const calculatedDiscountAmount =
       (currentVisaFees * discount.percentage) / 100;

@@ -20,7 +20,7 @@ export const Header = ({ href }) => {
       {/* Top Promotional Banner */}
       <div className="sec_bg px-4 py-2.5 text-center border-[#423577] border-b text-sm rounded-b-[23px]">
         <span className="font-medium md:font-semibold">
-          NEW CUSTOMER OFFER - £159 fee for your first visa with us, then £200
+          ❤️ NEW CUSTOMER OFFER - £149 fee for your first visa with us, then £200
         </span>
         <button className="ml-4 underline decoration-[#7351ff] public_text_clr rounded-md text-white font-medium transition-colors">
           Get now
@@ -103,9 +103,8 @@ export const Header = ({ href }) => {
                   "User"}
               </span>
               <ChevronDown
-                className={`size-4 text-gray-400 transition-transform ${
-                  isDropdownOpen ? "rotate-180" : ""
-                }`}
+                className={`size-4 text-gray-400 transition-transform ${isDropdownOpen ? "rotate-180" : ""
+                  }`}
               />
             </motion.button>
             {/* Dropdown Menu */}

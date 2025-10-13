@@ -28,7 +28,7 @@ const CountryCardsSection = () => {
 
     // Redirect to checkout with dynamic country information
     router.push(
-      `/visa-checkout?selectedCountry=${encodeURIComponent(
+      `/get-the-visa?selectedCountry=${encodeURIComponent(
         countryName
       )}&visaFees=${countryConfig.visaFee}&insuranceFees=${countryConfig.insuranceFee
       }&travelers=1`
@@ -37,75 +37,75 @@ const CountryCardsSection = () => {
 
   const countries = [
     {
-      name: "GERMANY",
+      name: "Germany",
       image:
-        "https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=400&h=300&fit=crop",
+        "/image/country/Germany.jpg",
       landmark: "Brandenburg Gate",
     },
     {
-      name: "NETHERLANDS",
+      name: "Netherlands",
       image:
-        "https://images.unsplash.com/photo-1534351590666-13e3e96b5017?w=400&h=300&fit=crop",
+        "/image/country/Netherlands.jpg",
       landmark: "Amsterdam Canal Houses",
     },
     {
-      name: "BELGIUM",
+      name: "Belgium",
       image:
-        "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop",
+        "/image/country/Belgium.jpg",
       landmark: "Atomium Brussels",
     },
     {
-      name: "FRANCE",
+      name: "France",
       image:
-        "https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?w=400&h=300&fit=crop",
+        "/image/country/France.jpg",
       landmark: "Eiffel Tower",
     },
     {
-      name: "ITALY",
+      name: "Italy",
       image:
-        "https://images.unsplash.com/photo-1515542622106-78bda8ba0e5b?w=400&h=300&fit=crop",
+        "/image/country/Italy.jpg",
       landmark: "Colosseum Rome",
     },
     {
-      name: "SPAIN",
+      name: "Bulgaria",
       image:
-        "https://images.unsplash.com/photo-1539037116277-4db20889f2d4?w=400&h=300&fit=crop",
+        "/image/country/Bulgaria.jpg",
       landmark: "Sagrada Familia",
     },
     {
-      name: "AUSTRIA",
+      name: "Estonia",
       image:
-        "https://images.unsplash.com/photo-1516550893923-42d28e5677af?w=400&h=300&fit=crop",
-      landmark: "Hallstatt Village",
+        "/image/country/Estonia.jpg",
+      landmark: "Tallinn Old Town",
     },
     {
-      name: "SWITZERLAND",
+      name: "Hungary",
       image:
-        "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop",
-      landmark: "Matterhorn",
+        "/image/country/Hungary.jpg",
+      landmark: "Parliament Building",
     },
     {
-      name: "PORTUGAL",
+      name: "Portugal",
       image:
-        "https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=400&h=300&fit=crop",
+        "/image/country/Portugal.jpg",
       landmark: "Pena Palace",
     },
     {
-      name: "GREECE",
+      name: "Iceland",
       image:
-        "https://images.unsplash.com/photo-1613395877344-13d4a8e0d49e?w=400&h=300&fit=crop",
-      landmark: "Santorini",
+        "/image/country/Iceland.jpg",
+      landmark: "Blue Lagoon",
     },
     {
-      name: "CZECH REPUBLIC",
+      name: "Poland",
       image:
-        "https://images.unsplash.com/photo-1541849546-216549ae216d?w=400&h=300&fit=crop",
-      landmark: "Prague Castle",
+        "/image/country/Poland.jpg",
+      landmark: "Warsaw Old Town",
     },
     {
       name: "NORWAY",
       image:
-        "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400&h=300&fit=crop",
+        "/image/country/Norway.jpg",
       landmark: "Norwegian Fjords",
     },
   ];
@@ -113,8 +113,11 @@ const CountryCardsSection = () => {
   const displayedCountries = showAll ? countries : countries.slice(0, 6);
 
   return (
-    <div className="max-w-6xl mx-auto mt-8 px-6">
+    <div className="max-w-6xl mx-auto  px-6">
       {/* Cards Grid */}
+      <span className="text-xl text-center font-gilroy-bold text-white flex item-center justify-center pb-8">
+        Choose Your Country
+      </span>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {displayedCountries.map((country, index) => (
           <div
@@ -131,18 +134,13 @@ const CountryCardsSection = () => {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
 
-              {/* Country Name Overlay */}
-              <div className="absolute bottom-5 md:bottom-8 left-4">
-                <h3 className="text-sm md:text-[16px] font-medium text-white drop-shadow-lg">
-                  {country.name}
-                </h3>
-              </div>
+
             </div>
 
             {/* Card Content */}
             <div className="p-3">
               <div className="mb-4 text-sm md:text-base font-medium text-white">
-                £159 fee for your first visa with us, then £200
+                {country.name.toUpperCase()}
               </div>
 
               <div className="text-sm md:text-base font-medium text-white">

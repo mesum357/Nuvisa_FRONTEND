@@ -338,7 +338,7 @@ const ApplicationCompletedSection = ({
             <div>
               <label className="text-sm text-gray-400">Estimated Processing</label>
               <p className="text-white font-medium">
-                {currentStatus?.estimatedProcessingTime || "10-15 business days"}
+                {currentStatus?.estimatedProcessingTime || "24 hours"}
               </p>
             </div>
           </div>
