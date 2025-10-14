@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAppDispatch } from "@/store";
@@ -10,9 +10,13 @@ import {
 } from "@/store/visaSlice";
 import GetTheVisaButton from "./layout/GetTheVisaButton";
 import { getCountryConfig } from "@/constants/countryConfig";
+import { fetchCountries } from "@/api/countries";
 
 const CountryCardsSection = () => {
   const [showAll, setShowAll] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [countriesData, setCountriesData] = useState([]);
   const router = useRouter();
   const dispatch = useAppDispatch();
 
@@ -35,88 +39,50 @@ const CountryCardsSection = () => {
     );
   };
 
-  const countries = [
-    {
-      name: "GERMANY",
-      image:
-        "https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=400&h=300&fit=crop",
-      landmark: "Brandenburg Gate",
-    },
-    {
-      name: "NETHERLANDS",
-      image:
-        "https://images.unsplash.com/photo-1534351590666-13e3e96b5017?w=400&h=300&fit=crop",
-      landmark: "Amsterdam Canal Houses",
-    },
-    {
-      name: "BELGIUM",
-      image:
-        "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop",
-      landmark: "Atomium Brussels",
-    },
-    {
-      name: "FRANCE",
-      image:
-        "https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?w=400&h=300&fit=crop",
-      landmark: "Eiffel Tower",
-    },
-    {
-      name: "ITALY",
-      image:
-        "https://images.unsplash.com/photo-1515542622106-78bda8ba0e5b?w=400&h=300&fit=crop",
-      landmark: "Colosseum Rome",
-    },
-    {
-      name: "SPAIN",
-      image:
-        "https://images.unsplash.com/photo-1539037116277-4db20889f2d4?w=400&h=300&fit=crop",
-      landmark: "Sagrada Familia",
-    },
-    {
-      name: "AUSTRIA",
-      image:
-        "https://images.unsplash.com/photo-1516550893923-42d28e5677af?w=400&h=300&fit=crop",
-      landmark: "Hallstatt Village",
-    },
-    {
-      name: "SWITZERLAND",
-      image:
-        "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop",
-      landmark: "Matterhorn",
-    },
-    {
-      name: "PORTUGAL",
-      image:
-        "https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=400&h=300&fit=crop",
-      landmark: "Pena Palace",
-    },
-    {
-      name: "GREECE",
-      image:
-        "https://images.unsplash.com/photo-1613395877344-13d4a8e0d49e?w=400&h=300&fit=crop",
-      landmark: "Santorini",
-    },
-    {
-      name: "CZECH REPUBLIC",
-      image:
-        "https://images.unsplash.com/photo-1541849546-216549ae216d?w=400&h=300&fit=crop",
-      landmark: "Prague Castle",
-    },
-    {
-      name: "NORWAY",
-      image:
-        "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400&h=300&fit=crop",
-      landmark: "Norwegian Fjords",
-    },
-  ];
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        setLoading(true);
+        const data = await fetchCountries();
+        if (!active) return;
+        setCountriesData(Array.isArray(data) ? data : []);
+        setError(null);
+      } catch (e) {
+        if (!active) return;
+        setError("Failed to load countries.");
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
-  const displayedCountries = showAll ? countries : countries.slice(0, 6);
+  const displayedCountries = useMemo(() => {
+    const list = countriesData?.map((c) => ({
+      name: c?.name,
+      image: c?.image,
+      landmark: c?.landmark,
+      visaFee: Number(c?.visaFee ?? 159),
+      insuranceFee: Number(c?.insuranceFee ?? 400),
+      appointmentText: c?.appointmentText || "Appointment in 10 days or less",
+    })) || [];
+    return showAll ? list : list.slice(0, 6);
+  }, [countriesData, showAll]);
 
   return (
     <div className="max-w-6xl mx-auto mt-8 px-6">
       {/* Cards Grid */}
+      {loading && (
+        <div className="text-center text-white py-8">Loading countries...</div>
+      )}
+      {error && !loading && (
+        <div className="text-center text-red-400 py-8">{error}</div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {displayedCountries.map((country, index) => (
+        {!loading && !error && displayedCountries.map((country, index) => (
           <div
             key={index}
             onClick={() => handleCountrySelect(country.name)}
@@ -142,11 +108,11 @@ const CountryCardsSection = () => {
             {/* Card Content */}
             <div className="p-3">
               <div className="mb-4 text-sm md:text-base font-medium text-white">
-                £159 fee for your first visa with us, then £200
+                £{country.visaFee} fee for your first visa with us
               </div>
 
               <div className="text-sm md:text-base font-medium text-white">
-                Appointment in 10 days or less
+                {country.appointmentText}
               </div>
             </div>
           </div>
