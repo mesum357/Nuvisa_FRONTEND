@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAppDispatch } from "@/store";
@@ -10,9 +10,13 @@ import {
 } from "@/store/visaSlice";
 import GetTheVisaButton from "./layout/GetTheVisaButton";
 import { getCountryConfig } from "@/constants/countryConfig";
+import { fetchCountries } from "@/api/countries";
 
 const CountryCardsSection = () => {
   const [showAll, setShowAll] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [countriesData, setCountriesData] = useState([]);
   const router = useRouter();
   const dispatch = useAppDispatch();
 
@@ -35,91 +39,129 @@ const CountryCardsSection = () => {
     );
   };
 
-  const countries = [
-    {
-      name: "Germany",
-      image:
-        "/image/country/Germany.jpg",
-      landmark: "Brandenburg Gate",
-    },
-    {
-      name: "Netherlands",
-      image:
-        "/image/country/Netherlands.jpg",
-      landmark: "Amsterdam Canal Houses",
-    },
-    {
-      name: "Belgium",
-      image:
-        "/image/country/Belgium.jpg",
-      landmark: "Atomium Brussels",
-    },
-    {
-      name: "France",
-      image:
-        "/image/country/France.jpg",
-      landmark: "Eiffel Tower",
-    },
-    {
-      name: "Italy",
-      image:
-        "/image/country/Italy.jpg",
-      landmark: "Colosseum Rome",
-    },
-    {
-      name: "Bulgaria",
-      image:
-        "/image/country/Bulgaria.jpg",
-      landmark: "Sagrada Familia",
-    },
-    {
-      name: "Estonia",
-      image:
-        "/image/country/Estonia.jpg",
-      landmark: "Tallinn Old Town",
-    },
-    {
-      name: "Hungary",
-      image:
-        "/image/country/Hungary.jpg",
-      landmark: "Parliament Building",
-    },
-    {
-      name: "Portugal",
-      image:
-        "/image/country/Portugal.jpg",
-      landmark: "Pena Palace",
-    },
-    {
-      name: "Iceland",
-      image:
-        "/image/country/Iceland.jpg",
-      landmark: "Blue Lagoon",
-    },
-    {
-      name: "Poland",
-      image:
-        "/image/country/Poland.jpg",
-      landmark: "Warsaw Old Town",
-    },
-    {
-      name: "NORWAY",
-      image:
-        "/image/country/Norway.jpg",
-      landmark: "Norwegian Fjords",
-    },
-  ];
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        setLoading(true);
+        const data = await fetchCountries();
+        if (!active) return;
+        setCountriesData(Array.isArray(data) ? data : []);
+        setError(null);
+      } catch (e) {
+        if (!active) return;
+        setError("Failed to load countries.");
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
-  const displayedCountries = showAll ? countries : countries.slice(0, 6);
+//   const countries = [
+//     {
+//       name: "Germany",
+//       image:
+//         "/image/country/Germany.jpg",
+//       landmark: "Brandenburg Gate",
+//     },
+//     {
+//       name: "Netherlands",
+//       image:
+//         "/image/country/Netherlands.jpg",
+//       landmark: "Amsterdam Canal Houses",
+//     },
+//     {
+//       name: "Belgium",
+//       image:
+//         "/image/country/Belgium.jpg",
+//       landmark: "Atomium Brussels",
+//     },
+//     {
+//       name: "France",
+//       image:
+//         "/image/country/France.jpg",
+//       landmark: "Eiffel Tower",
+//     },
+//     {
+//       name: "Italy",
+//       image:
+//         "/image/country/Italy.jpg",
+//       landmark: "Colosseum Rome",
+//     },
+//     {
+//       name: "Bulgaria",
+//       image:
+//         "/image/country/Bulgaria.jpg",
+//       landmark: "Sagrada Familia",
+//     },
+//     {
+//       name: "Estonia",
+//       image:
+//         "/image/country/Estonia.jpg",
+//       landmark: "Tallinn Old Town",
+//     },
+//     {
+//       name: "Hungary",
+//       image:
+//         "/image/country/Hungary.jpg",
+//       landmark: "Parliament Building",
+//     },
+//     {
+//       name: "Portugal",
+//       image:
+//         "/image/country/Portugal.jpg",
+//       landmark: "Pena Palace",
+//     },
+//     {
+//       name: "Iceland",
+//       image:
+//         "/image/country/Iceland.jpg",
+//       landmark: "Blue Lagoon",
+//     },
+//     {
+//       name: "Poland",
+//       image:
+//         "/image/country/Poland.jpg",
+//       landmark: "Warsaw Old Town",
+//     },
+//     {
+//       name: "NORWAY",
+//       image:
+//         "/image/country/Norway.jpg",
+//       landmark: "Norwegian Fjords",
+//     },
+//   ];
+
+  const displayedCountries = useMemo(() => {
+    const list = countriesData?.map((c) => ({
+      name: c?.name,
+      image: c?.image,
+      landmark: c?.landmark,
+      visaFee: Number(c?.visaFee ?? 159),
+      insuranceFee: Number(c?.insuranceFee ?? 400),
+      appointmentText: c?.appointmentText || "Appointment in 10 days or less",
+    })) || [];
+    return showAll ? list : list.slice(0, 6);
+  }, [countriesData, showAll]);
 
   return (
     <div className="max-w-6xl mx-auto  px-6">
-      {/* Cards Grid */}
-      <span className="text-xl text-center font-gilroy-bold text-white flex item-center justify-center pb-8">
+    <span className="text-xl text-center font-gilroy-bold text-white flex item-center justify-center pb-8">
         Choose Your Country
       </span>
+      {/* Cards Grid */}
+      {loading && (
+        <div className="text-center text-white py-8">Loading countries...</div>
+      )}
+      {error && !loading && (
+        <div className="text-center text-red-400 py-8">{error}</div>
+      )}
+      
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {displayedCountries.map((country, index) => (
+        {!loading && !error && displayedCountries.map((country, index) => (
           <div
             key={index}
             onClick={() => handleCountrySelect(country.name)}
@@ -140,11 +182,11 @@ const CountryCardsSection = () => {
             {/* Card Content */}
             <div className="p-3">
               <div className="mb-4 text-sm md:text-base font-medium text-white">
-                {country.name.toUpperCase()}
+                £{country.visaFee} fee for your first visa with us
               </div>
 
               <div className="text-sm md:text-base font-medium text-white">
-                Appointment in 10 days or less
+                {country.appointmentText}
               </div>
             </div>
           </div>
