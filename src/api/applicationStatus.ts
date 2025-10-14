@@ -23,7 +23,7 @@ export const getApplicationStatus = async (token, applicationId) => {
           id: applicationData.id || applicationId,
           status: applicationData.applicationStatus || "submitted",
           submittedAt: applicationData.createdAt || new Date().toISOString(),
-          estimatedProcessingTime: "10-15 business days",
+          estimatedProcessingTime: "24 hours",
           orderId: applicationData.orderId,
           currentStage: getStatusStage(applicationData.applicationStatus),
           progress: getStatusProgress(applicationData.applicationStatus),

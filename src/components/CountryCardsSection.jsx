@@ -32,7 +32,7 @@ const CountryCardsSection = () => {
 
     // Redirect to checkout with dynamic country information
     router.push(
-      `/visa-checkout?selectedCountry=${encodeURIComponent(
+      `/get-the-visa?selectedCountry=${encodeURIComponent(
         countryName
       )}&visaFees=${countryConfig.visaFee}&insuranceFees=${countryConfig.insuranceFee
       }&travelers=1`
@@ -60,6 +60,81 @@ const CountryCardsSection = () => {
     };
   }, []);
 
+//   const countries = [
+//     {
+//       name: "Germany",
+//       image:
+//         "/image/country/Germany.jpg",
+//       landmark: "Brandenburg Gate",
+//     },
+//     {
+//       name: "Netherlands",
+//       image:
+//         "/image/country/Netherlands.jpg",
+//       landmark: "Amsterdam Canal Houses",
+//     },
+//     {
+//       name: "Belgium",
+//       image:
+//         "/image/country/Belgium.jpg",
+//       landmark: "Atomium Brussels",
+//     },
+//     {
+//       name: "France",
+//       image:
+//         "/image/country/France.jpg",
+//       landmark: "Eiffel Tower",
+//     },
+//     {
+//       name: "Italy",
+//       image:
+//         "/image/country/Italy.jpg",
+//       landmark: "Colosseum Rome",
+//     },
+//     {
+//       name: "Bulgaria",
+//       image:
+//         "/image/country/Bulgaria.jpg",
+//       landmark: "Sagrada Familia",
+//     },
+//     {
+//       name: "Estonia",
+//       image:
+//         "/image/country/Estonia.jpg",
+//       landmark: "Tallinn Old Town",
+//     },
+//     {
+//       name: "Hungary",
+//       image:
+//         "/image/country/Hungary.jpg",
+//       landmark: "Parliament Building",
+//     },
+//     {
+//       name: "Portugal",
+//       image:
+//         "/image/country/Portugal.jpg",
+//       landmark: "Pena Palace",
+//     },
+//     {
+//       name: "Iceland",
+//       image:
+//         "/image/country/Iceland.jpg",
+//       landmark: "Blue Lagoon",
+//     },
+//     {
+//       name: "Poland",
+//       image:
+//         "/image/country/Poland.jpg",
+//       landmark: "Warsaw Old Town",
+//     },
+//     {
+//       name: "NORWAY",
+//       image:
+//         "/image/country/Norway.jpg",
+//       landmark: "Norwegian Fjords",
+//     },
+//   ];
+
   const displayedCountries = useMemo(() => {
     const list = countriesData?.map((c) => ({
       name: c?.name,
@@ -73,7 +148,10 @@ const CountryCardsSection = () => {
   }, [countriesData, showAll]);
 
   return (
-    <div className="max-w-6xl mx-auto mt-8 px-6">
+    <div className="max-w-6xl mx-auto  px-6">
+    <span className="text-xl text-center font-gilroy-bold text-white flex item-center justify-center pb-8">
+        Choose Your Country
+      </span>
       {/* Cards Grid */}
       {loading && (
         <div className="text-center text-white py-8">Loading countries...</div>
@@ -81,6 +159,7 @@ const CountryCardsSection = () => {
       {error && !loading && (
         <div className="text-center text-red-400 py-8">{error}</div>
       )}
+      
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {!loading && !error && displayedCountries.map((country, index) => (
           <div
@@ -97,12 +176,7 @@ const CountryCardsSection = () => {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
 
-              {/* Country Name Overlay */}
-              <div className="absolute bottom-5 md:bottom-8 left-4">
-                <h3 className="text-sm md:text-[16px] font-medium text-white drop-shadow-lg">
-                  {country.name}
-                </h3>
-              </div>
+
             </div>
 
             {/* Card Content */}

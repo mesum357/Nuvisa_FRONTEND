@@ -235,7 +235,7 @@ const PaymentSuccess = () => {
             fullPayment: {
               paymentStatus: "completed",
               paymentCompleted: true,
-              paymentAmount: 159,
+              paymentAmount: Number((Number(currentData?.amountWithDiscount || 149) / numberOfTravelers).toFixed(2)) || 0,
               paymentDate: new Date().toISOString(),
               paymentMethod: "stripe",
               includeInsurance: hasInsurance,
