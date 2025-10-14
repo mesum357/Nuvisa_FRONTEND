@@ -8,10 +8,34 @@ export const fetchCountries = async () => {
     throw new Error("Missing NEXT_PUBLIC_ADMIN_API_URL environment variable");
   }
 
-  const url = `${baseUrl}/api/countries`;
-  const res = await axios.get(url);
-  if (res?.data?.success) return res.data.data;
-  return [];
+  // Ensure no trailing slash to avoid 308 redirects
+  const cleanBaseUrl = baseUrl.replace(/\/$/, '');
+  const url = `${cleanBaseUrl}/api/countries`;
+  
+  try {
+    const res = await axios.get(url, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      withCredentials: false, // Don't send cookies for public endpoint
+      timeout: 10000, // 10 second timeout
+    });
+    
+    if (res?.data?.success) return res.data.data;
+    return [];
+  } catch (error) {
+    // Log error for debugging but don't expose sensitive info
+    if (error.response) {
+      // Server responded with error status
+      throw new Error(`API Error: ${error.response.status} - ${error.response.statusText}`);
+    } else if (error.request) {
+      // Request was made but no response received
+      throw new Error('Network Error: Unable to connect to countries API');
+    } else {
+      // Something else happened
+      throw new Error('Failed to fetch countries data');
+    }
+  }
 };
 
 
