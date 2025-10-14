@@ -118,7 +118,7 @@ export const useCalculatePayment = (applicationId) => {
           ).length,
           travelData: application.travelersData,
           allPaymentCompleted: allPaymentsCompleted,
-          totalFullPayment: remainingNoOfTravelers * 159,
+          totalFullPayment: remainingNoOfTravelers * 149,
           totalInsurancePayment,
           noOfInsuranceUploaded
         });

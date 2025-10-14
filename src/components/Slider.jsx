@@ -542,7 +542,7 @@ const CountrySlider = () => {
     }));
   };
 
-  const [baseFee] = useState(159);
+  const [baseFee] = useState(149);
 
   const perDayInsurancePrice = 2;
 
@@ -799,7 +799,8 @@ const CountrySlider = () => {
     // Check group requirement
     if (
       discount.requiresMinTravellers &&
-      travelers < discount.requiresMinTravellers
+      travelers < discount.requiresMinTravellers &&
+      couponCode.toUpperCase() === "GROUP20"
     ) {
       setCouponError(
         `This coupon requires at least ${discount.requiresMinTravellers} travellers`
@@ -812,7 +813,7 @@ const CountrySlider = () => {
         ? Number(selectedVisaType.priceGBP)
         : selectedVisaType && selectedVisaType.price
           ? Math.round(Number(selectedVisaType.price) / 100)
-          : 159; // baseFee
+          : 149; // baseFee
     const currentVisaFees = currentBaseFee * travelers;
     const calculatedDiscountAmount =
       (currentVisaFees * discount.percentage) / 100;
@@ -824,8 +825,10 @@ const CountrySlider = () => {
 
 
     if (couponCode.toUpperCase() === "STUDENT10") {
+      setAppliedDiscountLocal(discountWithAmount);
       setAppliedInsuranceDiscount({ ...discountWithAmount, code: "STUDENT10" });
       setInsuranceCouponCode("STUDENT10");
+
     } else {
       setAppliedDiscountLocal(discountWithAmount);
     }
@@ -907,7 +910,7 @@ const CountrySlider = () => {
               ? Number(selectedVisaType.priceGBP)
               : selectedVisaType && selectedVisaType.price
                 ? Math.round(Number(selectedVisaType.price) / 100)
-                : 159; // baseFee
+                : 149; // baseFee
           const currentVisaFees = currentBaseFee * travelers;
           const calculatedDiscountAmount = (currentVisaFees * 20) / 100;
 
@@ -1381,7 +1384,7 @@ const CountrySlider = () => {
         ? Number(selectedVisaType.priceGBP)
         : selectedVisaType && selectedVisaType.price
           ? Math.round(Number(selectedVisaType.price) / 100)
-          : 159; // baseFee
+          : 149; // baseFee
 
     let visaFees = currentBaseFee * travelers;
 
@@ -1601,7 +1604,7 @@ const CountrySlider = () => {
         ? Number(selectedVisaType.priceGBP)
         : selectedVisaType && selectedVisaType.price
           ? Math.round(Number(selectedVisaType.price) / 100)
-          : 159; // baseFee
+          : 149; // baseFee
 
     let visaFees = currentBaseFee * travelers;
 
@@ -2025,7 +2028,7 @@ const CountrySlider = () => {
                   className="px-2 py-2 font-semibold rounded-full shadow-black/20 shadow-lg cursor-pointer focus:outline-none"
                 >
                   {schengenCountries.map((country) => (
-                    <option key={country} value={country}>
+                    <option key={country} value={country} className="bg-gray-400 text-gray-800">
                       {country}
                     </option>
                   ))}
@@ -2608,23 +2611,12 @@ const CountrySlider = () => {
 
 
 
-              <div className="text-xs text-gray-400">
-                <p className="font-medium text-gray-300">
-                  Available discounts:
-                </p>
-                <ul className="list-none mt-1 space-y-1">
-                  <li>
-                    • <span className="font-semibold">STUDENT10</span> - 10%
-                    student discount (requires student email verification)
-                  </li>
-                  <li>
-                    • <span className="font-semibold">GROUP20</span> - 20% group
-                    discount (automatically applied when 3 or more travellers
-                    are added)
-                  </li>
-                </ul>
-              </div>
+
             </div>
+          </div>
+
+          <div className="text-xs pb-4">
+            Student? Add your student email, we’ll send verification email there.
           </div>
 
           {/* Email Verification Section - Shows when student discount is applied */}
@@ -2692,18 +2684,53 @@ const CountrySlider = () => {
               </div>
             )}
 
+          <div className="border rounded-lg border-white/20 bg-white/5 backdrop-blur-sm overflow-hidden">
+            <div className="flex items-center gap-4 p-4 border-b border-white/10">
+              <div className="h-4 w-4 rounded-full 
+              bg-purple-500
+               min-w-4 animate-pulse"></div>
+              <div>
+                <span className="text-sm font-medium text-white">
+                  Free express appointment and concierge assistance ends soon - Until Jan 2026.
+                </span>
+              </div>
+            </div>
+            <div className="p-4">
+              <div className="grid grid-cols-3 gap-3">
+                {/* August slots */}
+                <div className="text-center">
+                  <div className="text-xs text-white/70 mb-2 font-medium">Aug slots</div>
+                  <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-2">
+                    <div className="text-xs text-red-300 font-semibold">Sold out</div>
+                  </div>
+                </div>
+
+                {/* September slots */}
+                <div className="text-center">
+                  <div className="text-xs text-white/70 mb-2 font-medium">September slots</div>
+                  <div className="bg-orange-500/20 border border-orange-500/50 rounded-lg p-2">
+                    <div className="text-xs text-orange-300 font-semibold">95% reserved</div>
+                  </div>
+                </div>
+
+                {/* October slots */}
+                <div className="text-center">
+                  <div className="text-xs text-white/70 mb-2 font-medium">October slots</div>
+                  <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-2">
+                    <div className="text-xs text-yellow-300 font-semibold">45% reserved</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Express Checkout Section */}
           <div className="space-y-3 mb-6">
-            <h2 className="font-medium text-lg">Payment Methods</h2>
+            <h2 className="font-medium text-lg pt-4">Payment Methods</h2>
 
             {/* Apple Pay & Google Pay - Express Checkout */}
             <div className="space-y-2">
-              <div className="text-sm text-gray-300 mb-2">
-                <span className="font-medium text-green-400">
-                  📱 Express Checkout
-                </span>{" "}
-                - Quick setup with saved payment methods
-              </div>
+
 
               {/* Apple Pay & Google Pay - Official Branded Buttons */}
               <div className="grid grid-cols-2 gap-3">
