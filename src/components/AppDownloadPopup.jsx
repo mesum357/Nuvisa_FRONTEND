@@ -47,7 +47,7 @@ const AppDownloadPopup = () => {
 
             {/* Main Heading */}
             <h2 className="text-2xl md:text-3xl font-bold mb-4 leading-tight">
-              Get your visa processed faster with our premium service worth £100 for free.
+              Get your visa processed faster with our premium service worth £100 for free
             </h2>
             
             <p className="text-gray-300 mb-6">
