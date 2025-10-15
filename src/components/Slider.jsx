@@ -2402,7 +2402,7 @@ const CountrySlider = () => {
             <div className="flex items-center gap-2 mb-6">
               <div className="w-[30%]">
                 <img
-                  src="/image/nuvisa-image.jpg"
+                  src="/image/digital card NUvisa.png"
                   alt=""
                   className=" w-full rounded-lg"
                 />
@@ -2534,7 +2534,7 @@ const CountrySlider = () => {
               <div className="flex items-center gap-2 ">
                 <div className="w-[30%] ">
                   <img
-                    src="/image/nuvisa-image.jpg"
+                    src="/image/digital card NUvisa.png"
                     alt=""
                     className="w-full rounded-lg"
                   />

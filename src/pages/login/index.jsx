@@ -66,7 +66,7 @@ const Index = () => {
       <div 
         className="hidden lg:flex items-center justify-center relative overflow-hidden bg-cover bg-center bg-no-repeat"
         style={{
-          backgroundImage: "url('/image/banner.png')"
+          backgroundImage: "url('/image/auth-background.svg')"
         }}
       >
       
