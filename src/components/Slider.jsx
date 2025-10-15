@@ -1972,11 +1972,11 @@ const CountrySlider = () => {
                   alt={countries[currentIndex].name}
                   className="w-full aspect-square object-cover"
                 />
-                {/* <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6">
-                  <h3 className="text-2xl font-gilroy-bold bg-[#24242D] flex items-center text-white">
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6">
+                  <h3 className="text-2xl font-gilroy-bold text-white">
                     {countries[currentIndex].name}
                   </h3>
-                </div> */}
+                </div>
               </div>
             </div>
 
