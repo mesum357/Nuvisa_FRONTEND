@@ -52,51 +52,63 @@ const CountrySlider = () => {
   const countries = [
     {
       id: 1,
-      name: "Paris, France",
-      image:
-        "https://images.unsplash.com/photo-1431274172761-fca41d930114?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80",
+      name: "Belgium",
+      image: "/image/country/Belgium.jpg",
     },
     {
       id: 2,
-      name: "Rome, Italy",
-      image:
-        "https://images.unsplash.com/photo-1552832230-c0197dd311b5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1592&q=80",
+      name: "Bulgaria",
+      image: "/image/country/Bulgaria.jpg",
     },
     {
       id: 3,
-      name: "Barcelona, Spain",
-      image:
-        "https://images.unsplash.com/photo-1583422409516-2895a77efded?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80",
+      name: "Estonia",
+      image: "/image/country/Estonia.jpg",
     },
     {
       id: 4,
-      name: "Berlin, Germany",
-      image:
-        "https://images.unsplash.com/photo-1587330979470-3595ac045ab0?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80",
+      name: "France",
+      image: "/image/country/France.jpg",
     },
     {
       id: 5,
-      name: "Amsterdam, Netherlands",
-      image:
-        "https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80",
+      name: "Germany",
+      image: "/image/country/Germany.jpg",
     },
     {
       id: 6,
-      name: "Prague, Czech Republic",
-      image:
-        "https://images.unsplash.com/photo-1519677100203-a0e668c92439?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80",
+      name: "Hungary",
+      image: "/image/country/Hungary.jpg",
     },
     {
       id: 7,
-      name: "Vienna, Austria",
-      image:
-        "https://images.unsplash.com/photo-1516550893923-42d28e5677af?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1472&q=80",
+      name: "Iceland",
+      image: "/image/country/Iceland.jpg",
     },
     {
       id: 8,
-      name: "Athens, Greece",
-      image:
-        "https://images.unsplash.com/photo-1555993539-1732b0258235?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80",
+      name: "Italy",
+      image: "/image/country/Italy.jpg",
+    },
+    {
+      id: 9,
+      name: "Netherlands",
+      image: "/image/country/Netherlands.jpg",
+    },
+    {
+      id: 10,
+      name: "Norway",
+      image: "/image/country/Norway.jpg",
+    },
+    {
+      id: 11,
+      name: "Poland",
+      image: "/image/country/Poland.jpg",
+    },
+    {
+      id: 12,
+      name: "Portugal",
+      image: "/image/country/Portugal.jpg",
     },
   ];
 
@@ -2428,10 +2440,12 @@ const CountrySlider = () => {
                           </span>
                         </div>
                       }
-                    >  <div className="flex items-center space-x-4">
-                  {/* Days Count Controls */}
-                  <div className="flex items-center space-x-2">
-                    {/* <button
+                    >
+                      {" "}
+                      <div className="flex items-center space-x-4">
+                        {/* Days Count Controls */}
+                        <div className="flex items-center space-x-2">
+                          {/* <button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleInsuranceChange(-1);
@@ -2445,30 +2459,33 @@ const CountrySlider = () => {
                   >
                     -
                   </button> */}
-                    <span className="mx-2">{insuranceDays} Days</span>
-                    {(() => {
-                      let maxAllowedDays = 90;
-                      if (
-                        selectedVisaType &&
-                        selectedVisaType.duration_permitted
-                      ) {
-                        maxAllowedDays = parseInt(
-                          selectedVisaType.duration_permitted.replace(
-                            /[^\d]/g,
-                            ""
-                          )
-                        );
-                      }
-                      if (arrivalDate && departureDate) {
-                        const tripDuration = Math.ceil(
-                          (departureDate - arrivalDate) / (1000 * 60 * 60 * 24)
-                        );
-                        maxAllowedDays = Math.min(maxAllowedDays, tripDuration);
-                      }
-                    })()}
-                  </div>
-                </div>
-                      
+                          <span className="mx-2">{insuranceDays} Days</span>
+                          {(() => {
+                            let maxAllowedDays = 90;
+                            if (
+                              selectedVisaType &&
+                              selectedVisaType.duration_permitted
+                            ) {
+                              maxAllowedDays = parseInt(
+                                selectedVisaType.duration_permitted.replace(
+                                  /[^\d]/g,
+                                  ""
+                                )
+                              );
+                            }
+                            if (arrivalDate && departureDate) {
+                              const tripDuration = Math.ceil(
+                                (departureDate - arrivalDate) /
+                                  (1000 * 60 * 60 * 24)
+                              );
+                              maxAllowedDays = Math.min(
+                                maxAllowedDays,
+                                tripDuration
+                              );
+                            }
+                          })()}
+                        </div>
+                      </div>
                     </ClientOnly>
                   </div>
                 </div>
@@ -2497,79 +2514,79 @@ const CountrySlider = () => {
                   </div>
                 </div>
 
-              <div className="flex items-center space-x-2 ">
-                        <span className="text-lg font-semibold line-through">
-                          £{Math.round(computedInsuranceTotal * 1.25)}
-                        </span>
-                        <span className="font-gilroy-bold text-2xl">
-                          £{Math.round(calculateDiscountedInsurancePrice())}
-                        </span>
-                        {appliedInsuranceDiscount &&
-                          computedInsuranceTotal > 0 && (
-                            <span className="text-xs bg-green-600/20 text-green-400 px-2 py-1 rounded-full">
-                              -{appliedInsuranceDiscount.percentage}%
-                            </span>
-                          )}
-                      </div>
+                <div className="flex items-center space-x-2 ">
+                  <span className="text-lg font-semibold line-through">
+                    £{Math.round(computedInsuranceTotal * 1.25)}
+                  </span>
+                  <span className="font-gilroy-bold text-2xl">
+                    £{Math.round(calculateDiscountedInsurancePrice())}
+                  </span>
+                  {appliedInsuranceDiscount && computedInsuranceTotal > 0 && (
+                    <span className="text-xs bg-green-600/20 text-green-400 px-2 py-1 rounded-full">
+                      -{appliedInsuranceDiscount.percentage}%
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
             <div className=" rounded-xl  mb-6 flex flex-col gap-2">
               <div className="flex items-center gap-2 ">
-
                 <div className="w-[30%] ">
-                  <img src="/image/nuvisa-image.jpg" alt=""  className="w-full rounded-lg"/>
-                </div>
-                <div  className="w-[60%]">
- <div className="flex items-center justify-between mb-1">
-                  <div className="cursor-pointer rounded  transition-colors flex-1 mb-2">
-                    <div className="flex items-center space-x-2">
-                      <div
-                        onClick={() => toggleRecommendedItem("giftCard")}
-                        className="flex items-center space-x-2 cursor-pointer "
-                      >
-                        <div
-                          className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black ${
-                            recommendedItems.giftCard
-                              ? "bg-[#7350FF] border border-transparent"
-                              : "bg-white border border-gray-500"
-                          }`}
-                        >
-                          {recommendedItems.giftCard && (
-                            <Check className="w-3.5 h-3.5 text-white" />
-                          )}
-                        </div>
-                        <span className="font-semibold">
-                          NUvisa digital gift card
-                        </span>
-                      </div>
-                    
-                    </div>
-                  </div>
-                </div>
-             
-                <div className="flex items-center space-x-2 mb-2">
-                  <QtyInput
-                    value={giftCardCount}
-                    onIncrement={() => handleGiftCardChange(1)}
-                    onDecrement={() => handleGiftCardChange(-1)}
+                  <img
+                    src="/image/nuvisa-image.jpg"
+                    alt=""
+                    className="w-full rounded-lg"
                   />
                 </div>
-                     <div className="flex items-center space-x-2 ">
-                        <span className="text-lg font-semibold line-through">
-                          £{245 * giftCardCount}
-                        </span>
-                        <span className="font-gilroy-bold text-2xl">
-                          £{Math.round(calculateDiscountedGiftCardPrice())}
-                        </span>
-                        {appliedDiscount && recommendedItems.giftCard && (
-                          <span className="text-xs bg-green-600/20 text-green-400 px-2 py-1 rounded-full">
-                            -{appliedDiscount.percentage}%
+                <div className="w-[60%]">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="cursor-pointer rounded  transition-colors flex-1 mb-2">
+                      <div className="flex items-center space-x-2">
+                        <div
+                          onClick={() => toggleRecommendedItem("giftCard")}
+                          className="flex items-center space-x-2 cursor-pointer "
+                        >
+                          <div
+                            className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black ${
+                              recommendedItems.giftCard
+                                ? "bg-[#7350FF] border border-transparent"
+                                : "bg-white border border-gray-500"
+                            }`}
+                          >
+                            {recommendedItems.giftCard && (
+                              <Check className="w-3.5 h-3.5 text-white" />
+                            )}
+                          </div>
+                          <span className="font-semibold">
+                            NUvisa digital gift card
                           </span>
-                        )}
+                        </div>
                       </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2 mb-2">
+                    <QtyInput
+                      value={giftCardCount}
+                      onIncrement={() => handleGiftCardChange(1)}
+                      onDecrement={() => handleGiftCardChange(-1)}
+                    />
+                  </div>
+                  <div className="flex items-center space-x-2 ">
+                    <span className="text-lg font-semibold line-through">
+                      £{245 * giftCardCount}
+                    </span>
+                    <span className="font-gilroy-bold text-2xl">
+                      £{Math.round(calculateDiscountedGiftCardPrice())}
+                    </span>
+                    {appliedDiscount && recommendedItems.giftCard && (
+                      <span className="text-xs bg-green-600/20 text-green-400 px-2 py-1 rounded-full">
+                        -{appliedDiscount.percentage}%
+                      </span>
+                    )}
+                  </div>
                 </div>
-               
               </div>
 
               <p className="">
