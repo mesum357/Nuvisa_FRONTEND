@@ -21,66 +21,64 @@ const AppDownloadPopup = () => {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed inset-0 bg-transparent bg-opacity-10 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 relative shadow-2xl">
+    <div className="fixed inset-0 bg-transparent bg-opacity-30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-gradient-to-r from-black to-gray-800 rounded-2xl max-w-2xl w-full mx-4 relative shadow-2xl overflow-hidden">
+        {/* Free Gift Badge */}
+        <div className="absolute top-[10px] left-0 bg-lime-400 text-black px-3 py-1 rounded-full text-sm font-bold z-10">
+          Free Gift
+        </div>
+
         {/* Close Button */}
         <button
           onClick={closePopup}
-          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 transition-colors"
+          className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors z-10"
         >
           <X size={24} />
         </button>
 
         {/* Content */}
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">
-            Get the NUvisa app
-          </h2>
-          
-          <p className="text-gray-600 mb-6">
-            Download our app for faster visa processing and better experience
-          </p>
-
-          {/* Image instead of QR code */}
-          <div className="mb-6 flex justify-center">
-            <img 
-              src="/image/nuvisa-image.jpg" 
-              alt="NUvisa App" 
-              className="w-48 h-32 object-cover rounded-lg shadow-md"
-            />
-          </div>
-
-          <p className="text-gray-700 mb-6">
-            or get a download link via SMS
-          </p>
-
-          {/* Phone Number Input */}
-          <div className="flex gap-2 mb-4">
-            <div className="flex items-center bg-gray-100 rounded-lg px-3 py-2">
-              <img 
-                src="https://flagcdn.com/w20/gb.png" 
-                alt="UK Flag" 
-                className="w-5 h-3 mr-2"
-              />
-              <span className="text-gray-700">+44</span>
+        <div className="flex flex-col md:flex-row">
+          {/* Left Side - Text Content */}
+          <div className="flex-1 p-8 text-white bg-[#23232B]">
+            {/* Logo */}
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold tracking-wider">NuVisa</h1>
             </div>
-            <input
-              type="tel"
-              placeholder="Mobile number"
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            />
-            <button className="bg-gray-400 text-white px-4 py-2 rounded-lg hover:bg-gray-500 transition-colors">
-              →
+
+            {/* Main Heading */}
+            <h2 className="text-2xl md:text-3xl font-bold mb-4 leading-tight">
+              Get your visa processed faster with our premium service worth £100 for free.
+            </h2>
+            
+            <p className="text-gray-300 mb-6">
+              Ends soon!
+            </p>
+
+            {/* Free Services List */}
+            <div className="mb-6 space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-white text-lg">Express Appointment</span>
+                <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">Free</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-white text-lg">Concierge Assistance</span>
+                <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">Free</span>
+              </div>
+            </div>
+
+            {/* Get Visa Button */}
+            <button className="w-full flex justify-center items-center bg-[#7350FF] text-white font-medium px-6 py-3 rounded-full transition-all duration-300 hover:bg-[#6247D3]">
+              GET THE VISA
             </button>
           </div>
 
-          {/* Download Buttons */}
-          <div className="flex gap-3 justify-center">
-            <button className="bg-black text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition-colors flex items-center gap-2">
-           
-             Get The Nu-visa
-            </button>
-            
+          {/* Right Side - Product Image */}
+          <div className="flex-1 flex items-center justify-center p-8 bg-[#23232B]">
+            <img 
+              src="/image/calendar.jpg" 
+              alt="Muscle Therapy Gun" 
+              className="max-w-full max-h-80 object-contain"
+            />
           </div>
         </div>
       </div>
