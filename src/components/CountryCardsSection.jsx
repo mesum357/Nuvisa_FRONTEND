@@ -10,13 +10,13 @@ import {
 } from "@/store/visaSlice";
 import GetTheVisaButton from "./layout/GetTheVisaButton";
 import { getCountryConfig } from "@/constants/countryConfig";
-import { fetchCountries } from "@/api/countries";
+import { fetchAppointmentTexts } from "@/api/appointmentText";
 
 const CountryCardsSection = () => {
   const [showAll, setShowAll] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [countriesData, setCountriesData] = useState([]);
+  const [appointmentTexts, setAppointmentTexts] = useState([]);
   const router = useRouter();
   const dispatch = useAppDispatch();
 
@@ -44,13 +44,13 @@ const CountryCardsSection = () => {
     (async () => {
       try {
         setLoading(true);
-        const data = await fetchCountries();
+        const data = await fetchAppointmentTexts();
         if (!active) return;
-        setCountriesData(Array.isArray(data) ? data : []);
+        setAppointmentTexts(Array.isArray(data) ? data : []);
         setError(null);
       } catch (e) {
         if (!active) return;
-        setError("Failed to load countries.");
+        setError("Failed to load appointment texts.");
       } finally {
         if (active) setLoading(false);
       }
@@ -60,92 +60,88 @@ const CountryCardsSection = () => {
     };
   }, []);
 
-//   const countries = [
-//     {
-//       name: "Germany",
-//       image:
-//         "/image/country/Germany.jpg",
-//       landmark: "Brandenburg Gate",
-//     },
-//     {
-//       name: "Netherlands",
-//       image:
-//         "/image/country/Netherlands.jpg",
-//       landmark: "Amsterdam Canal Houses",
-//     },
-//     {
-//       name: "Belgium",
-//       image:
-//         "/image/country/Belgium.jpg",
-//       landmark: "Atomium Brussels",
-//     },
-//     {
-//       name: "France",
-//       image:
-//         "/image/country/France.jpg",
-//       landmark: "Eiffel Tower",
-//     },
-//     {
-//       name: "Italy",
-//       image:
-//         "/image/country/Italy.jpg",
-//       landmark: "Colosseum Rome",
-//     },
-//     {
-//       name: "Bulgaria",
-//       image:
-//         "/image/country/Bulgaria.jpg",
-//       landmark: "Sagrada Familia",
-//     },
-//     {
-//       name: "Estonia",
-//       image:
-//         "/image/country/Estonia.jpg",
-//       landmark: "Tallinn Old Town",
-//     },
-//     {
-//       name: "Hungary",
-//       image:
-//         "/image/country/Hungary.jpg",
-//       landmark: "Parliament Building",
-//     },
-//     {
-//       name: "Portugal",
-//       image:
-//         "/image/country/Portugal.jpg",
-//       landmark: "Pena Palace",
-//     },
-//     {
-//       name: "Iceland",
-//       image:
-//         "/image/country/Iceland.jpg",
-//       landmark: "Blue Lagoon",
-//     },
-//     {
-//       name: "Poland",
-//       image:
-//         "/image/country/Poland.jpg",
-//       landmark: "Warsaw Old Town",
-//     },
-//     {
-//       name: "NORWAY",
-//       image:
-//         "/image/country/Norway.jpg",
-//       landmark: "Norwegian Fjords",
-//     },
-//   ];
+  const countries = [
+    {
+      name: "Germany",
+      image: "/image/country/Germany.jpg",
+      landmark: "Brandenburg Gate",
+    },
+    {
+      name: "Netherlands",
+      image: "/image/country/Netherlands.jpg",
+      landmark: "Amsterdam Canal Houses",
+    },
+    {
+      name: "Belgium",
+      image: "/image/country/Belgium.jpg",
+      landmark: "Atomium Brussels",
+    },
+    {
+      name: "France",
+      image: "/image/country/France.jpg",
+      landmark: "Eiffel Tower",
+    },
+    {
+      name: "Italy",
+      image: "/image/country/Italy.jpg",
+      landmark: "Colosseum Rome",
+    },
+    {
+      name: "Bulgaria",
+      image: "/image/country/Bulgaria.jpg",
+      landmark: "Sagrada Familia",
+    },
+    {
+      name: "Estonia",
+      image: "/image/country/Estonia.jpg",
+      landmark: "Tallinn Old Town",
+    },
+    {
+      name: "Hungary",
+      image: "/image/country/Hungary.jpg",
+      landmark: "Parliament Building",
+    },
+    {
+      name: "Portugal",
+      image: "/image/country/Portugal.jpg",
+      landmark: "Pena Palace",
+    },
+    {
+      name: "Iceland",
+      image: "/image/country/Iceland.jpg",
+      landmark: "Blue Lagoon",
+    },
+    {
+      name: "Poland",
+      image: "/image/country/Poland.jpg",
+      landmark: "Warsaw Old Town",
+    },
+    {
+      name: "NORWAY",
+      image: "/image/country/Norway.jpg",
+      landmark: "Norwegian Fjords",
+    },
+  ];
 
   const displayedCountries = useMemo(() => {
-    const list = countriesData?.map((c) => ({
-      name: c?.name,
-      image: c?.image,
-      landmark: c?.landmark,
-      visaFee: Number(c?.visaFee ?? 159),
-      insuranceFee: Number(c?.insuranceFee ?? 400),
-      appointmentText: c?.appointmentText || "Appointment in 10 days or less",
-    })) || [];
+    // Create a map of appointment texts for quick lookup
+    const appointmentTextMap = appointmentTexts.reduce((acc, item) => {
+      acc[item.countryName] = item.appointmentText;
+      return acc;
+    }, {});
+
+    // Map static countries with dynamic appointment text
+    const list = countries.map((country) => ({
+      name: country.name,
+      image: country.image,
+      landmark: country.landmark,
+      visaFee: Number(getCountryConfig(country.name).visaFee),
+      insuranceFee: Number(getCountryConfig(country.name).insuranceFee),
+      appointmentText: appointmentTextMap[country.name] || "Appointment in 10 days or less",
+    }));
+
     return showAll ? list : list.slice(0, 6);
-  }, [countriesData, showAll]);
+  }, [appointmentTexts, showAll]);
 
   return (
     <div className="max-w-6xl mx-auto  px-6">
@@ -154,7 +150,7 @@ const CountryCardsSection = () => {
       </span>
       {/* Cards Grid */}
       {loading && (
-        <div className="text-center text-white py-8">Loading countries...</div>
+        <div className="text-center text-white py-8">Loading appointment information...</div>
       )}
       {error && !loading && (
         <div className="text-center text-red-400 py-8">{error}</div>

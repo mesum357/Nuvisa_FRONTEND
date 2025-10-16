@@ -1,8 +1,7 @@
 import axios from "axios";
 
-// Fetch public countries list from Nuvisa-Admin API
-// Expects env NEXT_PUBLIC_ADMIN_API_URL to point to the Admin app base URL
-export const fetchCountries = async () => {
+// Fetch appointment texts from Nuvisa-Admin API
+export const fetchAppointmentTexts = async () => {
   const baseUrl = process.env.NEXT_PUBLIC_ADMIN_API_URL;
   if (!baseUrl) {
     throw new Error("Missing NEXT_PUBLIC_ADMIN_API_URL environment variable");
@@ -10,7 +9,7 @@ export const fetchCountries = async () => {
 
   // Ensure no trailing slash to avoid 308 redirects
   const cleanBaseUrl = baseUrl.replace(/\/$/, '');
-  const url = `${cleanBaseUrl}/api/countries`;
+  const url = `${cleanBaseUrl}/api/appointment-text`;
   
   try {
     const res = await axios.get(url, {
@@ -30,12 +29,10 @@ export const fetchCountries = async () => {
       throw new Error(`API Error: ${error.response.status} - ${error.response.statusText}`);
     } else if (error.request) {
       // Request was made but no response received
-      throw new Error('Network Error: Unable to connect to countries API');
+      throw new Error('Network Error: Unable to connect to appointment text API');
     } else {
       // Something else happened
-      throw new Error('Failed to fetch countries data');
+      throw new Error('Failed to fetch appointment texts data');
     }
   }
 };
-
-
