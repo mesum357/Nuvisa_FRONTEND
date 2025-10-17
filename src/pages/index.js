@@ -15,6 +15,7 @@ import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import StickyBottomBar from "@/components/StickyBottomBar";
+import Reviews from "@/components/Reviews";
 
 const Index = () => {
   const { heroContent, loading } = useHeroContent();
@@ -52,8 +53,9 @@ const Index = () => {
             />
           </div>
           <VisaHeroSection />
+          <Reviews />
         </main>
-        <CountryCardsSection />
+        
       </div>
       <FeaturesSection />
       <VisaSolution />
@@ -86,7 +88,7 @@ const Index = () => {
         <OurMission />
         <Footer />
       </div>
-      <StickyBottomBar/>
+      <StickyBottomBar />
       {/* App Download Popup */}
       <AppDownloadPopup />
     </div>
