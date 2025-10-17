@@ -59,7 +59,8 @@ const StatusTracker = ({ applicationId, className = "", initialStatus = null, on
         case 'under_review': return 50;
         case 'appointment_booked': return 75;
         case 'at_embassy': return 90;
-        case 'decision': return 100;
+        case 'approved': return 100;
+        case 'rejected': return 100;
         default: return 0;
       }
     };
@@ -95,13 +96,22 @@ const StatusTracker = ({ applicationId, className = "", initialStatus = null, on
         completed: progress >= 90,
         current: progress >= 75 && progress < 100
       },
-      {
-        id: 'decision',
-        title: 'Decision',
-        description: 'Final decision on your application',
-        completed: progress >= 100,
-        current: progress === 100
-      }
+      ...(status?.status === 'approved' || status?.status === 'rejected'
+        ? [{
+            id: status.status,
+            title: status.status === 'approved' ? 'Approved' : 'Rejected',
+            description: status.status === 'approved' ? 'Your application has been approved' : 'Your application has been rejected',
+            completed: progress >= 100,
+            current: progress === 100
+          }]
+        : [{
+            id: 'decision',
+            title: 'Decision',
+            description: 'Final decision on your application',
+            completed: progress >= 100,
+            current: progress === 100
+          }]
+      )
     ];
 
     return steps;
@@ -226,6 +236,36 @@ const StatusTracker = ({ applicationId, className = "", initialStatus = null, on
                   className="bg-[#7350FF] h-2 rounded-full transition-all duration-500"
                   style={{ width: `${status.progress}%` }}
                 ></div>
+              </div>
+            </div>
+          )}
+
+          {/* Appointment preferences if present */}
+          {status.appointment && (
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-[#1a1a22] border border-[#423577] rounded-lg p-3">
+                <p className="text-xs text-gray-400">Preference 1 City</p>
+                <p className="text-white text-sm font-medium mt-1">{status.appointment.preference1?.city || '-'}</p>
+                <p className="text-xs text-gray-400 mt-3">Preference 1 Date Range</p>
+                <p className="text-white text-sm font-medium mt-1">{status.appointment.preference1?.dateRange || '-'}</p>
+                {status.appointment.preference1?.slot && (
+                  <>
+                    <p className="text-xs text-gray-400 mt-3">Preference 1 Slot</p>
+                    <p className="text-white text-sm font-medium mt-1">{status.appointment.preference1.slot}</p>
+                  </>
+                )}
+              </div>
+              <div className="bg-[#1a1a22] border border-[#423577] rounded-lg p-3">
+                <p className="text-xs text-gray-400">Preference 2 City</p>
+                <p className="text-white text-sm font-medium mt-1">{status.appointment.preference2?.city || '-'}</p>
+                <p className="text-xs text-gray-400 mt-3">Preference 2 Date Range</p>
+                <p className="text-white text-sm font-medium mt-1">{status.appointment.preference2?.dateRange || '-'}</p>
+                {status.appointment.preference2?.slot && (
+                  <>
+                    <p className="text-xs text-gray-400 mt-3">Preference 2 Slot</p>
+                    <p className="text-white text-sm font-medium mt-1">{status.appointment.preference2.slot}</p>
+                  </>
+                )}
               </div>
             </div>
           )}
