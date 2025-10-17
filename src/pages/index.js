@@ -16,7 +16,6 @@ import Link from "next/link";
 import Image from "next/image";
 import StickyBottomBar from "@/components/StickyBottomBar";
 import Reviews from "@/components/Reviews";
-
 const Index = () => {
   const { heroContent, loading } = useHeroContent();
   const { klarnaContent, loading: klarnaLoading } = useKlarnaContent();
@@ -55,7 +54,8 @@ const Index = () => {
           <VisaHeroSection />
           <Reviews />
         </main>
-        
+        {/* <CountryCardsSection /> */}
+
       </div>
       <FeaturesSection />
       <VisaSolution />
