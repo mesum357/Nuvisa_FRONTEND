@@ -54,7 +54,7 @@ const Index = () => {
           <VisaHeroSection />
           <Reviews />
         </main>
-        {/* <CountryCardsSection /> */}
+        <CountryCardsSection />
 
       </div>
       <FeaturesSection />
