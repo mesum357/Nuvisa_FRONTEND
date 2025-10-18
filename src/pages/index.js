@@ -52,7 +52,7 @@ const Index = () => {
             />
           </div>
           <VisaHeroSection />
-          {/* <Reviews /> */}
+           <Reviews /> 
         </main>
         <CountryCardsSection />
 
