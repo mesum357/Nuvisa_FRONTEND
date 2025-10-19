@@ -80,6 +80,45 @@ export const getApplicationStatus = async (token, applicationId) => {
           }
         : null;
 
+      // Format application and order IDs consistently
+      const formatApplicationId = (rawId) => {
+        if (!rawId) return null;
+        const numericTail = (source, length) => {
+          if (!source) return "".padStart(length, "0");
+          let digits = String(source).replace(/\D+/g, "");
+          if (digits.length < length) {
+            const codes = Array.from(String(source))
+              .map((c) => c.charCodeAt(0))
+              .join("");
+            digits = (digits + codes).replace(/\D+/g, "");
+          }
+          if (!digits.length) {
+            digits = "0".repeat(length);
+          }
+          return digits.slice(-length).padStart(length, "0");
+        };
+        return `AI${numericTail(rawId, 8)}`;
+      };
+
+      const formatOrderId = (rawOrderId) => {
+        if (!rawOrderId) return null;
+        const numericTail = (source, length) => {
+          if (!source) return "".padStart(length, "0");
+          let digits = String(source).replace(/\D+/g, "");
+          if (digits.length < length) {
+            const codes = Array.from(String(source))
+              .map((c) => c.charCodeAt(0))
+              .join("");
+            digits = (digits + codes).replace(/\D+/g, "");
+          }
+          if (!digits.length) {
+            digits = "0".repeat(length);
+          }
+          return digits.slice(-length).padStart(length, "0");
+        };
+        return `ORD${numericTail(rawOrderId, 6)}`;
+      };
+
       return {
         success: true,
         data: {
@@ -88,6 +127,8 @@ export const getApplicationStatus = async (token, applicationId) => {
           submittedAt: applicationData.createdAt || new Date().toISOString(),
           estimatedProcessingTime: '24 hours',
           orderId: applicationData.orderId,
+          formattedApplicationId: formatApplicationId(applicationData.id || applicationId),
+          formattedOrderId: formatOrderId(applicationData.orderId),
           currentStage: getStatusStage(derivedStatus),
           progress: getStatusProgress(derivedStatus),
           nextSteps: getNextSteps(derivedStatus),
