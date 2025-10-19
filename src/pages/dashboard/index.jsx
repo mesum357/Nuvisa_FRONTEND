@@ -52,7 +52,16 @@ export default function HeaderSearchSection() {
   ).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   const submittedApplications = filteredApplications.filter(
-    (app) => app?.applicationStatus === "submitted"
+    (app) => {
+      const status = app?.applicationStatus?.toLowerCase();
+      // Include all active processing states, not just "submitted"
+      return status === "submitted" || 
+             status === "under_review" || 
+             status === "appointment_booked" || 
+             status === "at_embassy" || 
+             status === "approved" || 
+             status === "processing";
+    }
   ).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   const fetchUserApplications = async () => {
