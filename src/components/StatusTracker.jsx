@@ -42,14 +42,21 @@ const StatusTracker = ({ applicationId, className = "", initialStatus = null, on
   };
 
   useEffect(() => {
-    // If initialStatus is provided by parent, skip initial fetch and auto-refresh to avoid duplicate API calls.
-    if (initialStatus) return;
+    // If initialStatus is provided by parent, use it and set up auto-refresh
+    if (initialStatus) {
+      setStatus(initialStatus);
+      setLastUpdated(new Date());
+      
+      // Set up auto-refresh every 5 minutes even with initialStatus
+      const interval = setInterval(fetchStatus, 5 * 60 * 1000);
+      return () => clearInterval(interval);
+    } else {
+      fetchStatus();
 
-    fetchStatus();
-
-    // Set up auto-refresh every 5 minutes
-    const interval = setInterval(fetchStatus, 5 * 60 * 1000);
-    return () => clearInterval(interval);
+      // Set up auto-refresh every 5 minutes
+      const interval = setInterval(fetchStatus, 5 * 60 * 1000);
+      return () => clearInterval(interval);
+    }
   }, [applicationId, initialStatus]);
 
   const getStatusSteps = () => {

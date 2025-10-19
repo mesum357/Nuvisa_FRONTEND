@@ -26,6 +26,7 @@ const ApplicationCompletedSection = ({
   parentVisaApplication = null,
   onAddTraveler = null,
   onUploadDocument = null,
+  onRefresh = null,
   applicationId = null
 }) => {
   const formatApplicationId = (id) => {
@@ -161,8 +162,19 @@ const ApplicationCompletedSection = ({
     fetchApplicationStatus();
   }, [applicationId, parentVisaApplication, token]);
 
+  // Add effect to re-fetch status when parentVisaApplication changes
+  useEffect(() => {
+    if (parentVisaApplication?.id) {
+      fetchApplicationStatus();
+    }
+  }, [parentVisaApplication?.applicationStatus, parentVisaApplication?.id]);
+
   const handleRefreshStatus = () => {
-    fetchApplicationStatus();
+    if (onRefresh) {
+      onRefresh();
+    } else {
+      fetchApplicationStatus();
+    }
   };
 
   const handleAddTraveler = () => {
