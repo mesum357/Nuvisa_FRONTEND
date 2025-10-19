@@ -1600,6 +1600,7 @@ const MultiStepAccordion = () => {
 
   const fetchApplicationById = async () => {
     try {
+      setLoading(true);
       const payload = { id: applicationId };
       const response = await getVisaApplication(token, payload);
 
@@ -1717,7 +1718,14 @@ const MultiStepAccordion = () => {
       showError(
         "Failed to load application. Please check your connection and try again."
       );
+    } finally {
+      setLoading(false);
     }
+  };
+
+  // Add refresh function for status updates
+  const handleRefreshApplication = async () => {
+    await fetchApplicationById();
   };
 
   useEffect(() => {
@@ -2495,6 +2503,7 @@ const MultiStepAccordion = () => {
                           <ApplicationCompletedSection
                             parentVisaApplication={parentVisaApplication}
                             applicationId={applicationId}
+                            onRefresh={handleRefreshApplication}
                             onAddTraveler={async () => {
                               const uniqueId = `traveler_${Date.now()}_${Math.floor(
                                 Math.random() * 1000
@@ -2997,6 +3006,7 @@ const MultiStepAccordion = () => {
                           <ApplicationCompletedSection
                             parentVisaApplication={parentVisaApplication}
                             applicationId={applicationId}
+                            onRefresh={handleRefreshApplication}
                             onAddTraveler={async () => {
                               const uniqueId = `traveler_${Date.now()}_${Math.floor(
                                 Math.random() * 1000
