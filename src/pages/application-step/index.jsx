@@ -241,15 +241,24 @@ const MultiStepAccordion = () => {
       stepInfo || appStepInfo || getCurrentTravelerStepInfo();
     if (!relevantStepInfo) return;
 
+    // Check if application is submitted - if so, mark all steps as completed
+    const isApplicationSubmitted = parentVisaApplication?.applicationStatus === "submitted";
+
     setSteps((prevSteps) => {
       return prevSteps.map((step) => {
         let isCompleted = relevantStepInfo.completedSteps?.includes(
           step.stepType
         );
+        
+        // If application is submitted, mark all steps as completed
+        if (isApplicationSubmitted) {
+          isCompleted = true;
+        }
+        
         const isInsuranceComplete =
           relevantStepInfo.completedSteps?.includes("insurance");
         if (step.stepType === "fullPayment") {
-          if (!isInsuranceComplete) {
+          if (!isInsuranceComplete && !isApplicationSubmitted) {
             isCompleted = false;
           }
         }
@@ -1775,6 +1784,13 @@ const MultiStepAccordion = () => {
       updateStepsFromStepInfo(parentVisaApplication.stepInfo);
     }
   }, [parentVisaApplication?.stepInfo]);
+
+  // Update steps when application status changes
+  useEffect(() => {
+    if (parentVisaApplication?.applicationStatus) {
+      updateStepsFromStepInfo();
+    }
+  }, [parentVisaApplication?.applicationStatus]);
 
   useEffect(() => {
     const reduxArrivalRaw = visaState?.arrivalDate;

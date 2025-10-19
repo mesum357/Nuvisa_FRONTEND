@@ -300,14 +300,14 @@ const ApplicationCompletedSection = ({
               <label className="text-sm text-gray-400">Application ID</label>
               <p className="text-white font-medium">
                 <ClientOnly fallback={referenceNumber}>
-                  {formatApplicationId(currentStatus?.id)}
+                  {currentStatus?.formattedApplicationId || formatApplicationId(currentStatus?.id)}
                 </ClientOnly>
               </p>
             </div>
-            {currentStatus?.orderId && <div>
+            {(currentStatus?.formattedOrderId || currentStatus?.orderId) && <div>
               <label className="text-sm text-gray-400">Order ID</label>
               <p className="text-white font-medium">
-                {currentStatus?.orderId || "N/A"}
+                {currentStatus?.formattedOrderId || formatOrderId(currentStatus?.orderId) || "N/A"}
               </p>
             </div>}
             <div>
