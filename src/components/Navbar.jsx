@@ -179,13 +179,18 @@ const Navbar = () => {
               </button>
 
               {/* Vertical actions aligned left */}
-              <div className="flex flex-col items-start gap-2 w-full pr-12 py-2">
-                <Link href={getContent('banner_button_link', '#')}>
-                  <button className="bg-green-600/20 border border-green-500/30 px-4 py-2 rounded-full text-sm font-medium flex items-center">
-                    <img src="/icons/holiday.png" alt="Holiday Packages" className="inline-block mr-2 w-6" />
-                    {getContent('nav_holiday_packages_text', 'Holiday Packages')}
-                  </button>
-                </Link>
+              <div className="flex flex-col md:flex-row items-start md:items-center gap-3 w-full">
+                <div className="relative inline-block md:mr-4">
+                  <span className="absolute -top-4 right-0 z-10 bg-[#c2b1eb] text-[#7A4FFF] text-[10px] font-bold px-2 py-1 rounded-full transition-all duration-300 hover:bg-[#6247D3] cursor-pointer">
+                    Coming Soon
+                  </span>
+                  <Link href={getContent('banner_button_link', '#')}>
+                    <button className="bg-green-600/20 border border-green-500/30 px-4 py-2 rounded-full text-sm font-medium flex items-center">
+                      <img src="/icons/holiday.png" alt="Holiday Packages" className="inline-block mr-2 w-6" />
+                      {getContent('nav_holiday_packages_text', 'Holiday Packages')}
+                    </button>
+                  </Link>
+                </div>
                 <GetTheVisaButton removeArrow={true} />
                 {isAuthenticated ? (
                   <Link href="/dashboard" className="cursor-pointer">
