@@ -2023,6 +2023,28 @@ const MultiStepAccordion = () => {
           </div>
         )}
 
+        {/* Show processing status when admin has updated the status */}
+        {isOwner && ["under_review", "processing"].includes(parentVisaApplication?.applicationStatus) && (
+          <div className="w-full mb-4 p-4 bg-blue-900/10 border border-blue-600 rounded-lg text-blue-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-medium">Application Under Review</div>
+                <div className="text-sm text-blue-200">
+                  Your application is being reviewed by our team. You will be notified of any updates via email.
+                </div>
+              </div>
+              <div>
+                <button
+                  onClick={openDocumentsStep}
+                  className="bg-blue-600 px-3 text-white min-w-40 py-2 rounded font-medium text-sm"
+                >
+                  Upload Documents
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <ProgressHeader
           steps={getVisibleSteps()}
           stepInfo={
@@ -3097,6 +3119,7 @@ const MultiStepAccordion = () => {
 
         {
           parentVisaApplication?.stepInfo?.completedSteps?.includes("appointment") &&
+          !["under_review", "processing", "approved", "rejected", "cancelled"].includes(parentVisaApplication?.applicationStatus) &&
           <div className="flex w-full justify-end">
             <button
               onClick={handleSubmit}
