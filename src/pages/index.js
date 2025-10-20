@@ -73,13 +73,13 @@ const Index = () => {
 
               {/* Subheading with Details */}
               <div className=" flex items-center gap-2 max-md:flex-col text-white justify-center font-gilroy-medium">
-                <p className="text-sm md:text-[16px] font-semibold"> hhh
+                <p className="text-sm md:text-[16px] font-semibold"> 
                   {klarnaLoading ? "Loading..." : klarnaContent.subtitle}
                 </p>
                 <p className="font-gilroy-bold text-lg md:text-[20px] ">
                   <span className="">{!klarnaLoading && klarnaContent.paymentAmount}</span> each |
                   <span className="mx-2">{!klarnaLoading && klarnaContent.interestRate}</span>|
-                  <span> {!klarnaLoading && klarnaContent.fees}  hhhhggg</span>
+                  <span> {!klarnaLoading && klarnaContent.fees}</span>
                 </p>
               </div>
             </div>

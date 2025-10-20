@@ -1917,7 +1917,7 @@ const VisaCheckout = () => {
                       </div>
 
                       {/* Use Shipping Address Checkbox */}
-                      <div className="flex items-center space-x-2">
+                      {/* <div className="flex items-center space-x-2">
                         <input
                           type="checkbox"
                           id="useShippingAddress"
@@ -1927,19 +1927,18 @@ const VisaCheckout = () => {
                           }
                           className="h-4 w-4 border-gray-300 rounded"
                         />
-                        <label htmlFor="useShippingAddress" className="text-sm">
+                       <label htmlFor="useShippingAddress" className="text-sm">
                           Use shipping address as billing address
                         </label>
-                      </div>
-
+                      </div> */}
                       {/* Billing Address Section */}
-                      {!useShippingAddress && (
-                        <div className="space-y-4">
-                          <h4 className="font-medium text-lg">
+                      {/* {!useShippingAddress && (
+                        <div className="space-y-4"> */}
+                          {/* <h4 className="font-medium text-lg">
                             Billing address
-                          </h4>
+                          </h4> */}
                           {/* Country/Region */}
-                          <div>
+                          {/* <div>
                             <label
                               htmlFor="billingCountry"
                               className="block text-sm font-medium mb-1"
@@ -1967,9 +1966,9 @@ const VisaCheckout = () => {
                               <option value="Spain">Spain</option>
                               <option value="Italy">Italy</option>
                             </select>
-                          </div>
+                          </div> */}
                           {/* First Name and Last Name Row */}
-                          <div className="grid grid-cols-2 gap-4">
+                          {/* <div className="grid grid-cols-2 gap-4">
                             <div>
                               <label
                                 htmlFor="billingFirstName"
@@ -2035,9 +2034,9 @@ const VisaCheckout = () => {
                             </div>
                           </div>
                           onChange={(e) => setBillingAddress(e.target.value)}
-                          onBlur={handleBillingFieldBlur}
+                          onBlur={handleBillingFieldBlur} */}
                           {/* Address */}
-                          <div>
+                          {/* <div>
                             <label
                               htmlFor="billingAddress"
                               className="block text-sm font-medium mb-1"
@@ -2079,9 +2078,9 @@ const VisaCheckout = () => {
                                 {cardErrors.billingAddress}
                               </span>
                             )}
-                          </div>
+                          </div> */}
                           {/* Apartment */}
-                          <div>
+                          {/* <div>
                             <label
                               htmlFor="billingApartment"
                               className="block text-sm font-medium mb-1"
@@ -2097,9 +2096,9 @@ const VisaCheckout = () => {
                               }
                               className="w-full border border-gray-300 rounded-md p-3 text-sm focus:outline-none focus:ring-2 focus:ring-black"
                             />
-                          </div>
+                          </div> */}
                           {/* City and Postcode Row */}
-                          <div className="grid grid-cols-2 gap-4">
+                          {/* <div className="grid grid-cols-2 gap-4">
                             <div>
                               <label
                                 htmlFor="billingCity"
@@ -2183,9 +2182,9 @@ const VisaCheckout = () => {
                                 </span>
                               )}
                             </div>
-                          </div>
+                          </div> */}
                           {/* Phone */}
-                          <div>
+                          {/* <div>
                             <label
                               htmlFor="billingPhone"
                               className="block text-sm font-medium mb-1"
@@ -2220,9 +2219,9 @@ const VisaCheckout = () => {
                                 {billingPhoneError}
                               </span>
                             )}
-                          </div>
-                        </div>
-                      )}
+                          </div> */}
+                        {/* </div>
+                      )} */}
                     </div>
                   )}
                 </div>
@@ -2781,9 +2780,9 @@ const VisaCheckout = () => {
               )}
 
             {/* Risk Free */}
-            <div className="bg-green-600 text-white rounded-md p-3 text-sm text-center font-medium">
+            {/* <div className="bg-green-600 text-white rounded-md p-3 text-sm text-center font-medium">
               ✓ 100% risk-free - Get your visa or full refund
-            </div>
+            </div> */}
           </div>
         </div>
       </div>
