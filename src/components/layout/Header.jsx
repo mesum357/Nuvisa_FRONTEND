@@ -9,8 +9,9 @@ import useParsedUser from "@/hooks/useParsedUser";
 
 export const Header = ({ href }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const { parsedUserData } = useParsedUser();
-   const openModal = () => setIsModalOpen(true);
+  const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
 
   const handleLogout = () => {
