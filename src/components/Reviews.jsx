@@ -5,62 +5,62 @@ import Image from "next/image";
 
 const reviews = [
     {
-        name: "Karan",
+        name: "Karan T.",
         role: "Edinburgh",
         img: "/img/karan.png",
         comment:
             "NUvisa has been a real game-changer for our travel plan. The visa application process was very seamless, and we got an appointment in just 2 days.",
     },
     {
-        name: "Amit",
+        name: "Amit D.",
         role: "Leicester",
         img: "/img/amit.png",
         comment:
             "This literally feels like having an entire army of visa experts who manages application and get your visa on time.",
     },
     {
-        name: "Imran",
+        name: "Imran N.",
         role: "Manchester",
         img: "/img/imran.png",
         comment:
             "Everything went smooth and was extremely straight forward, saved lot of money compared to other providers.",
     },
     {
-        name: "Ananya",
+        name: "Ananya R.",
         role: "London",
         img: "/img/ananya.png",
         comment:
             "I love the folks at NUvisa as they make life easier and cost effective. Very impressed with the service and process, hope to get more countries soon.",
     },
     {
-        name: "Ayesha",
+        name: "Ayesha K.",
         role: "Birmingham",
         img: "/img/ayesha.png",
         comment:
             "By far the best tool when it comes to visa application online. The process is so streamlined and just awesome!",
     },
     {
-        name: "Karan",
+        name: "Karan T.",
         role: "Edinburgh",
         img: "/img/karan.png",
         comment:
             "NUvisa has been a real game-changer for our travel plan. The visa application process was very seamless, and we got an appointment in just 2 days.",
     },
     {
-        name: "Amit",
+        name: "Amit D.",
         role: "Leicester",
         img: "/img/amit.png",
         comment:
             "This literally feels like having an entire army of visa experts who manages application and get your visa on time.",
     },
     {
-        name: "Imran",
+        name: "Imran N.",
         role: "Manchester",
         img: "/img/imran.png",
         comment:
             "Everything went smooth and was extremely straight forward, saved lot of money compared to other providers.",
     }, {
-        name: "Ananya",
+        name: "Ananya R.",
         role: "London",
         img: "/img/ananya.png",
         comment:
