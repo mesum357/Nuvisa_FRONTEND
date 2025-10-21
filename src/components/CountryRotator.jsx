@@ -54,9 +54,9 @@ const VisaHeroSection = () => {
           </span>
         ))}
       </h2>
-      <p className="text-[21px] md:text-2xl mt-3 text-[#c5c6dd] font-gilroy-bold">
+      {/* <p className="text-[21px] md:text-2xl mt-3 text-[#c5c6dd] font-gilroy-bold">
         We are as picky as you are
-      </p>
+      </p> */}
     </div>
   );
 };

@@ -273,15 +273,27 @@ const CountrySlider = () => {
 
     const minTravelDate = new Date();
     minTravelDate.setHours(0, 0, 0, 0);
-    minTravelDate.setDate(minTravelDate.getDate() + 15);
+    minTravelDate.setDate(minTravelDate.getDate() + 30);
 
     if (arrivalDate < minTravelDate) {
       errors.tooClose =
-        "Your travel dates are too close, embassies take up to 15 days after your visa appointment. You can still proceed with your application if your dates are flexible.";
+        "Your travel dates are too close. Embassies take up to 15 days after your visa appointment, Ideal gap between applying and travel date is 4-6 weeks. You can still proceed if your travel dates are flexible.";
     }
+
+  if (arrivalDate >= minTravelDate) {
+  const nextDay = new Date(arrivalDate);
+  nextDay.setDate(nextDay.getDate() + 1);
+
+  // Format date like "22 October"
+  const options = { day: "numeric", month: "long" };
+  const formattedDate = nextDay.toLocaleDateString("en-US", options);
+
+  errors.tooClosee = `Its a peace of mind date to get visa if you complete application by ${formattedDate}.`;
+}
 
     if (departure) {
       const departureDate = new Date(departure);
+      // errors.tooClose= "Super! You could get visa if you complete application by 20th August."
 
       // Basic date validation
       if (arrivalDate >= departureDate) {
@@ -411,21 +423,53 @@ const CountrySlider = () => {
     return `${year}-${month}-${day}`;
   };
 
+
   const getDayClassName = (date) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-    const safeDateThreshold = new Date();
-    safeDateThreshold.setHours(0, 0, 0, 0);
-    safeDateThreshold.setDate(today.getDate() + MIN_SAFE_DAYS_BEFORE_TRAVEL);
+  const safeDateThreshold = new Date();
+  safeDateThreshold.setHours(0, 0, 0, 0);
+  safeDateThreshold.setDate(today.getDate() + MIN_SAFE_DAYS_BEFORE_TRAVEL);
 
-    if (date < safeDateThreshold && date >= today) {
-      return "dangerous-date";
-    }
-    if (date >= today) {
-      return "comfortable-date";
-    }
-  };
+  const fourWeeksFromNow = new Date();
+  fourWeeksFromNow.setHours(0, 0, 0, 0);
+  fourWeeksFromNow.setDate(today.getDate() + 28);
+
+  // 🩶 Past dates
+  if (date < today)
+    return "!text-gray-400 !bg-transparent !important";
+
+  // 🔴 Too soon
+  // if (date < safeDateThreshold && date >= today)
+  //   return "!text-red-400 !bg-transparent !important";
+
+  // 🟡 Within 4 weeks
+  if (date >= today && date <= fourWeeksFromNow)
+    return "!text-yellow-400 !bg-transparent !important";
+
+  // 🟢 After 4 weeks
+  if (date > fourWeeksFromNow)
+    return "!text-green-400 !bg-transparent !important";
+
+  return "!bg-transparent !text-white";
+};
+
+  // const getDayClassName = (date) => {
+  //   const today = new Date();
+  //   today.setHours(0, 0, 0, 0);
+
+  //   const safeDateThreshold = new Date();
+  //   safeDateThreshold.setHours(0, 0, 0, 0);
+  //   safeDateThreshold.setDate(today.getDate() + MIN_SAFE_DAYS_BEFORE_TRAVEL);
+
+  //   if (date < safeDateThreshold && date >= today) {
+  //     return "dangerous-date";
+  //   }
+  //   if (date >= today) {
+  //     return "comfortable-date";
+  //   }
+  // };
 
   useEffect(() => {
     try {
@@ -542,7 +586,7 @@ const CountrySlider = () => {
     }));
   };
 
-  const [baseFee] = useState(149);
+  const [baseFee] = useState(129);
 
   const perDayInsurancePrice = 2;
 
@@ -761,7 +805,8 @@ const CountrySlider = () => {
           ? Math.round(Number(selectedVisaType.price) / 100)
           : baseFee;
 
-    const baseOriginalPrice = Math.round(currentBaseFee * 1.25) * travelers;
+    // const baseOriginalPrice = Math.round(currentBaseFee * 1.25) * travelers;
+    const baseOriginalPrice = 200 * travelers;
     const insuranceOriginalPrice = recommendedItems.insuranceCertificate && insuranceDays > 0
       ? Math.round(perDayInsurancePrice * insuranceDays * travelers * 1.25)
       : 0;
@@ -1789,9 +1834,32 @@ const CountrySlider = () => {
 
   return (
     <div className="w-full max-w-[1300px] gap-20 max-lg:flex-col flex items-start justify-center mt-5 px-5">
-      <section className="w-full gap-3 flex flex-col items-start lg:max-w-[60%]">
+      <div className="w-full gap-3 flex flex-col items-start lg:max-w-[60%]">
+      <section className=" text-center text-white rounded-2xl p-2">
+          <div className="w-full flex justify-center items-center gap-2 px-3">
+  <button className="bg-[#24242D] border border-white px-6 py-[10px] rounded-full font-medium text-white select-none transition-colors relative overflow-hidden">
+    <span className="relative z-10 font-bold text-[22px] leading-none">
+      99.6% Visa approval 
+    </span>
+   
+  </button>
+
+   <button className="bg-[#24242D] border border-white px-6 py-[10px] rounded-full font-medium text-white select-none transition-colors relative overflow-hidden">
+    <span className="relative z-10 font-bold text-[22px] leading-none">
+     100% Risk free
+    </span>
+   
+  </button>
+</div>
+
+
+
+      </section>
+      
+      <section className="w-full gap-3 flex flex-col items-start ">
         <section className="w-full">
-          <div className="bg-[#24242D] flex justify-between text-white rounded-2xl shadow-sm p-4 max-sm:flex-col items-center">
+          <div className="bg-[#24242D] rounded-2xl shadow-sm p-4"> 
+          <div className="bg-[#24242D] flex justify-between text-white  max-sm:flex-col items-center">
             <h2 className="text-3xl md:text-[40px] font-gilroy-bold my-auto">
               Visa <br className="hidden sm:block" /> information
             </h2>
@@ -1905,7 +1973,14 @@ const CountrySlider = () => {
                 </div>
               </div>
             </div>
+</div>
+
+            <div className="text-left my-4">
+            <p className="flex gap-2"><img src="/icons/megaphone.png " className="w-6 h-5" /><span> Please note that embassy require you to pay £78 in person to a government official, either by cash or card.</span>
+</p>
+           </div>
           </div>
+           
         </section>
 
         <section className="mt-1 w-full ">
@@ -1981,16 +2056,35 @@ const CountrySlider = () => {
               />
             ))}
           </div>
+            <p className="text-[18px] mt-8 text-white font-gilroy-bold text-center">
+          *If require urgent appointment in 4-5 days kindly email
+          support@nuvisa.co.uk do not follow the standard visa process.
+        </p>
         </section>
       </section>
-      <section className="bg-[#24242D] text-white lg:max-w-[40%] rounded-2xl p-6">
+      </div>
+<div className="w-full gap-3 flex flex-col items-start lg:max-w-[60%]">
+      <section className=" text-center text-white rounded-2xl p-2">
+          <div className="flex justify-center items-center">
+              <button className="bg-[#24242D] border border-white px-4 py-[7px] pb-[18px] rounded-full font-medium text-sm text-white select-none transition-colors relative overflow-hidden text-center">
+                <span className="relative z-10 leading-none  text-center font-bold flex justify-center items-center pt-2" style={{fontSize:"21px"}}>765+ NRIs applied their Schengen visa today on NUvisa</span>
+                {/* <span className="absolute bottom-[2px] left-1/2 -translate-x-1/2 z-10 text-[9px] leading-none opacity-70">Coming Soon</span> */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse"></div>
+              </button>
+            </div>
+      </section>
+      
+      <section className="bg-[#24242D] text-white rounded-2xl p-6">
+        
         <div className="w-full">
+          
           {/* Header with pricing */}
           <div className="mb-6">
             <h1 className="text-3xl font-gilroy-bold mb-4">
               Schengen visa from the UK
             </h1>
             <div className="flex items-center justify-between gap-3 mb-4">
+              <div className="flex gap-3">
               <span className="text-lg font-semibold line-through">
                 £{calculateOriginalPrice()}
               </span>
@@ -1998,6 +2092,7 @@ const CountrySlider = () => {
                 <span className="text-2xl font-gilroy-bold">
                   £{Math.round(calculateFinalPrice())}
                 </span>
+              </div>
               </div>
 
               <div className="flex items-center gap-2 shadow-lg shadow-black/20 p-2 rounded-full">
@@ -2038,6 +2133,7 @@ const CountrySlider = () => {
           </div>
         </div>
         <div className="w-full">
+         <p className="text-sm mb-4 "> Dates are required for visa processing only and can be changed later within visa validity period.</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 items-start">
             <div className="w-full">
               <CommonDatePicker
@@ -2087,12 +2183,15 @@ const CountrySlider = () => {
             {dateValidationErrors.tooClose && (
               <p className="text-red-400">{dateValidationErrors.tooClose}</p>
             )}
+             {dateValidationErrors.tooClosee && (
+              <p className="text-green-400">{dateValidationErrors.tooClosee}</p>
+            )}
           </div>
 
-          <p className="text-xs text-purple-300 mt-3">
+          {/* <p className="text-xs text-purple-300 mt-3">
             For a higher chance of approval, please select travel dates that are
             at least 15-20 days in the future.
-          </p>
+          </p> */}
         </div>
 
         {/* Required Documents */}
@@ -2837,6 +2936,7 @@ const CountrySlider = () => {
           </button>
         </div>
       </section>
+      </div>
     </div>
   );
 };

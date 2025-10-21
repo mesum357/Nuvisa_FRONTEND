@@ -70,7 +70,7 @@ const Footer = () => {
                 />{" "}
               </Link>
               <div className="text-neutral-500 text-xs md:text-sm font-medium text-center">
-                <p>Copyright © 2025 Jexens Ltd. - All Rights Reserved.</p>
+                <p>Copyright © 2025 Nuvisa. - All Rights Reserved.</p>
               </div>
             </div>
             <hr
@@ -84,6 +84,7 @@ const Footer = () => {
                 professional assistance in obtaining visas and other travel
                 products online fast. The company and site are not associated
                 with any governmental agency.
+                VAT registration no: 412344437 | D‑U‑N‑S Number: 227538057 7. | ICO registration number: ZB732764. Registered Office: 2 Brunel Way, The Future Works, Slough, Greater London, England, SL1 1FQ | support@nuvisa.co.uk | +44 7825528764
               </p>
             </div>
           </div>

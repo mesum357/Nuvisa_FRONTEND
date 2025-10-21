@@ -20,6 +20,12 @@ const index = () => {
 
         <main className="flex items-center justify-center flex-col pb-[45px] mt-16 md:mt-24 md:min-h-[calc(100vh-200px)]  px-8 md:px-6">
           <div className="text-left sm:text-center max-w-5xl">
+            
+              <div className="hidden lg:block">
+            {/* <span className="text-[28px] font-gilroy-bold">
+              Schengen visa for Indians from the UK
+            </span> */}
+          </div>
             <h1 className="text-5xl sm:text-6xl md:text-[6.5rem] font-gilroy-bold leading-tight mb-4 sm:mb-8 max-sm:tracking-tighter">
               Don&apos;t Postpone Your Happiness!
               {/* <br /> */}
@@ -50,19 +56,20 @@ const index = () => {
           <div className="max-[1200px] mx-auto">
             <div className="bg-[#1E1E27] rounded-3xl py-12 px-10 text-center shadow-2xl">
               {/* Main Heading */}
-              <h2 className="text-[26px] max-md:px-8 lg:text-[38px] font-gilroy-bold text-white mb-2 leading-tight font-gilroy-bold">
-                Pay in small instalments with interest free financing!
-              </h2>
+             <h2 className="text-[26px] max-md:px-8 lg:text-[38px] font-gilroy-bold text-[#fff] mb-2 leading-tight flex items-center gap-3 justify-center">
+  <img src="/icons/klarna.png" alt="Klarna" className="" />
+  Pay in small instalments with interest free financing!
+</h2>
 
               {/* Subheading with Details */}
               <div className=" flex items-center gap-2 max-md:flex-col text-white justify-center font-gilroy-medium">
                 <p className="text-sm md:text-[16px] font-semibold">
-                  Pay in 24 instalments with 0% interest.
+                   4 payments of £32 with 0% interest.
                 </p>
                 <p className="font-gilroy-bold text-lg md:text-[20px] ">
-                  <span className="">£42</span> per month |
-                  <span className="mx-2">0% Interest</span> |
-                  <span>No fees</span>
+                  <span className="">£32</span> each |
+                  <span className="mx-2">0% Interest</span>|
+                  <span> No fees</span>
                 </p>
               </div>
             </div>

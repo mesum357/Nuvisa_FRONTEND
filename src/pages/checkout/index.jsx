@@ -43,7 +43,7 @@ const index = () => {
   };
 
   // Dynamic pricing calculation based on user selections
-  const baseVisaFee = 149;
+  const baseVisaFee = 129;
   const baseInsuranceFee = 400;
   const eVisaFee = 0; // Currently free
 

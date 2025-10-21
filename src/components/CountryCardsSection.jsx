@@ -115,8 +115,11 @@ const CountryCardsSection = () => {
   return (
     <div className="max-w-6xl mx-auto  px-6">
       {/* Cards Grid */}
-      <span className="text-xl text-center font-gilroy-bold text-white flex item-center justify-center pb-8">
+      <span className="text-4xl text-center font-gilroy-bold text-white flex item-center justify-center pb-4">
         Choose Your Country
+      </span>
+      <span className="text-3xl text-center font-gilroy text-white flex item-center justify-center pb-8">
+        We support 20 countries over all the visa centres in the UK
       </span>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {displayedCountries.map((country, index) => (
@@ -180,7 +183,7 @@ const CountryCardsSection = () => {
       <div className="my-14 sm:mt-12 sm:mb-0 max-sm:w-full flex items-center justify-center flex-col gap-10">
         <p className="text-[18px] mt-3 text-white font-gilroy-bold">
           *If require urgent appointment in 4-5 days kindly email
-          info@nuvisa.co.uk do not follow the standard visa process.
+          support@nuvisa.co.uk do not follow the standard visa process.
         </p>
         <GetTheVisaButton
           btnClassName={

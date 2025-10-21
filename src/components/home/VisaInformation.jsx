@@ -8,6 +8,7 @@ import OurMission from "../OurMission";
 import SeamlessExperience from "../SeamlessExperience";
 import CountrySlider from "../Slider";
 import VisaSolution from "../VisaSolution";
+import submit from "../../../public/icons/submit.png";
 
 const VisaInformation = () => {
   return (
@@ -20,36 +21,50 @@ const VisaInformation = () => {
           {/* Visa Type Selection */}
 
           <div className="px-5 pt-5 w-full flex items-center justify-center">
-            <div className="max-w-[88rem] bg-[#F3E5FF] text-[#212529] w-full rounded-3xl py-12 px-10 text-center shadow-2xl">
+            <div className="max-w-[88rem] bg-[#F3E5FF] text-[#FFF] w-full rounded-3xl py-12 px-10 text-center shadow-2xl">
               {/* Main Heading */}
-              <h2 className="text-[26px] max-md:px-8 lg:text-[38px] font-gilroy-bold text-[#212529] mb-2 leading-tight">
+              <h2 className="text-[26px] max-md:px-8 lg:text-[38px] font-gilroy-bold text-[#212529] mb-2 leading-tight flex items-center gap-3 justify-center">
+                <img src="/icons/klarna.png" alt="Klarna" className="" />
                 Pay in small instalments with interest free financing!
               </h2>
 
               {/* Subheading with Details */}
               <div className=" flex items-center gap-2 max-md:flex-col text-[#212529] justify-center ">
                 <p className="text-sm md:text-[16px] font-medium">
-                  4 payments of £37 with 0% interest.
+                  4 payments of £32 with 0% interest.
                 </p>
                 <p className="font-semibold text-lg md:text-[20px] ">
-                  <span className="">£42</span> per month |
-                  <span className="mx-2">0% Interest</span> |<span>No fees</span>
+                  <span className="">£32</span> each |
+                  <span className="mx-2">0% Interest</span>|{" "}
+                  <span> No fees</span>
                 </p>
               </div>
             </div>
           </div>
 
           <div className="px-5 pt-5 w-full flex items-center justify-center">
-            <div className="bg-[#F3E5FF] text-[#212529] w-full rounded-3xl md:py-5 md:px-10 text-center shadow-2xl mt-20 max-w-[88rem]">
+            <div className="text-[#FFF] w-full rounded-3xl md:py-5 md:px-5 text-center shadow-2xl mt-20 max-w-[88rem]">
               <div className="row justify-content-center">
-                <div className="col-12 py-4 text-center">
+                <div className="col-12 py-4">
                   <div className="pdp_media_el bg-purple p-3 pt-5 pb-5">
-                    {/* <p class="section-label">Benefits</p> */}
-                    <h2 className="text-3xl md:text-6xl font-gilroy-bold text-[#212529] mb-4">
-                      Get your visa in 4 simple steps
-                    </h2>
+                    
+                    <div className=" w-full flex items-center gap-5 md:gap-10 max-md:flex-col max-md:text-center px-6 mb-6">
+                      <h2 className="text-3xl md:text-6xl font-gilroy-bold text-[#FFF] mb-4 text-left mb-10 flex-1">
+                        We're process driven <br /> Buckle up
+                      </h2>
 
-                    <div className=" mx-auto">
+                      {/* Right Side - Description */}
+                      <p className="text-white text-[13px] md:text-base font-medium leading-relaxed flex-[.6] text-left">
+                        Benefit from document pre-checks, error-proof form
+                        filling, and personalized visa guidance, powered by AI
+                        with human oversight at critical checkpoints - all
+                        designed to prevent delays, mistakes, and rejections.
+                      </p>
+                    </div>
+                    {/* <p class="section-label">Benefits</p> */}
+                    
+
+                    {/* <div className=" mx-auto">
                       <svg viewBox="0 0 934 280"
                         xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" className="wave-line">
                         <g id="Layer_1">
@@ -61,48 +76,89 @@ const VisaInformation = () => {
                               <tspan x="190.49781" dy="-0.5em">Confirm required</tspan>
                               <tspan x="190.49781" dy="1.2em">docs &amp; Start</tspan>
                             </text>
+                          <image href="/icons/submit.png" x="140" y="75" width="80" height="80" dominantBaseline="middle"/>
+  
+    <image href="/icons/build.png" x="320" y="65" width="100" height="100" />
+
+    
+    <image href="/icons/chekout.png" x="510" y="65" width="120" height="100" />
+
+
                             <text stroke="null" transform="matrix(0.999394 0 0 0.885242 22.9627 22.5922)" id="svg_7" fontWeight="500" fontSize={16} dominantBaseline="middle" textAnchor="middle" y="110.57265" x="342.33334">Upload &amp; Prep</text>
                             <text stroke="null" transform="matrix(1.02386 0 0 1.01895 35.787 10.2292)" id="svg_8" fontWeight="500" fontSize={16} dominantBaseline="middle" textAnchor="middle" y="105.57265" x="524.53332">Visit appointment</text>
                             <path stroke="#000" id="svg_9" fill="none" strokeWidth="2" d="m458.75437,132.51318c-27.66937,30.49046 -54.24821,56.42562 -83.61394,56.42562c-69.85053,0 -127.62236,-143.00509 -199.25481,-143.00509c-26.67863,0 -55.77092,20.1366 -82.7204,52.21373" />
                             <path stroke="#000" id="svg_10" fill="none" strokeWidth="2" d="m840.64011,129.4128c-27.05796,30.49045 -53.04949,56.42562 -81.76634,56.42562c-68.30706,0 -123.33353,-143.00509 -193.38311,-143.00509c-26.08912,0 -56.00736,20.1366 -82.36134,52.21373" />
                             <text stroke="null" transform="matrix(1.02386 0 0 1.01895 239.949 7.9039)" id="svg_11" fontWeight="500" fontSize={16} dominantBaseline="middle" textAnchor="middle" y="105.57265" x="504.35552">Approved</text>
+                             <image href="/icons/approved.png" dominantBaseline="middle"/>
+                              <image href="/icons/approved.png" x="710" y="65" width="100" height="100" />
                             <path stroke="#000" id="svg_12" opacity="0.2" fill="none" strokeWidth="2" d="m916.52945,112.65633c0,0 3.29983,-0.0141 -24.65165,0.10536c-47.94455,0.2049 -57.87404,-69.12426 -126.19989,-68.83225c-29.61304,0.12656 -60.62555,24.88627 -91.08568,55.17091" />
                           </g>
                         </g>
                       </svg>
-                    </div>
+                    </div> */}
 
-                    <div className="grid md:grid-cols-4 gap-1 max-md:text-sm max-md:text-left px-5 mx-5">
+                    <div className="grid md:grid-cols-4 gap-8 text-center md:text-left">
+                      {/* Step 1 */}
                       <div className="">
-                        <p className="font-medium">
-                          1. <span>Confirm required documents then start</span>
+                        <img
+                          src="/icons/submit.png"
+                          alt="Confirm documents"
+                          className="w-20 h-20 mb-3"
+                        />
+                        <h1 className="text-1xl md:text-3xl my-6">Checkout</h1>
+                        <p className="font-medium leading-relaxed">
+                          <span className="font-bold"></span> Confirm the
+                          required documents and checkout to lay the foundation.
+                          Upload documents and complete your details for a
+                          tailored solution that prioritises your experience.
                         </p>
                       </div>
+
+                      {/* Step 2 */}
                       <div className="">
-                        <p className="font-medium">
-                          2.{" "}
-                          <span>
-                            Upload docs and complete your details. Former
-                            consulate officers or VFS expert will review and get
-                            your complete application ready
-                          </span>
+                        <img
+                          src="/icons/build.png"
+                          alt="Upload & Prep"
+                          className="w-20 h-20 mb-3"
+                        />
+                        <h1 className="text-1xl md:text-3xl my-6">Build</h1>
+                        <p className="font-medium leading-relaxed">
+                          <span className="font-bold"></span> Experienced
+                          professionals who know exactly what’s needed and how
+                          to get it done right — review and create a complete
+                          application, allowing our customers to benefit from
+                          99.6% approval rate.
                         </p>
                       </div>
-                      <div className=" md:text-center">
-                        <p className="font-medium">
-                          3.{" "}
-                          <span style={{ marginRight: "auto" }}>
-                            Visit the visa centre to submit <br /> all gathered
-                            documents
-                          </span>
+
+                      {/* Step 3 */}
+                      <div className="">
+                        <img
+                          src="/icons/checkout.png"
+                          alt="Visit Appointment"
+                          className="w-20 h-20 mb-3"
+                        />
+                        <h1 className="text-1xl md:text-3xl my-6">Submit</h1>
+                        <p className="font-medium leading-relaxed">
+                          <span className="font-bold"></span> NUvisa books your
+                          express appointment. Visit your appointment to submit
+                          all gathered documents. We’ll be with you every step
+                          of the way, providing ongoing support to maximise your
+                          success.
                         </p>
                       </div>
-                      <div className=" md:text-center">
-                        <p className="font-medium">
-                          4.
-                          <span style={{ marginRight: "auto" }}>
-                            Once approved, you're eligible to travel.
-                          </span>
+
+                      {/* Step 4 */}
+                      <div className="">
+                        <img
+                          src="/icons/approved.png"
+                          alt="Approved"
+                          className="w-20 h-20 mb-3"
+                        />
+                        <h1 className="text-1xl md:text-3xl my-6">Approved</h1>
+                        <p className="font-medium leading-relaxed">
+                          <span className="font-bold"></span> Once approved,
+                          you’re eligible to travel.
                         </p>
                       </div>
                     </div>

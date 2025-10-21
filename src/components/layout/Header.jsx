@@ -10,6 +10,8 @@ import useParsedUser from "@/hooks/useParsedUser";
 export const Header = ({ href }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const { parsedUserData } = useParsedUser();
+   const openModal = () => setIsModalOpen(true);
+  const closeModal = () => setIsModalOpen(false);
 
   const handleLogout = () => {
     logoutFunction();
@@ -115,15 +117,15 @@ export const Header = ({ href }) => {
                 exit={{ opacity: 0, y: 10 }}
                 className="absolute right-0 mt-2 w-48 bg-[#23232b] border border-[#423577] rounded-md shadow-lg py-1 z-50"
               >
-                <a
-                  href="/my-profile"
+                 <div
+        onClick={openModal}
                   className="block px-4 py-2 text-sm text-gray-300 hover:bg-[#1e1e27] hover:text-white transition-colors"
                 >
                   <div className="flex items-center gap-2">
                     <FaUser className="text-gray-400" />
                     My Profile
                   </div>
-                </a>
+                </div>
                 <a
                   href="#"
                   className="block px-4 py-2 text-sm text-gray-300 hover:bg-[#1e1e27] hover:text-white transition-colors"
@@ -145,6 +147,15 @@ export const Header = ({ href }) => {
           </div>
         </div>
       </nav>
+       {isModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+          <div className="bg-white p-6 rounded">
+            <h2>My Profile</h2>
+            <button onClick={closeModal}>Close</button>
+          </div>
+        </div>
+      )}
     </div>
+   
   );
 };

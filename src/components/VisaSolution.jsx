@@ -9,6 +9,7 @@ import {
   setTravelers,
 } from "@/store/visaSlice";
 import { getCountryConfig } from "@/constants/countryConfig";
+import GetTheVisaButton from "./layout/GetTheVisaButton";
 
 const VisaSolution = () => {
   const router = useRouter();
@@ -148,10 +149,11 @@ const VisaSolution = () => {
 
           {/* Right Side - Description */}
           <p className="text-white text-[13px] md:text-base font-medium leading-relaxed flex-[.6]">
-            Benefit from document pre-checks, error-proof form filling, and
+            {/* Benefit from document pre-checks, error-proof form filling, and
             personalized visa guidance, powered by AI with human oversight at
             critical checkpoints - all designed to prevent delays, mistakes, and
-            rejections.
+            rejections. */}
+            If you're frustrated with travel agencies that have substantial fees, confusing conditions, and slow appointments - Meet the next generation peace of mind complete visa solution you've been looking for.
           </p>
         </div>
         <div className="w-[85%] md:w-[60%] min-h-[180px]">
@@ -207,12 +209,13 @@ const VisaSolution = () => {
         </div>
       </div>
 
-      <button className="group flex items-center bg-[#6B4EFF] text-white  gap-[16px] font-medium px-[24px] py-3 rounded-3xl cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb]">
+      {/* <button className="group flex items-center bg-[#6B4EFF] text-white  gap-[16px] font-medium px-[24px] py-3 rounded-3xl cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb]">
         <span className="mr-3 text-2xl">GET THE VISA</span>
         <span className="bg-white rounded-full p-1.5 transition-transform duration-300 group-hover:rotate-45 group-hover:translate-x-1 group-hover:-translate-y-0">
           <ArrowUpRight className="w-5 h-5 text-[#6B4EFF]" />
         </span>
-      </button>
+      </button> */}
+      <GetTheVisaButton />
     </section>
   );
 };

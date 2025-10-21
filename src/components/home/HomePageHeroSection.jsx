@@ -23,9 +23,9 @@ const HomePageHeroSection = () => {
               <span className="text-xs ml-1">for first visa</span>
             </div>
 
-            <h1 className="text-4xl sm:text-5xl font-gilroy-bold leading-tight">
+            {/* <h1 className="text-4xl sm:text-5xl font-gilroy-bold leading-tight">
               Schengen visa for Indians from the UK
-            </h1>
+            </h1> */}
 
             <p className="text-lg text-purple-100">
               Don't Postpone Your Happiness!
