@@ -115,7 +115,7 @@ const ComparisonSection = () => {
           </div>
           {/* NUvisa Side */}
           <div className="rounded-3xl max-sm:rounded-2xl flex flex-col items-center gap-3">
-            <div className="aspect-square w-full max-sm:h-[140px] md:h-[346px] mb-4 max-sm:mb-2 rounded-[30px] max-sm:rounded-[20px] overflow-hidden bg-gray-100">
+            <div className="aspect-square w-full md:h-[346px] mb-4 max-sm:mb-2 rounded-[30px] max-sm:rounded-[20px] overflow-hidden bg-gray-100">
               <img
                 src={data.rightSideImage || "/image/nuvisa-image.jpg"}
                 width={384}
