@@ -47,20 +47,44 @@ export default function HeaderSearchSection() {
       app?.id?.slice(0, 8).toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Comprehensive status filtering with proper categorization
   const newApplications = filteredApplications.filter(
-    (app) => app?.applicationStatus === "new"
+    (app) => {
+      const status = app?.applicationStatus?.toLowerCase();
+      return status === "new" || status === "draft" || status === "pending";
+    }
   ).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   const submittedApplications = filteredApplications.filter(
     (app) => {
       const status = app?.applicationStatus?.toLowerCase();
-      // Include all active processing states, not just "submitted"
+      // Include all active processing states
       return status === "submitted" || 
              status === "under_review" || 
              status === "appointment_booked" || 
              status === "at_embassy" || 
-             status === "approved" || 
              status === "processing";
+    }
+  ).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  const approvedApplications = filteredApplications.filter(
+    (app) => {
+      const status = app?.applicationStatus?.toLowerCase();
+      return status === "approved";
+    }
+  ).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  const rejectedApplications = filteredApplications.filter(
+    (app) => {
+      const status = app?.applicationStatus?.toLowerCase();
+      return status === "rejected" || status === "cancelled";
+    }
+  ).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  const completedApplications = filteredApplications.filter(
+    (app) => {
+      const status = app?.applicationStatus?.toLowerCase();
+      return status === "completed";
     }
   ).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
