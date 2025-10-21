@@ -26,6 +26,7 @@ const ApplicationCompletedSection = ({
   parentVisaApplication = null,
   onAddTraveler = null,
   onUploadDocument = null,
+  onRefresh = null,
   applicationId = null
 }) => {
   const formatApplicationId = (id) => {
@@ -161,8 +162,19 @@ const ApplicationCompletedSection = ({
     fetchApplicationStatus();
   }, [applicationId, parentVisaApplication, token]);
 
+  // Add effect to re-fetch status when parentVisaApplication changes
+  useEffect(() => {
+    if (parentVisaApplication?.id) {
+      fetchApplicationStatus();
+    }
+  }, [parentVisaApplication?.applicationStatus, parentVisaApplication?.id]);
+
   const handleRefreshStatus = () => {
-    fetchApplicationStatus();
+    if (onRefresh) {
+      onRefresh();
+    } else {
+      fetchApplicationStatus();
+    }
   };
 
   const handleAddTraveler = () => {
@@ -300,14 +312,14 @@ const ApplicationCompletedSection = ({
               <label className="text-sm text-gray-400">Application ID</label>
               <p className="text-white font-medium">
                 <ClientOnly fallback={referenceNumber}>
-                  {formatApplicationId(currentStatus?.id)}
+                  {currentStatus?.formattedApplicationId || formatApplicationId(currentStatus?.id)}
                 </ClientOnly>
               </p>
             </div>
-            {currentStatus?.orderId && <div>
+            {(currentStatus?.formattedOrderId || currentStatus?.orderId) && <div>
               <label className="text-sm text-gray-400">Order ID</label>
               <p className="text-white font-medium">
-                {currentStatus?.orderId || "N/A"}
+                {currentStatus?.formattedOrderId || formatOrderId(currentStatus?.orderId) || "N/A"}
               </p>
             </div>}
             <div>

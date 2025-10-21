@@ -53,7 +53,7 @@ const MultiStepAccordion = () => {
   const [_isClient, setIsClient] = useState(false);
   const [parentVisaApplication, setParentVisaApplication] = useState(null);
   const isApplicationSubmitted =
-    parentVisaApplication?.applicationStatus === "submitted";
+    ["submitted", "under_review", "processing", "approved", "rejected", "cancelled"].includes(parentVisaApplication?.applicationStatus);
 
   const [travelersStepInfo, setTravelersStepInfo] = useState({});
   const [loading, setLoading] = useState(false);
@@ -241,15 +241,24 @@ const MultiStepAccordion = () => {
       stepInfo || appStepInfo || getCurrentTravelerStepInfo();
     if (!relevantStepInfo) return;
 
+    // Check if application is submitted - if so, mark all steps as completed
+    const isApplicationSubmitted = ["submitted", "under_review", "processing", "approved", "rejected", "cancelled"].includes(parentVisaApplication?.applicationStatus);
+
     setSteps((prevSteps) => {
       return prevSteps.map((step) => {
         let isCompleted = relevantStepInfo.completedSteps?.includes(
           step.stepType
         );
+        
+        // If application is submitted, mark all steps as completed
+        if (isApplicationSubmitted) {
+          isCompleted = true;
+        }
+        
         const isInsuranceComplete =
           relevantStepInfo.completedSteps?.includes("insurance");
         if (step.stepType === "fullPayment") {
-          if (!isInsuranceComplete) {
+          if (!isInsuranceComplete && !isApplicationSubmitted) {
             isCompleted = false;
           }
         }
@@ -1591,6 +1600,7 @@ const MultiStepAccordion = () => {
 
   const fetchApplicationById = async () => {
     try {
+      setLoading(true);
       const payload = { id: applicationId };
       const response = await getVisaApplication(token, payload);
 
@@ -1708,7 +1718,14 @@ const MultiStepAccordion = () => {
       showError(
         "Failed to load application. Please check your connection and try again."
       );
+    } finally {
+      setLoading(false);
     }
+  };
+
+  // Add refresh function for status updates
+  const handleRefreshApplication = async () => {
+    await fetchApplicationById();
   };
 
   useEffect(() => {
@@ -1775,6 +1792,13 @@ const MultiStepAccordion = () => {
       updateStepsFromStepInfo(parentVisaApplication.stepInfo);
     }
   }, [parentVisaApplication?.stepInfo]);
+
+  // Update steps when application status changes
+  useEffect(() => {
+    if (parentVisaApplication?.applicationStatus) {
+      updateStepsFromStepInfo();
+    }
+  }, [parentVisaApplication?.applicationStatus]);
 
   useEffect(() => {
     const reduxArrivalRaw = visaState?.arrivalDate;
@@ -1993,6 +2017,94 @@ const MultiStepAccordion = () => {
                   className="bg-yellow-600  px-3 text-white min-w-40 py-2 rounded font-medium text-sm"
                 >
                   Upload Documents
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Show processing status when admin has updated the status */}
+        {isOwner && ["under_review", "processing"].includes(parentVisaApplication?.applicationStatus) && (
+          <div className="w-full mb-4 p-4 bg-blue-900/10 border border-blue-600 rounded-lg text-blue-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-medium">Application Under Review</div>
+                <div className="text-sm text-blue-200">
+                  Your application is being reviewed by our team. You will be notified of any updates via email.
+                </div>
+              </div>
+              <div>
+                <button
+                  onClick={openDocumentsStep}
+                  className="bg-blue-600 px-3 text-white min-w-40 py-2 rounded font-medium text-sm"
+                >
+                  Upload Documents
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Show approved status */}
+        {isOwner && parentVisaApplication?.applicationStatus === "approved" && (
+          <div className="w-full mb-4 p-4 bg-green-900/10 border border-green-600 rounded-lg text-green-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-medium">Application Approved</div>
+                <div className="text-sm text-green-200">
+                  Congratulations! Your visa application has been approved. You will receive further instructions via email.
+                </div>
+              </div>
+              <div>
+                <button
+                  onClick={() => router.push("/dashboard")}
+                  className="bg-green-600 px-3 text-white min-w-40 py-2 rounded font-medium text-sm"
+                >
+                  View Dashboard
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Show rejected status */}
+        {isOwner && parentVisaApplication?.applicationStatus === "rejected" && (
+          <div className="w-full mb-4 p-4 bg-red-900/10 border border-red-600 rounded-lg text-red-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-medium">Application Rejected</div>
+                <div className="text-sm text-red-200">
+                  Your visa application has been rejected. Please check your email for detailed reasons and next steps.
+                </div>
+              </div>
+              <div>
+                <button
+                  onClick={() => router.push("/dashboard")}
+                  className="bg-red-600 px-3 text-white min-w-40 py-2 rounded font-medium text-sm"
+                >
+                  View Dashboard
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Show cancelled status */}
+        {isOwner && parentVisaApplication?.applicationStatus === "cancelled" && (
+          <div className="w-full mb-4 p-4 bg-gray-900/10 border border-gray-600 rounded-lg text-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-medium">Application Cancelled</div>
+                <div className="text-sm text-gray-200">
+                  This application has been cancelled. Please contact support if you need assistance.
+                </div>
+              </div>
+              <div>
+                <button
+                  onClick={() => router.push("/dashboard")}
+                  className="bg-gray-600 px-3 text-white min-w-40 py-2 rounded font-medium text-sm"
+                >
+                  View Dashboard
                 </button>
               </div>
             </div>
@@ -2479,6 +2591,7 @@ const MultiStepAccordion = () => {
                           <ApplicationCompletedSection
                             parentVisaApplication={parentVisaApplication}
                             applicationId={applicationId}
+                            onRefresh={handleRefreshApplication}
                             onAddTraveler={async () => {
                               const uniqueId = `traveler_${Date.now()}_${Math.floor(
                                 Math.random() * 1000
@@ -2981,6 +3094,7 @@ const MultiStepAccordion = () => {
                           <ApplicationCompletedSection
                             parentVisaApplication={parentVisaApplication}
                             applicationId={applicationId}
+                            onRefresh={handleRefreshApplication}
                             onAddTraveler={async () => {
                               const uniqueId = `traveler_${Date.now()}_${Math.floor(
                                 Math.random() * 1000
@@ -3071,6 +3185,7 @@ const MultiStepAccordion = () => {
 
         {
           parentVisaApplication?.stepInfo?.completedSteps?.includes("appointment") &&
+          !["under_review", "processing", "approved", "rejected", "cancelled"].includes(parentVisaApplication?.applicationStatus) &&
           <div className="flex w-full justify-end">
             <button
               onClick={handleSubmit}

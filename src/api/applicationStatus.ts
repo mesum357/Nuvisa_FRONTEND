@@ -17,30 +17,133 @@ export const getApplicationStatus = async (token, applicationId) => {
       const applicationData =
         response.data.results?.application || response.data.application || response.data;
 
+      // Derive richer status with sub-states for appointment and embassy
+      const rawStatus = String(applicationData.applicationStatus || "submitted").toLowerCase();
+
+      // Extract appointment preferences (top-level or first traveler fallback)
+      const appointment = applicationData.appointment || (Array.isArray(applicationData.travelersData) && applicationData.travelersData[0]?.appointment) || null;
+      const pref1 = appointment?.preference1 || {};
+      const hasPref1Range = !!(pref1?.dateRange && String(pref1.dateRange).trim());
+      const hasPref1StartEnd = !!(pref1?.dateRangeStart || pref1?.dateRangeEnd);
+      const hasPref1Slot = !!(pref1?.slot && String(pref1.slot).trim());
+      const appointmentBooked = hasPref1Slot || hasPref1Range || hasPref1StartEnd;
+
+      const stepInfo = applicationData.stepInfo || {};
+      const currentStepKey = (stepInfo.currentStep || applicationData.currentStep || '').toString().toLowerCase();
+      const currentStageText = (applicationData.currentStage || '').toString().toLowerCase();
+      const atEmbassy = currentStepKey === 'at_embassy' || currentStageText === 'at embassy';
+
+      let derivedStatus = rawStatus;
+      if (rawStatus === 'approved' || rawStatus === 'rejected') {
+        derivedStatus = rawStatus;
+      } else if (atEmbassy) {
+        derivedStatus = 'at_embassy';
+      } else if (appointmentBooked) {
+        derivedStatus = 'appointment_booked';
+      } else if (rawStatus === 'under_review' || rawStatus === 'processing') {
+        derivedStatus = 'under_review';
+      } else if (rawStatus === 'submitted' || rawStatus === 'new' || rawStatus === 'draft') {
+        derivedStatus = 'submitted';
+      }
+
+      // Normalize appointment preference ranges to human-readable string if needed
+      const ensureRangeString = (p) => {
+        if (!p) return '';
+        if (p.dateRange) return p.dateRange;
+        const toStr = (d) => {
+          if (!d) return '';
+          const dt = new Date(d);
+          if (isNaN(dt.getTime())) return '';
+          const day = String(dt.getDate()).padStart(2, '0');
+          const month = String(dt.getMonth() + 1).padStart(2, '0');
+          const year = dt.getFullYear();
+          return `${day}/${month}/${year}`;
+        };
+        const start = toStr(p.dateRangeStart);
+        const end = toStr(p.dateRangeEnd);
+        if (!start && !end) return '';
+        return `${start} - ${end}`;
+      };
+
+      const appointmentPrefs = appointment
+        ? {
+            preference1: {
+              city: pref1.city || '',
+              dateRange: ensureRangeString(pref1),
+              slot: pref1.slot || '',
+            },
+            preference2: {
+              city: appointment?.preference2?.city || '',
+              dateRange: ensureRangeString(appointment?.preference2 || {}),
+              slot: appointment?.preference2?.slot || '',
+            },
+          }
+        : null;
+
+      // Format application and order IDs consistently
+      const formatApplicationId = (rawId) => {
+        if (!rawId) return null;
+        const numericTail = (source, length) => {
+          if (!source) return "".padStart(length, "0");
+          let digits = String(source).replace(/\D+/g, "");
+          if (digits.length < length) {
+            const codes = Array.from(String(source))
+              .map((c) => c.charCodeAt(0))
+              .join("");
+            digits = (digits + codes).replace(/\D+/g, "");
+          }
+          if (!digits.length) {
+            digits = "0".repeat(length);
+          }
+          return digits.slice(-length).padStart(length, "0");
+        };
+        return `AI${numericTail(rawId, 8)}`;
+      };
+
+      const formatOrderId = (rawOrderId) => {
+        if (!rawOrderId) return null;
+        const numericTail = (source, length) => {
+          if (!source) return "".padStart(length, "0");
+          let digits = String(source).replace(/\D+/g, "");
+          if (digits.length < length) {
+            const codes = Array.from(String(source))
+              .map((c) => c.charCodeAt(0))
+              .join("");
+            digits = (digits + codes).replace(/\D+/g, "");
+          }
+          if (!digits.length) {
+            digits = "0".repeat(length);
+          }
+          return digits.slice(-length).padStart(length, "0");
+        };
+        return `ORD${numericTail(rawOrderId, 6)}`;
+      };
+
       return {
         success: true,
         data: {
           id: applicationData.id || applicationId,
-          status: applicationData.applicationStatus || "submitted",
+          status: derivedStatus,
           submittedAt: applicationData.createdAt || new Date().toISOString(),
-          estimatedProcessingTime: "24 hours",
+          estimatedProcessingTime: '24 hours',
           orderId: applicationData.orderId,
-          currentStage: getStatusStage(applicationData.applicationStatus),
-          progress: getStatusProgress(applicationData.applicationStatus),
-          nextSteps: getNextSteps(applicationData.applicationStatus),
+          formattedApplicationId: formatApplicationId(applicationData.id || applicationId),
+          formattedOrderId: formatOrderId(applicationData.orderId),
+          currentStage: getStatusStage(derivedStatus),
+          progress: getStatusProgress(derivedStatus),
+          nextSteps: getNextSteps(derivedStatus),
           statusHistory: [
             {
-              status: applicationData.applicationStatus || "submitted",
+              status: derivedStatus,
               timestamp:
                 applicationData.updatedAt ||
                 applicationData.createdAt ||
                 new Date().toISOString(),
-              description: getStatusDescription(
-                applicationData.applicationStatus
-              ),
+              description: getStatusDescription(derivedStatus),
             },
           ],
-          applicationData: applicationData, // Include full application data
+          appointment: appointmentPrefs,
+          applicationData: applicationData,
         },
       };
     }
@@ -65,6 +168,10 @@ const getStatusStage = (status) => {
       return "Submitted";
     case "under_review":
       return "Application Review";
+    case "appointment_booked":
+      return "Appointment Booked";
+    case "at_embassy":
+      return "At Embassy";
     case "payment_required":
       return "Payment Processing";
     case "approved":
@@ -83,6 +190,10 @@ const getStatusProgress = (status) => {
       return 25;
     case "under_review":
       return 50;
+    case "appointment_booked":
+      return 75;
+    case "at_embassy":
+      return 90;
     case "payment_required":
       return 75;
     case "approved":
@@ -101,12 +212,21 @@ const getNextSteps = (status) => {
       // After submission the next logical steps are review, payment (if required) and decision
       return [
         "Application being queued for review",
-        "Decision notification",
+        "Move to Under Review",
       ];
     case "under_review":
       return [
         "Application is being reviewed",
-        "Decision notification",
+        "Book appointment",
+      ];
+    case "appointment_booked":
+      return [
+        "Attend appointment",
+        "Documents submission at embassy",
+      ];
+    case "at_embassy":
+      return [
+        "Await decision",
       ];
     case "payment_required":
       return [
@@ -142,6 +262,10 @@ const getStatusDescription = (status) => {
       return "Application successfully submitted and received";
     case "under_review":
       return "Application is being reviewed by our team";
+    case "appointment_booked":
+      return "Your visa appointment has been booked";
+    case "at_embassy":
+      return "Your documents are with the embassy";
     case "payment_required":
       return "Additional payment required to complete processing";
     case "approved":

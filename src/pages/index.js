@@ -8,6 +8,7 @@ import Navbar from "@/components/Navbar";
 import OurMission from "@/components/OurMission";
 import PremiumServiceSection from "@/components/PremiumServiceSection";
 import VisaSolution from "@/components/VisaSolution";
+import AppDownloadPopup from "@/components/AppDownloadPopup";
 import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 
@@ -78,6 +79,9 @@ const index = () => {
         <OurMission />
         <Footer />
       </div>
+      
+      {/* App Download Popup */}
+      <AppDownloadPopup />
     </div>
   );
 };

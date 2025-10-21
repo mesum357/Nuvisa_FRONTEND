@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAppDispatch } from "@/store";
@@ -10,9 +10,13 @@ import {
 } from "@/store/visaSlice";
 import GetTheVisaButton from "./layout/GetTheVisaButton";
 import { getCountryConfig } from "@/constants/countryConfig";
+import { fetchAppointmentTexts } from "@/api/appointmentText";
 
 const CountryCardsSection = () => {
   const [showAll, setShowAll] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [appointmentTexts, setAppointmentTexts] = useState([]);
   const router = useRouter();
   const dispatch = useAppDispatch();
 
@@ -35,82 +39,109 @@ const CountryCardsSection = () => {
     );
   };
 
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        setLoading(true);
+        const data = await fetchAppointmentTexts();
+        if (!active) return;
+        setAppointmentTexts(Array.isArray(data) ? data : []);
+        setError(null);
+      } catch (e) {
+        if (!active) return;
+        setError("Failed to load appointment texts.");
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const countries = [
     {
       name: "Germany",
-      image:
-        "/image/country/Germany.jpg",
+      image: "/image/country/Germany.jpg",
       landmark: "Brandenburg Gate",
     },
     {
       name: "Netherlands",
-      image:
-        "/image/country/Netherlands.jpg",
+      image: "/image/country/Netherlands.jpg",
       landmark: "Amsterdam Canal Houses",
     },
     {
       name: "Belgium",
-      image:
-        "/image/country/Belgium.jpg",
+      image: "/image/country/Belgium.jpg",
       landmark: "Atomium Brussels",
     },
     {
       name: "France",
-      image:
-        "/image/country/France.jpg",
+      image: "/image/country/France.jpg",
       landmark: "Eiffel Tower",
     },
     {
       name: "Italy",
-      image:
-        "/image/country/Italy.jpg",
+      image: "/image/country/Italy.jpg",
       landmark: "Colosseum Rome",
     },
     {
       name: "Bulgaria",
-      image:
-        "/image/country/Bulgaria.jpg",
+      image: "/image/country/Bulgaria.jpg",
       landmark: "Sagrada Familia",
     },
     {
       name: "Estonia",
-      image:
-        "/image/country/Estonia.jpg",
+      image: "/image/country/Estonia.jpg",
       landmark: "Tallinn Old Town",
     },
     {
       name: "Hungary",
-      image:
-        "/image/country/Hungary.jpg",
+      image: "/image/country/Hungary.jpg",
       landmark: "Parliament Building",
     },
     {
       name: "Portugal",
-      image:
-        "/image/country/Portugal.jpg",
+      image: "/image/country/Portugal.jpg",
       landmark: "Pena Palace",
     },
     {
       name: "Iceland",
-      image:
-        "/image/country/Iceland.jpg",
+      image: "/image/country/Iceland.jpg",
       landmark: "Blue Lagoon",
     },
     {
       name: "Poland",
-      image:
-        "/image/country/Poland.jpg",
+      image: "/image/country/Poland.jpg",
       landmark: "Warsaw Old Town",
     },
     {
       name: "NORWAY",
-      image:
-        "/image/country/Norway.jpg",
+      image: "/image/country/Norway.jpg",
       landmark: "Norwegian Fjords",
     },
   ];
 
-  const displayedCountries = showAll ? countries : countries.slice(0, 6);
+  const displayedCountries = useMemo(() => {
+    // Create a map of appointment texts for quick lookup
+    const appointmentTextMap = appointmentTexts.reduce((acc, item) => {
+      acc[item.countryName] = item.appointmentText;
+      return acc;
+    }, {});
+
+    // Map static countries with dynamic appointment text
+    const list = countries.map((country) => ({
+      name: country.name,
+      image: country.image,
+      landmark: country.landmark,
+      visaFee: Number(getCountryConfig(country.name).visaFee),
+      insuranceFee: Number(getCountryConfig(country.name).insuranceFee),
+      appointmentText: appointmentTextMap[country.name] || "Appointment in 10 days or less",
+    }));
+
+    return showAll ? list : list.slice(0, 6);
+  }, [appointmentTexts, showAll]);
 
   return (
     <div className="max-w-6xl mx-auto  px-6">
@@ -122,7 +153,7 @@ const CountryCardsSection = () => {
         We support 20 countries over all the visa centres in the UK
       </span>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {displayedCountries.map((country, index) => (
+        {!loading && !error && displayedCountries.map((country, index) => (
           <div
             key={index}
             onClick={() => handleCountrySelect(country.name)}
@@ -143,11 +174,11 @@ const CountryCardsSection = () => {
             {/* Card Content */}
             <div className="p-3">
               <div className="mb-4 text-sm md:text-base font-medium text-white">
-                {country.name.toUpperCase()}
+                £{country.visaFee} fee for your first visa with us
               </div>
 
               <div className="text-sm md:text-base font-medium text-white">
-                Appointment in 10 days or less
+                {country.appointmentText}
               </div>
             </div>
           </div>
