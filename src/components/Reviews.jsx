@@ -5,64 +5,64 @@ import Image from "next/image";
 
 const reviews = [
     {
-        name: "Karan T.",
+        name: "Karan",
         role: "Edinburgh",
-        img: "/img/testimonial-3.jpg",
+        img: "/img/karan.png",
         comment:
             "NUvisa has been a real game-changer for our travel plan. The visa application process was very seamless, and we got an appointment in just 2 days.",
     },
     {
-        name: "Amit D.",
+        name: "Amit",
         role: "Leicester",
-        img: "/img/testimonial-2.jpg",
+        img: "/img/amit.png",
         comment:
             "This literally feels like having an entire army of visa experts who manages application and get your visa on time.",
     },
     {
-        name: "Imran N.",
+        name: "Imran",
         role: "Manchester",
-        img: "/img/L1.jpg",
+        img: "/img/imran.png",
         comment:
             "Everything went smooth and was extremely straight forward, saved lot of money compared to other providers.",
     },
     {
-        name: "Ananya R.",
+        name: "Ananya",
         role: "London",
-        img: "/img/testimonial-1.jpg",
+        img: "/img/ananya.png",
         comment:
             "I love the folks at NUvisa as they make life easier and cost effective. Very impressed with the service and process, hope to get more countries soon.",
     },
     {
-        name: "Ayesha K.",
+        name: "Ayesha",
         role: "Birmingham",
-        img: "/img/hero.jpg",
+        img: "/img/ayesha.png",
         comment:
             "By far the best tool when it comes to visa application online. The process is so streamlined and just awesome!",
     },
     {
-        name: "Karan T.",
+        name: "Karan",
         role: "Edinburgh",
-        img: "/img/testimonial-3.jpg",
+        img: "/img/karan.png",
         comment:
             "NUvisa has been a real game-changer for our travel plan. The visa application process was very seamless, and we got an appointment in just 2 days.",
     },
     {
-        name: "Amit D.",
+        name: "Amit",
         role: "Leicester",
-        img: "/img/testimonial-2.jpg",
+        img: "/img/amit.png",
         comment:
             "This literally feels like having an entire army of visa experts who manages application and get your visa on time.",
     },
     {
-        name: "Imran N.",
+        name: "Imran",
         role: "Manchester",
-        img: "/img/L1.jpg",
+        img: "/img/imran.png",
         comment:
             "Everything went smooth and was extremely straight forward, saved lot of money compared to other providers.",
     }, {
-        name: "Ananya R.",
+        name: "Ananya",
         role: "London",
-        img: "/img/testimonial-1.jpg",
+        img: "/img/ananya.png",
         comment:
             "I love the folks at NUvisa as they make life easier and cost effective. Very impressed with the service and process, hope to get more countries soon.",
     }
@@ -117,7 +117,7 @@ export default function Reviews() {
                                     alt={r.name}
                                     width={40}
                                     height={40}
-                                    className="rounded-full object-cover"
+                                    className="h-[40px] w-[40px] rounded-full object-cover"
                                 />
                                 <div>
                                     <h3 className="font-semibold text-white text-sm">{r.name}</h3>

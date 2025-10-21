@@ -165,7 +165,7 @@ const VisaSolution = () => {
             loop
             playsInline
             preload="auto"
-            poster="//magic.fit/cdn/shop/files/Video_Overlay_1.png?v=1668943316&width=1200"
+            //poster="//magic.fit/cdn/shop/files/Video_Overlay_1.png?v=1668943316&width=1200"
           >
             <source
               src="/video/nuvisa.mp4"

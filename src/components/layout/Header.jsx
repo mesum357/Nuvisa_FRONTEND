@@ -100,7 +100,8 @@ export const Header = ({ href }) => {
           </motion.div>
 
           {/* WhatsApp */}
-          <motion.a
+          {/* <motion.a
+            
             whileHover={{ scale: 1.05 }}
             href="https://wa.me/447387667534" 
             target="_blank"
@@ -111,7 +112,19 @@ export const Header = ({ href }) => {
             <span className="text-sm font-medium text-gray-300 hidden md:inline">
               Chat
             </span>
-          </motion.a>
+          </motion.a> */}
+
+          <a
+            href="https://wa.me/447387667534"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center space-x-2 bg-green-600/20 border border-green-500/30 rounded-full px-3 py-1.5 hover:bg-green-600/30 transition-colors"
+          >
+            <FaWhatsapp className="text-green-400 size-4" />
+            <span className="text-sm font-medium text-gray-300 hidden md:inline">
+              Chat
+            </span>
+          </a>
 
           {/* Phone */}
           <motion.a
