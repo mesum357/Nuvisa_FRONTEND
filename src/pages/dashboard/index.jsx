@@ -58,12 +58,13 @@ export default function HeaderSearchSection() {
   const submittedApplications = filteredApplications.filter(
     (app) => {
       const status = app?.applicationStatus?.toLowerCase();
-      // Include all active processing states
+      // Include all active processing states and approved applications
       return status === "submitted" || 
              status === "under_review" || 
              status === "appointment_booked" || 
              status === "at_embassy" || 
-             status === "processing";
+             status === "processing" ||
+             status === "approved";
     }
   ).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
@@ -220,7 +221,7 @@ export default function HeaderSearchSection() {
                   onArchive={handleArchiveApplication}
                   requestArchive={setConfirmArchiveId}
                   emptyMessage="No submitted applications."
-                  emptySubMessage="Your submitted applications will show up here."
+                  emptySubMessage="Your submitted and approved applications will show up here."
                 />
               </div>
             )}
@@ -734,9 +735,6 @@ const ProgressTimeline = ({ currentStatus, applicant, allTravelers = [], current
           <h4 className="text-sm font-medium text-white">
             Travelers ({allTravelers.length})
           </h4>
-          <div className="bg-[#7350FF]/20 text-[#C1A2F4] text-xs font-semibold px-3 py-1 rounded-full">
-            {currentLabel || "Under Review"}
-          </div>
         </div>
 
         {allTravelers.length > 0 ? (
