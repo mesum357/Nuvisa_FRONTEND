@@ -608,8 +608,10 @@ const CountrySlider = () => {
   const tooltips = {
     sticker:
       "A visa sticker is a physical visa label attached to your passport. It contains your personal details, visa type, validity period, and number of entries allowed.",
-    duration:
-      "30 days is the standard duration for this visa type. This means you can stay in the Schengen area for up to 30 days within the visa validity period.",
+    duration: [
+      "You can stay for a maximum of 90 days for any 180 day period.",
+      "If your visa is valid for less than 90 days, you can only stay upto your visa validity."
+    ],
     term: "Short-term visas are typically issued for visits under 90 days. They're commonly used for tourism, business trips, or visiting family/friends.",
     entry:
       "Multiple entry allows you to enter the country multiple times during the visa validity period without needing to apply for a new visa each time.",
@@ -1966,14 +1968,18 @@ const CountrySlider = () => {
                   onMouseLeave={() => setActiveTooltip(null)}
                 >
                   <div className="flex items-center">
-                    <span>30 Days</span>
+                    <span>90 Days</span>
                     {/* <HelpCircle className="ml-1 h-4 w-4 text-gray-400" /> */}
                   </div>
                   {/* <p className="text-gray-500 mt-1">Short-term</p> */}
 
                   {activeTooltip === "duration" && (
                     <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200">
-                      <p className="text-sm ">{tooltips.duration}</p>
+                      <div className="text-sm">
+                        {tooltips.duration.map((line, index) => (
+                          <p key={index} className={index > 0 ? "mt-1" : ""}>{line}</p>
+                        ))}
+                      </div>
                       <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200"></div>
                     </div>
                   )}
@@ -2330,7 +2336,7 @@ const CountrySlider = () => {
                       <div className="flex-1">
                         <span className="text-base font-medium">Passport</span>
                         <p className="text-sm text-white/70 mt-1">
-                          Minimum 6 months validity required
+                         Valid 3+ months after Schengen trip, 2 blank pages 
                         </p>
                       </div>
                     </div>
@@ -2358,7 +2364,7 @@ const CountrySlider = () => {
                       <div className="flex-1">
                         <span className="text-base font-medium">UK Visa</span>
                         <p className="text-sm text-white/70 mt-1">
-                          Minimum 6 months validity required
+                          Valid 3+ months after Schengen trip
                         </p>
                       </div>
                     </div>
@@ -2495,53 +2501,30 @@ const CountrySlider = () => {
 
           {/* Insurance Certificate */}
           <div className="shadow-xl shadow-black/10 rounded-xl mb-4 ">
-            <div className="flex items-center gap-2 mb-6">
-              <div className="w-[30%]">
-                <img
-                  src="/image/digital card NUvisa.png"
-                  alt=""
-                  className=" w-full rounded-lg"
-                />
-              </div>
-              <div className="w-[60%]">
-                <div className="cursor-pointer rounded  transition-colors flex-1 mb-2">
-                  <div className="flex items-center space-x-2">
-                    <div
-                      onClick={() =>
-                        toggleRecommendedItem("insuranceCertificate")
-                      }
-                      className="flex items-center space-x-2 cursor-pointer"
-                    >
-                      <div
-                        className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black ${
-                          recommendedItems.insuranceCertificate
-                            ? "bg-[#7350FF] border border-transparent"
-                            : "bg-white border border-gray-500"
-                        }`}
-                      >
-                        {recommendedItems.insuranceCertificate && (
-                          <Check className="w-3.5 h-3.5 text-white" />
-                        )}
-                      </div>
-                      <span className="font-medium">Insurance certificate</span>
-                    </div>
-                    <ClientOnly
-                      fallback={
-                        <div className="flex items-center space-x-2 mt-1 ml-6">
-                          <span className="text-lg font-semibold line-through">
-                            £{Math.round(400 * 1.25 * travelers)}
-                          </span>
-                          <span className="font-gilroy-bold text-2xl">
-                            £{400 * travelers}
-                          </span>
-                        </div>
-                      }
-                    >
-                      {" "}
-                      <div className="flex items-center space-x-4">
-                        {/* Days Count Controls */}
-                        <div className="flex items-center space-x-2">
-                          {/* <button
+            <div className="flex gap-[10px]">
+              <div className="flex  flex-col items-center gap-2 mb-6 bg-white p-2 rounded-2xl text-[#23232B] w-[220px]">
+                <div className="w-full flex items-center  ">
+                  <div
+                    className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black self-start mt-2 ${
+                      recommendedItems.insuranceCertificate
+                        ? "bg-[#7350FF] border border-transparent"
+                        : "bg-white border border-gray-500"
+                    }`}
+                  >
+                    {recommendedItems.insuranceCertificate && (
+                      <Check className="w-3.5 h-3.5 text-white" />
+                    )}
+                  </div>
+
+                  <img
+                    src="/image/certificatee.jpg"
+                    alt=""
+                    className=" w-[120px] rounded-lg ml-2"
+                  />
+                  <div className="flex items-center space-x-4">
+                    {/* Days Count Controls */}
+                    <div className="flex items-center space-x-2">
+                      {/* <button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleInsuranceChange(-1);
@@ -2555,188 +2538,217 @@ const CountrySlider = () => {
                   >
                     -
                   </button> */}
-                          <span className="mx-2">{insuranceDays} Days</span>
-                          {(() => {
-                            let maxAllowedDays = 90;
-                            if (
-                              selectedVisaType &&
-                              selectedVisaType.duration_permitted
-                            ) {
-                              maxAllowedDays = parseInt(
-                                selectedVisaType.duration_permitted.replace(
-                                  /[^\d]/g,
-                                  ""
-                                )
-                              );
-                            }
-                            if (arrivalDate && departureDate) {
-                              const tripDuration = Math.ceil(
-                                (departureDate - arrivalDate) /
-                                  (1000 * 60 * 60 * 24)
-                              );
-                              maxAllowedDays = Math.min(
-                                maxAllowedDays,
-                                tripDuration
-                              );
-                            }
-                          })()}
+                      <span className="mx-2 text-[12px]">
+                        {insuranceDays} Days
+                      </span>
+                      {(() => {
+                        let maxAllowedDays = 90;
+                        if (
+                          selectedVisaType &&
+                          selectedVisaType.duration_permitted
+                        ) {
+                          maxAllowedDays = parseInt(
+                            selectedVisaType.duration_permitted.replace(
+                              /[^\d]/g,
+                              ""
+                            )
+                          );
+                        }
+                        if (arrivalDate && departureDate) {
+                          const tripDuration = Math.ceil(
+                            (departureDate - arrivalDate) /
+                              (1000 * 60 * 60 * 24)
+                          );
+                          maxAllowedDays = Math.min(
+                            maxAllowedDays,
+                            tripDuration
+                          );
+                        }
+                      })()}
+                    </div>
+                  </div>
+                </div>
+                <div className="w-full">
+                  <div className="cursor-pointer rounded  transition-colors flex-1 mb-2">
+                    <div className="flex items-center space-x-2">
+                      <div
+                        onClick={() =>
+                          toggleRecommendedItem("insuranceCertificate")
+                        }
+                        className="flex items-center space-x-2 cursor-pointer"
+                      >
+                        <span className="font-semibold">
+                          Insurance certificate
+                        </span>
+                      </div>
+                      <ClientOnly
+                        fallback={
+                          <div className="flex items-center space-x-2 mt-1 ml-6">
+                            <span className="text-lg font-semibold line-through">
+                              £{Math.round(400 * 1.25 * travelers)}
+                            </span>
+                            <span className="font-gilroy-bold text-2xl">
+                              £{400 * travelers}
+                            </span>
+                          </div>
+                        }
+                      >
+                        {" "}
+                      </ClientOnly>
+                    </div>
+                  </div>
+
+                  {/* Travel Dates Section */}
+                  <div className="mb-2">
+                    {selectedVisaType &&
+                      selectedVisaType.duration_permitted && (
+                        <div className="mb-2 p-2 bg-purple-600/20 rounded-lg">
+                          <p className="text-xs text-purple-200">
+                            📅 Maximum stay:{" "}
+                            {selectedVisaType.duration_permitted}
+                            {selectedVisaType.validity_period &&
+                              ` | Visa valid for: ${selectedVisaType.validity_period}`}
+                          </p>
+                        </div>
+                      )}
+
+                    <div className="flex items-center space-x-2">
+                      <div className="flex items-end gap-8">
+                        <div className="flex items-center gap-2">
+                          <QtyInput
+                            value={insuranceCount}
+                            onIncrement={() => handleInsuranceChange(1)}
+                            onDecrement={() => handleInsuranceChange(-1)}
+                            min={1}
+                          />
+                        </div>
+                        <div className="flex items-center space-x-2 ">
+                          <span className="text-lg font-semibold line-through">
+                            £{Math.round(computedInsuranceTotal * 1.25)}
+                          </span>
+                          <span className="font-gilroy-bold text-2xl">
+                            £{Math.round(calculateDiscountedInsurancePrice())}
+                          </span>
+                          {appliedInsuranceDiscount &&
+                            computedInsuranceTotal > 0 && (
+                              <span className="text-xs bg-green-600/20 text-green-400 px-2 py-1 rounded-full">
+                                -{appliedInsuranceDiscount.percentage}%
+                              </span>
+                            )}
                         </div>
                       </div>
-                    </ClientOnly>
-                  </div>
-                </div>
-
-                {/* Travel Dates Section */}
-                <div className="mb-2">
-                  {selectedVisaType && selectedVisaType.duration_permitted && (
-                    <div className="mb-2 p-2 bg-purple-600/20 rounded-lg">
-                      <p className="text-xs text-purple-200">
-                        📅 Maximum stay: {selectedVisaType.duration_permitted}
-                        {selectedVisaType.validity_period &&
-                          ` | Visa valid for: ${selectedVisaType.validity_period}`}
-                      </p>
-                    </div>
-                  )}
-                  <div className="flex items-end gap-8">
-                    <div className="flex items-center gap-2">
-                      <QtyInput
-                        value={insuranceCount}
-                        onIncrement={() => handleInsuranceChange(1)}
-                        onDecrement={() => handleInsuranceChange(-1)}
-                        min={1}
-                      />
-                      <label className="text-md">Insurance</label>
                     </div>
                   </div>
-                </div>
-
-                <div className="flex items-center space-x-2 ">
-                  <span className="text-lg font-semibold line-through">
-                    £{Math.round(computedInsuranceTotal * 1.25)}
-                  </span>
-                  <span className="font-gilroy-bold text-2xl">
-                    £{Math.round(calculateDiscountedInsurancePrice())}
-                  </span>
-                  {appliedInsuranceDiscount && computedInsuranceTotal > 0 && (
-                    <span className="text-xs bg-green-600/20 text-green-400 px-2 py-1 rounded-full">
-                      -{appliedInsuranceDiscount.percentage}%
-                    </span>
-                  )}
                 </div>
               </div>
-            </div>
 
-            <div className=" rounded-xl  mb-6 flex flex-col gap-2">
-              <div className="flex items-center gap-2 ">
-                <div className="w-[30%] ">
-                  <img
-                    src="/image/digital card NUvisa.png"
-                    alt=""
-                    className="w-full rounded-lg"
-                  />
-                </div>
-                <div className="w-[60%]">
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="cursor-pointer rounded  transition-colors flex-1 mb-2">
-                      <div className="flex items-center space-x-2">
-                        <div
-                          onClick={() => toggleRecommendedItem("giftCard")}
-                          className="flex items-center space-x-2 cursor-pointer "
-                        >
-                          <div
-                            className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black ${
-                              recommendedItems.giftCard
-                                ? "bg-[#7350FF] border border-transparent"
-                                : "bg-white border border-gray-500"
-                            }`}
-                          >
-                            {recommendedItems.giftCard && (
-                              <Check className="w-3.5 h-3.5 text-white" />
-                            )}
-                          </div>
-                          <span className="font-semibold">
-                            NUvisa digital gift card
-                          </span>
-                        </div>
-                      </div>
+              <div className=" rounded-xl  mb-6 flex flex-col gap-2 w-[220px]">
+                <div className="flex flex-col items-center gap-2  bg-white p-2 rounded-2xl text-[#23232B]">
+                  <div className="w-full flex items-center ">
+                    <div
+                      className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black self-start mt-2 ${
+                        recommendedItems.giftCard
+                          ? "bg-[#7350FF] border border-transparent"
+                          : "bg-white border border-gray-500"
+                      }`}
+                    >
+                      {recommendedItems.giftCard && (
+                        <Check className="w-3.5 h-3.5 text-white" />
+                      )}
                     </div>
-                  </div>
-
-                  <div className="flex items-center space-x-2 mb-2">
-                    <QtyInput
-                      value={giftCardCount}
-                      onIncrement={() => handleGiftCardChange(1)}
-                      onDecrement={() => handleGiftCardChange(-1)}
+                    <img
+                      src="/image/digital card NUvisa.png"
+                      alt=""
+                      className="w-[120px] rounded-lg ml-2"
                     />
                   </div>
-                  <div className="flex items-center space-x-2 ">
-                    <span className="text-lg font-semibold line-through">
-                      £{245 * giftCardCount}
-                    </span>
-                    <span className="font-gilroy-bold text-2xl">
-                      £{Math.round(calculateDiscountedGiftCardPrice())}
-                    </span>
-                    {appliedDiscount && recommendedItems.giftCard && (
-                      <span className="text-xs bg-green-600/20 text-green-400 px-2 py-1 rounded-full">
-                        -{appliedDiscount.percentage}%
-                      </span>
-                    )}
+                  <div className="w-full ">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="cursor-pointer rounded  transition-colors flex-1 mb-2">
+                        <div className="flex items-center space-x-2">
+                          <div
+                            onClick={() => toggleRecommendedItem("giftCard")}
+                            className="flex items-center space-x-2 cursor-pointer "
+                          >
+                            <span className="font-semibold">
+                              NUvisa digital gift card
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2 mb-2">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <QtyInput
+                          value={giftCardCount}
+                          onIncrement={() => handleGiftCardChange(1)}
+                          onDecrement={() => handleGiftCardChange(-1)}
+                        />
+                      </div>
+                      <div className="flex items-center space-x-2 ">
+                        <span className="text-lg font-semibold line-through">
+                          £{245 * giftCardCount}
+                        </span>
+                        <span className="font-gilroy-bold text-2xl">
+                          £{Math.round(calculateDiscountedGiftCardPrice())}
+                        </span>
+                        {appliedDiscount && recommendedItems.giftCard && (
+                          <span className="text-xs bg-green-600/20 text-green-400 px-2 py-1 rounded-full">
+                            -{appliedDiscount.percentage}%
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-
-              <p className="">
-                Give the gift of unforgettable memories this Christmas! Order
-                now and your digital gift card will be sent to your email
-                address immediately.
-              </p>
             </div>
+
+            <p className="">
+              Give the gift of unforgettable memories this Christmas! Order now
+              and your digital gift card will be sent to your email address
+              immediately.
+            </p>
 
             <div className="mb-6">
-              <h2 className="text-xl font-gilroy-bold mb-4">What's Included</h2>
-
               <div className="space-y-4 font-gilroy-medium !font-semibold">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 aspect-square rounded-full flex items-center justify-center">
-                    {/* <Clock className="size-6 text-white" /> */}
-                    <img src="/image/calendar.jpg" alt="" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 aspect-square rounded-full flex items-center justify-center">
+                      {/* <Clock className="size-6 text-white" /> */}
+                      <img src="/image/calendar.jpg" alt="" />
+                    </div>
+                    <div>
+                      <h3 className="">Auto-booking appointment</h3>
+                      <p className="font-semibold">(In 10 days or less)</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="">Secure the earliest appointment slot</h3>
-                    <p className="font-semibold">(In 10 days or less)</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 aspect-square rounded-full flex items-center justify-center">
-                    {/* <Clock className="size-6 text-white" /> */}
-                    <img
-                      src="/image/flights.jpg"
-                      alt=""
-                      className="w-10 aspect-square"
-                    />
-                  </div>
-                  <div>
-                    <h3 className="">Flexible flights and hotels</h3>
-                    <p className="">(Keeping your financials risk-free)</p>
+                    <div className=" flex gap-[2px] items-center">
+                 <span className="line-through">£100</span>
+                    <span className="ml-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">Free</span>
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 min-w-10 aspect-square rounded-full flex items-center justify-center">
-                    {/* <Clock className="size-6 text-white" /> */}
-                    <img
-                      src="/image/calendar.jpg"
-                      alt=""
-                      className="w-10 aspect-square"
-                    />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 aspect-square rounded-full flex items-center justify-center">
+                      {/* <Clock className="size-6 text-white" /> */}
+                      <img
+                        src="/image/flights.jpg"
+                        alt=""
+                        className="w-10 aspect-square"
+                      />
+                    </div>
+                    <div>
+                      <h3 className="">Concierge assistance</h3>
+                      <p className="">(Keeping your financials risk-free)</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="">Complete application assistance</h3>
-                    <p className="">
-                      (NUVisa prepares documents and forms for submission at the
-                      visa application centre)
-                    </p>
+                     
+                  <div className=" flex gap-[2px] items-center">
+                 <span className="line-through">£35</span>
+                    <span className="ml-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">Free</span>
                   </div>
                 </div>
               </div>
@@ -2879,7 +2891,7 @@ const CountrySlider = () => {
               </div>
             )}
 
-          <div className="border rounded-lg border-white/20 bg-white/5 backdrop-blur-sm overflow-hidden">
+          <div className="border rounded-3xl border-white/20 bg-white/5 backdrop-blur-sm overflow-hidden">
             <div className="flex items-center gap-4 p-4 border-b border-white/10">
               <div
                 className="h-4 w-4 rounded-full 
@@ -2888,7 +2900,7 @@ const CountrySlider = () => {
               ></div>
               <div>
                 <span className="text-sm font-medium text-white">
-                  Free express appointment and concierge assistance ends soon -
+                  Free Auto-booking appointment and concierge assistance ends soon -
                   Until Jan 2026.
                 </span>
               </div>
@@ -2898,10 +2910,10 @@ const CountrySlider = () => {
                 {/* August slots */}
                 <div className="text-center">
                   <div className="text-xs text-white/70 mb-2 font-medium">
-                    Aug slots
+                    Sep slots
                   </div>
-                  <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-2">
-                    <div className="text-xs text-red-300 font-semibold">
+                  <div className="bg-[#1e1e27] rounded-full p-2">
+                    <div className="text-xs text-white font-semibold">
                       Sold out
                     </div>
                   </div>
@@ -2910,11 +2922,11 @@ const CountrySlider = () => {
                 {/* September slots */}
                 <div className="text-center">
                   <div className="text-xs text-white/70 mb-2 font-medium">
-                    September slots
+                    October slots
                   </div>
-                  <div className="bg-orange-500/20 border border-orange-500/50 rounded-lg p-2">
-                    <div className="text-xs text-orange-300 font-semibold">
-                      95% reserved
+                  <div className="bg-[#5a3ddb]   rounded-full p-2">
+                    <div className="text-xs text-white font-semibold">
+                  Last few left!
                     </div>
                   </div>
                 </div>
@@ -2922,11 +2934,11 @@ const CountrySlider = () => {
                 {/* October slots */}
                 <div className="text-center">
                   <div className="text-xs text-white/70 mb-2 font-medium">
-                    October slots
+                    November slots
                   </div>
-                  <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-2">
-                    <div className="text-xs text-yellow-300 font-semibold">
-                      45% reserved
+                  <div className="bg-[#1e1e27] rounded-full p-2">
+                    <div className="text-xs text-white font-semibold">
+                      65% reserved
                     </div>
                   </div>
                 </div>
@@ -2945,7 +2957,7 @@ const CountrySlider = () => {
                 {/* Apple Pay Button - Official Style */}
                 <button
                   onClick={handleApplePayClick}
-                  className="group relative flex items-center justify-center bg-black text-white rounded-lg px-6 py-3 text-sm font-medium hover:opacity-90 transition-all duration-200 shadow-sm"
+                  className="group relative flex items-center justify-center bg-black text-white rounded-full px-6 py-3 text-sm font-medium hover:opacity-90 transition-all duration-200 shadow-sm"
                   style={{
                     backgroundColor: "#000",
                     minHeight: "44px",
@@ -2962,7 +2974,7 @@ const CountrySlider = () => {
                 {/* Google Pay Button - Official Style */}
                 <button
                   onClick={handleGooglePayClick}
-                  className="group relative flex items-center justify-center bg-white text-gray-800 rounded-lg px-6 py-3 text-sm font-medium hover:shadow-md transition-all duration-200 shadow-sm border border-gray-200"
+                  className="group relative flex items-center justify-center bg-white text-gray-800 rounded-full px-6 py-3 text-sm font-medium hover:shadow-md transition-all duration-200 shadow-sm border border-gray-200"
                   style={{
                     minHeight: "44px",
                     background:
