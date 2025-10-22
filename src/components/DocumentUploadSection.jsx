@@ -263,25 +263,58 @@ const DocumentUploadSection = ({
     }
 
     try {
-      const response = await fetch(fileObject.preview);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      // Method 1: Try fetch + blob approach first (most reliable for downloads)
+      const response = await fetch(fileObject.preview, {
+        method: 'GET',
+        mode: 'cors',
+        credentials: 'omit',
+        headers: {
+          'Accept': '*/*',
+        }
+      });
+      
+      if (response.ok) {
+        const blob = await response.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        
+        // Create download link
+        const downloadLink = document.createElement("a");
+        downloadLink.href = blobUrl;
+        downloadLink.download = fileObject.name || "document";
+        downloadLink.style.display = "none";
+        
+        // Add to DOM, trigger download, then clean up
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+        
+        // Clean up blob URL
+        setTimeout(() => {
+          window.URL.revokeObjectURL(blobUrl);
+        }, 100);
+        
+        return; // Success, exit early
       }
+    } catch (fetchError) {
+      console.log("Fetch method failed, trying direct download:", fetchError);
+    }
 
-      const blob = await response.blob();
-
-      const blobUrl = window.URL.createObjectURL(blob);
-
+    try {
+      // Method 2: Direct download approach
       const link = document.createElement("a");
-      link.href = blobUrl;
-      link.download = fileObject.name;
+      link.href = fileObject.preview;
+      link.download = fileObject.name || "document";
+      link.style.display = "none";
+      
+      // Add to DOM, trigger download, then clean up
       document.body.appendChild(link);
       link.click();
-
       document.body.removeChild(link);
-      window.URL.revokeObjectURL(blobUrl);
-    } catch (error) {
-      console.error("Could not download the file:", error);
+      
+    } catch (directError) {
+      console.error("Direct download failed:", directError);
+      
+      // Method 3: Final fallback - open in new tab
       window.open(fileObject.preview, "_blank");
     }
   };
@@ -422,28 +455,41 @@ const DocumentUploadSection = ({
                       key={index}
                       className="flex items-center justify-between bg-gray-800 p-3 rounded-lg"
                     >
-                      <p className="text-sm text-gray-300 font-medium">
-                        {file.name}
-                        {isPassportPhoto && (
-                          <span className="ml-2 text-xs text-gray-500">
-                            Photo {index + 1}
-                          </span>
-                        )}
-                      </p>
+                      <div className="flex-1">
+                        <p className="text-sm text-gray-300 font-medium">
+                          {file.name}
+                          {isPassportPhoto && (
+                            <span className="ml-2 text-xs text-gray-500">
+                              Photo {index + 1}
+                            </span>
+                          )}
+                        </p>
+                        <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
+                          <span>{(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                          <span>Uploaded {new Date(file.uploadedAt).toLocaleDateString('en-US', { 
+                            month: 'short', 
+                            day: 'numeric', 
+                            year: 'numeric',
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true 
+                          })}</span>
+                        </div>
+                      </div>
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleViewDocument(docType?.field, index)}
-                          className="p-2 text-gray-400 hover:text-blue-400 hover:bg-gray-700 rounded-md transition-colors"
+                          className="p-2 text-blue-400 hover:text-blue-300 hover:bg-gray-700 rounded-md transition-colors"
                           title="View document"
                         >
-                          <Eye className="w-5 h-5" />
+                          View
                         </button>
                         <button
                           onClick={() => handleDownloadDocument(file)}
-                          className="p-2 text-gray-400 hover:text-green-400 hover:bg-gray-700 rounded-md transition-colors"
+                          className="p-2 text-green-400 hover:text-green-300 hover:bg-gray-700 rounded-md transition-colors"
                           title="Download document"
                         >
-                          <Download className="w-5 h-5" />
+                          Download
                         </button>
                         {isOwner && (
                           <button

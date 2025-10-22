@@ -4315,13 +4315,11 @@ const FullPaymentStep = ({
                         el.payment?.paymentCompleted ? `£${el.payment?.paymentAmount || 0}` : `£${paymentFees}`
                       }
                     </span>
-                    <span className={
-                      `${el.payment.paymentCompleted ? "bg-green-900/20 text-green-400" : "bg-yellow-900/20 text-yellow-400"}`
-                    } >
-                      {
-                        el.payment.paymentCompleted ? "Paid" : "Pending"
-                      }
-                    </span>
+                    {el.payment.paymentCompleted && (
+                      <span className="bg-green-900/20 text-green-400 text-xs font-semibold px-2 py-1 rounded-full">
+                        Paid
+                      </span>
+                    )}
                   </div>
                 </div>
               })
@@ -4468,13 +4466,11 @@ const FullPaymentStep = ({
                           el.payment?.paymentCompleted ? `£${el.payment?.paymentAmount || 0}` : `£${paymentFees}`
                         }
                       </span>
-                      <span className={
-                        `${el.payment.paymentCompleted ? "bg-green-900/20 text-green-400" : "bg-yellow-900/20 text-yellow-400"}`
-                      } >
-                        {
-                          el.payment.paymentCompleted ? "Paid" : "Pending"
-                        }
-                      </span>
+                      {el.payment.paymentCompleted && (
+                        <span className="bg-green-900/20 text-green-400 text-xs font-semibold px-2 py-1 rounded-full">
+                          Paid
+                        </span>
+                      )}
                     </div>
                   </div>
                 })
