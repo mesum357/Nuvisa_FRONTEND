@@ -175,7 +175,7 @@ const Index = () => {
                   href="/get-the-visa"
                   className="font-medium text-purple-500 hover:text-purple-500"
                 >
-                  Proceed to checkout 3
+                  Proceed to checkout 
                 </Link>
               </p>
             </div>
