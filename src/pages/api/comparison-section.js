@@ -5,36 +5,25 @@ export default async function handler(req, res) {
 
   try {
     const { path } = req.query;
-    const endpoint = path ? `/comparison-section/${path}` : '/comparison-section/active';
+    const endpoint = path ? `?path=${path}` : '?path=active';
     
-    // Call the backend directly
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-    const response = await fetch(`${backendUrl}${endpoint}`, {
+    // Call the admin panel API directly
+    const adminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || 'https://nuvisa-admin.vercel.app';
+    const response = await fetch(`${adminUrl}/api/comparison-section${endpoint}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'X-Admin-Origin': 'http://localhost:3000',
-        'X-Admin-Proxy': '1',
       },
     });
 
     if (!response.ok) {
-      throw new Error(`Backend responded with status: ${response.status}`);
+      throw new Error(`Admin panel responded with status: ${response.status}`);
     }
 
     const data = await response.json();
 
-    // Handle the backend response structure
-    if (data.status === 'success' && data.data) {
-      // Check if there's actual data in the results
-      if (data.data.results && Object.keys(data.data.results).length > 0) {
-        return res.status(200).json(data.data.results);
-      } else {
-        return res.status(200).json(null);
-      }
-    }
-
-    return res.status(200).json(data || null);
+    // Return the data directly from admin panel
+    return res.status(200).json(data);
   } catch (error) {
     console.error('Error fetching comparison section:', error);
     return res.status(500).json({ error: 'Failed to fetch comparison section' });
