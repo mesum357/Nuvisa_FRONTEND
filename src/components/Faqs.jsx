@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ChevronDown,
   ChevronUp,
@@ -16,16 +16,55 @@ import GetTheVisaButton from "./layout/GetTheVisaButton";
 const FAQSection = () => {
   const router = useRouter();
   const [activeIndex, setActiveIndex] = useState(null);
+  const [faqs, setFaqs] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const toggleAccordion = (index) => {
-    setActiveIndex(activeIndex === index ? null : index);
+  useEffect(() => {
+    fetchFAQs();
+  }, []);
+
+  const fetchFAQs = async () => {
+    try {
+      setLoading(true);
+      
+      // Try multiple API endpoints in order of preference
+      const apiEndpoints = [
+        // 1. Admin panel API (if running)
+        process.env.NEXT_PUBLIC_ADMIN_API_URL ? `${process.env.NEXT_PUBLIC_ADMIN_API_URL}/api/public/faqs` : null,
+        // 2. Local admin panel (development)
+        'http://localhost:3001/api/public/faqs',
+        // 3. Frontend's own API route (fallback)
+        '/api/faqs',
+      ].filter(Boolean);
+
+      for (const endpoint of apiEndpoints) {
+        try {
+          const response = await fetch(endpoint);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data) {
+              setFaqs(data.data);
+              return;
+            }
+          }
+        } catch (endpointError) {
+          console.warn(`Failed to fetch from ${endpoint}:`, endpointError);
+          continue;
+        }
+      }
+      
+      // Fallback to hardcoded FAQs if all APIs fail
+      setFaqs(getDefaultFAQs());
+    } catch (error) {
+      console.error('Error fetching FAQs:', error);
+      // Fallback to hardcoded FAQs if API fails
+      setFaqs(getDefaultFAQs());
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleNavigate = () => {
-    router.push("/get-the-visa");
-  };
-
-  const faqs = [
+  const getDefaultFAQs = () => [
     {
       question: "What documents do I need for a Schengen visa application?",
       answer:
@@ -63,6 +102,14 @@ const FAQSection = () => {
     },
   ];
 
+  const toggleAccordion = (index) => {
+    setActiveIndex(activeIndex === index ? null : index);
+  };
+
+  const handleNavigate = () => {
+    router.push("/get-the-visa");
+  };
+
   return (
     <section className="py-16 px-4 sm:px-6 lg:px-8  w-full  mx-auto flex-col gap-3 flex items-center justify-center bg-[#F3E5FF]">
       <div className=" max-w-2xl mx-auto w-full">
@@ -72,7 +119,12 @@ const FAQSection = () => {
         </h2>
 
         <div className="space-y-4 w-full ">
-          {faqs.map((faq, index) => (
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-pulse text-gray-500">Loading FAQs...</div>
+            </div>
+          ) : (
+            faqs.map((faq, index) => (
             <div
               key={index}
               className="border border-gray-200 rounded-lg overflow-hidden transition-all duration-300 w-full"
@@ -97,7 +149,8 @@ const FAQSection = () => {
                 </div>
               )}
             </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
 

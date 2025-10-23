@@ -1,25 +1,74 @@
-import React from "react";
-import { X, Check } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Check } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { CircleX } from "lucide-react";
+import { getComparisonSection } from "@/api/comparisonSection";
 
 const ComparisonSection = () => {
-  const leftItems = [
-    "£250-£300 + extra fees",
-    "Traditional, often heavy-paperwork",
-    "Appointment in 6-8 weeks",
-    "Application business hours only",
-    "In-person or lengthy phone appointments",
-  ];
+  const [comparisonData, setComparisonData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const rightItems = [
-    "Flat £200 - no hidden fees",
-    "AI powered seamless process",
-    "Appointment in 10 days or less",
-    "24/7 instant submission & tracking",
-    "Complete digital experience",
-  ];
+  const fetchComparisonData = async () => {
+    try {
+      const response = await getComparisonSection();
+      
+      // Handle response structure
+      if (response?.data?.status === 'success' && response?.data?.data?.results) {
+        setComparisonData(response.data.data.results);
+      } else if (response?.data) {
+        setComparisonData(response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching comparison data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchComparisonData();
+  }, []);
+
+
+  // Fallback data if API fails or data is not available
+  const defaultData = {
+    title: "Travel Agency",
+    leftSideTitle: "Traditional Agency",
+    rightSideTitle: "NUvisa",
+    leftSideImage: "/image/visa-agency.png",
+    rightSideImage: "/image/nuvisa-image.jpg",
+    leftSideItems: [
+      "£250-£300 + extra fees",
+      "Traditional, often heavy-paperwork",
+      "Appointment in 6-8 weeks",
+      "Application business hours only",
+      "In-person or lengthy phone appointments",
+    ],
+    rightSideItems: [
+      "Flat £250 - no hidden fees",
+      "AI powered seamless process",
+      "Appointment in 10 days or less",
+      "24/7 instant submission & tracking",
+      "Complete digital experience",
+    ],
+  };
+
+  const data = comparisonData || defaultData;
+  const leftItems = data.leftSideItems || [];
+  const rightItems = data.rightSideItems || [];
+
+  if (loading) {
+    return (
+      <div className="bg-gradient-to-br w-full from-purple-100 to-[#f3e6ff] py-20 px-6">
+        <div className="max-w-[800px] mx-auto">
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gradient-to-br w-full from-purple-100 to-[#f3e6ff] py-20 px-6">
@@ -27,7 +76,7 @@ const ComparisonSection = () => {
         <div className="flex justify-between items-center">
           <div className="w-full items-center justify-center flex">
             <p className="text-3xl font-gilroy-bold text-black">
-              Travel Agency
+              {data.title || "Travel Agency"}
             </p>
           </div>
           <div className="text-[#7350FF] text-3xl md:text-4xl w-full items-center justify-center flex">
@@ -51,8 +100,8 @@ const ComparisonSection = () => {
               <Image
                 width={384}
                 height={346}
-                src="/image/visa-agency.png"
-                alt="Travel Agency Representative"
+                src={data.leftSideImage || "/image/visa-agency.png"}
+                alt={data.leftSideTitle || "Travel Agency Representative"}
                 className="w-full h-full object-cover"
               />
             </div>
@@ -63,18 +112,15 @@ const ComparisonSection = () => {
               alt=""
               className="w-12 h-12 md:w-20 md:h-20"
             />
-            {/* <div className="bg-black text-white w-12 h-12 md:w-20 md:h-20 rounded-full flex items-center justify-center text-[20px] md:text-[30px] font-extrabold shadow-lg font-gilroy-heavy !leading-none">
-              VS
-            </div> */}
           </div>
           {/* NUvisa Side */}
           <div className="rounded-3xl flex flex-col items-center gap-3">
             <div className="max-md:aspect-square w-full md:h-[346px] mb-8 rounded-[30px] overflow-hidden bg-gray-100">
               <img
-                src="/image/nuvisa-image.jpg"
+                src={data.rightSideImage || "/image/nuvisa-image.jpg"}
                 width={384}
                 height={346}
-                alt="Digital Experience"
+                alt={data.rightSideTitle || "Digital Experience"}
                 className="w-full h-full object-cover"
               />
             </div>
@@ -87,7 +133,6 @@ const ComparisonSection = () => {
           <div className="flex flex-col gap-2">
             {leftItems.map((item, i) => (
               <div key={i} className="flex items-center gap-[7px]">
-                {/* <div className="w-6 h-6 flex items-center justify-center rounded-full border border-gray-400 text-gray-600"> */}
                 <div className="size-4 md:size-6">
                   <CircleX
                     size={26}
@@ -95,7 +140,6 @@ const ComparisonSection = () => {
                     className="text-gray-500 size-4 md:size-6"
                   />
                 </div>
-                {/* </div> */}
                 <p className="text-black text-xs md:text-[18px] font-gilroy-bold !font-gilroy-bold">
                   {item}
                 </p>
