@@ -2409,7 +2409,8 @@ const CountrySlider = () => {
               <div className="flex  flex-col items-center gap-2 mb-6 bg-white p-2 rounded-2xl text-[#23232B] w-[220px]">
                 <div className="w-full flex items-center  ">
                   <div
-                    className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black self-start mt-2 ${
+                    onClick={() => toggleRecommendedItem("insuranceCertificate")}
+                    className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black self-start mt-2 cursor-pointer ${
                       recommendedItems.insuranceCertificate
                         ? "bg-[#7350FF] border border-transparent"
                         : "bg-white border border-gray-500"
@@ -2550,7 +2551,8 @@ const CountrySlider = () => {
                 <div className="flex flex-col items-center gap-2  bg-white p-2 rounded-2xl text-[#23232B]">
                   <div className="w-full flex items-center ">
                     <div
-                      className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black self-start mt-2 ${
+                      onClick={() => toggleRecommendedItem("giftCard")}
+                      className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black self-start mt-2 cursor-pointer ${
                         recommendedItems.giftCard
                           ? "bg-[#7350FF] border border-transparent"
                           : "bg-white border border-gray-500"
