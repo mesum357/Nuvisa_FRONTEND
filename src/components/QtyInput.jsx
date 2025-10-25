@@ -30,7 +30,7 @@ const QtyInput = ({
     <div className="flex items-center gap-1">
       <button
         aria-label="decrease"
-        className="bg-gray-700 px-2 py-1 rounded text-sm hover:bg-gray-600 disabled:opacity-50"
+        className="bg-white text-gray-700 border border-gray-300 px-2 py-1 rounded text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
         onClick={handleDecrement}
         disabled={value <= min}
       >
@@ -41,7 +41,7 @@ const QtyInput = ({
       <button
         aria-label="increase"
         onClick={handleIncrement}
-        className="bg-gray-700 px-2 py-1 rounded text-sm hover:bg-gray-600 disabled:opacity-50"
+        className="bg-white text-gray-700 border border-gray-300 px-2 py-1 rounded text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
         disabled={value >= max}
       >
         +
