@@ -58,13 +58,15 @@ export default function HeaderSearchSection() {
   const submittedApplications = filteredApplications.filter(
     (app) => {
       const status = app?.applicationStatus?.toLowerCase();
-      // Include all active processing states and approved applications
+      // Include all active processing states, approved applications, and rejected applications
       return status === "submitted" || 
              status === "under_review" || 
              status === "appointment_booked" || 
              status === "at_embassy" || 
              status === "processing" ||
-             status === "approved";
+             status === "approved" ||
+             status === "rejected" ||
+             status === "cancelled";
     }
   ).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
@@ -350,7 +352,7 @@ function ApplicationCard({
       }
     }
 
-    return app.travelersData.map((traveler, index) => {
+    return travelers.map((traveler, index) => {
       const firstName = (traveler?.basicDetails?.firstName || "").trim();
       const lastName = (traveler?.basicDetails?.lastName || "").trim();
 

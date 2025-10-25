@@ -9,10 +9,14 @@ import OurMission from "@/components/OurMission";
 import PremiumServiceSection from "@/components/PremiumServiceSection";
 import VisaSolution from "@/components/VisaSolution";
 import AppDownloadPopup from "@/components/AppDownloadPopup";
+import { useHeroContent } from "@/hooks/useHeroContent";
 import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
-const index = () => {
+const Index = () => {
+  const { heroContent, loading } = useHeroContent();
+
   return (
     <div className="w-full mx-auto h-full min-h-screen">
       <div className=" pri_bg text-white pb-[34px]">
@@ -28,13 +32,13 @@ const index = () => {
             </span> */}
           </div>
             <h1 className="text-5xl sm:text-6xl md:text-[6.5rem] font-gilroy-bold leading-tight mb-4 sm:mb-8 max-sm:tracking-tighter">
-              Don&apos;t Postpone Your Happiness!
+              {loading ? "Don't Postpone Your Happiness!" : heroContent.title}
               {/* <br /> */}
               {/* <span className="text-white"></span> */}
             </h1>
 
             <p className="text-[25px] md:text-[28px] public_text_clr font-extrabold leading-tight">
-              Flat £200 fee, faster processing, dedicated support
+              {loading ? "Flat £200 fee, faster processing, dedicated support" : heroContent.description}
             </p>
           </div>
           <div className="my-14 sm:mt-12 sm:mb-0 max-sm:w-full">
@@ -58,7 +62,7 @@ const index = () => {
             <div className="bg-[#1E1E27] rounded-3xl py-12 px-10 text-center shadow-2xl">
               {/* Main Heading */}
              <h2 className="text-[26px] max-md:px-8 lg:text-[38px] font-gilroy-bold text-[#fff] mb-2 leading-tight flex items-center gap-3 justify-center">
-  <img src="/icons/klarna.png" alt="Klarna" className="" />
+  <Image src="/icons/klarna.png" alt="Klarna" width={40} height={40} className="" />
   Pay in small instalments with interest free financing!
 </h2>
 
@@ -86,4 +90,4 @@ const index = () => {
   );
 };
 
-export default index;
+export default Index;
