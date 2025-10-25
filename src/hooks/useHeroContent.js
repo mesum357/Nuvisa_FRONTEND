@@ -27,12 +27,12 @@ export const useHeroContent = () => {
               contentMap[item.key] = item.value;
             });
             
-            setHeroContent({
-              title: contentMap['hero_title'] || heroContent.title,
-              description: contentMap['hero_description'] || heroContent.description,
-              ctaText: contentMap['hero_cta_text'] || heroContent.ctaText,
-              ctaLink: contentMap['hero_cta_link'] || heroContent.ctaLink,
-            });
+            setHeroContent(prevContent => ({
+              title: contentMap['hero_title'] || prevContent.title,
+              description: contentMap['hero_description'] || prevContent.description,
+              ctaText: contentMap['hero_cta_text'] || prevContent.ctaText,
+              ctaLink: contentMap['hero_cta_link'] || prevContent.ctaLink,
+            }));
           }
         } else {
           // Fallback to default values if API fails

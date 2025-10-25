@@ -108,7 +108,7 @@ export const useCalculatePayment = (applicationId) => {
           application.travelersData.every((t) =>
             t.fullPayment?.paymentCompleted
           );
-        setPaymentData({
+        const newPaymentData = {
           fullRemainingPayment: calculatedFullPayment,
           totalInsuranceCost: 0,
           noOfTravelersNeedingInsurance: 0,
@@ -121,9 +121,9 @@ export const useCalculatePayment = (applicationId) => {
           totalFullPayment: remainingNoOfTravelers * 149,
           totalInsurancePayment,
           noOfInsuranceUploaded
-        });
+        };
 
-        console.log(paymentData, "paymentData");
+        setPaymentData(newPaymentData);
       } catch (err) {
         console.error("Failed to calculate payment:", err);
         setError(err.message || "An unexpected error occurred.");

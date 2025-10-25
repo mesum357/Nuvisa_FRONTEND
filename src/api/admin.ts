@@ -223,7 +223,7 @@ export const getApplicationActivity = async (token, applicationId) => {
   }
 };
 
-export default {
+const adminApiMethods = {
   getApplicationOverview,
   getDocumentsOverview,
   searchApplications,
@@ -236,3 +236,5 @@ export default {
   sendNotification,
   getApplicationActivity,
 };
+
+export default adminApiMethods;

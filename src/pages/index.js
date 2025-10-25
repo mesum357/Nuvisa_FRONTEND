@@ -12,8 +12,9 @@ import AppDownloadPopup from "@/components/AppDownloadPopup";
 import { useHeroContent } from "@/hooks/useHeroContent";
 import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
-const index = () => {
+const Index = () => {
   const { heroContent, loading } = useHeroContent();
 
   return (
@@ -61,7 +62,7 @@ const index = () => {
             <div className="bg-[#1E1E27] rounded-3xl py-12 px-10 text-center shadow-2xl">
               {/* Main Heading */}
              <h2 className="text-[26px] max-md:px-8 lg:text-[38px] font-gilroy-bold text-[#fff] mb-2 leading-tight flex items-center gap-3 justify-center">
-  <img src="/icons/klarna.png" alt="Klarna" className="" />
+  <Image src="/icons/klarna.png" alt="Klarna" width={40} height={40} className="" />
   Pay in small instalments with interest free financing!
 </h2>
 
@@ -89,4 +90,4 @@ const index = () => {
   );
 };
 
-export default index;
+export default Index;
