@@ -2001,7 +2001,7 @@ const MultiStepAccordion = () => {
 
         {/* Number of Travelers Setup */}
 
-        {isApplicationSubmitted && isOwner && (
+        {isApplicationSubmitted && isOwner && parentVisaApplication?.applicationStatus === "submitted" && !_validateAllTravelersDocuments() && (
           <div className="w-full mb-4 p-4 bg-yellow-900/10 border border-yellow-600 rounded-lg text-yellow-100">
             <div className="flex items-center justify-between">
               <div>
@@ -2033,14 +2033,16 @@ const MultiStepAccordion = () => {
                   Your application is being reviewed by our team. You will be notified of any updates via email.
                 </div>
               </div>
-              <div>
-                <button
-                  onClick={openDocumentsStep}
-                  className="bg-blue-600 px-3 text-white min-w-40 py-2 rounded font-medium text-sm"
-                >
-                  Upload Documents
-                </button>
-              </div>
+              {!_validateAllTravelersDocuments() && (
+                <div>
+                  <button
+                    onClick={openDocumentsStep}
+                    className="bg-blue-600 px-3 text-white min-w-40 py-2 rounded font-medium text-sm"
+                  >
+                    Upload Documents
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}

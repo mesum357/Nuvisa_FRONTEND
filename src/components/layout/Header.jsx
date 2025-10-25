@@ -1,21 +1,48 @@
 import { Phone, ChevronDown, MessageCircle, HelpCircle } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FaUser, FaWhatsapp } from "react-icons/fa";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { logoutFunction } from "@/utils/logoutFunction";
 import useParsedUser from "@/hooks/useParsedUser";
+import { fetchHeaderContent, getHeaderContentByKey } from "@/api/headerContent";
 
 export const Header = ({ href }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [headerContent, setHeaderContent] = useState([]);
+  const [loading, setLoading] = useState(true);
   const { parsedUserData } = useParsedUser();
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
 
+  useEffect(() => {
+    const loadHeaderContent = async () => {
+      try {
+        setLoading(true);
+        const content = await fetchHeaderContent();
+        setHeaderContent(content);
+      } catch (error) {
+        console.error('Failed to load header content:', error);
+        // Fallback to default content if API fails
+        setHeaderContent([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadHeaderContent();
+  }, []);
+
   const handleLogout = () => {
     logoutFunction();
+  };
+
+  // Helper function to get content with fallback
+  const getContent = (key, fallback = '') => {
+    if (loading) return '';
+    return getHeaderContentByKey(headerContent, key) || '';
   };
 
   return (
@@ -23,11 +50,13 @@ export const Header = ({ href }) => {
       {/* Top Promotional Banner */}
       <div className="sec_bg px-4 py-2.5 text-center border-[#423577] border-b text-sm rounded-b-[23px]">
         <span className="font-medium md:font-semibold">
-          ❤️ NEW CUSTOMER OFFER - £149 fee for your first visa with us, then £200
+          {getContent('banner_offer_text')}
         </span>
-        <button className="ml-4 underline decoration-[#7351ff] public_text_clr rounded-md text-white font-medium transition-colors">
-          Get now
-        </button>
+        <Link href={getContent('banner_button_link')}>
+          <button className="ml-4 underline decoration-[#7351ff] public_text_clr rounded-md text-white font-medium transition-colors">
+            {getContent('banner_button_text')}
+          </button>
+        </Link>
       </div>
 
       {/* Main Navigation */}
@@ -48,7 +77,7 @@ export const Header = ({ href }) => {
         {/* Tagline - Hidden on small screens */}
         <div className="hidden lg:block">
           <span className="text-[28px] font-gilroy-bold">
-            Schengen visa for Indians from the UK
+            {getContent('nav_tagline')}
           </span>
         </div>
 

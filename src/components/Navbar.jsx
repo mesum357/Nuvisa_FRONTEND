@@ -4,9 +4,36 @@ import Link from "next/link";
 import { useAppSelector } from "@/store";
 import ClientOnly from "./ClientOnly";
 import { FaEnvelope, FaWhatsapp } from "react-icons/fa";
+import { useState, useEffect } from "react";
+import { fetchHeaderContent, getHeaderContentByKey } from "@/api/headerContent";
 
 const Navbar = () => {
   const isAuthenticated = useAppSelector((state) => state.auth.authState);
+  const [headerContent, setHeaderContent] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadHeaderContent = async () => {
+      try {
+        setLoading(true);
+        const content = await fetchHeaderContent();
+        setHeaderContent(content);
+      } catch (error) {
+        console.error('Failed to load header content:', error);
+        setHeaderContent([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadHeaderContent();
+  }, []);
+
+  // Helper function to get content with fallback
+  const getContent = (key, fallback = '') => {
+    if (loading) return '';
+    return getHeaderContentByKey(headerContent, key) || '';
+  };
 
   return (
     <ClientOnly>
@@ -16,11 +43,11 @@ const Navbar = () => {
   {/* Left Content (Text + Button aligned LEFT) */}
   <div className="flex items-center gap-3">
     <span className="font-medium md:font-semibold">
-      ❤️ NEW CUSTOMER OFFER - £129 fee for your first visa with us, then £200
+      {getContent('banner_offer_text')}
     </span>
-    <Link href={"/get-the-visa"}>
+    <Link href={getContent('banner_button_link')}>
     <button className="underline decoration-[#7351ff] public_text_clr rounded-md text-white font-medium transition-colors">
-      Get now
+      {getContent('banner_button_text')}
     </button>
     </Link>
   </div>
@@ -30,13 +57,13 @@ const Navbar = () => {
     <div className="flex items-center gap-2">
       <FaWhatsapp className="text-green-400 size-4" />
       <span className="text-sm font-medium text-gray-300 hidden md:inline">
-        +44 7825528764
+        {getContent('contact_phone')}
       </span>
     </div>
 
     <div className="flex items-center gap-2">
       <FaEnvelope className="size-4" />
-      <span>support@nuvisa.co.uk</span>
+      <span>{getContent('contact_email')}</span>
     </div>
   </div>
 
@@ -45,7 +72,7 @@ const Navbar = () => {
 
         <div className="lg:hidden text-center mt-5">
           <span className="text-xl sm:text-2xl font-gilroy-bold">
-            Schengen visa for Indians from the UK
+            {getContent('nav_tagline')}
           </span>
         </div>
 
@@ -67,7 +94,7 @@ const Navbar = () => {
   {/* Center Text */}
   <div className="absolute left-1/2 transform -translate-x-1/2">
     <span className="text-[22px] font-gilroy-bold text-center">
-      Schengen visa for Indians from the UK
+      {getContent('nav_tagline')}
     </span>
   </div>
 
@@ -87,7 +114,7 @@ const Navbar = () => {
             alt="Holiday Packages"
             className="inline-block mr-2 w-8"
           />
-          Holiday Packages
+          {getContent('nav_holiday_packages_text')}
         </button>
       </div>
     </div>
@@ -105,7 +132,7 @@ const Navbar = () => {
     ) : (
       <Link href="/dashboard" className="cursor-pointer">
         <button className="border border-white hover:border-neutral-500 px-[16px] py-[7px] rounded-full font-medium transition-colors cursor-pointer">
-          Login
+          {getContent('nav_login_text')}
         </button>
       </Link>
     )}

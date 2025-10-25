@@ -17,6 +17,10 @@ const CountryCardsSection = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [appointmentTexts, setAppointmentTexts] = useState([]);
+  const [sectionContent, setSectionContent] = useState({
+    title: "Choose Your Country",
+    description: "We support 20 countries over all the visa centres in the UK"
+  });
   const router = useRouter();
   const dispatch = useAppDispatch();
 
@@ -39,22 +43,64 @@ const CountryCardsSection = () => {
     );
   };
 
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      // Fetch appointment texts which now includes section content
+      const appointmentTextsData = await fetchAppointmentTexts();
+      
+      console.log('Frontend received appointment texts:', appointmentTextsData);
+      
+      setAppointmentTexts(Array.isArray(appointmentTextsData) ? appointmentTextsData : []);
+      
+      // Extract section content from appointment text records
+      if (appointmentTextsData && appointmentTextsData.length > 0) {
+        // Look for a record with section content (prefer DEFAULT record, then any record)
+        const recordWithSectionContent = appointmentTextsData.find(record => 
+          record.sectionTitle && record.sectionDescription
+        ) || appointmentTextsData[0];
+        
+        console.log('Record with section content:', recordWithSectionContent);
+        
+        const newSectionContent = {
+          title: recordWithSectionContent.sectionTitle || "Choose Your Country",
+          description: recordWithSectionContent.sectionDescription || "We support 20 countries over all the visa centres in the UK"
+        };
+        
+        console.log('Setting section content:', newSectionContent);
+        setSectionContent(newSectionContent);
+      } else {
+        // Set fallback values if no data
+        console.log('No appointment texts data, using fallback');
+        setSectionContent({
+          title: "Choose Your Country",
+          description: "We support 20 countries over all the visa centres in the UK"
+        });
+      }
+      
+      setError(null);
+    } catch (e) {
+      console.error('Error fetching data:', e);
+      setError("Failed to load data.");
+      // Set fallback values on error
+      setSectionContent({
+        title: "Choose Your Country",
+        description: "We support 20 countries over all the visa centres in the UK"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     let active = true;
-    (async () => {
-      try {
-        setLoading(true);
-        const data = await fetchAppointmentTexts();
-        if (!active) return;
-        setAppointmentTexts(Array.isArray(data) ? data : []);
-        setError(null);
-      } catch (e) {
-        if (!active) return;
-        setError("Failed to load appointment texts.");
-      } finally {
-        if (active) setLoading(false);
-      }
-    })();
+    
+    const loadData = async () => {
+      await fetchData();
+    };
+    
+    loadData();
+    
     return () => {
       active = false;
     };
@@ -147,10 +193,10 @@ const CountryCardsSection = () => {
     <div className="max-w-6xl mx-auto  px-6">
       {/* Cards Grid */}
       <span className="text-4xl text-center font-gilroy-bold text-white flex item-center justify-center pb-4">
-        Choose Your Country
+        {sectionContent.title}
       </span>
       <span className="text-3xl text-center font-gilroy text-white flex item-center justify-center pb-8">
-        We support 20 countries over all the visa centres in the UK
+        {sectionContent.description}
       </span>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {!loading && !error && displayedCountries.map((country, index) => (

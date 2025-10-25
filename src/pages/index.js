@@ -9,10 +9,13 @@ import OurMission from "@/components/OurMission";
 import PremiumServiceSection from "@/components/PremiumServiceSection";
 import VisaSolution from "@/components/VisaSolution";
 import AppDownloadPopup from "@/components/AppDownloadPopup";
+import { useHeroContent } from "@/hooks/useHeroContent";
 import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 
 const index = () => {
+  const { heroContent, loading } = useHeroContent();
+
   return (
     <div className="w-full mx-auto h-full min-h-screen">
       <div className=" pri_bg text-white pb-[34px]">
@@ -28,13 +31,13 @@ const index = () => {
             </span> */}
           </div>
             <h1 className="text-5xl sm:text-6xl md:text-[6.5rem] font-gilroy-bold leading-tight mb-4 sm:mb-8 max-sm:tracking-tighter">
-              Don&apos;t Postpone Your Happiness!
+              {loading ? "Don't Postpone Your Happiness!" : heroContent.title}
               {/* <br /> */}
               {/* <span className="text-white"></span> */}
             </h1>
 
             <p className="text-[25px] md:text-[28px] public_text_clr font-extrabold leading-tight">
-              Flat £200 fee, faster processing, dedicated support
+              {loading ? "Flat £200 fee, faster processing, dedicated support" : heroContent.description}
             </p>
           </div>
           <div className="my-14 sm:mt-12 sm:mb-0 max-sm:w-full">
