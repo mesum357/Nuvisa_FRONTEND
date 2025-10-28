@@ -21,7 +21,7 @@ const AppDownloadPopup = () => {
         setIsVisible(true);
         // Mark as shown in this session to prevent showing again during navigation
         sessionStorage.setItem('nuvisa-popup-shown-session', 'true');
-      }, 3000); // 3 seconds
+      }, 6000); // 3 seconds
 
       return () => clearTimeout(timer);
     }
