@@ -53,7 +53,7 @@ const MultiStepAccordion = () => {
   const [_isClient, setIsClient] = useState(false);
   const [parentVisaApplication, setParentVisaApplication] = useState(null);
   const isApplicationSubmitted =
-    ["submitted", "under_review", "processing", "approved", "rejected", "cancelled"].includes(parentVisaApplication?.applicationStatus);
+    ["submitted", "under_review", "processing", "approved", "rejected", "cancelled", "at_embassy", "appointment_booked", "completed"].includes(parentVisaApplication?.applicationStatus);
 
   const [travelersStepInfo, setTravelersStepInfo] = useState({});
   const [loading, setLoading] = useState(false);
@@ -242,7 +242,7 @@ const MultiStepAccordion = () => {
     if (!relevantStepInfo) return;
 
     // Check if application is submitted - if so, mark all steps as completed
-    const isApplicationSubmitted = ["submitted", "under_review", "processing", "approved", "rejected", "cancelled"].includes(parentVisaApplication?.applicationStatus);
+    const isApplicationSubmitted = ["submitted", "under_review", "processing", "approved", "rejected", "cancelled", "at_embassy", "appointment_booked", "completed"].includes(parentVisaApplication?.applicationStatus);
 
     setSteps((prevSteps) => {
       return prevSteps.map((step) => {
@@ -3187,7 +3187,7 @@ const MultiStepAccordion = () => {
 
         {
           parentVisaApplication?.stepInfo?.completedSteps?.includes("appointment") &&
-          !["under_review", "processing", "approved", "rejected", "cancelled"].includes(parentVisaApplication?.applicationStatus) &&
+          !isApplicationSubmitted &&
           <div className="flex w-full justify-end">
             <button
               onClick={handleSubmit}
