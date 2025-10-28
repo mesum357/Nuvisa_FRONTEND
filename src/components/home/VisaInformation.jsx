@@ -9,8 +9,13 @@ import SeamlessExperience from "../SeamlessExperience";
 import CountrySlider from "../Slider";
 import VisaSolution from "../VisaSolution";
 import submit from "../../../public/icons/submit.png";
+import { useKlarnaContent } from "../../hooks/useKlarnaContent";
+import { useProcessContent } from "../../hooks/useProcessContent";
 
 const VisaInformation = () => {
+  const { klarnaContent, loading: klarnaLoading } = useKlarnaContent();
+  const { processContent, loading: processLoading } = useProcessContent();
+
   return (
     <ClientOnly>
       <div className="bg-[#1E1E27] text-white">
@@ -25,18 +30,18 @@ const VisaInformation = () => {
               {/* Main Heading */}
               <h2 className="text-[26px] max-md:px-8 lg:text-[38px] font-gilroy-bold text-[#212529] mb-2 leading-tight flex items-center gap-3 justify-center">
                 <img src="/icons/klarna.png" alt="Klarna" className="" />
-                Pay in small instalments with interest free financing!
+                {klarnaLoading ? "Loading..." : klarnaContent.heading}
               </h2>
 
               {/* Subheading with Details */}
               <div className=" flex items-center gap-2 max-md:flex-col text-[#212529] justify-center ">
                 <p className="text-sm md:text-[16px] font-medium">
-                  4 payments of £32 with 0% interest.
+                  {klarnaLoading ? "Loading..." : klarnaContent.subtitle}
                 </p>
                 <p className="font-semibold text-lg md:text-[20px] ">
-                  <span className="">£32</span> each |
-                  <span className="mx-2">0% Interest</span>|{" "}
-                  <span> No fees</span>
+                  <span className="">{!klarnaLoading && klarnaContent.paymentAmount}</span> each |
+                  <span className="mx-2">{!klarnaLoading && klarnaContent.interestRate}</span>|{" "}
+                  <span> {!klarnaLoading && klarnaContent.fees}</span>
                 </p>
               </div>
             </div>
@@ -49,16 +54,13 @@ const VisaInformation = () => {
                   <div className="pdp_media_el bg-purple p-3 pt-5 pb-5">
                     
                     <div className=" w-full flex items-center gap-5 md:gap-10 max-md:flex-col max-md:text-center px-6 mb-6">
-                      <h2 className="text-3xl md:text-6xl font-gilroy-bold text-[#FFF] mb-4 text-left mb-10 flex-1">
-                        We're process driven <br /> Buckle up
+                      <h2 className="text-3xl md:text-6xl font-gilroy-bold text-[#FFF] mb-4 text-left mb-10 flex-1 whitespace-pre-line">
+                        {processLoading ? "Loading..." : processContent.heading}
                       </h2>
 
                       {/* Right Side - Description */}
                       <p className="text-white text-[13px] md:text-base font-medium leading-relaxed flex-[.6] text-left">
-                        Benefit from document pre-checks, error-proof form
-                        filling, and personalized visa guidance, powered by AI
-                        with human oversight at critical checkpoints - all
-                        designed to prevent delays, mistakes, and rejections.
+                        {processLoading ? "Loading..." : processContent.description}
                       </p>
                     </div>
                     {/* <p class="section-label">Benefits</p> */}
@@ -105,12 +107,11 @@ const VisaInformation = () => {
                           alt="Confirm documents"
                           className="w-20 h-20 mb-3"
                         />
-                        <h1 className="text-1xl md:text-3xl my-6">Checkout</h1>
+                        <h1 className="text-1xl md:text-3xl my-6">
+                          {processLoading ? "Loading..." : processContent.steps[0].title}
+                        </h1>
                         <p className="font-medium leading-relaxed">
-                          <span className="font-bold"></span> Confirm the
-                          required documents and checkout to lay the foundation.
-                          Upload documents and complete your details for a
-                          tailored solution that prioritises your experience.
+                          {processLoading ? "Loading..." : processContent.steps[0].description}
                         </p>
                       </div>
 
@@ -121,13 +122,11 @@ const VisaInformation = () => {
                           alt="Upload & Prep"
                           className="w-20 h-20 mb-3"
                         />
-                        <h1 className="text-1xl md:text-3xl my-6">Build</h1>
+                        <h1 className="text-1xl md:text-3xl my-6">
+                          {processLoading ? "Loading..." : processContent.steps[1].title}
+                        </h1>
                         <p className="font-medium leading-relaxed">
-                          <span className="font-bold"></span> Experienced
-                          professionals who know exactly what’s needed and how
-                          to get it done right — review and create a complete
-                          application, allowing our customers to benefit from
-                          99.6% approval rate.
+                          {processLoading ? "Loading..." : processContent.steps[1].description}
                         </p>
                       </div>
 
@@ -138,13 +137,11 @@ const VisaInformation = () => {
                           alt="Visit Appointment"
                           className="w-20 h-20 mb-3"
                         />
-                        <h1 className="text-1xl md:text-3xl my-6">Submit</h1>
+                        <h1 className="text-1xl md:text-3xl my-6">
+                          {processLoading ? "Loading..." : processContent.steps[2].title}
+                        </h1>
                         <p className="font-medium leading-relaxed">
-                          <span className="font-bold"></span> NUvisa books your
-                          express appointment. Visit your appointment to submit
-                          all gathered documents. We’ll be with you every step
-                          of the way, providing ongoing support to maximise your
-                          success.
+                          {processLoading ? "Loading..." : processContent.steps[2].description}
                         </p>
                       </div>
 
@@ -155,10 +152,11 @@ const VisaInformation = () => {
                           alt="Approved"
                           className="w-20 h-20 mb-3"
                         />
-                        <h1 className="text-1xl md:text-3xl my-6">Approved</h1>
+                        <h1 className="text-1xl md:text-3xl my-6">
+                          {processLoading ? "Loading..." : processContent.steps[3].title}
+                        </h1>
                         <p className="font-medium leading-relaxed">
-                          <span className="font-bold"></span> Once approved,
-                          you’re eligible to travel.
+                          {processLoading ? "Loading..." : processContent.steps[3].description}
                         </p>
                       </div>
                     </div>
