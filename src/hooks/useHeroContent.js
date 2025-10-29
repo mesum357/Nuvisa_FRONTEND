@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { getAdminApiBase } from '@/utils/adminApiBase';
 
 export const useHeroContent = () => {
   const [heroContent, setHeroContent] = useState({
@@ -17,7 +18,7 @@ export const useHeroContent = () => {
         setError(null);
         
         // Try to fetch from admin panel API first
-        const response = await fetch(`${process.env.NEXT_PUBLIC_ADMIN_API_URL || 'http://localhost:3001'}/api/public/hero-content`);
+        const response = await fetch(`${getAdminApiBase()}/api/public/hero-content`);
         
         if (response.ok) {
           const data = await response.json();

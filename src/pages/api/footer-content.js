@@ -8,7 +8,8 @@ export default async function handler(req, res) {
     const endpoint = section ? `?section=${section}` : '';
     
     // Call the admin panel API directly
-    const adminUrl = process.env.NEXT_PUBLIC_ADMIN_API_URL || 'http://localhost:3001';
+    const { getAdminApiBase } = await import('@/utils/adminApiBase');
+    const adminUrl = getAdminApiBase();
     const response = await fetch(`${adminUrl}/api/public/footer-content${endpoint}`, {
       method: 'GET',
       headers: {

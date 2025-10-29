@@ -2,7 +2,8 @@
  * API Helper utility for making HTTP requests
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_ADMIN_API_URL || 'http://localhost:3001';
+import { getAdminApiBase } from '@/utils/adminApiBase';
+const API_BASE_URL = getAdminApiBase();
 
 /**
  * Fetch data from API with error handling

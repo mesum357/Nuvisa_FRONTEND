@@ -5,7 +5,7 @@ export const fetchKlarnaContent = async (section = null) => {
   // Try multiple endpoints in order of preference
   const apiEndpoints = [
     // 1. Admin panel API (if running)
-    process.env.NEXT_PUBLIC_ADMIN_API_URL ? `${process.env.NEXT_PUBLIC_ADMIN_API_URL}/api/public/klarna-content` : null,
+    process.env.NEXT_PUBLIC_ADMIN_API_URL ? `${(process.env.NEXT_PUBLIC_ADMIN_API_URL || '').replace(/\/+$/, '')}/api/public/klarna-content` : null,
     // 2. Local admin panel (development)
     'http://localhost:3001/api/public/klarna-content',
     // 3. Frontend's own API route (fallback)

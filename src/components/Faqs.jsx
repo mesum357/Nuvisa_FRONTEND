@@ -4,6 +4,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { getAdminApiBase } from '@/utils/adminApiBase';
 
 const FAQSection = () => {
   const [activeIndex, setActiveIndex] = useState(null);
@@ -20,9 +21,8 @@ const FAQSection = () => {
       setLoading(true);
 
       // Choose a single endpoint to avoid multiple requests
-      const adminEndpoint = process.env.NEXT_PUBLIC_ADMIN_API_URL
-        ? `${process.env.NEXT_PUBLIC_ADMIN_API_URL}/api/public/faqs`
-        : null;
+      const adminBase = process.env.NEXT_PUBLIC_ADMIN_API_URL ? getAdminApiBase() : null;
+      const adminEndpoint = adminBase ? `${adminBase}/api/public/faqs` : null;
       const endpoint = adminEndpoint || '/api/faqs';
 
       const response = await fetch(endpoint, { cache: 'no-store' });
