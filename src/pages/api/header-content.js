@@ -1,3 +1,7 @@
+// Simple in-memory cache per server instance
+const cacheStore = new Map();
+const DEFAULT_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -5,15 +9,34 @@ export default async function handler(req, res) {
 
   try {
     const { section } = req.query;
-    const endpoint = section ? `?section=${section}` : '';
-    
-    // Call the admin panel API directly
+    const sectionKey = section || '__all__';
+    const now = Date.now();
+
+    // Serve from cache if fresh
+    const cached = cacheStore.get(sectionKey);
+    if (cached && now - cached.timestamp < (process.env.HEADER_CONTENT_TTL_MS ? Number(process.env.HEADER_CONTENT_TTL_MS) : DEFAULT_TTL_MS)) {
+      res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=120');
+      return res.status(200).json(cached.data);
+    }
+
+    const endpoint = section ? `?section=${encodeURIComponent(section)}` : '';
+
+    // Server-to-server call to admin API (no CORS from browser)
     const adminUrl = process.env.NEXT_PUBLIC_ADMIN_API_URL || 'http://localhost:3001';
-    const response = await fetch(`${adminUrl}/api/public/header-content${endpoint}`, {
+    const response = await fetch(`${adminUrl.replace(/\/$/, '')}/api/public/header-content${endpoint}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
       },
+      // Add a timeout using AbortController
+      signal: (() => {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
+        // Will be cleared once fetch resolves
+        // @ts-ignore - res.once not typed here; safe in Next runtime
+        res.once && res.once('finish', () => clearTimeout(timeout));
+        return controller.signal;
+      })(),
     });
 
     if (!response.ok) {
@@ -22,7 +45,9 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    // Return the data directly from admin panel
+    // Cache and return
+    cacheStore.set(sectionKey, { data, timestamp: now });
+    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=120');
     return res.status(200).json(data);
   } catch (error) {
     console.error('Error fetching header content:', error);

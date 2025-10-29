@@ -1,5 +1,5 @@
 import { Phone, ChevronDown, MessageCircle, HelpCircle } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { FaUser, FaWhatsapp } from "react-icons/fa";
 import { motion } from "framer-motion";
 import Image from "next/image";
@@ -17,7 +17,11 @@ export const Header = ({ href }) => {
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
 
+  const hasFetchedRef = useRef(false);
   useEffect(() => {
+    if (hasFetchedRef.current) return;
+    hasFetchedRef.current = true;
+
     const loadHeaderContent = async () => {
       try {
         setLoading(true);
@@ -25,7 +29,6 @@ export const Header = ({ href }) => {
         setHeaderContent(content);
       } catch (error) {
         console.error('Failed to load header content:', error);
-        // Fallback to default content if API fails
         setHeaderContent([]);
       } finally {
         setLoading(false);
