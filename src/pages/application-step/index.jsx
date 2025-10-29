@@ -321,19 +321,41 @@ const MultiStepAccordion = () => {
       initiallyPaidTraveler < totalTraveler;
     const missingInsurancePayment = !allInsuranceHandled();
 
+    const appStatusLower = (parentVisaApplication?.applicationStatus || "")
+      .toString()
+      .toLowerCase();
+    const submittedStates = [
+      "submitted",
+      "under_review",
+      "under review",
+      "under-review",
+      "processing",
+      "appointment_booked",
+      "appointment booked",
+      "at_embassy",
+      "at embassy",
+      "approved",
+      "rejected",
+      "cancelled",
+      "completed",
+    ];
+
     visibleSteps = visibleSteps.map((step) => {
       if (step.stepType === "completed") {
+        const isSubmittedState = submittedStates.includes(appStatusLower);
         const isAppCompleted =
-          relevantStepInfo?.isCompleted &&
-          relevantStepInfo?.isSubmitted &&
-          relevantStepInfo?.applicationStatus === "submitted";
+          !!(
+            relevantStepInfo?.isCompleted ||
+            relevantStepInfo?.isSubmitted ||
+            isSubmittedState
+          );
         return {
           ...step,
           title: "Application Completed",
           completed: isAppCompleted,
           open:
             relevantStepInfo?.currentStep === "completed" ||
-            (relevantStepInfo?.completedSteps?.length >= 6 && isAppCompleted)
+            (relevantStepInfo?.completedSteps?.length >= 6 && isAppCompleted),
         };
       }
       return step;

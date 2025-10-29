@@ -95,9 +95,31 @@ export default function HeaderSearchSection() {
     try {
       const response = await getUserVisaApplications(token);
       if (response?.status >= 200 && response?.status < 300) {
+        const normalizeAppNo = (app) => {
+          const appNo = app.applicationNo || app.application_no || app.applicationNumber || app.application_number || app.formattedApplicationId;
+          if (appNo) return String(appNo);
+          // fallback: generate AI######## using stable numericTail logic (matches admin)
+          const raw = app.id || app._id;
+          if (!raw) return undefined;
+          const numericTail = (source, length) => {
+            let digits = String(source).replace(/\D+/g, "");
+            if (digits.length < length) {
+              const codes = Array.from(String(source))
+                .map((c) => c.charCodeAt(0))
+                .join("");
+              digits = (digits + codes).replace(/\D+/g, "");
+            }
+            if (!digits.length) {
+              digits = "0".repeat(length);
+            }
+            return digits.slice(-length).padStart(length, "0");
+          };
+          return `AI${numericTail(raw, 8)}`;
+        };
         const applicationsWithStatus =
           response.data.data.results.applications.map((app) => ({
             ...app,
+            applicationNo: normalizeAppNo(app),
           }))
         setUserApplications(applicationsWithStatus);
         // load archived from applications that have archivedAt set
@@ -328,6 +350,20 @@ function ApplicationCard({
   const [isExpanded, setIsExpanded] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
 
+  const formatStatusLabel = (raw) => {
+    if (!raw || typeof raw !== "string") return "";
+    const cleaned = raw
+      .toString()
+      .replace(/[_-]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase();
+    return cleaned
+      .split(" ")
+      .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : ""))
+      .join(" ");
+  };
+
   const handleViewApplication = (id) => {
     router.push(`/application-step?application_id=${id}`);
   };
@@ -468,7 +504,7 @@ function ApplicationCard({
           <div>
             <h4 className="font-medium text-white truncate">{app?.country}</h4>
             <p className="text-sm text-white/60 truncate">
-              #{app?.id?.slice(0, 6)}
+              #{app?.applicationNo || app?.id}
               {app?.orderId && (
                 <span className="text-xs text-white/50 ml-2">
                   • {app.orderId}
@@ -549,10 +585,7 @@ function ApplicationCard({
             <div
               className={`text-xs font-semibold px-2 py-1 rounded-full ${statusInfo.color}`}
             >
-              {app?.applicationStatus
-                ? app.applicationStatus.charAt(0).toUpperCase() +
-                app.applicationStatus.slice(1)
-                : statusInfo.message}
+              {formatStatusLabel(app?.applicationStatus || statusInfo.message)}
             </div>
             {statusInfo.timestamp && (
               <p className="text-xs text-white/60 mt-1">
@@ -643,7 +676,7 @@ function ApplicationCard({
 
 
               <ProgressTimeline
-                currentStatus={app.progressStatus}
+                currentStatus={app.progressStatus ?? app.applicationStatus}
                 applicant={{ fullName, age, email, initials }}
                 allTravelers={getAllTravelersData()}
                 currentLabel={statusInfo.message}
@@ -678,9 +711,15 @@ const ProgressTimeline = ({ currentStatus, applicant, allTravelers = [], current
     const mapping = {
       submitted: "under_review",
       under_review: "under_review",
+      "under review": "under_review",
+      "under-review": "under_review",
+      review: "under_review",
+      processing: "under_review",
       appointment: "appointment_booked",
       appointment_booked: "appointment_booked",
+      "appointment booked": "appointment_booked",
       at_embassy: "at_embassy",
+      "at embassy": "at_embassy",
       embassy: "at_embassy",
       decision_made: "decision_made",
       approved: "decision_made",
@@ -712,17 +751,15 @@ const ProgressTimeline = ({ currentStatus, applicant, allTravelers = [], current
                 />
               )}
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center z-10 ${isCompleted
-                  ? "bg-green-500 text-white"
-                  : isCurrent
-                    ? "bg-green-500 text-white"
-                    : "bg-[#4A3B65] text-[#C1A2F4]"
+                className={`w-8 h-8 rounded-full flex items-center justify-center z-10 ${isCompleted || isCurrent
+                  ? "bg-[#4A3B65] text-green-400"
+                  : "bg-[#4A3B65] text-[#C1A2F4]"
                   }`}
               >
                 {isCompleted ? <CheckCircle2 size={20} /> : step.icon}
               </div>
               <p
-                className={`text-xs mt-2 text-center ${isCompleted || isCurrent ? "text-white" : "text-white/60"
+                className={`text-xs mt-2 text-center ${isCompleted || isCurrent ? "text-green-400" : "text-white/60"
                   }`}
               >
                 {step.label}
