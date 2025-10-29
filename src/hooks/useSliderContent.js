@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { getAdminApiBase } from '@/utils/adminApiBase';
 
 export const useSliderContent = () => {
   const [content, setContent] = useState({});
@@ -10,7 +11,7 @@ export const useSliderContent = () => {
       try {
         setLoading(true);
         setError(null);
-        const base = process.env.NEXT_PUBLIC_ADMIN_API_URL || 'http://localhost:3001';
+        const base = getAdminApiBase();
         const res = await fetch(`${base}/api/public/slider-content?t=${Date.now()}`);
         if (!res.ok) throw new Error('Failed to load slider content');
         const json = await res.json();

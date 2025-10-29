@@ -56,7 +56,9 @@ const Index = () => {
         dispatch(setAuthId(results?.data?.data?.results?.user?.id));
       }
 
-      router.push("/admin");
+      const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "";
+      const destination = email === adminEmail ? "/admin" : "/dashboard";
+      router.replace(destination);
     }
   };
 
