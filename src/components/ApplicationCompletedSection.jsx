@@ -29,12 +29,23 @@ const ApplicationCompletedSection = ({
   onRefresh = null,
   applicationId = null
 }) => {
-  const formatApplicationId = (id) => {
-    if (!id) return null;
-    if (/^AI\d{6}$/.test(id)) return id;
-    const digits =
-      (id + "").replace(/\D/g, "").slice(-6).padStart(6, "0");
-    return `AI${digits}`;
+  const formatApplicationId = (rawId) => {
+    if (!rawId) return null;
+    if (/^AI\d{8}$/i.test(String(rawId))) return String(rawId);
+    const numericTail = (source, length) => {
+      let digits = String(source).replace(/\D+/g, "");
+      if (digits.length < length) {
+        const codes = Array.from(String(source))
+          .map((c) => c.charCodeAt(0))
+          .join("");
+        digits = (digits + codes).replace(/\D+/g, "");
+      }
+      if (!digits.length) {
+        digits = "0".repeat(length);
+      }
+      return digits.slice(-length).padStart(length, "0");
+    };
+    return `AI${numericTail(rawId, 8)}`;
   };
 
   const formatOrderId = (orderId, fallbackId) => {
@@ -102,6 +113,8 @@ const ApplicationCompletedSection = ({
         submittedAt: app.createdAt || app.submittedAt || app.applicationData?.createdAt || null,
         estimatedProcessingTime: app.estimatedProcessingTime || null,
         orderId: app.orderId || app.order_id || app.applicationData?.orderId || null,
+        applicationNo: app.applicationNo || app.application_no || app.applicationNumber || app.application_number || null,
+        formattedApplicationId: formatApplicationId(app.id),
         currentStage: currentStage || "Application Review",
         progress: statusToProgress(app.applicationStatus || app.status || app.applicationData?.applicationStatus) || 0,
         nextSteps: stepInfo.nextStep ? [stepInfo.nextStep] : stepInfo.nextSteps || [],
@@ -312,7 +325,7 @@ const ApplicationCompletedSection = ({
               <label className="text-sm text-gray-400">Application ID</label>
               <p className="text-white font-medium">
                 <ClientOnly fallback={referenceNumber}>
-                  {currentStatus?.formattedApplicationId || formatApplicationId(currentStatus?.id)}
+                  {currentStatus?.applicationNo || currentStatus?.formattedApplicationId || formatApplicationId(currentStatus?.id)}
                 </ClientOnly>
               </p>
             </div>

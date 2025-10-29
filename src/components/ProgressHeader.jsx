@@ -28,7 +28,7 @@ const ProgressHeader = ({ steps }) => {
                   ${step.completed
                     ? "bg-green-500 text-white"
                     : isActive
-                      ? "bg-[#7350FF] text-white"
+                      ? "bg-[#292933] text-green-400"
                       : "bg-[#292933]"
                   }`}
               >
@@ -51,7 +51,7 @@ const ProgressHeader = ({ steps }) => {
                 )}
               </div>
               <span
-                className={`mt-2 text-center text-sm font-medium w-28 truncate ${isActive ? "text-[#7350FF]" : "text-gray-400"
+                className={`mt-2 text-center text-sm font-medium w-28 truncate ${isActive ? "text-green-400" : "text-gray-400"
                   }`}
                 title={step.title}
               >

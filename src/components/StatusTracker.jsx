@@ -61,14 +61,27 @@ const StatusTracker = ({ applicationId, className = "", initialStatus = null, on
 
   const getStatusSteps = () => {
     const statusToProgress = (s) => {
-      switch (s) {
-        case 'submitted': return 25;
-        case 'under_review': return 50;
-        case 'appointment_booked': return 75;
-        case 'at_embassy': return 90;
-        case 'approved': return 100;
-        case 'rejected': return 100;
-        default: return 0;
+      const v = (s || '').toString().trim().toLowerCase();
+      switch (v) {
+        case 'submitted':
+          return 25;
+        case 'under_review':
+        case 'under review':
+        case 'under-review':
+        case 'review':
+        case 'processing':
+          return 50;
+        case 'appointment_booked':
+        case 'appointment booked':
+          return 75;
+        case 'at_embassy':
+        case 'at embassy':
+          return 90;
+        case 'approved':
+        case 'rejected':
+          return 100;
+        default:
+          return 0;
       }
     };
 
@@ -129,16 +142,22 @@ const StatusTracker = ({ applicationId, className = "", initialStatus = null, on
       return <CheckCircle className="w-5 h-5 text-green-400" />;
     }
     if (step.current) {
-      return <Clock className="w-5 h-5 text-blue-400 animate-pulse" />;
+      return <Clock className="w-5 h-5 text-green-400 animate-pulse" />;
     }
     return <div className="w-5 h-5 border-2 border-gray-600 rounded-full" />;
   };
 
   const getStatusColor = (status) => {
-    switch (status) {
+    const v = (status || '').toString().trim().toLowerCase();
+    switch (v) {
       case 'approved': return 'text-green-400';
       case 'rejected': return 'text-red-400';
-      case 'under_review': return 'text-blue-400';
+      case 'under_review':
+      case 'under review':
+      case 'under-review':
+      case 'review':
+      case 'processing':
+        return 'text-green-400';
       case 'payment_required': return 'text-yellow-400';
       default: return 'text-gray-400';
     }
@@ -163,7 +182,18 @@ const StatusTracker = ({ applicationId, className = "", initialStatus = null, on
           <h3 className="text-lg font-gilroy-bold text-white">Application Progress</h3>
           {status && (
             <p className={`text-sm font-medium ${getStatusColor(status.status)}`}>
-              Status: {status.status?.replace('_', ' ')?.toUpperCase()}
+              {(() => {
+                const label = (status.status || '')
+                  .toString()
+                  .replace(/[_-]+/g, ' ')
+                  .replace(/\s+/g, ' ')
+                  .trim()
+                  .toLowerCase()
+                  .split(' ')
+                  .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : ''))
+                  .join(' ');
+                return `Status: ${label}`;
+              })()}
             </p>
           )}
         </div>
@@ -207,7 +237,7 @@ const StatusTracker = ({ applicationId, className = "", initialStatus = null, on
             </div>
             <div className="flex-1 pb-4">
               <h4 className={`font-medium ${step.completed ? 'text-green-400' :
-                step.current ? 'text-blue-400' : 'text-gray-400'
+                step.current ? 'text-green-400' : 'text-gray-400'
                 }`}>
                 {step.title}
               </h4>

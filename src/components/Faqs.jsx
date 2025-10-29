@@ -9,6 +9,7 @@ const FAQSection = () => {
   const [activeIndex, setActiveIndex] = useState(null);
   const [faqs, setFaqs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     fetchFAQs();
@@ -55,7 +56,7 @@ const FAQSection = () => {
               <div className="animate-pulse text-gray-500">Loading FAQs...</div>
             </div>
           ) : (
-            faqs.map((faq, index) => (
+            (showAll ? faqs : faqs.slice(0, 4)).map((faq, index) => (
               <div
                 key={index}
                 className="border border-gray-200 rounded-lg overflow-hidden transition-all duration-300 w-full"
@@ -83,6 +84,17 @@ const FAQSection = () => {
             ))
           )}
         </div>
+        {!loading && faqs?.length > 4 && (
+          <div className="w-full flex justify-center mt-6">
+            <button
+              type="button"
+              onClick={() => setShowAll((prev) => !prev)}
+              className="px-6 py-2 font-bold rounded-md border border-[#7350FF] text-[#7350FF] hover:bg-[#7350FF] hover:text-white transition-colors"
+            >
+              {showAll ? 'See less' : 'See more'}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* <section className="w-full mt-[30px]">
