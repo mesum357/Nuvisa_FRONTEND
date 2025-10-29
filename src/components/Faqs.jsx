@@ -2,19 +2,10 @@ import { useState, useEffect } from "react";
 import {
   ChevronDown,
   ChevronUp,
-  Plus,
-  Minus,
-  Gift,
-  ShieldCheck,
-  ArrowUpRight,
-  Link,
 } from "lucide-react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
-import GetTheVisaButton from "./layout/GetTheVisaButton";
 
 const FAQSection = () => {
-  const router = useRouter();
   const [activeIndex, setActiveIndex] = useState(null);
   const [faqs, setFaqs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -26,89 +17,29 @@ const FAQSection = () => {
   const fetchFAQs = async () => {
     try {
       setLoading(true);
-      
-      // Try multiple API endpoints in order of preference
-      const apiEndpoints = [
-        // 1. Admin panel API (if running)
-        process.env.NEXT_PUBLIC_ADMIN_API_URL ? `${process.env.NEXT_PUBLIC_ADMIN_API_URL}/api/public/faqs` : null,
-        // 2. Local admin panel (development)
-        'http://localhost:3001/api/public/faqs',
-        // 3. Frontend's own API route (fallback)
-        '/api/faqs',
-      ].filter(Boolean);
 
-      for (const endpoint of apiEndpoints) {
-        try {
-          const response = await fetch(endpoint);
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.data) {
-              setFaqs(data.data);
-              return;
-            }
-          }
-        } catch (endpointError) {
-          console.warn(`Failed to fetch from ${endpoint}:`, endpointError);
-          continue;
-        }
-      }
-      
-      // Fallback to hardcoded FAQs if all APIs fail
-      setFaqs(getDefaultFAQs());
+      // Choose a single endpoint to avoid multiple requests
+      const adminEndpoint = process.env.NEXT_PUBLIC_ADMIN_API_URL
+        ? `${process.env.NEXT_PUBLIC_ADMIN_API_URL}/api/public/faqs`
+        : null;
+      const endpoint = adminEndpoint || '/api/faqs';
+
+      const response = await fetch(endpoint, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`Failed to fetch FAQs (${response.status})`);
+      const data = await response.json();
+      if (!data?.success || !data?.data) throw new Error('Invalid FAQ response');
+      setFaqs(data.data);
     } catch (error) {
       console.error('Error fetching FAQs:', error);
-      // Fallback to hardcoded FAQs if API fails
-      setFaqs(getDefaultFAQs());
     } finally {
       setLoading(false);
     }
   };
 
-  const getDefaultFAQs = () => [
-    {
-      question: "What documents do I need for a Schengen visa application?",
-      answer:
-        "You'll need a valid passport, completed application form, recent passport-sized photos, travel insurance, proof of accommodation, flight itinerary, financial proof, and travel purpose documents (invitation letter, tour details, etc.).",
-    },
-    {
-      question: "How long does it take to process a Schengen visa?",
-      answer:
-        "Typically 15 calendar days from your appointment date, but it can take up to 30 days in some cases or even 60 days for exceptional cases. We recommend applying at least 4 weeks before your planned travel date.",
-    },
-    {
-      question: "Can I apply for a Schengen visa without flight tickets?",
-      answer:
-        "While actual tickets aren't required, you must provide a confirmed flight reservation or itinerary showing your intended dates and route. We can help you obtain this without purchasing full tickets.",
-    },
-    {
-      question: "What's the minimum bank balance required?",
-      answer:
-        "Requirements vary by country but generally you should show £60-100 per day of your stay. For a 10-day trip, that would be £600-1000 in your bank account or equivalent in your local currency.",
-    },
-    {
-      question: "Can I extend my Schengen visa while in Europe?",
-      answer:
-        "Extensions are only granted in exceptional cases like force majeure, humanitarian reasons, or serious personal circumstances. Tourist visas generally cannot be extended - you must return before your visa expires.",
-    },
-    {
-      question: "What if my visa application gets rejected?",
-      answer:
-        "You'll receive a letter stating the reason. You can either appeal the decision (within 3 weeks) or reapply with stronger documentation addressing the refusal reasons. Our experts can review your case and suggest improvements.",
-    },
-    {
-      question: "Do children need separate Schengen visas?",
-      answer:
-        "Yes, all travelers including infants and children need their own visa. The process is similar but requires additional documents like birth certificates and consent letters from non-traveling parents.",
-    },
-  ];
-
   const toggleAccordion = (index) => {
     setActiveIndex(activeIndex === index ? null : index);
   };
 
-  const handleNavigate = () => {
-    router.push("/get-the-visa");
-  };
 
   return (
     <section className="py-16 px-4 sm:px-6 lg:px-8  w-full  mx-auto flex-col gap-3 flex items-center justify-center bg-[#F3E5FF]">
@@ -125,30 +56,30 @@ const FAQSection = () => {
             </div>
           ) : (
             faqs.map((faq, index) => (
-            <div
-              key={index}
-              className="border border-gray-200 rounded-lg overflow-hidden transition-all duration-300 w-full"
-            >
-              <button
-                className="w-full flex justify-between items-center p-5 gap-2 text-left bg-gray-50 hover:bg-purple-50 transition-colors"
-                onClick={() => toggleAccordion(index)}
+              <div
+                key={index}
+                className="border border-gray-200 rounded-lg overflow-hidden transition-all duration-300 w-full"
               >
-                <h3 className="text-lg font-medium text-gray-800">
-                  {faq.question}
-                </h3>
-                {activeIndex === index ? (
-                  <ChevronUp className="text-[#7350FF]" />
-                ) : (
-                  <ChevronDown className="text-[#7350FF]" />
-                )}
-              </button>
+                <button
+                  className="w-full flex justify-between items-center p-5 gap-2 text-left bg-gray-50 hover:bg-purple-50 transition-colors"
+                  onClick={() => toggleAccordion(index)}
+                >
+                  <h3 className="text-lg font-medium text-gray-800">
+                    {faq.question}
+                  </h3>
+                  {activeIndex === index ? (
+                    <ChevronUp className="text-[#7350FF]" />
+                  ) : (
+                    <ChevronDown className="text-[#7350FF]" />
+                  )}
+                </button>
 
-              {activeIndex === index && (
-                <div className="p-5 bg-white text-gray-600 ">
-                  <p>{faq.answer}</p>
-                </div>
-              )}
-            </div>
+                {activeIndex === index && (
+                  <div className="p-5 bg-white text-gray-600 ">
+                    <p>{faq.answer}</p>
+                  </div>
+                )}
+              </div>
             ))
           )}
         </div>

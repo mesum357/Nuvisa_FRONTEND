@@ -1,41 +1,18 @@
 import axios from "axios";
 
-// Fetch header content from admin panel API
+// Fetch header content through the app's internal API route (avoids CORS and duplicates)
 export const fetchHeaderContent = async (section = null) => {
-  // Try multiple endpoints in order of preference
-  const apiEndpoints = [
-    // 1. Admin panel API (if running)
-    process.env.NEXT_PUBLIC_ADMIN_API_URL ? `${process.env.NEXT_PUBLIC_ADMIN_API_URL}/api/public/header-content` : null,
-    // 2. Local admin panel (development)
-    'http://localhost:3001/api/public/header-content',
-    // 3. Frontend's own API route (fallback)
-    '/api/header-content',
-  ].filter(Boolean);
-
-  const endpoint = section ? `?section=${section}` : '';
-
-  for (const baseUrl of apiEndpoints) {
-    try {
-      const cleanBaseUrl = baseUrl.replace(/\/$/, '');
-      const url = `${cleanBaseUrl}${endpoint}`;
-      
-      const res = await axios.get(url, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        withCredentials: false, // Don't send cookies for public endpoint
-        timeout: 5000, // 5 second timeout
-      });
-      
-      if (res?.data?.success) return res.data.data;
-    } catch (error) {
-      console.warn(`Failed to fetch from ${baseUrl}:`, error.message);
-      continue;
-    }
+  const query = section ? `?section=${encodeURIComponent(section)}` : '';
+  try {
+    const res = await axios.get(`/api/header-content${query}`, {
+      headers: { 'Content-Type': 'application/json' },
+      withCredentials: false,
+      timeout: 7000,
+    });
+    if (res?.data?.success) return res.data.data;
+  } catch (error) {
+    console.warn('Failed to fetch header content:', error?.message || error);
   }
-  
-  // Return empty array if all endpoints fail
-  console.warn('All header content API endpoints failed, using fallback');
   return [];
 };
 
