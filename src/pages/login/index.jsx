@@ -59,6 +59,9 @@ const Index = () => {
       const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "";
       const destination = email === adminEmail ? "/admin" : "/dashboard";
       router.replace(destination);
+      if (typeof window !== "undefined") {
+        window.location.reload();
+      }
     }
   };
 
