@@ -92,18 +92,27 @@ const ApplicationCompletedSection = ({
       }
 
       const statusToProgress = (status) => {
-        switch (status) {
+        const s = (status || "").toString().toLowerCase();
+        switch (s) {
           case "submitted":
             return 25;
           case "under_review":
             return 50;
+          case "appointment_booked":
+          case "appointment booked":
+            return 75;
+          case "at_embassy":
+          case "at embassy":
+            return 90;
           case "payment_required":
             return 75;
           case "approved":
           case "rejected":
             return 100;
           default:
-            return stepInfo.stepProgress || app.progress || app.stepProgress || 0;
+            // Prefer explicit mapping; fall back conservatively
+            const fallback = stepInfo.stepProgress || app.progress || app.stepProgress || 0;
+            return Math.min(Number(fallback) || 0, 99);
         }
       };
 

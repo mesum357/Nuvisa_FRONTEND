@@ -11,7 +11,7 @@ export const login = async (
     endpoint: backendApiEnums.ENDPOINTS.AUTH.LOGIN,
     method: backendApiEnums.METHODS.POST,
     payload: payload,
-    isDisplayResponsePopUp: true,
+    isDisplayResponsePopUp: false,
     successCallback: successCallbackFunction,
     successMessage:
       SignInModalState == "SignUp"
@@ -30,7 +30,7 @@ export const verifyOtp = async (
     endpoint: backendApiEnums.ENDPOINTS.AUTH.VERIFY_OTP,
     method: backendApiEnums.METHODS.POST,
     payload: payload,
-    isDisplayResponsePopUp: true,
+    isDisplayResponsePopUp: false,
     successCallback: successCallbackFunction,
     successMessage:
       SignInModalState == "SignUp"

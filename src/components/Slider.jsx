@@ -42,6 +42,8 @@ import { FaApple } from "react-icons/fa";
 import { useToast } from "@/contexts/ToastContext";
 import { CommonDatePicker } from "@/ui/date-picker";
 import { useSliderContent } from "@/hooks/useSliderContent";
+import SimpleAlert from "./SimpleAlert";
+import ConfirmationModal from "./ConfirmationModal";
 
 const CountrySlider = () => {
   const router = useRouter();
@@ -153,11 +155,11 @@ const CountrySlider = () => {
   const [insuranceDays, setInsuranceDays] = useState(0);
   const [giftCardCount, setGiftCardCount] = useState(1);
   const [insuranceCount, setInsuranceCount] = useState(1);
-  // Default arrival = today + 15 days, default departure = arrival + 15 days
+  // Default arrival = today + 28 days (4 weeks), default departure = arrival + 15 days
   const computeDefaultArrival = () => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() + 15);
+    d.setDate(d.getDate() + 28);
     return d;
   };
 
@@ -209,6 +211,11 @@ const CountrySlider = () => {
   const [userEmail, setUserEmailLocal] = useState("");
   const [emailError, setEmailError] = useState("");
   const [documentsAccordionOpen, setDocumentsAccordionOpen] = useState(false);
+
+  // Unified alert and confirm state (system schema)
+  const [alertState, setAlertState] = useState({ isOpen: false, title: "", message: "" });
+  const showAlert = (title, message) => setAlertState({ isOpen: true, title, message });
+  const [confirmState, setConfirmState] = useState({ isOpen: false, title: "", message: "", onConfirm: null });
 
   // Helper function to safely parse duration from visa type
   const parseDurationDays = (durationString) => {
@@ -599,7 +606,15 @@ const CountrySlider = () => {
     }));
   };
 
-  const [baseFee] = useState(129);
+  const baseFee = (() => {
+    const v = sliderContent?.visa_base_price_gbp
+      ?? sliderContent?.base_fee_gbp
+      ?? sliderContent?.visa_price_gbp
+      ?? sliderContent?.visa_price
+      ?? sliderContent?.base_fee;
+    const num = typeof v === "string" ? parseFloat(v) : Number(v);
+    return Number.isFinite(num) ? num : 129;
+  })();
 
   const perDayInsurancePrice = 2;
 
@@ -820,8 +835,7 @@ const CountrySlider = () => {
           ? Math.round(Number(selectedVisaType.price) / 100)
           : baseFee;
 
-    // const baseOriginalPrice = Math.round(currentBaseFee * 1.25) * travelers;
-    const baseOriginalPrice = 200 * travelers;
+    const baseOriginalPrice = Math.round(currentBaseFee * 1.25) * travelers;
     const insuranceOriginalPrice = recommendedItems.insuranceCertificate && insuranceDays > 0
       ? Math.round(perDayInsurancePrice * insuranceDays * travelers * 1.25)
       : 0;
@@ -873,7 +887,7 @@ const CountrySlider = () => {
         ? Number(selectedVisaType.priceGBP)
         : selectedVisaType && selectedVisaType.price
           ? Math.round(Number(selectedVisaType.price) / 100)
-          : 149; // baseFee
+          : baseFee;
     const currentVisaFees = currentBaseFee * travelers;
     const calculatedDiscountAmount =
       (currentVisaFees * discount.percentage) / 100;
@@ -981,7 +995,7 @@ const CountrySlider = () => {
               ? Number(selectedVisaType.priceGBP)
               : selectedVisaType && selectedVisaType.price
                 ? Math.round(Number(selectedVisaType.price) / 100)
-                : 149; // baseFee
+                : baseFee;
           const currentVisaFees = currentBaseFee * travelers;
           const calculatedDiscountAmount = (currentVisaFees * 20) / 100;
 
@@ -1473,7 +1487,7 @@ const CountrySlider = () => {
         ? Number(selectedVisaType.priceGBP)
         : selectedVisaType && selectedVisaType.price
           ? Math.round(Number(selectedVisaType.price) / 100)
-          : 149; // baseFee
+          : baseFee;
 
     let visaFees = currentBaseFee * travelers;
 
@@ -1492,18 +1506,14 @@ const CountrySlider = () => {
 
     // Check if Apple Pay is supported at all
     if (!window.ApplePaySession) {
-      alert(
-        "Apple Pay is not supported on this browser. Please use Safari on a supported Apple device."
-      );
+      showAlert("Apple Pay", "Apple Pay is not supported on this browser. Please use Safari on a supported Apple device.");
       return;
     }
 
     // Check device capability first
     const canMakePayments = ApplePaySession.canMakePayments();
     if (!canMakePayments) {
-      alert(
-        "Apple Pay is not available on this device. Please ensure you have Apple Pay set up with a valid payment method."
-      );
+      showAlert("Apple Pay", "Apple Pay is not available on this device. Please ensure you have Apple Pay set up with a valid payment method.");
       return;
     }
 
@@ -1512,18 +1522,18 @@ const CountrySlider = () => {
       window.location.hostname === "localhost" ||
       window.location.protocol !== "https:"
     ) {
-      // Simulate successful Apple Pay flow
-      const confirmPayment = confirm(
-        `Process Apple Pay payment of £${totalAmount}?\n\n` +
-        `This will redirect to payment processing page.`
-      );
-
-      if (confirmPayment) {
-        // Update local selected payment method and persist to Redux, then navigate
-        setSelectedLocalPaymentMethod("apple");
-        dispatch(setSelectedPaymentMethod("apple"));
-        router.push(`/visa-checkout`);
-      }
+      // Simulate successful Apple Pay flow using system confirm
+      setConfirmState({
+        isOpen: true,
+        title: "Confirm Apple Pay",
+        message: `Process Apple Pay payment of £${totalAmount}?\n\nThis will redirect to payment processing page.`,
+        onConfirm: () => {
+          setConfirmState((s) => ({ ...s, isOpen: false }));
+          setSelectedLocalPaymentMethod("apple");
+          dispatch(setSelectedPaymentMethod("apple"));
+          router.push(`/visa-checkout`);
+        },
+      });
       return;
     }
 
@@ -1604,9 +1614,7 @@ const CountrySlider = () => {
           suppressCancel = true;
           redirecting = true;
           try {
-            alert(
-              "Apple Pay setup required. Redirecting to standard checkout..."
-            );
+            showAlert("Apple Pay", "Apple Pay setup required. Redirecting to standard checkout...");
           } catch { }
 
           dispatch(setSelectedPaymentMethod("stripe"));
@@ -1642,17 +1650,13 @@ const CountrySlider = () => {
 
       session.onerror = (error) => {
         console.error("Apple Pay session error:", error);
-        alert(
-          "Apple Pay error occurred. Please try a different payment method."
-        );
+        showAlert("Apple Pay", "Apple Pay error occurred. Please try a different payment method.");
       };
 
       session.begin();
     } catch (error) {
       console.error("Apple Pay initialization error:", error);
-      alert(
-        "Apple Pay is not available. Please try a different payment method."
-      );
+      showAlert("Apple Pay", "Apple Pay is not available. Please try a different payment method.");
     }
   };
 
@@ -1695,7 +1699,7 @@ const CountrySlider = () => {
         ? Number(selectedVisaType.priceGBP)
         : selectedVisaType && selectedVisaType.price
           ? Math.round(Number(selectedVisaType.price) / 100)
-          : 149; // baseFee
+          : baseFee;
 
     let visaFees = currentBaseFee * travelers;
 
@@ -1714,9 +1718,7 @@ const CountrySlider = () => {
 
     // Check if Google Pay is available
     if (!window.google || !window.google.payments) {
-      alert(
-        "Google Pay is not available. Please refresh the page and try again."
-      );
+      showAlert("Google Pay", "Google Pay is not available. Please refresh the page and try again.");
       return;
     }
 
@@ -1777,9 +1779,7 @@ const CountrySlider = () => {
       );
 
       if (!isReadyToPay.result) {
-        alert(
-          "Google Pay is not available on this device or no payment methods are set up."
-        );
+        showAlert("Google Pay", "Google Pay is not available on this device or no payment methods are set up.");
         return;
       }
 
@@ -1872,14 +1872,30 @@ const CountrySlider = () => {
       if (error.statusCode === "CANCELED") {
         return;
       }
-      alert(
-        "Google Pay payment failed. Please try a different payment method."
-      );
+      showAlert("Google Pay", "Google Pay payment failed. Please try a different payment method.");
     }
   };
 
   return (
     <div className="w-full max-w-[1300px] gap-20 max-lg:flex-col flex items-start justify-center mt-5 px-5">
+      {/* System Alerts */}
+      <SimpleAlert
+        isOpen={alertState.isOpen}
+        onClose={() => setAlertState((s) => ({ ...s, isOpen: false }))}
+        title={alertState.title}
+        message={alertState.message}
+        okText="OK"
+      />
+      <ConfirmationModal
+        isOpen={confirmState.isOpen}
+        onClose={() => setConfirmState((s) => ({ ...s, isOpen: false }))}
+        onConfirm={confirmState.onConfirm || (() => setConfirmState((s) => ({ ...s, isOpen: false })))}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmText="Confirm"
+        cancelText="Cancel"
+        type="info"
+      />
       <div className="w-full gap-3 flex flex-col items-start lg:max-w-[60%]">
         <section className=" text-center text-white rounded-2xl p-2">
           <div className="w-full flex justify-center items-center gap-2 px-3">

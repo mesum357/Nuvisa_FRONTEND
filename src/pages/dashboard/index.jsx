@@ -10,6 +10,7 @@ import schengenCountries from "@/enums/flagCodes";
 import { localStorageEnums } from "@/enums/localstorage.enums";
 import { localStorageGateway } from "@/gateways/localStoragegateway";
 import { motion, AnimatePresence } from "framer-motion";
+import ConfirmationModal from "@/components/ConfirmationModal";
 import {
   Archive,
   FileText,
@@ -266,34 +267,16 @@ export default function HeaderSearchSection() {
         </div>
       </div>
       {confirmArchiveId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-[#111014] border border-[#423577] rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold text-white mb-2">
-              Confirm archive
-            </h3>
-            <p className="text-sm text-white/70 mb-4">
-              Are you sure you want to archive this application? You can restore
-              it later from Archived.
-            </p>
-            {archiveError && (
-              <p className="text-sm text-red-400 mb-2">{archiveError}</p>
-            )}
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setConfirmArchiveId(null)}
-                className="px-4 py-2 bg-[#2a2a32] rounded"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleArchiveApplication(confirmArchiveId)}
-                className="px-4 py-2 bg-[#7350FF] rounded text-white"
-              >
-                Archive
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmationModal
+          isOpen={true}
+          onClose={() => setConfirmArchiveId(null)}
+          onConfirm={() => handleArchiveApplication(confirmArchiveId)}
+          title="Confirm archive"
+          message="Are you sure you want to archive this application? You can restore it later from Archived."
+          confirmText="Archive"
+          cancelText="Cancel"
+          type="warning"
+        />
       )}
     </div>
   );

@@ -241,8 +241,13 @@ const MultiStepAccordion = () => {
       stepInfo || appStepInfo || getCurrentTravelerStepInfo();
     if (!relevantStepInfo) return;
 
-    // Check if application is submitted - if so, mark all steps as completed
-    const isApplicationSubmitted = ["submitted", "under_review", "processing", "approved", "rejected", "cancelled", "at_embassy", "appointment_booked", "completed"].includes(parentVisaApplication?.applicationStatus);
+    // Only mark all steps as completed for final decision states
+    const isApplicationFinalized = [
+      "approved",
+      "rejected",
+      "completed",
+      "decision_made",
+    ].includes((parentVisaApplication?.applicationStatus || "").toLowerCase());
 
     setSteps((prevSteps) => {
       return prevSteps.map((step) => {
@@ -250,15 +255,15 @@ const MultiStepAccordion = () => {
           step.stepType
         );
         
-        // If application is submitted, mark all steps as completed
-        if (isApplicationSubmitted) {
+        // If application is finalized, mark all steps as completed
+        if (isApplicationFinalized) {
           isCompleted = true;
         }
         
         const isInsuranceComplete =
           relevantStepInfo.completedSteps?.includes("insurance");
         if (step.stepType === "fullPayment") {
-          if (!isInsuranceComplete && !isApplicationSubmitted) {
+          if (!isInsuranceComplete && !isApplicationFinalized) {
             isCompleted = false;
           }
         }
@@ -324,31 +329,20 @@ const MultiStepAccordion = () => {
     const appStatusLower = (parentVisaApplication?.applicationStatus || "")
       .toString()
       .toLowerCase();
-    const submittedStates = [
-      "submitted",
-      "under_review",
-      "under review",
-      "under-review",
-      "processing",
-      "appointment_booked",
-      "appointment booked",
-      "at_embassy",
-      "at embassy",
+    const finalizedStates = [
       "approved",
       "rejected",
-      "cancelled",
       "completed",
+      "decision_made",
     ];
 
     visibleSteps = visibleSteps.map((step) => {
       if (step.stepType === "completed") {
-        const isSubmittedState = submittedStates.includes(appStatusLower);
-        const isAppCompleted =
-          !!(
-            relevantStepInfo?.isCompleted ||
-            relevantStepInfo?.isSubmitted ||
-            isSubmittedState
-          );
+        const isFinalizedState = finalizedStates.includes(appStatusLower);
+        const isAppCompleted = !!(
+          relevantStepInfo?.isCompleted ||
+          isFinalizedState
+        );
         return {
           ...step,
           title: "Application Completed",
