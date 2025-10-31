@@ -9,6 +9,7 @@ import { login, verifyOtp } from "@/api/auth";
 import Cookies from "js-cookie";
 import { useRouter } from "next/router";
 import { setAuthId, setAuthState } from "@/store/authSlice";
+import SimpleAlert from "@/components/SimpleAlert";
 
 const Index = () => {
   const dispatch = useAppDispatch();
@@ -18,6 +19,50 @@ const Index = () => {
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [isVerificationSent, setIsVerificationSent] = useState(false);
+  const [alertState, setAlertState] = useState({ isOpen: false, title: "", message: "" });
+
+  const extractBackendMessage = (results) => {
+    try {
+      return (
+        results?.data?.data?.results?.error ||
+        results?.data?.data?.message ||
+        results?.data?.message ||
+        results?.data?.error ||
+        ""
+      );
+    } catch {
+      return "";
+    }
+  };
+
+  const friendlyLoginMessage = (results) => {
+    const status = Number(results?.status) || 0;
+    const raw = String(extractBackendMessage(results) || "");
+    const lower = raw.toLowerCase();
+    if (status === 404 || lower.includes("not exist") || lower.includes("no user")) {
+      return "Account doesn’t exist. You may checkout instead.";
+    }
+    if (status === 400 && lower.includes("email")) {
+      return "Please enter a valid email address.";
+    }
+    if (status === 429 || lower.includes("too many")) {
+      return "Too many attempts. Please try again later.";
+    }
+    return raw || "We couldn't send the code. Please try again.";
+  };
+
+  const friendlyOtpMessage = (results) => {
+    const status = Number(results?.status) || 0;
+    const raw = String(extractBackendMessage(results) || "");
+    const lower = raw.toLowerCase();
+    if (status === 400 || status === 401 || lower.includes("invalid") || lower.includes("expired")) {
+      return "Invalid or expired code. Please request a new one.";
+    }
+    if (status === 429 || lower.includes("too many")) {
+      return "Too many attempts. Please try again later.";
+    }
+    return raw || "Verification failed. Please try again.";
+  };
 
   const handleSendVerification = async (e) => {
     e.preventDefault();
@@ -28,6 +73,9 @@ const Index = () => {
     setLoading(false);
     if (/^2\d{2}$/.test(results?.status)) {
       setIsVerificationSent(true);
+    } else {
+      const message = friendlyLoginMessage(results);
+      setAlertState({ isOpen: true, title: "Sign in", message });
     }
   };
 
@@ -62,11 +110,21 @@ const Index = () => {
       if (typeof window !== "undefined") {
         window.location.reload();
       }
+    } else {
+      const message = friendlyOtpMessage(results);
+      setAlertState({ isOpen: true, title: "Verify OTP", message });
     }
   };
 
   return (
     <div className="min-h-screen pri_bg grid grid-cols-1 lg:grid-cols-2">
+      <SimpleAlert
+        isOpen={alertState.isOpen}
+        onClose={() => setAlertState((s) => ({ ...s, isOpen: false }))}
+        title={alertState.title}
+        message={alertState.message}
+        okText="OK"
+      />
       {/* Left Side - Image */}
       <div 
         className="hidden lg:flex items-center justify-center relative overflow-hidden bg-cover bg-center bg-no-repeat"

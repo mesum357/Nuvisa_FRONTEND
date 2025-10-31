@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import Toast from "../components/Toast";
 
 const ToastContext = createContext();
@@ -56,6 +56,28 @@ export const ToastProvider = ({ children }) => {
     removeToast,
     clearAllToasts,
   };
+
+  // Listen to global toast events to allow non-React modules to trigger system toasts
+  useEffect(() => {
+    const handler = (e) => {
+      try {
+        const detail = e?.detail || {};
+        const msg = detail.message || "";
+        const t = String(detail.type || "info");
+        const d = detail.duration;
+        if (t === "success") showSuccess(msg, d);
+        else if (t === "error") showError(msg, d);
+        else if (t === "warning") showWarning(msg, d);
+        else showInfo(msg, d);
+      } catch {
+        /* ignore */
+      }
+    };
+    if (typeof window !== "undefined") {
+      window.addEventListener("nuvisa:toast", handler);
+      return () => window.removeEventListener("nuvisa:toast", handler);
+    }
+  }, [showSuccess, showError, showWarning, showInfo]);
 
   return (
     <ToastContext.Provider value={value}>

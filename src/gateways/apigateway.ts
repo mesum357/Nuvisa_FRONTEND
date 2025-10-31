@@ -1,8 +1,6 @@
-import { swalPopupEnums } from "@/enums/app.enums";
 import { logMessage } from "@/utils/logMessage";
 import { logoutFunction } from "@/utils/logoutFunction";
 import axios from "axios";
-import Swal, { SweetAlertIcon } from "sweetalert2";
 
 export const apigateway = async ({
   endpoint,
@@ -32,18 +30,20 @@ export const apigateway = async ({
 
     if (!directAction && endpoint !== "/visa-application/create" && endpoint !== "/visa-application/update") {
       if (isDisplayResponsePopUp) {
-        await Swal.fire({
-          icon: swalPopupEnums.icon.SUCCESS as SweetAlertIcon,
-          title: successMessage || `Action performed successfully.`,
-          text: successPlainText,
-          confirmButtonColor: "#5b6199",
-        }).then((result) => {
-          if (result.isConfirmed || result.isDismissed) {
-            if (successCallback && typeof successCallback === "function") {
-              successCallback();
-            }
-          }
-        });
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("nuvisa:toast", {
+              detail: {
+                type: "success",
+                message: successMessage || `Action performed successfully.`,
+                duration: 5000,
+              },
+            })
+          );
+        }
+        if (successCallback && typeof successCallback === "function") {
+          successCallback();
+        }
       }
     } else {
       if (successCallback && typeof successCallback === "function") {
@@ -66,20 +66,24 @@ export const apigateway = async ({
       return error.response;
     }
 
-    isDisplayResponsePopUp &&
-      (await Swal.fire({
-        icon: swalPopupEnums.icon.ERROR as SweetAlertIcon,
-        title:
-          errorMessage ||
-          `An unexpected error occurred. Please try again later or contact support if the issue persists.`,
-        confirmButtonColor: "#5b6199",
-      }).then((result) => {
-        if (result.isConfirmed || result.isDismissed) {
-          if (errorCallback && typeof errorCallback === "function") {
-            errorCallback();
-          }
-        }
-      }));
+    if (isDisplayResponsePopUp) {
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("nuvisa:toast", {
+            detail: {
+              type: "error",
+              message:
+                errorMessage ||
+                `An unexpected error occurred. Please try again later or contact support if the issue persists.`,
+              duration: 6000,
+            },
+          })
+        );
+      }
+      if (errorCallback && typeof errorCallback === "function") {
+        errorCallback();
+      }
+    }
     return error.response;
   }
 };

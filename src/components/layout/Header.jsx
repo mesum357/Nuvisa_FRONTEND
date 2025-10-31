@@ -7,6 +7,7 @@ import Link from "next/link";
 import { logoutFunction } from "@/utils/logoutFunction";
 import useParsedUser from "@/hooks/useParsedUser";
 import { fetchHeaderContent, getHeaderContentByKey } from "@/api/headerContent";
+import Modal from "@/components/Modal";
 
 export const Header = ({ href }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -180,13 +181,21 @@ export const Header = ({ href }) => {
           </div>
         </div>
       </nav>
-       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
-          <div className="bg-white p-6 rounded">
-            <h2>My Profile</h2>
-            <button onClick={closeModal}>Close</button>
+      {isModalOpen && (
+        <Modal isOpen={isModalOpen} onClose={closeModal} ariaLabel="My Profile">
+          <div className="px-6 py-5">
+            <h2 className="text-white text-lg font-semibold">My Profile</h2>
+            <p className="text-white/70 text-sm mt-2">Profile module coming soon.</p>
           </div>
-        </div>
+          <div className="bg-[#1E1E27] px-6 py-4 border-t border-[#423577] flex justify-end">
+            <button
+              onClick={closeModal}
+              className="rounded-md px-4 py-2 text-sm font-semibold text-white bg-[#7350FF] hover:bg-[#6350E5] focus:outline-none focus:ring-2 focus:ring-[#7350E5]/50"
+            >
+              Close
+            </button>
+          </div>
+        </Modal>
       )}
     </div>
    
