@@ -456,21 +456,36 @@ const CountrySlider = () => {
     fourWeeksFromNow.setHours(0, 0, 0, 0);
     fourWeeksFromNow.setDate(today.getDate() + 28);
 
+    const dayAfterFourWeeks = new Date();
+    dayAfterFourWeeks.setHours(0, 0, 0, 0);
+    dayAfterFourWeeks.setDate(today.getDate() + 29);
+
+    // Check if date belongs to a different month than today (for overflow detection)
+    const dateMonth = date.getMonth();
+    const dateYear = date.getFullYear();
+    const todayMonth = today.getMonth();
+    const todayYear = today.getFullYear();
+    const isInTodaysMonth = dateMonth === todayMonth && dateYear === todayYear;
+
     // 🩶 Past dates
     if (date < today)
       return "!text-gray-400 !bg-transparent !important";
 
-    // 🔴 Too soon
-    // if (date < safeDateThreshold && date >= today)
-    //   return "!text-red-400 !bg-transparent !important";
-
-    // 🟡 Within 4 weeks
+    // 🔴 Red text appears till yellow dates (entire 4-week range: today to 28 days)
     if (date >= today && date <= fourWeeksFromNow)
-      return "!text-yellow-400 !bg-transparent !important";
+      return "!text-red-400 !bg-transparent !important";
 
-    // 🟢 After 4 weeks
-    if (date > fourWeeksFromNow)
+    // 🟢 After 4 weeks - green starts from day 29 (next day after 4 weeks)
+    // Show green for all dates >= day 29, but hide overflow dates from next month in current view
+    if (date >= dayAfterFourWeeks) {
+      // If date is in today's month and is day 29+, show green (it's part of current month)
+      if (isInTodaysMonth) {
+        return "!text-green-400 !bg-transparent !important";
+      }
+      // For dates in future months, also show green (they'll appear when navigating forward)
+      // But we can't easily detect overflow dates, so we show all future month dates as green
       return "!text-green-400 !bg-transparent !important";
+    }
 
     return "!bg-transparent !text-white";
   };
