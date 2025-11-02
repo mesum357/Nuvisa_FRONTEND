@@ -19,7 +19,7 @@ const CountryCardsSection = () => {
   const [appointmentTexts, setAppointmentTexts] = useState([]);
   const [sectionContent, setSectionContent] = useState({
     title: "Choose Your Country",
-    description: "We support 20 countries over all the visa centres in the UK"
+    description: "We support 20 countries over all the visa centres in the UK",
   });
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -38,7 +38,8 @@ const CountryCardsSection = () => {
     router.push(
       `/get-the-visa?selectedCountry=${encodeURIComponent(
         countryName
-      )}&visaFees=${countryConfig.visaFee}&insuranceFees=${countryConfig.insuranceFee
+      )}&visaFees=${countryConfig.visaFee}&insuranceFees=${
+        countryConfig.insuranceFee
       }&travelers=1`
     );
   };
@@ -46,46 +47,54 @@ const CountryCardsSection = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      // Fetch appointment texts which now includes section content
-      const appointmentTextsData = await fetchAppointmentTexts();
-      
-      console.log('Frontend received appointment texts:', appointmentTextsData);
-      
-      setAppointmentTexts(Array.isArray(appointmentTextsData) ? appointmentTextsData : []);
-      
+      // TEMPORARILY COMMENTED OUT - Fetch appointment texts which now includes section content
+      // const appointmentTextsData = await fetchAppointmentTexts();
+    
+
+      console.log("Frontend received appointment texts:", appointmentTextsData);
+
+      setAppointmentTexts(
+        Array.isArray(appointmentTextsData) ? appointmentTextsData : []
+      );
+
       // Extract section content from appointment text records
       if (appointmentTextsData && appointmentTextsData.length > 0) {
         // Look for a record with section content (prefer DEFAULT record, then any record)
-        const recordWithSectionContent = appointmentTextsData.find(record => 
-          record.sectionTitle && record.sectionDescription
-        ) || appointmentTextsData[0];
-        
-        console.log('Record with section content:', recordWithSectionContent);
-        
+        const recordWithSectionContent =
+          appointmentTextsData.find(
+            (record) => record.sectionTitle && record.sectionDescription
+          ) || appointmentTextsData[0];
+
+        console.log("Record with section content:", recordWithSectionContent);
+
         const newSectionContent = {
           title: recordWithSectionContent.sectionTitle || "Choose Your Country",
-          description: recordWithSectionContent.sectionDescription || "We support 20 countries over all the visa centres in the UK"
+          description:
+            recordWithSectionContent.sectionDescription ||
+            "We support 20 countries over all the visa centres in the UK",
         };
-        
-        console.log('Setting section content:', newSectionContent);
+
+        console.log("Setting section content:", newSectionContent);
         setSectionContent(newSectionContent);
       } else {
         // Set fallback values if no data
-        console.log('No appointment texts data, using fallback');
+        console.log("No appointment texts data, using fallback");
         setSectionContent({
           title: "Choose Your Country",
-          description: "We support 20 countries over all the visa centres in the UK"
+          description:
+            "We support 20 countries over all the visa centres in the UK",
         });
       }
-      
+
       setError(null);
     } catch (e) {
-      console.error('Error fetching data:', e);
+      console.error("Error fetching data:", e);
       setError("Failed to load data.");
       // Set fallback values on error
       setSectionContent({
         title: "Choose Your Country",
-        description: "We support 20 countries over all the visa centres in the UK"
+        description:
+          "We support 20 countries over all the visa centres in the UK",
       });
     } finally {
       setLoading(false);
@@ -94,13 +103,13 @@ const CountryCardsSection = () => {
 
   useEffect(() => {
     let active = true;
-    
+
     const loadData = async () => {
       await fetchData();
     };
-    
+
     loadData();
-    
+
     return () => {
       active = false;
     };
@@ -183,7 +192,8 @@ const CountryCardsSection = () => {
       landmark: country.landmark,
       visaFee: Number(getCountryConfig(country.name).visaFee),
       insuranceFee: Number(getCountryConfig(country.name).insuranceFee),
-      appointmentText: appointmentTextMap[country.name] || "Appointment in 10 days or less",
+      appointmentText:
+        appointmentTextMap[country.name] || "Appointment in 10 days or less",
     }));
 
     return showAll ? list : list.slice(0, 6);
@@ -199,36 +209,36 @@ const CountryCardsSection = () => {
         {sectionContent.description}
       </span>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {!loading && !error && displayedCountries.map((country, index) => (
-          <div
-            key={index}
-            onClick={() => handleCountrySelect(country.name)}
-            className="group relative bg-[#18181e] rounded-xl transform hover:shadow-[0_0_15px_#3ed1ff] transition-shadow duration-300 cursor-pointer"
-          >
-            {/* Country Image */}
-            <div className="relative h-[200px] rounded-t-xl overflow-hidden">
-              <img
-                src={country.image}
-                alt={country.landmark}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
-
-
-            </div>
-
-            {/* Card Content */}
-            <div className="p-3">
-              <div className="mb-4 text-sm md:text-base font-medium text-white">
-                £{country.visaFee} fee for your first visa with us
+        {!loading &&
+          !error &&
+          displayedCountries.map((country, index) => (
+            <div
+              key={index}
+              onClick={() => handleCountrySelect(country.name)}
+              className="group relative bg-[#18181e] rounded-xl transform hover:shadow-[0_0_15px_#3ed1ff] transition-shadow duration-300 cursor-pointer"
+            >
+              {/* Country Image */}
+              <div className="relative h-[200px] rounded-t-xl overflow-hidden">
+                <img
+                  src={country.image}
+                  alt={country.landmark}
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
               </div>
 
-              <div className="text-sm md:text-base font-medium text-white">
-                {country.appointmentText}
+              {/* Card Content */}
+              <div className="p-3">
+                <div className="mb-4 text-sm md:text-base font-medium text-white">
+                  {country.name}
+                </div>
+
+                <div className="text-sm md:text-base font-medium text-white">
+                  {country.appointmentText}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
       </div>
 
       {/* See More Button */}

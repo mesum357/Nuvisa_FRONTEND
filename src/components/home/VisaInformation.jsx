@@ -8,6 +8,7 @@ import OurMission from "../OurMission";
 import SeamlessExperience from "../SeamlessExperience";
 import CountrySlider from "../Slider";
 import VisaSolution from "../VisaSolution";
+import StickyBottomBar from "../StickyBottomBar";
 import submit from "../../../public/icons/submit.png";
 import { useKlarnaContent } from "../../hooks/useKlarnaContent";
 import { useProcessContent } from "../../hooks/useProcessContent";
@@ -39,9 +40,14 @@ const VisaInformation = () => {
                   {klarnaLoading ? "Loading..." : klarnaContent.subtitle}
                 </p>
                 <p className="font-semibold text-lg md:text-[20px] ">
-                  <span className="">{!klarnaLoading && klarnaContent.paymentAmount}</span> each |
-                  <span className="mx-2">{!klarnaLoading && klarnaContent.interestRate}</span>|{" "}
-                  <span> {!klarnaLoading && klarnaContent.fees}</span>
+                  <span className="">
+                    {!klarnaLoading && klarnaContent.paymentAmount}
+                  </span>{" "}
+                  each |
+                  <span className="mx-2">
+                    {!klarnaLoading && klarnaContent.interestRate}
+                  </span>
+                  | <span> {!klarnaLoading && klarnaContent.fees}</span>
                 </p>
               </div>
             </div>
@@ -52,7 +58,6 @@ const VisaInformation = () => {
               <div className="row justify-content-center">
                 <div className="col-12 py-4">
                   <div className="pdp_media_el bg-purple p-3 pt-5 pb-5">
-                    
                     <div className=" w-full flex items-center gap-5 md:gap-10 max-md:flex-col max-md:text-center px-6 mb-6">
                       <h2 className="text-3xl md:text-6xl font-gilroy-bold text-[#FFF] mb-4 text-left mb-10 flex-1 whitespace-pre-line">
                         {processLoading ? "Loading..." : processContent.heading}
@@ -60,11 +65,12 @@ const VisaInformation = () => {
 
                       {/* Right Side - Description */}
                       <p className="text-white text-[13px] md:text-base font-medium leading-relaxed flex-[.6] text-left">
-                        {processLoading ? "Loading..." : processContent.description}
+                        {processLoading
+                          ? "Loading..."
+                          : processContent.description}
                       </p>
                     </div>
                     {/* <p class="section-label">Benefits</p> */}
-                    
 
                     {/* <div className=" mx-auto">
                       <svg viewBox="0 0 934 280"
@@ -108,10 +114,14 @@ const VisaInformation = () => {
                           className="w-20 h-20 mb-3"
                         />
                         <h1 className="text-1xl md:text-3xl my-6">
-                          {processLoading ? "Loading..." : processContent.steps[0].title}
+                          {processLoading
+                            ? "Loading..."
+                            : processContent.steps[0].title}
                         </h1>
                         <p className="font-medium leading-relaxed">
-                          {processLoading ? "Loading..." : processContent.steps[0].description}
+                          {processLoading
+                            ? "Loading..."
+                            : processContent.steps[0].description}
                         </p>
                       </div>
 
@@ -123,10 +133,14 @@ const VisaInformation = () => {
                           className="w-20 h-20 mb-3"
                         />
                         <h1 className="text-1xl md:text-3xl my-6">
-                          {processLoading ? "Loading..." : processContent.steps[1].title}
+                          {processLoading
+                            ? "Loading..."
+                            : processContent.steps[1].title}
                         </h1>
                         <p className="font-medium leading-relaxed">
-                          {processLoading ? "Loading..." : processContent.steps[1].description}
+                          {processLoading
+                            ? "Loading..."
+                            : processContent.steps[1].description}
                         </p>
                       </div>
 
@@ -138,10 +152,14 @@ const VisaInformation = () => {
                           className="w-20 h-20 mb-3"
                         />
                         <h1 className="text-1xl md:text-3xl my-6">
-                          {processLoading ? "Loading..." : processContent.steps[2].title}
+                          {processLoading
+                            ? "Loading..."
+                            : processContent.steps[2].title}
                         </h1>
                         <p className="font-medium leading-relaxed">
-                          {processLoading ? "Loading..." : processContent.steps[2].description}
+                          {processLoading
+                            ? "Loading..."
+                            : processContent.steps[2].description}
                         </p>
                       </div>
 
@@ -153,10 +171,14 @@ const VisaInformation = () => {
                           className="w-20 h-20 mb-3"
                         />
                         <h1 className="text-1xl md:text-3xl my-6">
-                          {processLoading ? "Loading..." : processContent.steps[3].title}
+                          {processLoading
+                            ? "Loading..."
+                            : processContent.steps[3].title}
                         </h1>
                         <p className="font-medium leading-relaxed">
-                          {processLoading ? "Loading..." : processContent.steps[3].description}
+                          {processLoading
+                            ? "Loading..."
+                            : processContent.steps[3].description}
                         </p>
                       </div>
                     </div>
@@ -165,15 +187,19 @@ const VisaInformation = () => {
               </div>
             </div>
           </div>
+          <ComparisonSection />
 
           <VisaSolution />
           <FAQSection />
           <div className="w-full bg-white h-[1px]"></div>
-          <ComparisonSection />
+
           <SeamlessExperience />
           <OurMission className="bg-[#F3E6FF] py-10" />
           <Footer />
         </div>
+        
+        {/* Sticky Bottom Bar */}
+        <StickyBottomBar />
       </div>
     </ClientOnly>
   );
