@@ -48,8 +48,9 @@ const CountryCardsSection = () => {
     try {
       setLoading(true);
       // TEMPORARILY COMMENTED OUT - Fetch appointment texts which now includes section content
-      // const appointmentTextsData = await fetchAppointmentTexts();
-    
+      const appointmentTextsData = await fetchAppointmentTexts();
+      
+     
 
       console.log("Frontend received appointment texts:", appointmentTextsData);
 
