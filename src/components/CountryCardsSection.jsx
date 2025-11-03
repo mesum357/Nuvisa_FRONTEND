@@ -178,6 +178,36 @@ const CountryCardsSection = () => {
       image: "/image/country/Norway.jpg",
       landmark: "Norwegian Fjords",
     },
+    {
+      name: "Switzerland",
+      image: "/image/country/Switzerland.jpg",
+      landmark: "Matterhorn",
+    },
+    {
+      name: "Spain",
+      image: "/image/country/Spain.jpg",
+      landmark: "Sagrada Familia",
+    },
+    {
+      name: "Malta",
+      image: "/image/country/Malta.jpg",
+      landmark: "Valletta Harbor",
+    },
+    {
+      name: "Luxembourg",
+      image: "/image/country/Luxembourg.jpg",
+      landmark: "Grand Ducal Palace",
+    },
+    {
+      name: "Greece",
+      image: "/image/country/Greece.jpg",
+      landmark: "Parthenon",
+    },
+    {
+      name: "Finland",
+      image: "/image/country/Finland.jpg",
+      landmark: "Helsinki Cathedral",
+    },
   ];
 
   const displayedCountries = useMemo(() => {
