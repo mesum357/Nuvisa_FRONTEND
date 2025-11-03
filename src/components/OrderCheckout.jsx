@@ -850,9 +850,84 @@ const VisaCheckout = () => {
     }
   }, []);
 
+  // Apple Pay click handler
+  const handleApplePayClick = async () => {
+    // Basic validation
+    if (!email) {
+      setEmailError("Please enter your email address");
+      return;
+    }
+
+    const totalAmount = Math.round(total);
+
+    // Check if Apple Pay is supported
+    if (!window.ApplePaySession) {
+      alert("Apple Pay is not supported on this browser. Please use Safari on a supported Apple device.");
+      return;
+    }
+
+    // Check device capability
+    const canMakePayments = ApplePaySession.canMakePayments();
+    if (!canMakePayments) {
+      alert("Apple Pay is not available on this device. Please ensure you have Apple Pay set up with a valid payment method.");
+      return;
+    }
+
+    // For development/testing on localhost or non-HTTPS
+    if (
+      window.location.hostname === "localhost" ||
+      window.location.protocol !== "https:"
+    ) {
+      // Simulate Apple Pay flow
+      const confirmed = confirm(`Process Apple Pay payment of £${totalAmount}?\n\nThis will redirect to payment processing.`);
+      if (confirmed) {
+        setSelectedPaymentMethod("apple");
+        await handleCheckout();
+      }
+      return;
+    }
+
+    // Real Apple Pay implementation would go here
+    alert("Apple Pay integration in progress. Please use credit card payment for now.");
+  };
+
+  // Google Pay click handler
+  const handleGooglePayClick = async () => {
+    // Basic validation
+    if (!email) {
+      setEmailError("Please enter your email address");
+      return;
+    }
+
+    const totalAmount = Math.round(total);
+
+    // Check if Google Pay is available
+    if (!window.google || !window.google.payments) {
+      alert("Google Pay is not available. Please refresh the page and try again.");
+      return;
+    }
+
+    // For development/testing
+    if (
+      window.location.hostname === "localhost" ||
+      window.location.protocol !== "https:"
+    ) {
+      // Simulate Google Pay flow
+      const confirmed = confirm(`Process Google Pay payment of £${totalAmount}?\n\nThis will redirect to payment processing.`);
+      if (confirmed) {
+        setSelectedPaymentMethod("google");
+        await handleCheckout();
+      }
+      return;
+    }
+
+    // Real Google Pay implementation would go here
+    alert("Google Pay integration in progress. Please use credit card payment for now.");
+  };
+
   return (
     <ClientOnly>
-      <div className="min-h-screen bg-white flex flex-col h-full">
+      <div className="min-h-screen bg-gradient-to-br  from-purple-100 to-[#f3e6ff] flex flex-col h-full">
         <div className="p-6 border-b border-neutral-200">
           <div className="flex items-center justify-between w-full max-w-6xl mx-auto">
             <div className="space-y-1">
@@ -870,18 +945,88 @@ const VisaCheckout = () => {
               </p>
             </div>
 
-            <Image
-              src="/icons/bag.svg"
-              alt="Shopping bag"
-              width={30}
-              height={20}
-              className="object-contain"
-            />
+            <Link href="/get-the-visa" className="cursor-pointer">
+              <Image
+                src="/icons/bag.svg"
+                alt="Shopping bag"
+                width={30}
+                height={20}
+                className="object-contain hover:opacity-80 transition-opacity"
+              />
+            </Link>
           </div>
         </div>
 
         <div className="w-full mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6 h-full grow">
           <div className="space-y-6 p-6 md:p-10 md:pl-10 xl:pl-40">
+
+            {/* Apple Pay & Google Pay Buttons */}
+            <div className="space-y-2">
+               <h2 className="font-medium text-lg">Express Checkout</h2>
+              {/* Apple Pay & Google Pay - Official Branded Buttons */}
+              <div className="grid grid-cols-2 gap-3">
+                {/* Apple Pay Button - Official Style */}
+                <button
+                  onClick={handleApplePayClick}
+                  className="group relative flex items-center justify-center bg-black text-white rounded-full px-6 py-3 text-sm font-medium hover:opacity-90 transition-all duration-200 shadow-sm"
+                  style={{
+                    backgroundColor: "#000",
+                    minHeight: "44px",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <FaApple className="text-lg" />
+                    <span className="font-medium tracking-wide">Pay</span>
+                  </div>
+                  <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-5 rounded-lg transition-opacity duration-200"></div>
+                </button>
+
+                {/* Google Pay Button - Official Style */}
+                <button
+                  onClick={handleGooglePayClick}
+                  className="group relative flex items-center justify-center bg-white text-gray-800 rounded-full px-6 py-3 text-sm font-medium hover:shadow-md transition-all duration-200 shadow-sm border border-gray-200"
+                  style={{
+                    minHeight: "44px",
+                    background:
+                      "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)",
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 18 18"
+                      className="flex-shrink-0"
+                    >
+                      <g fill="none" fillRule="evenodd">
+                        <path
+                          fill="#4285F4"
+                          d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
+                        />
+                        <path
+                          fill="#34A853"
+                          d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"
+                        />
+                        <path
+                          fill="#FBBC05"
+                          d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"
+                        />
+                        <path
+                          fill="#EA4335"
+                          d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"
+                        />
+                      </g>
+                    </svg>
+                    <span className="font-medium tracking-wide text-gray-700">
+                      Pay
+                    </span>
+                  </div>
+                  <div className="absolute inset-0 bg-gray-50 opacity-0 group-hover:opacity-30 rounded-lg transition-opacity duration-200"></div>
+                </button>
+              </div>
+            </div>
+            
             <div className="space-y-3">
               <h2 className="font-medium text-lg">Contact Information</h2>
               <div className="space-y-4">
@@ -982,60 +1127,7 @@ const VisaCheckout = () => {
 
             {/* Express Checkout Section */}
             <div className="space-y-3">
-              <h2 className="font-medium text-lg">Express Checkout</h2>
-              <div className="space-y-2">
-                <div
-                  className={`border rounded-md p-3 cursor-pointer transition-all ${selectedPaymentMethod === "apple"
-                    ? "border-black bg-gray-50"
-                    : "border-gray-300"
-                    }`}
-                  onClick={() => setSelectedPaymentMethod("apple")}
-                >
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="apple"
-                      checked={selectedPaymentMethod === "apple"}
-                      onChange={(e) => setSelectedPaymentMethod(e.target.value)}
-                      className="h-4 w-4"
-                    />
-                    <FaApple className="text-lg" />
-                    <span className="text-sm font-medium">Apple Pay</span>
-                    {selectedPaymentMethod === "apple" && (
-                      <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full ml-auto">
-                        Selected
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div
-                  className={`border rounded-md p-3 cursor-pointer ${selectedPaymentMethod === "google"
-                    ? "border-black bg-gray-50"
-                    : "border-gray-300"
-                    }`}
-                  onClick={() => setSelectedPaymentMethod("google")}
-                >
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="google"
-                      checked={selectedPaymentMethod === "google"}
-                      onChange={(e) => setSelectedPaymentMethod(e.target.value)}
-                      className="h-4 w-4"
-                    />
-                    <FaGoogle className="text-lg" />
-                    <span className="text-sm font-medium">Google Pay</span>
-                    {selectedPaymentMethod === "google" && (
-                      <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full ml-auto">
-                        Selected
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
+    
             </div>
 
             {/* Divider */}
@@ -1050,135 +1142,9 @@ const VisaCheckout = () => {
               </div>
             </div>
 
-            {/* Coupon Code Section */}
-            <div className="space-y-3">
-              <h2 className="font-medium text-lg">Discount Code</h2>
-              <div className="space-y-2">
-                <div className="flex space-x-2">
-                  <div className="flex-1">
-                    <input
-                      type="text"
-                      value={couponCode}
-                      onChange={(e) =>
-                        setCouponCodeLocal(e.target.value.toUpperCase())
-                      }
-                      placeholder="Enter coupon code (e.g., STUDENT10)"
-                      className={`w-full border ${couponError ? "border-red-400" : "border-gray-300"
-                        } rounded-md p-2 text-sm ${couponError
-                          ? "outline-none ring-2 ring-red-400"
-                          : "focus:outline-none focus:ring-2 focus:ring-black"
-                        }`}
-                      disabled={appliedDiscount}
-                    />
-                  </div>
-                  {!appliedDiscount ? (
-                    <button
-                      onClick={applyCouponCode}
-                      className="px-4 py-2 bg-black text-white text-sm rounded-md hover:bg-gray-900 transition-colors"
-                    >
-                      Apply
-                    </button>
-                  ) : (
-                    <button
-                      onClick={removeCoupon}
-                      className="px-4 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors"
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
+         
 
-                {couponError && (
-                  <span className="text-sm text-red-400">{couponError}</span>
-                )}
-
-                {appliedDiscount && (
-                  <div className="flex items-center space-x-2 text-sm text-green-600 bg-green-50 p-2 rounded-md">
-                    <span>
-                      ✓ {appliedDiscount.description} (
-                      {appliedDiscount.percentage}% off) applied!
-                    </span>
-                  </div>
-                )}
-
-
-
-                <div className="text-xs text-gray-600">
-                  <p>Available discounts:</p>
-                  <p>
-                    • <span className="font-semibold">STUDENT10</span> - 10%
-                    student discount
-                  </p>
-                  <p>
-                    • <span className="font-semibold">GROUP20</span> - 20% group
-                    discount (3 or more travellers)
-                  </p>
-
-                </div>
-              </div>
-            </div>
-
-
-            {appliedDiscount &&
-              appliedDiscount.description.toLowerCase().includes("student") && (
-                <div className="space-y-3 mb-6">
-                  <h2 className="font-medium text-lg">
-                    Student Verification Required
-                  </h2>
-                  <div className="space-y-2">
-                    <div className="text-sm">
-                      <span className="font-medium">📧 Email Verification</span> -
-                      Please verify your student email to continue with the
-                      discount
-                    </div>
-
-                    <div className="flex space-x-2">
-                      <div className="flex-1">
-                        <input
-                          type="email"
-                          value={_studentEmail}
-                          onChange={(e) => _setStudentEmail(e.target.value)}
-                          placeholder="Enter your student email (e.g., you@student.uni.ac.uk)"
-                          className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                          disabled={studentVerified}
-                        />
-                      </div>
-                      {!studentVerified ? (
-                        <button
-                          onClick={() => sendStudentVerification(_studentEmail)}
-                          disabled={isSendingVerification || !_studentEmail}
-                          className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
-                        >
-                          {isSendingVerification ? "Sending..." : "Verify Email"}
-                        </button>
-                      ) : (
-                        <div className="px-4 py-2 bg-green-600 text-white text-sm rounded-md flex items-center">
-                          ✓ Verified
-                        </div>
-                      )}
-                    </div>
-
-                    {emailError && (
-                      <span className="text-sm text-red-400">{emailError}</span>
-                    )}
-
-                    {studentVerificationSent && !studentVerified && (
-                      <div className="text-sm text-green-600 bg-green-50 p-2 rounded-md">
-                        ✓ Verification email sent! Please check your inbox and
-                        click the verification link.
-                      </div>
-                    )}
-
-                    {studentVerified && (
-                      <div className="text-sm text-green-600 bg-green-50 p-2 rounded-md">
-                        ✓ Student email verified! You can now proceed with the
-                        student discount.
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
+        
 
 
 
@@ -1733,6 +1699,61 @@ const VisaCheckout = () => {
                     </p>
                   )}
                 </div>
+
+                         
+              <div className="space-y-2">
+                <div
+                  className={`border rounded-md p-3 cursor-pointer transition-all ${selectedPaymentMethod === "apple"
+                    ? "border-black bg-gray-50"
+                    : "border-gray-300"
+                    }`}
+                  onClick={() => setSelectedPaymentMethod("apple")}
+                >
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      name="payment"
+                      value="apple"
+                      checked={selectedPaymentMethod === "apple"}
+                      onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+                      className="h-4 w-4"
+                    />
+                    <FaApple className="text-lg" />
+                    <span className="text-sm font-medium">Apple Pay</span>
+                    {selectedPaymentMethod === "apple" && (
+                      <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full ml-auto">
+                        Selected
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div
+                  className={`border rounded-md p-3 cursor-pointer ${selectedPaymentMethod === "google"
+                    ? "border-black bg-gray-50"
+                    : "border-gray-300"
+                    }`}
+                  onClick={() => setSelectedPaymentMethod("google")}
+                >
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      name="payment"
+                      value="google"
+                      checked={selectedPaymentMethod === "google"}
+                      onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+                      className="h-4 w-4"
+                    />
+                    <FaGoogle className="text-lg" />
+                    <span className="text-sm font-medium">Google Pay</span>
+                    {selectedPaymentMethod === "google" && (
+                      <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full ml-auto">
+                        Selected
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
               </div>
 
               <button
@@ -1936,6 +1957,133 @@ const VisaCheckout = () => {
               <span>Total</span>
               <span>{formatCurrency(total, "EUR")} EUR</span>
             </div>
+
+                     <div className="space-y-3">
+              <h2 className="font-medium text-lg">Discount Code</h2>
+              <div className="space-y-2">
+                <div className="flex space-x-2">
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      value={couponCode}
+                      onChange={(e) =>
+                        setCouponCodeLocal(e.target.value.toUpperCase())
+                      }
+                      placeholder="Enter coupon code (e.g., STUDENT10)"
+                      className={`w-full border ${couponError ? "border-red-400" : "border-gray-300"
+                        } rounded-md p-2 text-sm ${couponError
+                          ? "outline-none ring-2 ring-red-400"
+                          : "focus:outline-none focus:ring-2 focus:ring-black"
+                        }`}
+                      disabled={appliedDiscount}
+                    />
+                  </div>
+                  {!appliedDiscount ? (
+                    <button
+                      onClick={applyCouponCode}
+                      className="px-4 py-2 bg-black text-white text-sm rounded-md hover:bg-gray-900 transition-colors"
+                    >
+                      Apply
+                    </button>
+                  ) : (
+                    <button
+                      onClick={removeCoupon}
+                      className="px-4 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+
+                {couponError && (
+                  <span className="text-sm text-red-400">{couponError}</span>
+                )}
+
+                {appliedDiscount && (
+                  <div className="flex items-center space-x-2 text-sm text-green-600 bg-green-50 p-2 rounded-md">
+                    <span>
+                      ✓ {appliedDiscount.description} (
+                      {appliedDiscount.percentage}% off) applied!
+                    </span>
+                  </div>
+                )}
+
+
+
+                <div className="text-xs text-gray-600">
+                  <p>Available discounts:</p>
+                  <p>
+                    • <span className="font-semibold">STUDENT10</span> - 10%
+                    student discount
+                  </p>
+                  <p>
+                    • <span className="font-semibold">GROUP20</span> - 20% group
+                    discount (3 or more travellers)
+                  </p>
+
+                </div>
+              </div>
+            </div>
+
+    {appliedDiscount &&
+              appliedDiscount.description.toLowerCase().includes("student") && (
+                <div className="space-y-3 mb-6">
+                  <h2 className="font-medium text-lg">
+                    Student Verification Required
+                  </h2>
+                  <div className="space-y-2">
+                    <div className="text-sm">
+                      <span className="font-medium">📧 Email Verification</span> -
+                      Please verify your student email to continue with the
+                      discount
+                    </div>
+
+                    <div className="flex space-x-2">
+                      <div className="flex-1">
+                        <input
+                          type="email"
+                          value={_studentEmail}
+                          onChange={(e) => _setStudentEmail(e.target.value)}
+                          placeholder="Enter your student email (e.g., you@student.uni.ac.uk)"
+                          className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                          disabled={studentVerified}
+                        />
+                      </div>
+                      {!studentVerified ? (
+                        <button
+                          onClick={() => sendStudentVerification(_studentEmail)}
+                          disabled={isSendingVerification || !_studentEmail}
+                          className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+                        >
+                          {isSendingVerification ? "Sending..." : "Verify Email"}
+                        </button>
+                      ) : (
+                        <div className="px-4 py-2 bg-green-600 text-white text-sm rounded-md flex items-center">
+                          ✓ Verified
+                        </div>
+                      )}
+                    </div>
+
+                    {emailError && (
+                      <span className="text-sm text-red-400">{emailError}</span>
+                    )}
+
+                    {studentVerificationSent && !studentVerified && (
+                      <div className="text-sm text-green-600 bg-green-50 p-2 rounded-md">
+                        ✓ Verification email sent! Please check your inbox and
+                        click the verification link.
+                      </div>
+                    )}
+
+                    {studentVerified && (
+                      <div className="text-sm text-green-600 bg-green-50 p-2 rounded-md">
+                        ✓ Student email verified! You can now proceed with the
+                        student discount.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
             {/* Risk Free */}
             <div className="bg-green-600 text-white rounded-md p-3 text-sm text-center font-medium">
