@@ -95,8 +95,12 @@ const StickyBottomBar = () => {
                 <div className="flex flex-col">
                   <h3 className="text-sm font-medium text-white mb-1">{item.title}</h3>
                   <div className="flex items-center gap-2">
-                    <span className="text-gray-400 line-through text-sm">£{item.originalPrice}</span>
-                    <span className="text-white font-bold">£{item.currentPrice}</span>
+                    <span className="text-gray-400 line-through text-sm">
+                      £{quantities[item.id] > 0 ? item.originalPrice * quantities[item.id] : item.originalPrice}
+                    </span>
+                    <span className="text-white font-bold">
+                      £{quantities[item.id] > 0 ? item.currentPrice * quantities[item.id] : item.currentPrice}
+                    </span>
                     {item.badge && (
                       <div className="flex items-center gap-1">
                         <div className="text-white px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1" style={{backgroundColor: '#6B4EFF'}}>
@@ -156,8 +160,12 @@ const StickyBottomBar = () => {
                   <div className="flex flex-col">
                     <h3 className="text-sm font-medium text-white mb-1">{item.title}</h3>
                     <div className="flex items-center gap-2">
-                      <span className="text-gray-400 line-through text-sm">£{item.originalPrice}</span>
-                      <span className="text-white font-bold">£{item.currentPrice}</span>
+                      <span className="text-gray-400 line-through text-sm">
+                        £{quantities[item.id] > 0 ? item.originalPrice * quantities[item.id] : item.originalPrice}
+                      </span>
+                      <span className="text-white font-bold">
+                        £{quantities[item.id] > 0 ? item.currentPrice * quantities[item.id] : item.currentPrice}
+                      </span>
                       
                       {/* Quantity Controls - inline with price */}
                       <div className="flex items-center gap-2 ml-2">
@@ -234,6 +242,7 @@ const StickyBottomBar = () => {
                 <ArrowUpRight className="w-4 h-4" style={{color: '#6B4EFF'}} />
               </div>
             </button>
+           
           </div>
 
         </div>

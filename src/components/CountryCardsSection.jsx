@@ -49,6 +49,7 @@ const CountryCardsSection = () => {
       setLoading(true);
       // TEMPORARILY COMMENTED OUT - Fetch appointment texts which now includes section content
       const appointmentTextsData = await fetchAppointmentTexts();
+      // const appointmentTextsData = []; // Use empty array as fallback
       
     
 
