@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
-import { getAdminApiBase } from "@/utils/adminApiBase";
+import { getAdminApiBase } from '@/utils/adminApiBase';
 
 const FAQSection = () => {
   const [activeIndex, setActiveIndex] = useState(null);
@@ -17,45 +20,18 @@ const FAQSection = () => {
     try {
       setLoading(true);
 
-    
-      // const fallbackFaqs = [
-      //   {
-      //     question: "How long does the visa application process take?",
-      //     answer: "Our streamlined process typically takes 10 days or less to secure your appointment, compared to 6-8 weeks with traditional agencies."
-      //   },
-      //   {
-      //     question: "What documents do I need for my Schengen visa application?",
-      //     answer: "You'll need a valid passport, completed application form, passport photos, travel insurance, proof of accommodation, flight itinerary, and financial statements. We'll guide you through each requirement."
-      //   },
-      //   {
-      //     question: "How much does your visa service cost?",
-      //     answer: "Our flat rate is £200 with no hidden fees, compared to traditional agencies that charge £250-£300 plus additional costs."
-      //   },
-      //   {
-      //     question: "Do you provide travel insurance?",
-      //     answer: "Yes! We offer travel insurance certificates required for Schengen visas at a discounted rate of £29 (normally £45) when bundled with our visa service."
-      //   },
-      //   {
-      //     question: "Can I track my application status?",
-      //     answer: "Absolutely! Our digital platform provides 24/7 instant tracking of your application status, so you're always informed about your visa progress."
-      //   },
-      //   {
-      //     question: "What countries do you support?",
-      //     answer: "We support visa applications for 20 European countries including Germany, France, Italy, Netherlands, Belgium, and more across all UK visa centres."
-      //   },
-      //   {
-      //     question: "Is my personal information secure?",
-      //     answer: "Yes, we use industry-standard encryption and security measures to protect all your personal and financial information throughout the application process."
-      //   },
-      //   {
-      //     question: "What if my visa application is rejected?",
-      //     answer: "While our success rate is very high, if your application is rejected, we'll help you understand the reasons and assist with reapplication at no additional service charge."
-      //   }
-      // ];
+      // Choose a single endpoint to avoid multiple requests
+      const adminBase = process.env.NEXT_PUBLIC_ADMIN_API_URL ? getAdminApiBase() : null;
+      const adminEndpoint = adminBase ? `${adminBase}/api/public/faqs` : null;
+      const endpoint = adminEndpoint || '/api/faqs';
 
-      setFaqs(fallbackFaqs);
+      const response = await fetch(endpoint, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`Failed to fetch FAQs (${response.status})`);
+      const data = await response.json();
+      if (!data?.success || !data?.data) throw new Error('Invalid FAQ response');
+      setFaqs(data.data);
     } catch (error) {
-      console.error("Error setting up FAQs:", error);
+      console.error('Error fetching FAQs:', error);
     } finally {
       setLoading(false);
     }
@@ -64,6 +40,7 @@ const FAQSection = () => {
   const toggleAccordion = (index) => {
     setActiveIndex(activeIndex === index ? null : index);
   };
+
 
   return (
     <section className="py-16 px-4 sm:px-6 lg:px-8  w-full  mx-auto flex-col gap-3 flex items-center justify-center bg-[#F3E5FF]">
@@ -114,7 +91,7 @@ const FAQSection = () => {
               onClick={() => setShowAll((prev) => !prev)}
               className="px-6 py-2 font-bold rounded-md border border-[#7350FF] text-[#7350FF] hover:bg-[#7350FF] hover:text-white transition-colors"
             >
-              {showAll ? "See less" : "See more"}
+              {showAll ? 'See less' : 'See more'}
             </button>
           </div>
         )}
