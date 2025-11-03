@@ -1,10 +1,7 @@
 import { useState, useEffect } from "react";
-import {
-  ChevronDown,
-  ChevronUp,
-} from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { getAdminApiBase } from '@/utils/adminApiBase';
+import { getAdminApiBase } from "@/utils/adminApiBase";
 
 const FAQSection = () => {
   const [activeIndex, setActiveIndex] = useState(null);
@@ -20,7 +17,7 @@ const FAQSection = () => {
     try {
       setLoading(true);
 
-      // TEMPORARILY USING FALLBACK FAQs - No API call needed
+    
       // const fallbackFaqs = [
       //   {
       //     question: "How long does the visa application process take?",
@@ -58,7 +55,7 @@ const FAQSection = () => {
 
       setFaqs(fallbackFaqs);
     } catch (error) {
-      console.error('Error setting up FAQs:', error);
+      console.error("Error setting up FAQs:", error);
     } finally {
       setLoading(false);
     }
@@ -67,7 +64,6 @@ const FAQSection = () => {
   const toggleAccordion = (index) => {
     setActiveIndex(activeIndex === index ? null : index);
   };
-
 
   return (
     <section className="py-16 px-4 sm:px-6 lg:px-8  w-full  mx-auto flex-col gap-3 flex items-center justify-center bg-[#F3E5FF]">
@@ -118,7 +114,7 @@ const FAQSection = () => {
               onClick={() => setShowAll((prev) => !prev)}
               className="px-6 py-2 font-bold rounded-md border border-[#7350FF] text-[#7350FF] hover:bg-[#7350FF] hover:text-white transition-colors"
             >
-              {showAll ? 'See less' : 'See more'}
+              {showAll ? "See less" : "See more"}
             </button>
           </div>
         )}
