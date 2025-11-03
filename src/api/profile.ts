@@ -9,7 +9,7 @@ export const updateProfileInfo = async (token, payload) => {
     token: token,
     payload: payload,
     isDisplayResponsePopUp: true,
-    contentType: "multipart/form-data",
+    contentType: "application/json",
     successMessage: successMessagesEnums.Profile.UPDATE,
   });
 };

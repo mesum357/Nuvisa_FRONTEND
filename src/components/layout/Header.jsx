@@ -7,16 +7,19 @@ import Link from "next/link";
 import { logoutFunction } from "@/utils/logoutFunction";
 import useParsedUser from "@/hooks/useParsedUser";
 import { fetchHeaderContent, getHeaderContentByKey } from "@/api/headerContent";
-import Modal from "@/components/Modal";
+import Sidebar from "@/components/Sidebar";
 
 export const Header = ({ href }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [headerContent, setHeaderContent] = useState([]);
   const [loading, setLoading] = useState(true);
   const { parsedUserData } = useParsedUser();
-  const openModal = () => setIsModalOpen(true);
-  const closeModal = () => setIsModalOpen(false);
+  const openSidebar = () => {
+    setIsDropdownOpen(false); // Close dropdown when opening sidebar
+    setIsSidebarOpen(true);
+  };
+  const closeSidebar = () => setIsSidebarOpen(false);
 
   const hasFetchedRef = useRef(false);
   useEffect(() => {
@@ -152,8 +155,8 @@ export const Header = ({ href }) => {
                 className="absolute right-0 mt-2 w-48 bg-[#23232b] border border-[#423577] rounded-md shadow-lg py-1 z-50"
               >
                  <div
-        onClick={openModal}
-                  className="block px-4 py-2 text-sm text-gray-300 hover:bg-[#1e1e27] hover:text-white transition-colors"
+        onClick={openSidebar}
+                  className="block px-4 py-2 text-sm text-gray-300 hover:bg-[#1e1e27] hover:text-white transition-colors cursor-pointer"
                 >
                   <div className="flex items-center gap-2">
                     <FaUser className="text-gray-400" />
@@ -181,22 +184,7 @@ export const Header = ({ href }) => {
           </div>
         </div>
       </nav>
-      {isModalOpen && (
-        <Modal isOpen={isModalOpen} onClose={closeModal} ariaLabel="My Profile">
-          <div className="px-6 py-5">
-            <h2 className="text-white text-lg font-semibold">My Profile</h2>
-            <p className="text-white/70 text-sm mt-2">Profile module coming soon.</p>
-          </div>
-          <div className="bg-[#1E1E27] px-6 py-4 border-t border-[#423577] flex justify-end">
-            <button
-              onClick={closeModal}
-              className="rounded-md px-4 py-2 text-sm font-semibold text-white bg-[#7350FF] hover:bg-[#6350E5] focus:outline-none focus:ring-2 focus:ring-[#7350E5]/50"
-            >
-              Close
-            </button>
-          </div>
-        </Modal>
-      )}
+      <Sidebar isOpen={isSidebarOpen} onClose={closeSidebar} />
     </div>
    
   );
