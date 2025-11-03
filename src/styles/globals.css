@@ -113,12 +113,6 @@ input[type="number"] {
 .react-datepicker-popper {
   z-index: 9999 !important;
 }
-/* Hide green overflow dates from next month in current month view */
-.react-datepicker__day--outside-month[class*="text-green"] {
-  color: transparent !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-}
 .scrollbar-hidden {
   scrollbar-width: none; 
   -ms-overflow-style: none; 

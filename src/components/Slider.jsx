@@ -155,11 +155,10 @@ const CountrySlider = () => {
   const [insuranceDays, setInsuranceDays] = useState(0);
   const [giftCardCount, setGiftCardCount] = useState(1);
   const [insuranceCount, setInsuranceCount] = useState(1);
-  // Default arrival = today + 28 days (4 weeks), default departure = arrival + 15 days
+  // Default arrival = today, default departure = arrival + 28 days (4 weeks)
   const computeDefaultArrival = () => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() + 28);
     return d;
   };
 
@@ -167,7 +166,7 @@ const CountrySlider = () => {
   const computeDefaultDeparture = (arrival) => {
     const d = new Date(arrival);
     d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() + 14);
+    d.setDate(d.getDate() + 28);
     return d;
   };
 
@@ -271,7 +270,7 @@ const CountrySlider = () => {
     return String(duration);
   };
 
-  // Function to validate dates against visa type constraints
+  // Function to validate dates (no past dates, correct order, and visa limit)
   const validateDates = (arrival, departure, visaType) => {
     const errors = {};
 
@@ -287,28 +286,6 @@ const CountrySlider = () => {
     if (arrivalDate < today) {
       errors.pastDate = "Arrival date cannot be in the past";
       return errors; // Early return for past date errors
-    }
-
-    // Check if arrival date is in the past
-
-    const minTravelDate = new Date();
-    minTravelDate.setHours(0, 0, 0, 0);
-    minTravelDate.setDate(minTravelDate.getDate() + 30);
-
-    if (arrivalDate < minTravelDate) {
-      errors.tooClose =
-        "Your travel dates are too close. Embassies take up to 15 days after your visa appointment, Ideal gap between applying and travel date is 4-6 weeks. You can still proceed if your travel dates are flexible.";
-    }
-
-    if (arrivalDate >= minTravelDate) {
-      const nextDay = new Date(arrivalDate);
-      nextDay.setDate(nextDay.getDate() + 1);
-
-      // Format date like "22 October"
-      const options = { day: "numeric", month: "long" };
-      const formattedDate = nextDay.toLocaleDateString("en-US", options);
-
-      errors.tooClosee = `Its a peace of mind date to get visa if you complete application by ${formattedDate}.`;
     }
 
     if (departure) {
@@ -353,7 +330,7 @@ const CountrySlider = () => {
 
     if (safeDate) {
       const minDeparture = new Date(safeDate);
-      minDeparture.setDate(minDeparture.getDate() + 15);
+      minDeparture.setDate(minDeparture.getDate() + 1);
 
       if (!departureDate || departureDate < minDeparture) {
         setDepartureDateLocal(minDeparture);
@@ -456,36 +433,21 @@ const CountrySlider = () => {
     fourWeeksFromNow.setHours(0, 0, 0, 0);
     fourWeeksFromNow.setDate(today.getDate() + 28);
 
-    const dayAfterFourWeeks = new Date();
-    dayAfterFourWeeks.setHours(0, 0, 0, 0);
-    dayAfterFourWeeks.setDate(today.getDate() + 29);
-
-    // Check if date belongs to a different month than today (for overflow detection)
-    const dateMonth = date.getMonth();
-    const dateYear = date.getFullYear();
-    const todayMonth = today.getMonth();
-    const todayYear = today.getFullYear();
-    const isInTodaysMonth = dateMonth === todayMonth && dateYear === todayYear;
-
     // 🩶 Past dates
     if (date < today)
       return "!text-gray-400 !bg-transparent !important";
 
-    // 🔴 Red text appears till yellow dates (entire 4-week range: today to 28 days)
-    if (date >= today && date <= fourWeeksFromNow)
-      return "!text-red-400 !bg-transparent !important";
+    // 🔴 Too soon
+    // if (date < safeDateThreshold && date >= today)
+    //   return "!text-red-400 !bg-transparent !important";
 
-    // 🟢 After 4 weeks - green starts from day 29 (next day after 4 weeks)
-    // Show green for all dates >= day 29, but hide overflow dates from next month in current view
-    if (date >= dayAfterFourWeeks) {
-      // If date is in today's month and is day 29+, show green (it's part of current month)
-      if (isInTodaysMonth) {
-        return "!text-green-400 !bg-transparent !important";
-      }
-      // For dates in future months, also show green (they'll appear when navigating forward)
-      // But we can't easily detect overflow dates, so we show all future month dates as green
+    // 🟡 Within 4 weeks
+    if (date >= today && date <= fourWeeksFromNow)
+      return "!text-yellow-400 !bg-transparent !important";
+
+    // 🟢 After 4 weeks
+    if (date > fourWeeksFromNow)
       return "!text-green-400 !bg-transparent !important";
-    }
 
     return "!bg-transparent !text-white";
   };
@@ -533,6 +495,13 @@ const CountrySlider = () => {
 
     maxDepartureDate.setDate(arrivalDate.getDate() + maxStayDuration - 1);
   }
+
+  // Compute current trip duration helpers
+  const tripDays = arrivalDate && departureDate
+    ? Math.ceil((departureDate - arrivalDate) / (1000 * 60 * 60 * 24))
+    : null;
+  const isAtLeastFourWeeks = typeof tripDays === "number" && tripDays >= 28;
+  const isLessThanFourWeeks = typeof tripDays === "number" && tripDays < 28;
 
   const [requiredDocuments, setRequiredDocumentsLocal] = useState(() => ({
     passport: false,
@@ -621,15 +590,7 @@ const CountrySlider = () => {
     }));
   };
 
-  const baseFee = (() => {
-    const v = sliderContent?.visa_base_price_gbp
-      ?? sliderContent?.base_fee_gbp
-      ?? sliderContent?.visa_price_gbp
-      ?? sliderContent?.visa_price
-      ?? sliderContent?.base_fee;
-    const num = typeof v === "string" ? parseFloat(v) : Number(v);
-    return Number.isFinite(num) ? num : 129;
-  })();
+  const [baseFee] = useState(129);
 
   const perDayInsurancePrice = 2;
 
@@ -850,7 +811,8 @@ const CountrySlider = () => {
           ? Math.round(Number(selectedVisaType.price) / 100)
           : baseFee;
 
-    const baseOriginalPrice = Math.round(currentBaseFee * 1.25) * travelers;
+    // const baseOriginalPrice = Math.round(currentBaseFee * 1.25) * travelers;
+    const baseOriginalPrice = 200 * travelers;
     const insuranceOriginalPrice = recommendedItems.insuranceCertificate && insuranceDays > 0
       ? Math.round(perDayInsurancePrice * insuranceDays * travelers * 1.25)
       : 0;
@@ -902,7 +864,7 @@ const CountrySlider = () => {
         ? Number(selectedVisaType.priceGBP)
         : selectedVisaType && selectedVisaType.price
           ? Math.round(Number(selectedVisaType.price) / 100)
-          : baseFee;
+          : 149; // baseFee
     const currentVisaFees = currentBaseFee * travelers;
     const calculatedDiscountAmount =
       (currentVisaFees * discount.percentage) / 100;
@@ -1010,7 +972,7 @@ const CountrySlider = () => {
               ? Number(selectedVisaType.priceGBP)
               : selectedVisaType && selectedVisaType.price
                 ? Math.round(Number(selectedVisaType.price) / 100)
-                : baseFee;
+                : 149; // baseFee
           const currentVisaFees = currentBaseFee * travelers;
           const calculatedDiscountAmount = (currentVisaFees * 20) / 100;
 
@@ -1502,7 +1464,7 @@ const CountrySlider = () => {
         ? Number(selectedVisaType.priceGBP)
         : selectedVisaType && selectedVisaType.price
           ? Math.round(Number(selectedVisaType.price) / 100)
-          : baseFee;
+          : 149; // baseFee
 
     let visaFees = currentBaseFee * travelers;
 
@@ -1714,7 +1676,7 @@ const CountrySlider = () => {
         ? Number(selectedVisaType.priceGBP)
         : selectedVisaType && selectedVisaType.price
           ? Math.round(Number(selectedVisaType.price) / 100)
-          : baseFee;
+          : 149; // baseFee
 
     let visaFees = currentBaseFee * travelers;
 
@@ -2255,6 +2217,15 @@ const CountrySlider = () => {
                 <p className="text-red-400 text-xs mt-2">
                   {dateValidationErrors.exceedsLimit}
                 </p>
+                {typeof tripDays === "number" && (
+                  <p className={`${isAtLeastFourWeeks ? "text-green-400" : isLessThanFourWeeks ? "text-red-400" : "text-white/70"} text-xs mt-1`}>
+                    {isAtLeastFourWeeks
+                      ? "All good. Your trip length is 4 weeks or more."
+                      : isLessThanFourWeeks
+                      ? "Your trip length is less than 4 weeks."
+                      : ""}
+                  </p>
+                )}
               </div>
             </div>
             <div className="text-xs mt-2 space-y-1">
@@ -2263,12 +2234,6 @@ const CountrySlider = () => {
               )}
               {dateValidationErrors.dateOrder && (
                 <p className="text-red-400">{dateValidationErrors.dateOrder}</p>
-              )}
-              {dateValidationErrors.tooClose && (
-                <p className="text-red-400">{dateValidationErrors.tooClose}</p>
-              )}
-              {dateValidationErrors.tooClosee && (
-                <p className="text-green-400">{dateValidationErrors.tooClosee}</p>
               )}
             </div>
 
