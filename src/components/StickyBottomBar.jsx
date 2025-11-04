@@ -1,13 +1,34 @@
 import { useState, useEffect } from "react";
 import { Gift, Shield, Plus, Minus, ShoppingCart, ArrowUpRight } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useAppSelector, useAppDispatch } from "@/store";
+import { setTravelers, setReduxInsuranceCount } from "@/store/visaSlice";
 
 const StickyBottomBar = () => {
+  const dispatch = useAppDispatch();
+  const visaState = useAppSelector((state) => state.visa);
+  const router = useRouter();
+  
   const [isVisible, setIsVisible] = useState(false);
+  
+  // Get traveler and insurance counts from Redux store
+  const travelerCount = visaState.travelers || 0;
+  const insuranceCount = visaState.insuranceCount || 0;
+  
   const [quantities, setQuantities] = useState({
-    schengen: 0,
-    insurance: 0,
+    schengen: travelerCount,
+    insurance: insuranceCount,
     giftCard: 0
   });
+
+  // Sync local state with Redux state when it changes
+  useEffect(() => {
+    setQuantities(prev => ({
+      ...prev,
+      schengen: travelerCount,
+      insurance: insuranceCount
+    }));
+  }, [travelerCount, insuranceCount]);
 
   const items = [
     {
@@ -37,10 +58,35 @@ const StickyBottomBar = () => {
   ];
 
   const updateQuantity = (itemId, change) => {
+    let newQuantity = Math.max(0, quantities[itemId] + change);
+    
+    // Apply constraints based on item type
+    if (itemId === 'insurance') {
+      // Insurance count cannot exceed traveler count and must be at least 0
+      newQuantity = Math.max(0, Math.min(newQuantity, travelerCount));
+    }
+    
     setQuantities(prev => ({
       ...prev,
-      [itemId]: Math.max(0, prev[itemId] + change)
+      [itemId]: newQuantity
     }));
+
+    // Update Redux store based on item type
+    if (itemId === 'schengen') {
+      dispatch(setTravelers(newQuantity));
+      
+      // If traveler count decreases, adjust insurance count if needed
+      if (newQuantity < quantities.insurance) {
+        const adjustedInsuranceCount = Math.min(quantities.insurance, newQuantity);
+        setQuantities(prev => ({
+          ...prev,
+          insurance: adjustedInsuranceCount
+        }));
+        dispatch(setReduxInsuranceCount(adjustedInsuranceCount));
+      }
+    } else if (itemId === 'insurance') {
+      dispatch(setReduxInsuranceCount(newQuantity));
+    }
   };
 
   const getTotalItems = () => {
@@ -51,6 +97,16 @@ const StickyBottomBar = () => {
     return items.reduce((total, item) => {
       return total + (item.currentPrice * quantities[item.id]);
     }, 0);
+  };
+
+  const handleAddToCart = () => {
+    // Ensure we have at least one item selected
+    if (getTotalItems() === 0) {
+      return;
+    }
+
+    // Navigate to checkout page
+    router.push('/visa-checkout');
   };
 
   useEffect(() => {
@@ -227,6 +283,7 @@ const StickyBottomBar = () => {
           {/* Add to Cart Button */}
           <div className="flex-shrink-0">
             <button
+              onClick={handleAddToCart}
               className="text-white px-8 py-3 rounded-full font-semibold text-lg flex items-center gap-2  min-w-[200px] justify-center"
               style={{backgroundColor: '#6B4EFF'}}
               onMouseEnter={(e) => {
