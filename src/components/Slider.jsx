@@ -445,17 +445,17 @@ const CountrySlider = () => {
     // 🩶 Past dates
     if (date < today) return "!text-gray-400 !bg-transparent !important";
 
-    // 🔴 Too soon
-    // if (date < safeDateThreshold && date >= today)
-    //   return "!text-red-400 !bg-transparent !important";
-
-    // 🟡 Within 4 weeks
-    if (date >= today && date <= fourWeeksFromNow)
-      return "!text-yellow-400 !bg-transparent !important";
+    // 🔴 Too soon (within 15 days)
+    if (date < safeDateThreshold && date >= today)
+      return "!text-red-400 !bg-transparent !important";
 
     // 🟢 After 4 weeks
     if (date > fourWeeksFromNow)
       return "!text-green-400 !bg-transparent !important";
+
+    // 🟡 Within 4 weeks (but after safe threshold)
+    if (date >= safeDateThreshold && date <= fourWeeksFromNow)
+      return "!text-yellow-400 !bg-transparent !important";
 
     return "!bg-transparent !text-white";
   };
@@ -2279,13 +2279,9 @@ const CountrySlider = () => {
                 <p className="text-red-400 text-xs mt-2">
                   {dateValidationErrors.exceedsLimit}
                 </p>
-                {typeof tripDays === "number" && (
-                  <p className={`${isAtLeastFourWeeks ? "text-green-400" : isLessThanFourWeeks ? "text-red-400" : "text-white/70"} text-xs mt-1`}>
-                    {isAtLeastFourWeeks
-                      ? "All good. Your trip length is 4 weeks or more."
-                      : isLessThanFourWeeks
-                      ? "Your trip length is less than 4 weeks."
-                      : ""}
+                {typeof tripDays === "number" && isAtLeastFourWeeks && (
+                  <p className="text-green-400 text-xs mt-1">
+                    All good. Your trip length is 4 weeks or more.
                   </p>
                 )}
               </div>

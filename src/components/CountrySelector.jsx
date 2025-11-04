@@ -79,10 +79,6 @@ export default function CountrySelector() {
 
   return (
     <div className="flex flex-col items-center space-y-6 mt-8">
-      <h3 className="text-xl font-semibold text-white self-start">
-        All Schengen Countries
-      </h3>
-
       {/* Search Bar */}
       <div className="w-full">
         <div className="relative">

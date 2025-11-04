@@ -124,7 +124,7 @@ const ApplicationCompletedSection = ({
         orderId: app.orderId || app.order_id || app.applicationData?.orderId || null,
         applicationNo: app.applicationNo || app.application_no || app.applicationNumber || app.application_number || null,
         formattedApplicationId: formatApplicationId(app.id),
-        currentStage: currentStage || "Application Review",
+        currentStage: currentStage || "Under review",
         progress: statusToProgress(app.applicationStatus || app.status || app.applicationData?.applicationStatus) || 0,
         nextSteps: stepInfo.nextStep ? [stepInfo.nextStep] : stepInfo.nextSteps || [],
         raw: app,
@@ -364,15 +364,9 @@ const ApplicationCompletedSection = ({
               </div>
             </div>
             <div>
-              <label className="text-sm text-gray-400">Current Stage</label>
-              <p className="text-white font-medium">
-                {currentStatus?.currentStage || "Application Review"}
-              </p>
-            </div>
-            <div>
               <label className="text-sm text-gray-400">Estimated Processing</label>
               <p className="text-white font-medium">
-                {currentStatus?.estimatedProcessingTime || "24 hours"}
+                {currentStatus?.estimatedProcessingTime || "24 working hours"}
               </p>
             </div>
           </div>

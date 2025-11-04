@@ -125,7 +125,7 @@ export const getApplicationStatus = async (token, applicationId) => {
           id: applicationData.id || applicationId,
           status: derivedStatus,
           submittedAt: applicationData.createdAt || new Date().toISOString(),
-          estimatedProcessingTime: '24 hours',
+          estimatedProcessingTime: '24 working hours',
           orderId: applicationData.orderId,
           formattedApplicationId: formatApplicationId(applicationData.id || applicationId),
           formattedOrderId: formatOrderId(applicationData.orderId),
@@ -167,7 +167,7 @@ const getStatusStage = (status) => {
     case "submitted":
       return "Submitted";
     case "under_review":
-      return "Application Review";
+      return "Under review";
     case "appointment_booked":
       return "Appointment Booked";
     case "at_embassy":
