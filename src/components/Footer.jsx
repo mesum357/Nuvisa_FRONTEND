@@ -58,24 +58,24 @@ const Footer = () => {
 
         {/* Policy Links */}
         <div className="flex flex-wrap gap-6 mb-12 font-medium text-sm max-md:items-center max-md:gap-3 max-md:gap-y-1 max-md:justify-center">
-          <a
-            href={getContent('policy_terms_url')}
+          <Link
+            href="/terms-of-service"
             className="text-neutral-100 hover:text-white transition-colors duration-200"
           >
-            {getContent('policy_terms_text')}
-          </a>
-          <a
-            href={getContent('policy_refund_url')}
+            Terms of Service
+          </Link>
+          <Link
+            href="/refund-policy"
             className="text-neutral-100 hover:text-white transition-colors duration-200"
           >
-            {getContent('policy_refund_text')}
-          </a>
-          <a
-            href={getContent('policy_privacy_url')}
+            Refund Policy
+          </Link>
+          <Link
+            href="/privacy-policy"
             className="text-neutral-100 hover:text-white transition-colors duration-200"
           >
-            {getContent('policy_privacy_text')}
-          </a>
+            Privacy Policy
+          </Link>
         </div>
         <hr
           className="w-full border-0 my-[33px] h-[1px]"
