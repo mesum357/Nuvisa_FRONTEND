@@ -625,6 +625,16 @@ const CountrySlider = () => {
     return Number.isFinite(num) ? num : 129;
   })();
 
+  const strikeOutPrice = (() => {
+    const v =
+      sliderContent?.strike_out_price_gbp ??
+      sliderContent?.strike_out_price ??
+      sliderContent?.original_price_gbp ??
+      sliderContent?.original_price;
+    const num = typeof v === "string" ? parseFloat(v) : Number(v);
+    return Number.isFinite(num) ? num : 200;
+  })();
+
   const perDayInsurancePrice = 2;
 
   const computedInsuranceTotal =
@@ -837,14 +847,27 @@ const CountrySlider = () => {
   };
 
   const calculateOriginalPrice = () => {
-    const currentBaseFee =
-      selectedVisaType && selectedVisaType.priceGBP
-        ? Number(selectedVisaType.priceGBP)
-        : selectedVisaType && selectedVisaType.price
-        ? Math.round(Number(selectedVisaType.price) / 100)
-        : baseFee;
+    // Use dynamic strike-out price from admin panel (per traveler)
+    // If a visa type is selected with a specific price, calculate proportional strike-out price
+    // Otherwise use the base strike-out price
+    let currentStrikeOutPrice = strikeOutPrice;
+    
+    if (baseFee > 0 && selectedVisaType) {
+      if (selectedVisaType.priceGBP) {
+        // If visa type has a specific GBP price, maintain the same ratio
+        const priceRatio = Number(selectedVisaType.priceGBP) / baseFee;
+        currentStrikeOutPrice = strikeOutPrice * priceRatio;
+      } else if (selectedVisaType.price) {
+        // If visa type has a price in INR, convert and maintain ratio
+        const visaPriceGBP = Math.round(Number(selectedVisaType.price) / 100);
+        if (visaPriceGBP > 0) {
+          const priceRatio = visaPriceGBP / baseFee;
+          currentStrikeOutPrice = strikeOutPrice * priceRatio;
+        }
+      }
+    }
 
-    const baseOriginalPrice = Math.round(currentBaseFee * 1.25) * travelers;
+    const baseOriginalPrice = Math.round(currentStrikeOutPrice) * travelers;
     const insuranceOriginalPrice =
       recommendedItems.insuranceCertificate && insuranceDays > 0
         ? Math.round(perDayInsurancePrice * insuranceDays * travelers * 1.25)

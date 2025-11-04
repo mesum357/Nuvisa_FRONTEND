@@ -3,8 +3,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { getAdminApiBase } from '@/utils/adminApiBase';
+import { fetchFAQs as fetchFAQsFromAPI } from '@/api/faqs';
 
 const FAQSection = () => {
   const [activeIndex, setActiveIndex] = useState(null);
@@ -19,46 +18,11 @@ const FAQSection = () => {
   const fetchFAQs = async () => {
     try {
       setLoading(true);
-
-      // TEMPORARILY USING FALLBACK FAQs - No API call needed
-      // const fallbackFaqs = [
-      //   {
-      //     question: "How long does the visa application process take?",
-      //     answer: "Our streamlined process typically takes 10 days or less to secure your appointment, compared to 6-8 weeks with traditional agencies."
-      //   },
-      //   {
-      //     question: "What documents do I need for my Schengen visa application?",
-      //     answer: "You'll need a valid passport, completed application form, passport photos, travel insurance, proof of accommodation, flight itinerary, and financial statements. We'll guide you through each requirement."
-      //   },
-      //   {
-      //     question: "How much does your visa service cost?",
-      //     answer: "Our flat rate is £200 with no hidden fees, compared to traditional agencies that charge £250-£300 plus additional costs."
-      //   },
-      //   {
-      //     question: "Do you provide travel insurance?",
-      //     answer: "Yes! We offer travel insurance certificates required for Schengen visas at a discounted rate of £29 (normally £45) when bundled with our visa service."
-      //   },
-      //   {
-      //     question: "Can I track my application status?",
-      //     answer: "Absolutely! Our digital platform provides 24/7 instant tracking of your application status, so you're always informed about your visa progress."
-      //   },
-      //   {
-      //     question: "What countries do you support?",
-      //     answer: "We support visa applications for 20 European countries including Germany, France, Italy, Netherlands, Belgium, and more across all UK visa centres."
-      //   },
-      //   {
-      //     question: "Is my personal information secure?",
-      //     answer: "Yes, we use industry-standard encryption and security measures to protect all your personal and financial information throughout the application process."
-      //   },
-      //   {
-      //     question: "What if my visa application is rejected?",
-      //     answer: "While our success rate is very high, if your application is rejected, we'll help you understand the reasons and assist with reapplication at no additional service charge."
-      //   }
-      // ];
-
-      setFaqs(fallbackFaqs);
+      const data = await fetchFAQsFromAPI();
+      setFaqs(data || []);
     } catch (error) {
-      console.error('Error setting up FAQs:', error);
+      console.error('Error fetching FAQs:', error);
+      setFaqs([]);
     } finally {
       setLoading(false);
     }
