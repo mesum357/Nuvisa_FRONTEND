@@ -3,8 +3,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { getAdminApiBase } from '@/utils/adminApiBase';
+import { fetchFAQs as fetchFAQsFromAPI } from '@/api/faqs';
 
 const FAQSection = () => {
   const [activeIndex, setActiveIndex] = useState(null);
@@ -19,19 +18,11 @@ const FAQSection = () => {
   const fetchFAQs = async () => {
     try {
       setLoading(true);
-
-      // Choose a single endpoint to avoid multiple requests
-      const adminBase = process.env.NEXT_PUBLIC_ADMIN_API_URL ? getAdminApiBase() : null;
-      const adminEndpoint = adminBase ? `${adminBase}/api/public/faqs` : null;
-      const endpoint = adminEndpoint || '/api/faqs';
-
-      const response = await fetch(endpoint, { cache: 'no-store' });
-      if (!response.ok) throw new Error(`Failed to fetch FAQs (${response.status})`);
-      const data = await response.json();
-      if (!data?.success || !data?.data) throw new Error('Invalid FAQ response');
-      setFaqs(data.data);
+      const data = await fetchFAQsFromAPI();
+      setFaqs(data || []);
     } catch (error) {
       console.error('Error fetching FAQs:', error);
+      setFaqs([]);
     } finally {
       setLoading(false);
     }

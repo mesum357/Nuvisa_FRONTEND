@@ -155,10 +155,11 @@ const CountrySlider = () => {
   const [insuranceDays, setInsuranceDays] = useState(0);
   const [giftCardCount, setGiftCardCount] = useState(1);
   const [insuranceCount, setInsuranceCount] = useState(1);
-  // Default arrival = today, default departure = arrival + 28 days (4 weeks)
+  // Default arrival = 4 weeks from today, default departure = arrival + 15 days
   const computeDefaultArrival = () => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + 28); // 4 weeks from today
     return d;
   };
 
@@ -166,7 +167,7 @@ const CountrySlider = () => {
   const computeDefaultDeparture = (arrival) => {
     const d = new Date(arrival);
     d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() + 28);
+    d.setDate(d.getDate() + 15); // 15 days ahead of the 4 week date
     return d;
   };
 
@@ -281,6 +282,7 @@ const CountrySlider = () => {
   };
 
   // Function to validate dates (no past dates, correct order, and visa limit)
+  // Returns only one error at a time, prioritized: pastDate > dateOrder > exceedsLimit
   const validateDates = (arrival, departure, visaType) => {
     const errors = {};
 
@@ -293,39 +295,61 @@ const CountrySlider = () => {
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    
+    const fourWeeksFromNow = new Date();
+    fourWeeksFromNow.setHours(0, 0, 0, 0);
+    fourWeeksFromNow.setDate(today.getDate() + 28);
+    
+    // Priority 1: Check for past dates or dates before 4 weeks
     if (arrivalDate < today) {
       errors.pastDate = "Arrival date cannot be in the past";
-      return errors; // Early return for past date errors
+      return errors; // Early return - highest priority
+    }
+    
+    if (arrivalDate < fourWeeksFromNow) {
+      errors.pastDate = "Your travel dates are too close. Embassies take up to 15 days after your visa appointment, ideal gap between applying and travel date is 4-6 weeks. You can still proceed if your travel dates are flexible";
+      return errors; // Early return - highest priority
     }
 
+    // Priority 2: Check date order (only if arrival date is valid)
     if (departure) {
       const departureDate = new Date(departure);
-      // errors.tooClose= "Super! You could get visa if you complete application by 20th August."
-
-      // Basic date validation
+      
       if (arrivalDate >= departureDate) {
         errors.dateOrder = "Departure date must be after arrival date";
+        return errors; // Early return - second priority
+      }
+      
+      // Priority 3: Check trip duration limits (only if dates are in correct order)
+      const tripDuration = Math.ceil(
+        (departureDate - arrivalDate) / (1000 * 60 * 60 * 24)
+      );
+
+      // Visa type specific validation
+      if (visaType && visaType.duration_permitted) {
+        const maxDays = parseDurationDays(visaType.duration_permitted);
+
+        if (maxDays && tripDuration > maxDays) {
+          errors.exceedsLimit = `Trip duration (${tripDuration} days) exceeds visa limit (${maxDays} days)`;
+        }
       } else {
-        // Calculate trip duration only if dates are in the correct order
-        const tripDuration = Math.ceil(
-          (departureDate - arrivalDate) / (1000 * 60 * 60 * 24)
-        );
-
-        // Visa type specific validation
-        if (visaType && visaType.duration_permitted) {
-          const maxDays = parseDurationDays(visaType.duration_permitted);
-
-          if (maxDays && tripDuration > maxDays) {
-            errors.exceedsLimit = `Trip duration (${tripDuration} days) exceeds visa limit (${maxDays} days)`;
-          }
-        } else {
-          // Default limit for Schengen visas when no visa type is selected
-          const defaultMaxDays = 90;
-          if (tripDuration > defaultMaxDays) {
-            errors.exceedsLimit = `Trip duration (${tripDuration} days) exceeds default limit (${defaultMaxDays} days)`;
-          }
+        // Default limit for Schengen visas when no visa type is selected
+        const defaultMaxDays = 90;
+        if (tripDuration > defaultMaxDays) {
+          errors.exceedsLimit = `Trip duration (${tripDuration} days) exceeds default limit (${defaultMaxDays} days)`;
         }
       }
+    }
+
+    // If arrival date is at least 4 weeks away and no errors, show success message
+    if (arrivalDate >= fourWeeksFromNow && !errors.dateOrder && !errors.exceedsLimit) {
+      // Calculate 48 hours (2 days) from today
+      const nextDay = new Date(today);
+      nextDay.setDate(nextDay.getDate() + 2);
+      // Format date like "6 November"
+      const options = { day: "numeric", month: "long" };
+      const formattedDate = nextDay.toLocaleDateString("en-US", options);
+      errors.tooClosee = `This is generally good date to obtain your visa if you complete application by ${formattedDate}.`;
     }
 
     return errors;
@@ -434,10 +458,6 @@ const CountrySlider = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const safeDateThreshold = new Date();
-    safeDateThreshold.setHours(0, 0, 0, 0);
-    safeDateThreshold.setDate(today.getDate() + MIN_SAFE_DAYS_BEFORE_TRAVEL);
-
     const fourWeeksFromNow = new Date();
     fourWeeksFromNow.setHours(0, 0, 0, 0);
     fourWeeksFromNow.setDate(today.getDate() + 28);
@@ -445,17 +465,13 @@ const CountrySlider = () => {
     // 🩶 Past dates
     if (date < today) return "!text-gray-400 !bg-transparent !important";
 
-    // 🔴 Too soon (within 15 days)
-    if (date < safeDateThreshold && date >= today)
+    // 🔴 All dates before 4 weeks (from today to before 4 weeks) should be red
+    if (date >= today && date < fourWeeksFromNow)
       return "!text-red-400 !bg-transparent !important";
 
-    // 🟢 After 4 weeks
-    if (date > fourWeeksFromNow)
+    // 🟢 On or after 4 weeks from today
+    if (date >= fourWeeksFromNow)
       return "!text-green-400 !bg-transparent !important";
-
-    // 🟡 Within 4 weeks (but after safe threshold)
-    if (date >= safeDateThreshold && date <= fourWeeksFromNow)
-      return "!text-yellow-400 !bg-transparent !important";
 
     return "!bg-transparent !text-white";
   };
@@ -607,6 +623,16 @@ const CountrySlider = () => {
       sliderContent?.base_fee;
     const num = typeof v === "string" ? parseFloat(v) : Number(v);
     return Number.isFinite(num) ? num : 129;
+  })();
+
+  const strikeOutPrice = (() => {
+    const v =
+      sliderContent?.strike_out_price_gbp ??
+      sliderContent?.strike_out_price ??
+      sliderContent?.original_price_gbp ??
+      sliderContent?.original_price;
+    const num = typeof v === "string" ? parseFloat(v) : Number(v);
+    return Number.isFinite(num) ? num : 200;
   })();
 
   const perDayInsurancePrice = 2;
@@ -821,14 +847,27 @@ const CountrySlider = () => {
   };
 
   const calculateOriginalPrice = () => {
-    const currentBaseFee =
-      selectedVisaType && selectedVisaType.priceGBP
-        ? Number(selectedVisaType.priceGBP)
-        : selectedVisaType && selectedVisaType.price
-        ? Math.round(Number(selectedVisaType.price) / 100)
-        : baseFee;
+    // Use dynamic strike-out price from admin panel (per traveler)
+    // If a visa type is selected with a specific price, calculate proportional strike-out price
+    // Otherwise use the base strike-out price
+    let currentStrikeOutPrice = strikeOutPrice;
+    
+    if (baseFee > 0 && selectedVisaType) {
+      if (selectedVisaType.priceGBP) {
+        // If visa type has a specific GBP price, maintain the same ratio
+        const priceRatio = Number(selectedVisaType.priceGBP) / baseFee;
+        currentStrikeOutPrice = strikeOutPrice * priceRatio;
+      } else if (selectedVisaType.price) {
+        // If visa type has a price in INR, convert and maintain ratio
+        const visaPriceGBP = Math.round(Number(selectedVisaType.price) / 100);
+        if (visaPriceGBP > 0) {
+          const priceRatio = visaPriceGBP / baseFee;
+          currentStrikeOutPrice = strikeOutPrice * priceRatio;
+        }
+      }
+    }
 
-    const baseOriginalPrice = Math.round(currentBaseFee * 1.25) * travelers;
+    const baseOriginalPrice = Math.round(currentStrikeOutPrice) * travelers;
     const insuranceOriginalPrice =
       recommendedItems.insuranceCertificate && insuranceDays > 0
         ? Math.round(perDayInsurancePrice * insuranceDays * travelers * 1.25)
@@ -2275,23 +2314,44 @@ const CountrySlider = () => {
                   placeholderText="YYYY-MM-DD"
                   maxDate={maxDepartureDate}
                 />
-
-                <p className="text-red-400 text-xs mt-2">
-                  {dateValidationErrors.exceedsLimit}
-                </p>
-                {typeof tripDays === "number" && isAtLeastFourWeeks && (
-                  <p className="text-green-400 text-xs mt-1">
-                    All good. Your trip length is 4 weeks or more.
-                  </p>
-                )}
               </div>
             </div>
-            <div className="text-xs mt-2 space-y-1">
+
+            {/* Show only one error message at a time, prioritized - Full width below both inputs */}
+            <div className="text-xs mt-2">
               {dateValidationErrors.pastDate && (
-                <p className="text-red-400">{dateValidationErrors.pastDate}</p>
+                <p className="text-red-400">
+                  {dateValidationErrors.pastDate}
+                </p>
               )}
-              {dateValidationErrors.dateOrder && (
-                <p className="text-red-400">{dateValidationErrors.dateOrder}</p>
+              {!dateValidationErrors.pastDate && dateValidationErrors.dateOrder && (
+                <p className="text-red-400">
+                  {dateValidationErrors.dateOrder}
+                </p>
+              )}
+              {!dateValidationErrors.pastDate && !dateValidationErrors.dateOrder && dateValidationErrors.exceedsLimit && (
+                <p className="text-red-400">
+                  {dateValidationErrors.exceedsLimit}
+                </p>
+              )}
+              {/* Show success message only when there are no errors */}
+              {!dateValidationErrors.pastDate && 
+               !dateValidationErrors.dateOrder && 
+               !dateValidationErrors.exceedsLimit && 
+               dateValidationErrors.tooClosee && (
+                <p className="text-green-400 mt-1">
+                  {dateValidationErrors.tooClosee}
+                </p>
+              )}
+              {!dateValidationErrors.pastDate && 
+               !dateValidationErrors.dateOrder && 
+               !dateValidationErrors.exceedsLimit && 
+               !dateValidationErrors.tooClosee &&
+               typeof tripDays === "number" && 
+               isAtLeastFourWeeks && (
+                <p className="text-green-400 mt-1">
+                  All good. Your trip length is 4 weeks or more.
+                </p>
               )}
             </div>
 
