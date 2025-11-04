@@ -507,7 +507,7 @@ export const InsuranceStep = ({
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <span className="text-white font-medium">
-                  Purchase insurance through us
+                Buy insurance
                 </span>
                 {selectedInsuranceType === "purchase" &&
                   isInsurancePaymentCompleted() && (
@@ -518,7 +518,7 @@ export const InsuranceStep = ({
                   )}
               </div>
               <div className="text-sm text-gray-400">
-                £2 per day • Instant coverage
+                £2 per day • Budget-friendly
               </div>
             </div>
           </label>

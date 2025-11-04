@@ -254,12 +254,12 @@ const MultiStepAccordion = () => {
         let isCompleted = relevantStepInfo.completedSteps?.includes(
           step.stepType
         );
-        
+
         // If application is finalized, mark all steps as completed
         if (isApplicationFinalized) {
           isCompleted = true;
         }
-        
+
         const isInsuranceComplete =
           relevantStepInfo.completedSteps?.includes("insurance");
         if (step.stepType === "fullPayment") {
@@ -2023,8 +2023,7 @@ const MultiStepAccordion = () => {
               <div>
                 <div className="font-medium">Application Submitted</div>
                 <div className="text-sm text-yellow-200">
-                  This application has been submitted. You cannot edit it
-                  anymore, but you can upload any pending documents.
+                  Your application has been submitted successfully. While edits are no longer allowed, pending documents can still be uploaded.
                 </div>
               </div>
               <div>
@@ -2044,7 +2043,7 @@ const MultiStepAccordion = () => {
           <div className="w-full mb-4 p-4 bg-blue-900/10 border border-blue-600 rounded-lg text-blue-100">
             <div className="flex items-center justify-between">
               <div>
-                <div className="font-medium">Application Under Review</div>
+                <div className="font-medium">Under review</div>
                 <div className="text-sm text-blue-200">
                   Your application is being reviewed by our team. You will be notified of any updates via email.
                 </div>
@@ -3202,17 +3201,39 @@ const MultiStepAccordion = () => {
         </div>
 
         {
-          parentVisaApplication?.stepInfo?.completedSteps?.includes("appointment") &&
-          !isApplicationSubmitted &&
-          <div className="flex w-full justify-end">
-            <button
-              onClick={handleSubmit}
-              disabled={isSubmitting || loading || !isOwner || isApplicationSubmitted}
-              className="px-6 py-2 bg-[#7350FF] text-white rounded-md hover:bg-[#7350FF]/90 disabled:bg-[#7350FF]/30 transition-colors"
-            >
-              {isSubmitting ? "Loading..." : "Submit"}
-            </button>
-          </div>}
+          (() => {
+            const completedSteps = parentVisaApplication?.stepInfo?.completedSteps || [];
+            const hasAppointment = completedSteps.includes("appointment");
+            const hasPayment = completedSteps.includes("fullPayment") || paymentData?.allPaymentCompleted;
+            const hasInsurance = completedSteps.includes("insurance");
+            const hasDocuments = completedSteps.includes("documents");
+            const hasBasicDetails = completedSteps.includes("basicDetails");
+            const hasVisitDetails = completedSteps.includes("visitDetails");
+            
+            const allStepsReady = hasAppointment && hasPayment && hasInsurance && hasDocuments && hasBasicDetails && hasVisitDetails;
+            
+            return allStepsReady && !isApplicationSubmitted && (
+              <div className="w-full mt-6 space-y-4">
+                <div className="bg-green-900/10 border border-green-600 rounded-lg p-4">
+                  <div className="flex items-center gap-2 text-green-400">
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <span className="font-medium">All requirements completed. Ready to submit your application.</span>
+                  </div>
+                </div>
+                <div className="flex w-full justify-end">
+                  <button
+                    onClick={handleSubmit}
+                    disabled={isSubmitting || loading || !isOwner || isApplicationSubmitted}
+                    className="px-6 py-2 bg-[#7350FF] text-white rounded-md hover:bg-[#7350FF]/90 disabled:bg-[#7350FF]/30 transition-colors"
+                  >
+                    {isSubmitting ? "Loading..." : "Submit"}
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
 
 
       </div>
@@ -4264,13 +4285,27 @@ const FullPaymentStep = ({
     return acc + (curr?.payment?.paymentAmount || 0);
   }, 0);
 
-  const paymentFees = appliedDiscount && appliedDiscount.percentage ? 159 - (159 * appliedDiscount.percentage) / 100 : 159;
+  // Calculate dynamic payment fees per traveler from paymentData
+  // Use paymentData.totalFullPayment if available (dynamic), otherwise fallback to 149
+  const basePaymentPerTraveler = paymentData?.totalFullPayment && unpaidPayment?.length > 0
+    ? paymentData.totalFullPayment / (unpaidPayment?.length || totalTraveler || 1)
+    : paymentData?.fullRemainingPayment && unpaidPayment?.length > 0
+      ? paymentData.fullRemainingPayment / (unpaidPayment?.length || totalTraveler || 1)
+      : 159;
 
-  const totalPaymentDue = unpaidPayment?.reduce((acc, curr) => acc + paymentFees, 0)
+  const paymentFees = appliedDiscount && appliedDiscount.percentage
+    ? basePaymentPerTraveler - (basePaymentPerTraveler * appliedDiscount.percentage) / 100
+    : basePaymentPerTraveler;
+
+  // Use calculateTotalPayment() for dynamic total, which already handles discounts
+  const totalPaymentDue = unpaidPayment?.length > 0
+    ? calculateTotalPayment()
+    : 0;
 
   const calculatePaidToPayment = () => {
     if (unpaidPayment?.length === 0) return 0;
-    return unpaidPayment?.length * paymentFees
+    // Use dynamic total payment if available, otherwise calculate from per-traveler fees
+    return totalPaymentDue > 0 ? totalPaymentDue : (unpaidPayment?.length * paymentFees);
   }
 
 
@@ -4279,7 +4314,7 @@ const FullPaymentStep = ({
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-white mb-2">Payment</h2>
         <p className="text-gray-300">
-          Complete your full payment to proceed with the application
+          Complete your payment to proceed with the application
         </p>
       </div>
 
@@ -4300,22 +4335,6 @@ const FullPaymentStep = ({
                         calculatePaidToPayment()?.toFixed(2) : paidPaymentAmount?.toFixed(2)
                     }
                   </div>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="flex items-center gap-2 text-green-400 font-medium">
-                  <svg
-                    className="w-5 h-5"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  <span className="text-start">Pay nothing later</span>
                 </div>
               </div>
             </div>

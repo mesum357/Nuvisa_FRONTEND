@@ -97,7 +97,7 @@ const StatusTracker = ({ applicationId, className = "", initialStatus = null, on
       },
       {
         id: 'review',
-        title: 'Application Review',
+        title: 'Under review',
         description: 'Application is being reviewed by our team',
         completed: progress >= 50,
         current: progress >= 25 && progress < 75
@@ -256,10 +256,6 @@ const StatusTracker = ({ applicationId, className = "", initialStatus = null, on
       {status && (
         <div className="mt-6 pt-4 border-t border-[#423577]">
           <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="text-gray-400">Current Stage:</span>
-              <p className="text-white font-medium">{status.currentStage || 'Processing'}</p>
-            </div>
             <div>
               <span className="text-gray-400">Progress:</span>
               <p className="text-white font-medium">{status.progress || 0}%</p>

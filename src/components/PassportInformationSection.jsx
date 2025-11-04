@@ -1498,6 +1498,10 @@ const PassportInformationSection = ({
                             ? "border-gray-500"
                             : "border-[#423577]"
                         }`}
+                      style={{
+                        colorScheme: "light",
+                        color: disabled ? "#9CA3AF" : "#FFFFFF"
+                      }}
                     />
                     {errors.passportIssueDate && (
                       <p className="text-red-500 text-xs mt-1">
@@ -1526,6 +1530,10 @@ const PassportInformationSection = ({
                             ? "border-gray-500"
                             : "border-[#423577]"
                         }`}
+                      style={{
+                        colorScheme: "light",
+                        color: disabled ? "#9CA3AF" : "#FFFFFF"
+                      }}
                     />
                     {errors.passportExpiryDate && (
                       <p className="text-red-500 text-xs mt-1">
@@ -1546,7 +1554,7 @@ const PassportInformationSection = ({
                 <div className="space-y-4 pt-2">
                   <div>
                     <label className="block text-sm font-medium  mb-1">
-                      Current Address Line 1
+                      Current UK Address Line 1
                     </label>
                     <input
                       type="text"
@@ -1575,7 +1583,7 @@ const PassportInformationSection = ({
                   </div>
                   <div>
                     <label className="block text-sm font-medium  mb-1">
-                      Current Address Line 2
+                      Current UK Address Line 2
                     </label>
                     <input
                       type="text"
