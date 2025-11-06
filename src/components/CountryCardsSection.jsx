@@ -48,7 +48,9 @@ const CountryCardsSection = () => {
     try {
       setLoading(true);
       // TEMPORARILY COMMENTED OUT - Fetch appointment texts which now includes section content
-      // const appointmentTextsData = await fetchAppointmentTexts();
+      const appointmentTextsData = await fetchAppointmentTexts();
+      // const appointmentTextsData = []; // Use empty array as fallback
+      
     
 
       console.log("Frontend received appointment texts:", appointmentTextsData);
@@ -175,6 +177,36 @@ const CountryCardsSection = () => {
       name: "NORWAY",
       image: "/image/country/Norway.jpg",
       landmark: "Norwegian Fjords",
+    },
+    {
+      name: "Switzerland",
+      image: "/image/country/Switzerland.jpg",
+      landmark: "Matterhorn",
+    },
+    {
+      name: "Spain",
+      image: "/image/country/Spain.jpg",
+      landmark: "Sagrada Familia",
+    },
+    {
+      name: "Malta",
+      image: "/image/country/Malta.jpg",
+      landmark: "Valletta Harbor",
+    },
+    {
+      name: "Luxembourg",
+      image: "/image/country/Luxembourg.jpg",
+      landmark: "Grand Ducal Palace",
+    },
+    {
+      name: "Greece",
+      image: "/image/country/Greece.jpg",
+      landmark: "Parthenon",
+    },
+    {
+      name: "Finland",
+      image: "/image/country/Finland.jpg",
+      landmark: "Helsinki Cathedral",
     },
   ];
 
