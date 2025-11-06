@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Gift, Shield, Plus, Minus, ShoppingCart, ArrowUpRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAppSelector, useAppDispatch } from "@/store";
-import { setTravelers, setReduxInsuranceCount } from "@/store/visaSlice";
+import { setTravelers, setReduxInsuranceCount, setReduxGiftCardCount, setRecommendedItems, setRequiredDocuments, setVisaFees, setInsuranceFees, setGiftCardFees, setTotalAmount, setInsuranceOnly, triggerDocumentValidation } from "@/store/visaSlice";
 
 const StickyBottomBar = () => {
   const dispatch = useAppDispatch();
@@ -11,14 +11,17 @@ const StickyBottomBar = () => {
   
   const [isVisible, setIsVisible] = useState(false);
   
-  // Get traveler and insurance counts from Redux store
+  // Get traveler, insurance, and gift card counts from Redux store
   const travelerCount = visaState.travelers || 0;
   const insuranceCount = visaState.insuranceCount || 0;
-  
+  const giftCardCount = visaState.giftCardCount || 0;
+  const recommendedItems = visaState.recommendedItems;
+  const requiredDocuments = visaState.requiredDocuments || {};
+
   const [quantities, setQuantities] = useState({
     schengen: travelerCount,
     insurance: insuranceCount,
-    giftCard: 0
+    giftCard: giftCardCount
   });
 
   // Sync local state with Redux state when it changes
@@ -26,9 +29,10 @@ const StickyBottomBar = () => {
     setQuantities(prev => ({
       ...prev,
       schengen: travelerCount,
-      insurance: insuranceCount
+      insurance: insuranceCount,
+      giftCard: giftCardCount
     }));
-  }, [travelerCount, insuranceCount]);
+  }, [travelerCount, insuranceCount, giftCardCount]);
 
   const items = [
     {
@@ -59,13 +63,13 @@ const StickyBottomBar = () => {
 
   const updateQuantity = (itemId, change) => {
     let newQuantity = Math.max(0, quantities[itemId] + change);
-    
+
     // Apply constraints based on item type
     if (itemId === 'insurance') {
       // Insurance count cannot exceed traveler count and must be at least 0
       newQuantity = Math.max(0, Math.min(newQuantity, travelerCount));
     }
-    
+
     setQuantities(prev => ({
       ...prev,
       [itemId]: newQuantity
@@ -74,7 +78,7 @@ const StickyBottomBar = () => {
     // Update Redux store based on item type
     if (itemId === 'schengen') {
       dispatch(setTravelers(newQuantity));
-      
+
       // If traveler count decreases, adjust insurance count if needed
       if (newQuantity < quantities.insurance) {
         const adjustedInsuranceCount = Math.min(quantities.insurance, newQuantity);
@@ -86,6 +90,22 @@ const StickyBottomBar = () => {
       }
     } else if (itemId === 'insurance') {
       dispatch(setReduxInsuranceCount(newQuantity));
+
+      // Update recommendedItems based on quantity
+      const newRecommendedItems = {
+        ...recommendedItems,
+        insuranceCertificate: newQuantity > 0
+      };
+      dispatch(setRecommendedItems(newRecommendedItems));
+    } else if (itemId === 'giftCard') {
+      dispatch(setReduxGiftCardCount(newQuantity));
+
+      // Update recommendedItems based on quantity
+      const newRecommendedItems = {
+        ...recommendedItems,
+        giftCard: newQuantity > 0
+      };
+      dispatch(setRecommendedItems(newRecommendedItems));
     }
   };
 
@@ -99,14 +119,26 @@ const StickyBottomBar = () => {
     }, 0);
   };
 
-  const handleAddToCart = () => {
-    // Ensure we have at least one item selected
-    if (getTotalItems() === 0) {
-      return;
-    }
 
-    // Navigate to checkout page
-    router.push('/visa-checkout');
+  const handleAddToCart = () => {
+    // Always trigger document validation when Add to Cart is clicked
+    dispatch(triggerDocumentValidation());
+
+    // Calculate fees and dispatch to Redux to ensure checkout has correct values
+    const visaFees = travelerCount * 159; // Using the current price from items
+    const insuranceFees = insuranceCount * 29;
+    const giftCardFees = giftCardCount * 188;
+    const totalAmount = visaFees + insuranceFees + giftCardFees;
+
+    dispatch(setVisaFees(visaFees));
+    dispatch(setInsuranceFees(insuranceFees));
+    dispatch(setGiftCardFees(giftCardFees));
+    dispatch(setTotalAmount(totalAmount));
+    dispatch(setRequiredDocuments(requiredDocuments));
+    dispatch(setRecommendedItems(recommendedItems));
+
+    // Navigate to get the visa page instead of checkout
+    router.push('/get-the-visa');
   };
 
   useEffect(() => {
@@ -120,7 +152,7 @@ const StickyBottomBar = () => {
       const footerTop = footer ? footer.getBoundingClientRect().top + window.scrollY : documentHeight;
       
       // Show when scrolled a little bit (200px from top)
-      const hasScrolledEnough = scrollPosition > 200;
+      const hasScrolledEnough = scrollPosition > 1500;
       
       // Hide when footer is visible (when scroll position + window height reaches footer)
       const isFooterVisible = scrollPosition + windowHeight >= footerTop;

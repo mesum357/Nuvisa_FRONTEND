@@ -14,6 +14,7 @@ import { useKlarnaContent } from "@/hooks/useKlarnaContent";
 import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import StickyBottomBar from "@/components/StickyBottomBar";
 
 const Index = () => {
   const { heroContent, loading } = useHeroContent();
@@ -85,7 +86,7 @@ const Index = () => {
         <OurMission />
         <Footer />
       </div>
-
+      <StickyBottomBar/>
       {/* App Download Popup */}
       <AppDownloadPopup />
     </div>

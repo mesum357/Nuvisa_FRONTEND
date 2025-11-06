@@ -1,6 +1,6 @@
 "use client";
 import { getCountryConfig } from "@/constants/countryConfig";
-import { useAppDispatch } from "@/store";
+import { useAppDispatch, useAppSelector } from "@/store";
 import {
   setInsuranceFees,
   setSelectedCountry as setReduxSelectedCountry,
@@ -19,6 +19,8 @@ import {
   setTotalAmount,
   setInsuranceOnly,
   setReduxInsuranceCount,
+  setReduxGiftCardCount,
+  triggerDocumentValidation,
 } from "@/store/visaSlice";
 import ClientOnly from "./ClientOnly";
 import {
@@ -52,6 +54,7 @@ const CountrySlider = () => {
   const MIN_SAFE_DAYS_BEFORE_TRAVEL = 15;
 
   const { content: sliderContent } = useSliderContent();
+  const visaState = useAppSelector((state) => state.visa);
 
   // Sample country data with images and names
   const countries = [
@@ -148,13 +151,15 @@ const CountrySlider = () => {
     "Switzerland",
   ];
 
-  const [travelers, setTravelersLocal] = useState(1);
   const [_isCountryOpen, setIsCountryOpen] = useState(false);
   const [selectedCountry, setSelectedCountryLocal] = useState("France");
   const [activeTooltip, setActiveTooltip] = useState(null);
   const [insuranceDays, setInsuranceDays] = useState(0);
-  const [giftCardCount, setGiftCardCount] = useState(1);
-  const [insuranceCount, setInsuranceCount] = useState(1);
+
+  // Use Redux state instead of local state
+  const travelers = visaState.travelers || 1;
+  const insuranceCount = visaState.insuranceCount || 0;
+  const giftCardCount = visaState.giftCardCount || 0;
   // Default arrival = 4 weeks from today, default departure = arrival + 15 days
   const computeDefaultArrival = () => {
     const d = new Date();
@@ -536,10 +541,8 @@ const CountrySlider = () => {
     insurance: false,
   }));
 
-  const [recommendedItems, setRecommendedItemsLocal] = useState(() => ({
-    insuranceCertificate: false,
-    giftCard: false,
-  }));
+  // Use Redux state for recommendedItems
+  const recommendedItems = visaState.recommendedItems;
 
   // Handle pre-selected country from URL parameters
   useEffect(() => {
@@ -551,6 +554,36 @@ const CountrySlider = () => {
       }
     }
   }, [router.query.selectedCountry, dispatch]);
+
+  // Sync requiredDocuments to Redux whenever it changes
+  useEffect(() => {
+    dispatch(setRequiredDocuments(requiredDocuments));
+  }, [requiredDocuments, dispatch]);
+
+  // Listen for document validation trigger from other components
+  useEffect(() => {
+    if (visaState.triggerDocumentValidation !== undefined) {
+      const requiredFields = [
+        "passport",
+        "ukVisa",
+        "photos",
+        "bankStatements",
+        "employmentProof",
+      ];
+      const missingDocs = requiredFields.filter(
+        (field) => !requiredDocuments[field]
+      );
+
+      if (missingDocs.length > 0) {
+        setValidationErrors(new Set(missingDocs));
+        // Scroll to documents section
+        const documentsSection = document.querySelector('[data-documents-section]');
+        if (documentsSection) {
+          documentsSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+    }
+  }, [visaState.triggerDocumentValidation, requiredDocuments]);
 
   const toggleRequiredDocument = (documentKey) => {
     setRequiredDocumentsLocal((prev) => {
@@ -569,40 +602,44 @@ const CountrySlider = () => {
   };
 
   const toggleRecommendedItem = (itemKey) => {
-    setRecommendedItemsLocal((prev) => {
-      const next = { ...prev, [itemKey]: !prev[itemKey] };
-      return next;
-    });
-    if (itemKey === "giftCard" && recommendedItems.giftCard) {
-      setGiftCardCount(1);
-      dispatch(setGiftCardFees(1));
-      return;
-    }
-    // If unchecking insurance certificate, reset days to 0
-    if (itemKey === "insuranceCertificate" && recommendedItems[itemKey]) {
-      setInsuranceDays(0);
-    }
-    // If checking insurance certificate and days is 0, set to calculated days from dates
-    else if (
-      itemKey === "insuranceCertificate" &&
-      !recommendedItems[itemKey] &&
-      insuranceDays === 0
-    ) {
-      if (arrivalDate && departureDate) {
-        const diffDays = tripDaysInclusive(arrivalDate, departureDate);
+    const isCurrentlyChecked = recommendedItems[itemKey];
+    const newRecommendedItems = { ...recommendedItems, [itemKey]: !isCurrentlyChecked };
+    dispatch(setRecommendedItems(newRecommendedItems));
 
-        // Calculate maximum allowed days based on visa type
-        let maxAllowedDays = 90; // Default
-        if (selectedVisaType && selectedVisaType.duration_permitted) {
-          maxAllowedDays =
-            parseDurationDays(selectedVisaType.duration_permitted) || 90;
-        }
-
-        // Use the smaller of trip duration or visa limit
-        const allowedDays = Math.min(diffDays, maxAllowedDays);
-        setInsuranceDays(allowedDays);
+    if (itemKey === "giftCard") {
+      if (isCurrentlyChecked) {
+        // Unchecking gift card
+        dispatch(setReduxGiftCardCount(0));
+        dispatch(setGiftCardFees(0));
       } else {
-        setInsuranceDays(0); // Default to 1 day when no dates provided
+        // Checking gift card
+        dispatch(setReduxGiftCardCount(1));
+        dispatch(setGiftCardFees(188));
+      }
+    } else if (itemKey === "insuranceCertificate") {
+      if (isCurrentlyChecked) {
+        // Unchecking insurance certificate
+        setInsuranceDays(0);
+        dispatch(setReduxInsuranceCount(0));
+      } else {
+        // Checking insurance certificate
+        if (arrivalDate && departureDate) {
+          const diffDays = tripDaysInclusive(arrivalDate, departureDate);
+
+          // Calculate maximum allowed days based on visa type
+          let maxAllowedDays = 90; // Default
+          if (selectedVisaType && selectedVisaType.duration_permitted) {
+            maxAllowedDays =
+              parseDurationDays(selectedVisaType.duration_permitted) || 90;
+          }
+
+          // Use the smaller of trip duration or visa limit
+          const allowedDays = Math.min(diffDays, maxAllowedDays);
+          setInsuranceDays(allowedDays);
+        } else {
+          setInsuranceDays(1); // Default to 1 day when no dates provided
+        }
+        dispatch(setReduxInsuranceCount(1));
       }
     }
   };
@@ -754,7 +791,7 @@ const CountrySlider = () => {
   const handleGiftCardChange = (increment) => {
     const newValue = giftCardCount + increment;
     if (newValue >= 1) {
-      setGiftCardCount(newValue);
+      dispatch(setReduxGiftCardCount(newValue));
       if (newValue > 0 && !recommendedItems.giftCard) {
         setRecommendedItemsLocal((prev) => ({ ...prev, giftCard: true }));
       } else if (newValue === 0 && recommendedItems.giftCard) {
@@ -766,7 +803,6 @@ const CountrySlider = () => {
   const handleInsuranceChange = (increment) => {
     const newValue = insuranceCount + increment;
     if (newValue >= 1 && newValue <= travelers) {
-      setInsuranceCount(newValue);
       dispatch(setReduxInsuranceCount(Number(newValue)));
 
       if (newValue > 0 && !recommendedItems.insuranceCertificate) {
@@ -1127,7 +1163,7 @@ const CountrySlider = () => {
 
     // If there are missing required docs and it's not insurance-only checkout, block and highlight
     if (missingDocs.length > 0) {
-      setValidationErrors(new Set(missingDocs));
+      dispatch(triggerDocumentValidation());
       return;
     }
 
@@ -2266,7 +2302,6 @@ const CountrySlider = () => {
                     value={travelers}
                     onChange={(next) => {
                       const n = Number(next);
-                      setTravelersLocal(n);
                       dispatch(setReduxTravelers(Number(n)));
                     }}
                     min={1}
@@ -2386,7 +2421,7 @@ const CountrySlider = () => {
 
           {/* Required Documents */}
           <ClientOnly>
-            <div className="my-6">
+            <div className="my-6" data-documents-section>
               <div
                 className={`bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden transition-all duration-300 hover:bg-white/10 ${
                   validationErrors.size > 0
@@ -2639,17 +2674,18 @@ const CountrySlider = () => {
               <div className="flex gap-[10px]">
                 <div className="flex  flex-col items-center gap-2 mb-6 bg-white p-2 rounded-2xl text-[#23232B] w-[220px]">
                   <div className="w-full flex items-center  ">
-                    <div
-                      className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black self-start mt-2 ${
-                        recommendedItems.insuranceCertificate
-                          ? "bg-[#7350FF] border border-transparent"
-                          : "bg-white border border-gray-500"
-                      }`}
-                    >
-                      {recommendedItems.insuranceCertificate && (
-                        <Check className="w-3.5 h-3.5 text-white" />
-                      )}
-                    </div>
+                  <div
+                    className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black self-start mt-2 cursor-pointer ${
+                      recommendedItems.insuranceCertificate
+                        ? "bg-[#7350FF] border border-transparent"
+                        : "bg-white border border-gray-500"
+                    }`}
+                    onClick={() => toggleRecommendedItem("insuranceCertificate")}
+                  >
+                    {recommendedItems.insuranceCertificate && (
+                      <Check className="w-3.5 h-3.5 text-white" />
+                    )}
+                  </div>
 
                     <img
                       src="/image/certificatee.jpg"
@@ -2781,11 +2817,12 @@ const CountrySlider = () => {
                   <div className="flex flex-col items-center gap-2  bg-white p-2 rounded-2xl text-[#23232B]">
                     <div className="w-full flex items-center ">
                       <div
-                        className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black self-start mt-2 ${
+                        className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black self-start mt-2 cursor-pointer ${
                           recommendedItems.giftCard
                             ? "bg-[#7350FF] border border-transparent"
                             : "bg-white border border-gray-500"
                         }`}
+                        onClick={() => toggleRecommendedItem("giftCard")}
                       >
                         {recommendedItems.giftCard && (
                           <Check className="w-3.5 h-3.5 text-white" />
@@ -2839,12 +2876,12 @@ const CountrySlider = () => {
                   </div>
                 </div>
               </div>
-
+{/* 
               <p className="">
                 Give the gift of unforgettable memories this Christmas! Order
                 now and your digital gift card will be sent to your email
                 address immediately.
-              </p>
+              </p> */}
 
               <div className="mb-6">
                 <div className="space-y-4 font-gilroy-medium !font-semibold">
@@ -2856,7 +2893,7 @@ const CountrySlider = () => {
                       </div>
                       <div>
                         <h3 className="">Auto-booking appointment</h3>
-                        <p className="font-semibold">(In 10 days or less)</p>
+                        {/* <p className="font-semibold">(In 10 days or less)</p> */}
                       </div>
                     </div>
                     <div className=" flex gap-[2px] items-center">
@@ -2879,7 +2916,7 @@ const CountrySlider = () => {
                       </div>
                       <div>
                         <h3 className="">Concierge assistance</h3>
-                        <p className="">(Keeping your financials risk-free)</p>
+                        {/* <p className="">(Keeping your financials risk-free)</p> */}
                       </div>
                     </div>
 
