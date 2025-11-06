@@ -53,7 +53,7 @@ const MultiStepAccordion = () => {
   const [_isClient, setIsClient] = useState(false);
   const [parentVisaApplication, setParentVisaApplication] = useState(null);
   const isApplicationSubmitted =
-    ["submitted", "under_review", "processing", "approved", "rejected", "cancelled", "at_embassy", "appointment_booked", "completed"].includes(parentVisaApplication?.applicationStatus);
+    ["submitted", "under_review", "processing", "approved", "rejected", "cancelled", "at_embassy", "completed"].includes(parentVisaApplication?.applicationStatus);
 
   const [travelersStepInfo, setTravelersStepInfo] = useState({});
   const [loading, setLoading] = useState(false);
@@ -354,6 +354,12 @@ const MultiStepAccordion = () => {
       }
       return step;
     });
+
+    // Hide the Completed tab until the application is submitted or finalized by admin
+    const shouldShowCompletedTab = isApplicationSubmitted || finalizedStates.includes(appStatusLower);
+    if (!shouldShowCompletedTab) {
+      visibleSteps = visibleSteps.filter((step) => step.stepType !== "completed");
+    }
 
     const showPayment = !parentVisaApplication?.travelersData?.every(
       (traveler, index) => {
@@ -2017,6 +2023,31 @@ const MultiStepAccordion = () => {
 
         {/* Number of Travelers Setup */}
 
+        {(() => {
+          const completedSteps = parentVisaApplication?.stepInfo?.completedSteps || [];
+          const hasAppointment = completedSteps.includes("appointment");
+          const hasPayment = completedSteps.includes("fullPayment") || paymentData?.allPaymentCompleted;
+          const hasInsurance = completedSteps.includes("insurance");
+          const hasDocuments = completedSteps.includes("documents");
+          const hasBasicDetails = completedSteps.includes("basicDetails");
+          const hasVisitDetails = completedSteps.includes("visitDetails");
+          const allStepsReady = hasAppointment && hasPayment && hasInsurance && hasDocuments && hasBasicDetails && hasVisitDetails;
+
+          if (allStepsReady && !isApplicationSubmitted && isOwner) {
+            return (
+              <div className="w-full mb-4 p-3 bg-indigo-900/10 border border-indigo-600 rounded-lg text-indigo-100">
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-sm">Ready to submit. Review and click Submit when finished.</span>
+                </div>
+              </div>
+            );
+          }
+          return null;
+        })()}
+
         {isApplicationSubmitted && isOwner && parentVisaApplication?.applicationStatus === "submitted" && !_validateAllTravelersDocuments() && (
           <div className="w-full mb-4 p-4 bg-yellow-900/10 border border-yellow-600 rounded-lg text-yellow-100">
             <div className="flex items-center justify-between">
@@ -2602,6 +2633,122 @@ const MultiStepAccordion = () => {
                             disabled={!isOwner || isApplicationSubmitted}
                             application={parentVisaApplication}
                           />
+                        )}
+
+                        {step.id === 5 && step.stepType === "appointment" && !isApplicationSubmitted && isOwner && (
+                          (() => {
+                            const completedSteps = parentVisaApplication?.stepInfo?.completedSteps || [];
+                            const hasAppointment = completedSteps.includes("appointment");
+                            const hasPayment = completedSteps.includes("fullPayment") || paymentData?.allPaymentCompleted;
+                            const hasInsurance = completedSteps.includes("insurance");
+                            const hasDocuments = completedSteps.includes("documents");
+                            const hasBasicDetails = completedSteps.includes("basicDetails");
+                            const hasVisitDetails = completedSteps.includes("visitDetails");
+                            const allStepsReady = hasAppointment && hasPayment && hasInsurance && hasDocuments && hasBasicDetails && hasVisitDetails;
+
+                            const missingSteps = [];
+                            if (!hasBasicDetails) missingSteps.push("Basic details");
+                            if (!hasVisitDetails) missingSteps.push("Visit details");
+                            if (!hasDocuments) missingSteps.push("Documents");
+                            if (!hasInsurance) missingSteps.push("Insurance");
+                            if (!hasPayment) missingSteps.push("Payment");
+                            if (!hasAppointment) missingSteps.push("Appointment");
+
+                            return (
+                              <div className="mt-6 space-y-4">
+                                {allStepsReady ? (
+                                  <div className="bg-green-900/10 border border-green-600 rounded-lg p-4">
+                                    <div className="flex items-center gap-2 text-green-400">
+                                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                      </svg>
+                                      <span className="font-medium">All requirements completed. Ready to submit your application.</span>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="bg-yellow-900/10 border border-yellow-600 rounded-lg p-4">
+                                    <div className="text-yellow-200 text-sm">
+                                      <span className="font-medium">Finish the following to enable submission:</span>
+                                      {missingSteps.length > 0 && (
+                                        <ul className="list-disc list-inside mt-1">
+                                          {missingSteps.map((step) => (
+                                            <li key={step}>{step}</li>
+                                          ))}
+                                        </ul>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                                <div className="flex w-full justify-end">
+                                  <button
+                                    onClick={handleSubmit}
+                                    disabled={isSubmitting || loading || !allStepsReady}
+                                    className="px-6 py-2 bg-[#7350FF] text-white rounded-md hover:bg-[#7350FF]/90 disabled:bg-[#7350FF]/30 transition-colors"
+                                  >
+                                    {isSubmitting ? "Loading..." : "Submit"}
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })()
+                        )}
+
+                        {step.id === 5 && step.stepType === "appointment" && !isApplicationSubmitted && isOwner && (
+                          (() => {
+                            const completedSteps = parentVisaApplication?.stepInfo?.completedSteps || [];
+                            const hasAppointment = completedSteps.includes("appointment");
+                            const hasPayment = completedSteps.includes("fullPayment") || paymentData?.allPaymentCompleted;
+                            const hasInsurance = completedSteps.includes("insurance");
+                            const hasDocuments = completedSteps.includes("documents");
+                            const hasBasicDetails = completedSteps.includes("basicDetails");
+                            const hasVisitDetails = completedSteps.includes("visitDetails");
+                            const allStepsReady = hasAppointment && hasPayment && hasInsurance && hasDocuments && hasBasicDetails && hasVisitDetails;
+
+                            const missingSteps = [];
+                            if (!hasBasicDetails) missingSteps.push("Basic details");
+                            if (!hasVisitDetails) missingSteps.push("Visit details");
+                            if (!hasDocuments) missingSteps.push("Documents");
+                            if (!hasInsurance) missingSteps.push("Insurance");
+                            if (!hasPayment) missingSteps.push("Payment");
+                            if (!hasAppointment) missingSteps.push("Appointment");
+
+                            return (
+                              <div className="mt-6 space-y-4">
+                                {allStepsReady ? (
+                                  <div className="bg-green-900/10 border border-green-600 rounded-lg p-4">
+                                    <div className="flex items-center gap-2 text-green-400">
+                                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                      </svg>
+                                      <span className="font-medium">All requirements completed. Ready to submit your application.</span>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="bg-yellow-900/10 border border-yellow-600 rounded-lg p-4">
+                                    <div className="text-yellow-200 text-sm">
+                                      <span className="font-medium">Finish the following to enable submission:</span>
+                                      {missingSteps.length > 0 && (
+                                        <ul className="list-disc list-inside mt-1">
+                                          {missingSteps.map((step) => (
+                                            <li key={step}>{step}</li>
+                                          ))}
+                                        </ul>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                                <div className="flex w-full justify-end">
+                                  <button
+                                    onClick={handleSubmit}
+                                    disabled={isSubmitting || loading || !allStepsReady}
+                                    className="px-6 py-2 bg-[#7350FF] text-white rounded-md hover:bg-[#7350FF]/90 disabled:bg-[#7350FF]/30 transition-colors"
+                                  >
+                                    {isSubmitting ? "Loading..." : "Submit"}
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })()
                         )}
 
                         {step.id === 6 && step.stepType === "completed" && (
@@ -3211,21 +3358,44 @@ const MultiStepAccordion = () => {
             const hasVisitDetails = completedSteps.includes("visitDetails");
             
             const allStepsReady = hasAppointment && hasPayment && hasInsurance && hasDocuments && hasBasicDetails && hasVisitDetails;
-            
-            return allStepsReady && !isApplicationSubmitted && (
+
+            const missingSteps = [];
+            if (!hasBasicDetails) missingSteps.push("Basic details");
+            if (!hasVisitDetails) missingSteps.push("Visit details");
+            if (!hasDocuments) missingSteps.push("Documents");
+            if (!hasInsurance) missingSteps.push("Insurance");
+            if (!hasAppointment) missingSteps.push("Appointment");
+            if (!hasPayment) missingSteps.push("Payment");
+
+            return !isApplicationSubmitted && isOwner && (
               <div className="w-full mt-6 space-y-4">
-                <div className="bg-green-900/10 border border-green-600 rounded-lg p-4">
-                  <div className="flex items-center gap-2 text-green-400">
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                    <span className="font-medium">All requirements completed. Ready to submit your application.</span>
+                {allStepsReady ? (
+                  <div className="bg-green-900/10 border border-green-600 rounded-lg p-4">
+                    <div className="flex items-center gap-2 text-green-400">
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      <span className="font-medium">All requirements completed. Ready to submit your application.</span>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="bg-yellow-900/10 border border-yellow-600 rounded-lg p-4">
+                    <div className="text-yellow-200 text-sm">
+                      <span className="font-medium">Finish the following to enable submission:</span>
+                      {missingSteps.length > 0 && (
+                        <ul className="list-disc list-inside mt-1">
+                          {missingSteps.map((step) => (
+                            <li key={step}>{step}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
+                )}
                 <div className="flex w-full justify-end">
                   <button
                     onClick={handleSubmit}
-                    disabled={isSubmitting || loading || !isOwner || isApplicationSubmitted}
+                    disabled={isSubmitting || loading || !allStepsReady}
                     className="px-6 py-2 bg-[#7350FF] text-white rounded-md hover:bg-[#7350FF]/90 disabled:bg-[#7350FF]/30 transition-colors"
                   >
                     {isSubmitting ? "Loading..." : "Submit"}
