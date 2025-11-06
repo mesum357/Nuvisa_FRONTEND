@@ -1539,7 +1539,7 @@ const CountrySlider = () => {
 
       const verificationSent = await sendStudentVerification(
         userEmail,
-        "/visa-checkout"
+        "/get-the-visa"
       );
       if (verificationSent) {
         // Store pending payment data to process after verification
@@ -1603,12 +1603,13 @@ const CountrySlider = () => {
       setConfirmState({
         isOpen: true,
         title: "Confirm Apple Pay",
-        message: `Process Apple Pay payment of £${totalAmount}?\n\nThis will redirect to payment processing page.`,
+        message: `Process Apple Pay payment of £${totalAmount}?\n\nThis will process payment on this page.`,
         onConfirm: () => {
           setConfirmState((s) => ({ ...s, isOpen: false }));
           setSelectedLocalPaymentMethod("apple");
           dispatch(setSelectedPaymentMethod("apple"));
-          router.push(`/visa-checkout`);
+          // Process payment on the same page instead of redirecting
+          // The payment will be handled through the checkout flow
         },
       });
       return;
@@ -1683,25 +1684,48 @@ const CountrySlider = () => {
 
       session.onvalidatemerchant = async (event) => {
         try {
-          // Mark that we're redirecting to prevent cancel logs
-          suppressCancel = true;
-          redirecting = true;
-
           dispatch(setSelectedPaymentMethod("apple-pay"));
-          router.push(`/visa-checkout`);
+          
+          // Try to validate merchant through backend API
+          // If backend endpoint doesn't exist, this will fail gracefully
+          try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+            const response = await fetch(`${apiUrl}/stripe_payment/apple-pay/validate-merchant`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ validationURL: event.validationURL }),
+            });
+            
+            if (response.ok) {
+              const merchantSession = await response.json();
+              session.completeMerchantValidation(merchantSession);
+              return;
+            }
+          } catch (apiError) {
+            // Backend endpoint doesn't exist or failed - handle gracefully
+            // Don't redirect, just abort the session
+          }
+          
+          // If backend validation fails, abort gracefully without redirecting
+          // This keeps the user on the /get-the-visa page
+          suppressCancel = true;
+          session.abort();
+          showAlert(
+            "Apple Pay",
+            "Apple Pay merchant validation is not yet configured. Please use a different payment method or contact support."
+          );
         } catch (error) {
           console.error("Apple Pay merchant validation failed:", error);
           suppressCancel = true;
-          redirecting = true;
           try {
             showAlert(
               "Apple Pay",
-              "Apple Pay setup required. Redirecting to standard checkout..."
+              "Apple Pay validation failed. Please try a different payment method."
             );
           } catch {}
-
-          dispatch(setSelectedPaymentMethod("stripe"));
-          router.push(`/visa-checkout`);
+          session.abort();
         }
       };
 
