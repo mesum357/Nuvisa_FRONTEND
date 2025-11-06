@@ -152,7 +152,7 @@ const StickyBottomBar = () => {
       const footerTop = footer ? footer.getBoundingClientRect().top + window.scrollY : documentHeight;
       
       // Show when scrolled a little bit (200px from top)
-      const hasScrolledEnough = scrollPosition > 200;
+      const hasScrolledEnough = scrollPosition > 1500;
       
       // Hide when footer is visible (when scroll position + window height reaches footer)
       const isFooterVisible = scrollPosition + windowHeight >= footerTop;
