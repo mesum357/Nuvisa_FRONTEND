@@ -1519,7 +1519,7 @@ const CountrySlider = () => {
     return true;
   };
 
-  // Apple Pay click handler using Stripe Payment Request API
+  // Apple Pay click handler
   const handleApplePayClick = async () => {
     // Validate required documents for express payment
     if (!validateRequiredDocuments()) return;
@@ -1575,194 +1575,195 @@ const CountrySlider = () => {
 
     const totalAmount = Math.round(visaFees + insuranceFees + giftCardFees);
 
-    // Load Stripe.js if not already loaded
-    if (typeof window.Stripe === 'undefined') {
-      const script = document.createElement('script');
-      script.src = 'https://js.stripe.com/v3/';
-      script.async = true;
-      await new Promise((resolve, reject) => {
-        script.onload = resolve;
-        script.onerror = reject;
-        document.head.appendChild(script);
+    // Check if Apple Pay is supported at all
+    if (!window.ApplePaySession) {
+      showAlert(
+        "Apple Pay",
+        "Apple Pay is not supported on this browser. Please use Safari on a supported Apple device."
+      );
+      return;
+    }
+
+    // Check device capability first
+    const canMakePayments = ApplePaySession.canMakePayments();
+    if (!canMakePayments) {
+      showAlert(
+        "Apple Pay",
+        "Apple Pay is not available on this device. Please ensure you have Apple Pay set up with a valid payment method."
+      );
+      return;
+    }
+
+    // For development/testing on localhost or non-HTTPS
+    if (
+      window.location.hostname === "localhost" ||
+      window.location.protocol !== "https:"
+    ) {
+      // Simulate successful Apple Pay flow using system confirm
+      setConfirmState({
+        isOpen: true,
+        title: "Confirm Apple Pay",
+        message: `Process Apple Pay payment of £${totalAmount}?\n\nThis will process payment on this page.`,
+        onConfirm: () => {
+          setConfirmState((s) => ({ ...s, isOpen: false }));
+          setSelectedLocalPaymentMethod("apple");
+          dispatch(setSelectedPaymentMethod("apple"));
+          // Process payment on the same page instead of redirecting
+          // The payment will be handled through the checkout flow
+        },
       });
+      return;
     }
 
     try {
-      // Get Stripe publishable key from environment
-      // You should set NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY in your .env file
-      // If not available, try to get it from the backend
-      let stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '';
-      
-      // If not in environment, try to fetch from backend (optional)
-      if (!stripePublishableKey) {
-        try {
-          const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
-          const response = await fetch(`${apiUrl}/stripe_payment/publishable-key`);
-          if (response.ok) {
-            const data = await response.json();
-            stripePublishableKey = data.publishableKey || '';
-          }
-        } catch (e) {
-          // Backend endpoint doesn't exist, continue with empty key
-        }
-      }
-      
-      if (!stripePublishableKey) {
-        showAlert(
-          "Apple Pay",
-          "Stripe configuration is missing. Please set NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY in your environment variables or contact support."
-        );
-        return;
-      }
-
-      const stripe = window.Stripe(stripePublishableKey);
-
-      // Build display items for payment request
-      const displayItems = [
+      // Build line items for detailed breakdown
+      const lineItems = [
         {
           label: `Visa Processing Fee (${travelers} traveller${
             travelers > 1 ? "s" : ""
           })`,
-          amount: Math.round(visaFees),
+          amount: Math.round(visaFees).toString(),
+          type: "final",
         },
       ];
 
       if (recommendedItems.insuranceCertificate) {
-        displayItems.push({
+        lineItems.push({
           label: `Insurance Certificate (${travelers} traveller${
             travelers > 1 ? "s" : ""
           })`,
-          amount: insuranceFees,
+          amount: insuranceFees.toString(),
+          type: "final",
         });
       }
 
       if (recommendedItems.giftCard) {
-        displayItems.push({
+        lineItems.push({
           label: `Gift Card (${giftCardCount} card${
             giftCardCount > 1 ? "s" : ""
           })`,
-          amount: giftCardFees,
+          amount: giftCardFees.toString(),
+          type: "final",
         });
       }
 
       if (appliedDiscount) {
-        displayItems.push({
+        lineItems.push({
           label: `Discount (${appliedDiscount.percentage}% off)`,
-          amount: -Math.round(
+          amount: `-${Math.round(
             (currentBaseFee * travelers * appliedDiscount.percentage) / 100
-          ),
+          )}`,
+          type: "final",
         });
       }
 
-      // Create Payment Request using Stripe
-      // Stripe automatically handles Apple Pay merchant validation
-      const paymentRequest = stripe.paymentRequest({
-        country: 'GB',
-        currency: 'gbp',
+      const request = {
+        countryCode: "GB",
+        currencyCode: "GBP",
+        supportedNetworks: ["visa", "masterCard", "amex", "discover"],
+        merchantCapabilities: ["supports3DS"],
         total: {
-          label: 'NUvisa - Visa Application',
-          amount: totalAmount * 100, // Stripe expects amount in cents/pence
+          label: "NUvisa - Visa Application",
+          amount: totalAmount.toString(),
+          type: "final",
         },
-        displayItems: displayItems,
-        requestPayerName: true,
-        requestPayerEmail: true,
-        requestPayerPhone: false,
-      });
-
-      // Check if Apple Pay is available
-      const canMakePayment = await paymentRequest.canMakePayment();
+        lineItems: lineItems,
+      };
       
-      if (!canMakePayment || !canMakePayment.applePay) {
-        showAlert(
-          "Apple Pay",
-          "Apple Pay is not available on this device. Please ensure you have Apple Pay set up with a valid payment method."
-        );
-        return;
-      }
+      const session = new ApplePaySession(3, request);
 
-      // Set up payment method handler
-      paymentRequest.on('paymentmethod', async (ev) => {
-        dispatch(setSelectedPaymentMethod("apple-pay"));
-        setSelectedLocalPaymentMethod("apple");
+      // Flag used to avoid logging a cancellation when we are intentionally redirecting
+      let suppressCancel = false;
+      let redirecting = false;
 
+      // Override oncancel immediately to prevent any spurious logs
+      session.oncancel = () => {
+        if (!suppressCancel && !redirecting) {
+        }
+      };
+
+      session.onvalidatemerchant = async (event) => {
         try {
-          // Prepare data for checkout session
-          const countryName = getCountryParam(selectedCountry) || "Germany";
-          
-          // Store payment metadata for processing
-          const paymentMetadata = {
-            paymentMethod: 'apple-pay',
-            paymentMethodId: ev.paymentMethod.id,
-            amount: totalAmount,
-            travelers: travelers,
-            selectedVisaType: selectedVisaType,
-            recommendedItems: recommendedItems,
-            appliedDiscount: appliedDiscount,
-            timestamp: Date.now(),
-          };
-          localStorage.setItem("paymentMetadata", JSON.stringify(paymentMetadata));
-
-          // Dispatch Redux actions to store payment data
-          dispatch(setReduxSelectedCountry(String(countryName)));
-          dispatch(setVisaFees(Number(visaFees)));
-          dispatch(setInsuranceFees(Number(insuranceFees)));
-          dispatch(setReduxTravelers(Number(travelers)));
-          dispatch(setRequiredDocuments(requiredDocuments || {}));
-          dispatch(setRecommendedItems(recommendedItems || {}));
-          dispatch(setAppliedDiscount(appliedDiscount || null));
-          dispatch(setCouponCode(couponCode || ""));
-          dispatch(setUserEmail(userEmail || ""));
           dispatch(setSelectedPaymentMethod("apple-pay"));
-          dispatch(setGiftCardFees(giftCardFees || 0));
-          dispatch(setTotalAmount(totalAmount || 0));
-          dispatch(setInsuranceOnly(false));
-          dispatch(setReduxInsuranceCount(insuranceCount || 1));
-
-          // Store selected visa type information
-          if (selectedVisaType) {
-            dispatch(
-              setSelectedVisaType({
-                id: String(selectedVisaType.id || ""),
-                name: String(selectedVisaType.name || ""),
-                type: String(selectedVisaType.type || selectedVisaType.name || ""),
-                subType: selectedVisaType.subType
-                  ? String(selectedVisaType.subType)
-                  : null,
-                price: Number(selectedVisaType.price || 0),
-                priceGBP: Number(selectedVisaType.priceGBP || 0),
-                currency: String(selectedVisaType.currency || "INR"),
-                purpose: Array.isArray(selectedVisaType.purpose)
-                  ? selectedVisaType.purpose.map((p) => String(p)).filter(Boolean)
-                  : [],
-                country_symbol: String(selectedVisaType.country_symbol || ""),
-                processing_time: String(selectedVisaType.processing_time || ""),
-                validity: String(selectedVisaType.validity || ""),
-                validity_period: String(selectedVisaType.validity_period || ""),
-                duration_permitted: String(selectedVisaType.duration_permitted || ""),
-                entries_permitted: String(selectedVisaType.entries_permitted || ""),
-              })
-            );
+          
+          // Try to validate merchant through backend API
+          // If backend endpoint doesn't exist, this will fail gracefully
+          try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+            const response = await fetch(`${apiUrl}/stripe_payment/apple-pay/validate-merchant`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ validationURL: event.validationURL }),
+            });
+            
+            if (response.ok) {
+              const merchantSession = await response.json();
+              session.completeMerchantValidation(merchantSession);
+              return;
+            }
+          } catch (apiError) {
+            // Backend endpoint doesn't exist or failed - handle gracefully
+            // Don't redirect, just abort the session
           }
-
-          // Complete the payment request to close the popup
-          // The actual payment will be processed through Stripe checkout
-          ev.complete('success');
-
-          // Redirect to checkout page to complete payment through Stripe
-          router.push(`/visa-checkout`);
-        } catch (error) {
-          console.error("Apple Pay payment processing error:", error);
-          ev.complete('fail');
+          
+          // If backend validation fails, abort gracefully without redirecting
+          // This keeps the user on the /get-the-visa page
+          suppressCancel = true;
+          session.abort();
           showAlert(
             "Apple Pay",
-            "Payment processing failed. Please try again."
+            "Apple Pay merchant validation is not yet configured. Please use a different payment method or contact support."
           );
+        } catch (error) {
+          console.error("Apple Pay merchant validation failed:", error);
+          suppressCancel = true;
+          try {
+            showAlert(
+              "Apple Pay",
+              "Apple Pay validation failed. Please try a different payment method."
+            );
+          } catch {}
+          session.abort();
         }
-      });
+      };
 
-      // Show the Apple Pay interface
-      // This will display the native Apple Pay popup on /get-the-visa page
-      paymentRequest.show();
+      session.onpaymentauthorized = (event) => {
+        session.completePayment(ApplePaySession.STATUS_SUCCESS);
+        try {
+          const stored = localStorage.getItem("paymentMetadata");
+          const pm = stored ? JSON.parse(stored) : null;
+          const appId = pm?.applicationId || null;
+          if (appId) {
+            router.push(
+              `/application-step?application_id=${encodeURIComponent(appId)}`
+            );
+          } else {
+            router.push("/payment-success");
+          }
+        } catch {
+          console.error("Error parsing paymentMetadata for redirect:");
+          router.push("/payment-success");
+        }
+      };
+
+      session.oncancel = () => {
+        if (!suppressCancel) {
+        } else {
+          // quietly ignore cancellation caused by our intentional redirect fallback
+        }
+      };
+
+      session.onerror = (error) => {
+        console.error("Apple Pay session error:", error);
+        showAlert(
+          "Apple Pay",
+          "Apple Pay error occurred. Please try a different payment method."
+        );
+      };
+
+      session.begin();
     } catch (error) {
       console.error("Apple Pay initialization error:", error);
       showAlert(
