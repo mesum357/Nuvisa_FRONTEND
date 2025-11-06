@@ -79,7 +79,8 @@ const VisaCheckout = () => {
   }
   const userEmail = localStorageGateway("userEmail", localStorageEnums.GET);
 
-  const insuranceFeesPerTraveller = 2 * travelDays; // EUR per traveller
+  const perDayInsurancePrice = 2; // EUR per day per traveller
+  const insuranceFeesPerTraveller = perDayInsurancePrice * travelDays; // EUR per traveller
   const insuranceFeesTotal = insuranceFeesPerTraveller * insuranceCount; // total EUR
   const [includeInsurance, setIncludeInsurance] = useState(
     visaState.recommendedItems?.insuranceCertificate || false
@@ -105,6 +106,15 @@ const VisaCheckout = () => {
   const [couponError, setCouponError] = useState("");
 
   const { showSuccess } = useToast();
+
+  const [requiredDocuments, setRequiredDocuments] = useState({
+    passport: false,
+    ukVisa: false,
+    photos: false,
+    bankStatements: false,
+    employmentProof: false,
+  });
+  const [validationErrors, setValidationErrors] = useState(new Set());
 
   const [studentVerificationSent, setStudentVerificationSent] = useState(false);
   const [studentVerified, setStudentVerified] = useState(false);
@@ -516,6 +526,10 @@ const VisaCheckout = () => {
     return re.test(withSpace) || re.test(v) || re.test(normalized);
   };
 
+  const validateEmail = (email) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
   const validateCardDetails = () => {
     const errors = {};
 
@@ -910,28 +924,77 @@ const VisaCheckout = () => {
     }
   }, []);
 
+
   // Apple Pay click handler
   const handleApplePayClick = async () => {
-    // Basic validation
-    if (!email) {
-      setEmailError("Please enter your email address");
-      return;
+    // Validate required documents for express payment
+    // if (!validateRequiredDocuments()) return;
+
+    // Check if student discount requires verification
+    if (
+      appliedDiscount &&
+      appliedDiscount.description.toLowerCase().includes("student") &&
+      !studentVerified
+    ) {
+      if (!userEmail || !validateEmail(userEmail)) {
+        setEmailError(
+          "Please enter a valid student email before using Apple Pay"
+        );
+        return;
+      }
+
+      const verificationSent = await sendStudentVerification(
+        userEmail,
+        "/visa-checkout"
+      );
+      if (verificationSent) {
+        // Store pending payment data to process after verification
+        setPendingCheckoutQuery("proceed"); // Simple flag
+        setSelectedPaymentMethod("apple");
+        // The polling will handle redirecting to payment once verified
+        return;
+      } else {
+        return; // Error already set by sendStudentVerification
+      }
     }
 
-    const totalAmount = Math.round(total);
+    // Calculate payment amount with all components
+    const currentBaseFee =
+      selectedVisaType && selectedVisaType.priceGBP
+        ? Number(selectedVisaType.priceGBP)
+        : selectedVisaType && selectedVisaType.price
+        ? Math.round(Number(selectedVisaType.price) / 100)
+        : baseVisaFee;
 
-    // Check if Apple Pay is supported
+    let visaFees = currentBaseFee * travelers;
+
+    // Apply discount if available
+    if (appliedDiscount) {
+      const discountAmount = (visaFees * appliedDiscount.percentage) / 100;
+      visaFees = visaFees - discountAmount;
+    }
+
+    const insuranceFees = includeInsurance
+      ? perDayInsurancePrice * travelDays * insuranceCount
+      : 0;
+    const giftCardFees = Number(visaState.giftCardFees) || 0;
+
+    const totalAmount = Math.round(visaFees + insuranceFees + giftCardFees);
+
+    // Check if Apple Pay is supported at all
     if (!window.ApplePaySession) {
-      alert(
+      showAlert(
+        "Apple Pay",
         "Apple Pay is not supported on this browser. Please use Safari on a supported Apple device."
       );
       return;
     }
 
-    // Check device capability
+    // Check device capability first
     const canMakePayments = ApplePaySession.canMakePayments();
     if (!canMakePayments) {
-      alert(
+      showAlert(
+        "Apple Pay",
         "Apple Pay is not available on this device. Please ensure you have Apple Pay set up with a valid payment method."
       );
       return;
@@ -942,61 +1005,352 @@ const VisaCheckout = () => {
       window.location.hostname === "localhost" ||
       window.location.protocol !== "https:"
     ) {
-      // Simulate Apple Pay flow
+      // Simulate successful Apple Pay flow using system confirm
       const confirmed = confirm(
-        `Process Apple Pay payment of £${totalAmount}?\n\nThis will redirect to payment processing.`
+        `Process Apple Pay payment of £${totalAmount}?\n\nThis will redirect to payment processing page.`
       );
       if (confirmed) {
         setSelectedPaymentMethod("apple");
-        await handleCheckout();
+        await handleProceedToCheckout();
       }
       return;
     }
 
-    // Real Apple Pay implementation would go here
-    alert(
-      "Apple Pay integration in progress. Please use credit card payment for now."
-    );
+    try {
+      // Build line items for detailed breakdown
+      const lineItems = [
+        {
+          label: `Visa Processing Fee (${travelers} traveller${travelers > 1 ? "s" : ""})`,
+          amount: Math.round(visaFees).toString(),
+          type: "final",
+        },
+      ];
+
+      if (includeInsurance) {
+        lineItems.push({
+          label: `Insurance Certificate (${insuranceCount} traveller${insuranceCount > 1 ? "s" : ""})`,
+          amount: insuranceFees.toString(),
+          type: "final",
+        });
+      }
+
+      if (giftCardFees > 0) {
+        lineItems.push({
+          label: `Gift Card`,
+          amount: giftCardFees.toString(),
+          type: "final",
+        });
+      }
+
+      if (appliedDiscount) {
+        lineItems.push({
+          label: `Discount (${appliedDiscount.percentage}% off)`,
+          amount: `-${Math.round((currentBaseFee * travelers * appliedDiscount.percentage) / 100)}`,
+          type: "final",
+        });
+      }
+
+      const request = {
+        countryCode: "GB",
+        currencyCode: "GBP",
+        supportedNetworks: ["visa", "masterCard", "amex", "discover"],
+        merchantCapabilities: ["supports3DS"],
+        total: {
+          label: "NUvisa - Visa Application",
+          amount: totalAmount.toString(),
+          type: "final",
+        },
+        lineItems: lineItems,
+      };
+
+      const session = new ApplePaySession(3, request);
+
+      // Flag used to avoid logging a cancellation when we are intentionally redirecting
+      let suppressCancel = false;
+      let redirecting = false;
+
+      // Override oncancel immediately to prevent any spurious logs
+      session.oncancel = () => {
+        if (!suppressCancel && !redirecting) {
+        }
+      };
+
+      session.onvalidatemerchant = async (event) => {
+        try {
+          // Mark that we're redirecting to prevent cancel logs
+          suppressCancel = true;
+          redirecting = true;
+
+          setSelectedPaymentMethod("apple-pay");
+          await handleProceedToCheckout();
+        } catch (error) {
+          console.error("Apple Pay merchant validation failed:", error);
+          suppressCancel = true;
+          redirecting = true;
+          try {
+            showAlert(
+              "Apple Pay",
+              "Apple Pay setup required. Redirecting to standard checkout..."
+            );
+          } catch {}
+
+          setSelectedPaymentMethod("stripe");
+          await handleProceedToCheckout();
+        }
+      };
+
+      session.onpaymentauthorized = (event) => {
+        session.completePayment(ApplePaySession.STATUS_SUCCESS);
+        try {
+          const stored = localStorage.getItem("paymentMetadata");
+          const pm = stored ? JSON.parse(stored) : null;
+          const appId = pm?.applicationId || null;
+          if (appId) {
+            window.location.href = `/application-step?application_id=${encodeURIComponent(appId)}`;
+          } else {
+            window.location.href = "/payment-success";
+          }
+        } catch {
+          console.error("Error parsing paymentMetadata for redirect:");
+          window.location.href = "/payment-success";
+        }
+      };
+
+      session.oncancel = () => {
+        if (!suppressCancel) {
+        } else {
+          // quietly ignore cancellation caused by our intentional redirect fallback
+        }
+      };
+
+      session.onerror = (error) => {
+        console.error("Apple Pay session error:", error);
+        showAlert(
+          "Apple Pay",
+          "Apple Pay error occurred. Please try a different payment method."
+        );
+      };
+
+      session.begin();
+    } catch (error) {
+      console.error("Apple Pay initialization error:", error);
+      showAlert(
+        "Apple Pay",
+        "Apple Pay is not available. Please try a different payment method."
+      );
+    }
   };
 
   // Google Pay click handler
   const handleGooglePayClick = async () => {
-    // Basic validation
-    if (!email) {
-      setEmailError("Please enter your email address");
-      return;
+    // Validate required documents for express payment
+    // if (!validateRequiredDocuments()) return;
+
+    // Check if student discount requires verification
+    if (
+      appliedDiscount &&
+      appliedDiscount.description.toLowerCase().includes("student") &&
+      !studentVerified
+    ) {
+      if (!userEmail || !validateEmail(userEmail)) {
+        setEmailError(
+          "Please enter a valid student email before using Google Pay"
+        );
+        return;
+      }
+
+      const verificationSent = await sendStudentVerification(
+        userEmail,
+        `/payment/${selectedPaymentMethod}`
+      );
+      if (verificationSent) {
+        // Store pending payment data to process after verification
+        setPendingCheckoutQuery("proceed"); // Simple flag
+        setSelectedPaymentMethod("google");
+        // The polling will handle redirecting to payment once verified
+        return;
+      } else {
+        return; // Error already set by sendStudentVerification
+      }
     }
 
-    const totalAmount = Math.round(total);
+    // Calculate payment amount with all components
+    const currentBaseFee =
+      selectedVisaType && selectedVisaType.priceGBP
+        ? Number(selectedVisaType.priceGBP)
+        : selectedVisaType && selectedVisaType.price
+        ? Math.round(Number(selectedVisaType.price) / 100)
+        : baseVisaFee;
+
+    let visaFees = currentBaseFee * travelers;
+
+    // Apply discount if available
+    if (appliedDiscount) {
+      const discountAmount = (visaFees * appliedDiscount.percentage) / 100;
+      visaFees = visaFees - discountAmount;
+    }
+
+    const insuranceFees = includeInsurance
+      ? perDayInsurancePrice * travelDays * insuranceCount
+      : 0;
+    const giftCardFees = Number(visaState.giftCardFees) || 0;
+
+    const totalAmount = Math.round(visaFees + insuranceFees + giftCardFees);
 
     // Check if Google Pay is available
     if (!window.google || !window.google.payments) {
-      alert(
+      showAlert(
+        "Google Pay",
         "Google Pay is not available. Please refresh the page and try again."
       );
       return;
     }
 
-    // For development/testing
-    if (
-      window.location.hostname === "localhost" ||
-      window.location.protocol !== "https:"
-    ) {
-      // Simulate Google Pay flow
-      const confirmed = confirm(
-        `Process Google Pay payment of £${totalAmount}?\n\nThis will redirect to payment processing.`
-      );
-      if (confirmed) {
-        setSelectedPaymentMethod("google");
-        await handleCheckout();
-      }
-      return;
-    }
+    try {
+      const paymentsClient = new google.payments.api.PaymentsClient({
+        environment: "TEST", // Change to 'PRODUCTION' for live
+        paymentDataCallbacks: {
+          onPaymentAuthorized: (paymentData) => {
+            return new Promise((resolve) => {
+              // Process payment data
 
-    // Real Google Pay implementation would go here
-    alert(
-      "Google Pay integration in progress. Please use credit card payment for now."
-    );
+              // Here you would normally send the payment data to your server
+              // For now, we'll simulate success
+              resolve({ transactionState: "SUCCESS" });
+
+              // Redirect to success page or back to existing application if present
+              setTimeout(() => {
+                try {
+                  const stored = localStorage.getItem("paymentMetadata");
+                  const pm = stored ? JSON.parse(stored) : null;
+                  const appId = pm?.applicationId || null;
+                  if (appId) {
+                    window.location.href = `/application-step?application_id=${encodeURIComponent(appId)}`;
+                  } else {
+                    window.location.href = "/payment-success";
+                  }
+                } catch {
+                  console.error("Error parsing paymentMetadata for redirect:");
+                  window.location.href = "/payment-success";
+                }
+              }, 1000);
+            });
+          },
+        },
+      });
+
+      // Check if Google Pay is ready
+      const isReadyToPayRequest = {
+        apiVersion: 2,
+        apiVersionMinor: 0,
+        allowedPaymentMethods: [
+          {
+            type: "CARD",
+            parameters: {
+              allowedAuthMethods: ["PAN_ONLY", "CRYPTOGRAM_3DS"],
+              allowedCardNetworks: ["MASTERCARD", "VISA", "AMEX"],
+            },
+          },
+        ],
+      };
+
+      const isReadyToPay = await paymentsClient.isReadyToPay(isReadyToPayRequest);
+
+      if (!isReadyToPay.result) {
+        showAlert(
+          "Google Pay",
+          "Google Pay is not available on this device or no payment methods are set up."
+        );
+        return;
+      }
+
+      // Build display items for detailed breakdown
+      const displayItems = [
+        {
+          label: `Visa Processing Fee (${travelers} traveller${travelers > 1 ? "s" : ""})`,
+          type: "LINE_ITEM",
+          price: Math.round(visaFees).toString(),
+        },
+      ];
+
+      if (includeInsurance) {
+        displayItems.push({
+          label: `Insurance Certificate (${insuranceCount} traveller${insuranceCount > 1 ? "s" : ""})`,
+          type: "LINE_ITEM",
+          price: insuranceFees.toString(),
+        });
+      }
+
+      if (giftCardFees > 0) {
+        displayItems.push({
+          label: `Gift Card`,
+          type: "LINE_ITEM",
+          price: giftCardFees.toString(),
+        });
+      }
+
+      if (appliedDiscount) {
+        displayItems.push({
+          label: `Discount (${appliedDiscount.percentage}% off)`,
+          type: "LINE_ITEM",
+          price: `-${Math.round((currentBaseFee * travelers * appliedDiscount.percentage) / 100)}`,
+        });
+      }
+
+      const paymentDataRequest = {
+        apiVersion: 2,
+        apiVersionMinor: 0,
+        allowedPaymentMethods: [
+          {
+            type: "CARD",
+            parameters: {
+              allowedAuthMethods: ["PAN_ONLY", "CRYPTOGRAM_3DS"],
+              allowedCardNetworks: ["MASTERCARD", "VISA", "AMEX"],
+              billingAddressRequired: true,
+              billingAddressParameters: {
+                format: "FULL",
+                phoneNumberRequired: true,
+              },
+            },
+            tokenizationSpecification: {
+              type: "PAYMENT_GATEWAY",
+              parameters: {
+                gateway: "stripe", // Use your actual payment gateway
+                "stripe:version": "2020-08-27",
+                "stripe:publishableKey": "pk_test_...", // Use your actual publishable key
+              },
+            },
+          },
+        ],
+        merchantInfo: {
+          merchantId: "BCR2DN4TXZQJHQBF", // Use your actual Google Pay merchant ID
+          merchantName: "NUvisa",
+        },
+        transactionInfo: {
+          totalPriceStatus: "FINAL",
+          totalPriceLabel: "Total",
+          totalPrice: totalAmount.toString(),
+          currencyCode: "GBP",
+          countryCode: "GB",
+          displayItems: displayItems,
+        },
+        callbackIntents: ["PAYMENT_AUTHORIZATION"],
+        shippingAddressRequired: false,
+        shippingOptionRequired: false,
+      };
+
+      // This will show the Google Pay interface, not credit card selection
+      const paymentData = await paymentsClient.loadPaymentData(paymentDataRequest);
+    } catch (error) {
+      console.error("Google Pay error:", error);
+      if (error.statusCode === "CANCELED") {
+        return;
+      }
+      showAlert(
+        "Google Pay",
+        "Google Pay payment failed. Please try a different payment method."
+      );
+    }
   };
 
   return (
@@ -1041,7 +1395,7 @@ const VisaCheckout = () => {
                 {/* Apple Pay Button - Official Style */}
                 <button
                   onClick={handleApplePayClick}
-                  className="group relative flex items-center justify-center bg-black text-white rounded-full px-6 py-3 text-sm font-medium hover:opacity-90 transition-all duration-200 shadow-sm"
+                  className="group relative flex items-center justify-center bg-black text-white! rounded-full px-6 py-3 text-sm font-medium hover:opacity-90 transition-all duration-200 shadow-sm"
                   style={{
                     backgroundColor: "#000",
                     minHeight: "44px",

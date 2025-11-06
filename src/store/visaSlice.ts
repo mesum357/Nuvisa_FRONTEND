@@ -39,8 +39,10 @@ export interface IVisaState {
   giftCardFees: number;
   totalAmount: number;
   insuranceOnly: boolean;
+  triggerDocumentValidation?: boolean;
   amountWithoutDiscount: number;
   insuranceCount?: number;
+  giftCardCount?: number;
 }
 
 const initialState: IVisaState = {
@@ -73,6 +75,7 @@ const initialState: IVisaState = {
   insuranceOnly: false,
   amountWithoutDiscount: 0,
   insuranceCount: 0,
+  giftCardCount: 0,
 };
 
 export const visaSlice = createSlice({
@@ -130,11 +133,18 @@ export const visaSlice = createSlice({
     setInsuranceOnly: (state, action: PayloadAction<boolean>) => {
       state.insuranceOnly = action.payload;
     },
+    triggerDocumentValidation: (state) => {
+      // This action can be used to trigger document validation from other components
+      state.triggerDocumentValidation = !state.triggerDocumentValidation;
+    },
     setAmountWithoutDiscount: (state, action: PayloadAction<number>) => {
       state.amountWithoutDiscount = action.payload;
     },
     setReduxInsuranceCount: (state, action: PayloadAction<number>) => {
       state.insuranceCount = action.payload;
+    },
+    setReduxGiftCardCount: (state, action: PayloadAction<number>) => {
+      state.giftCardCount = action.payload;
     },
     clearVisaData: (state) => {
       state.selectedCountry = "";
@@ -166,6 +176,7 @@ export const visaSlice = createSlice({
       state.insuranceOnly = false;
       state.amountWithoutDiscount = 0;
       state.insuranceCount = 0;
+      state.giftCardCount = 0;
     },
   },
 });
@@ -188,8 +199,10 @@ export const {
   setGiftCardFees,
   setTotalAmount,
   setInsuranceOnly,
+  triggerDocumentValidation,
   clearVisaData,
   setAmountWithoutDiscount,
   setReduxInsuranceCount,
+  setReduxGiftCardCount,
 } = visaSlice.actions;
 export const visaReducer = visaSlice.reducer;
