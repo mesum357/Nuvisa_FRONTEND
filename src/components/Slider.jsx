@@ -354,7 +354,7 @@ const CountrySlider = () => {
       // Format date like "6 November"
       const options = { day: "numeric", month: "long" };
       const formattedDate = nextDay.toLocaleDateString("en-US", options);
-      errors.tooClosee = `This is generally good date to obtain your visa if you complete application by ${formattedDate}.`;
+      errors.tooClosee = `Complete your application by ${formattedDate} for timely visa process.`;
     }
 
     return errors;
@@ -2398,7 +2398,7 @@ const CountrySlider = () => {
                !dateValidationErrors.dateOrder && 
                !dateValidationErrors.exceedsLimit && 
                dateValidationErrors.tooClosee && (
-                <p className="text-green-400 mt-1">
+                <p className="text-gray-500 mt-1">
                   {dateValidationErrors.tooClosee}
                 </p>
               )}
