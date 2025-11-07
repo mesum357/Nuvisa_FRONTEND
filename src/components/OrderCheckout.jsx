@@ -42,8 +42,8 @@ const VisaCheckout = () => {
     visaState.selectedVisaType && visaState.selectedVisaType.priceGBP
       ? Number(visaState.selectedVisaType.priceGBP)
       : visaState.selectedVisaType && visaState.selectedVisaType.price
-      ? Math.round(Number(visaState.selectedVisaType.price) / 100)
-      : 129;
+        ? Math.round(Number(visaState.selectedVisaType.price) / 100)
+        : 129;
 
   const selectedCountry = visaState.selectedCountry;
   const selectedVisaType = visaState.selectedVisaType;
@@ -92,9 +92,7 @@ const VisaCheckout = () => {
   const [postcode, setPostcode] = useState("");
   const [postcodeError, setPostcodeError] = useState("");
   const [emailNewsOffers, setEmailNewsOffers] = useState(false);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(
-    visaState.selectedPaymentMethod || "stripe"
-  );
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
   const [couponCode, setCouponCodeLocal] = useState(visaState.couponCode || "");
   const [insuranceCouponCode, setInsuranceCouponCode] = useState();
   const [appliedDiscount, setAppliedDiscount] = useState(
@@ -209,7 +207,7 @@ const VisaCheckout = () => {
             if (typeof showSuccess === "function") {
               showSuccess("Email verified — student discount applied.");
             }
-          } catch {}
+          } catch { }
 
           if (
             pendingCheckoutQuery &&
@@ -251,7 +249,7 @@ const VisaCheckout = () => {
             if (typeof showSuccess === "function") {
               showSuccess("Email verified — student discount applied.");
             }
-          } catch {}
+          } catch { }
 
           if (
             pendingCheckoutQuery &&
@@ -263,7 +261,7 @@ const VisaCheckout = () => {
             window.location.href = `/visa-checkout`;
           }
         }
-      } catch {}
+      } catch { }
     };
 
     window.addEventListener("message", onMessage);
@@ -301,7 +299,7 @@ const VisaCheckout = () => {
           }
         }
       }
-    } catch {}
+    } catch { }
   }, []);
 
   useEffect(() => {
@@ -421,8 +419,8 @@ const VisaCheckout = () => {
       selectedVisaType && selectedVisaType.priceGBP
         ? Number(selectedVisaType.priceGBP)
         : selectedVisaType && selectedVisaType.price
-        ? Math.round(Number(selectedVisaType.price) / 100)
-        : 129; // baseFee
+          ? Math.round(Number(selectedVisaType.price) / 100)
+          : 129; // baseFee
     const currentVisaFees = currentBaseFee * travelers;
     const calculatedDiscountAmount =
       (currentVisaFees * discount.percentage) / 100;
@@ -647,7 +645,7 @@ const VisaCheckout = () => {
   const insuranceWithDiscount =
     appliedInsuranceDiscount && includeInsurance
       ? insuranceFees -
-        (insuranceFees * appliedInsuranceDiscount.percentage) / 100
+      (insuranceFees * appliedInsuranceDiscount.percentage) / 100
       : insuranceFees;
   const visaFeesWithDiscount = appliedDiscount
     ? visaFeesTotal - (visaFeesTotal * appliedDiscount.percentage) / 100
@@ -679,15 +677,15 @@ const VisaCheckout = () => {
   const baseInsuranceFeesEUR = includeInsurance
     ? appliedInsuranceDiscount
       ? calculatePaymentFees(insuranceFees, "EUR") -
-        (calculatePaymentFees(insuranceFees, "EUR") *
-          appliedInsuranceDiscount.percentage) /
-          100
+      (calculatePaymentFees(insuranceFees, "EUR") *
+        appliedInsuranceDiscount.percentage) /
+      100
       : calculatePaymentFees(insuranceFees, "EUR")
     : 0;
   const discountedInsuranceFeesEUR =
     appliedInsuranceDiscount && includeInsurance
       ? baseInsuranceFeesEUR -
-        (baseInsuranceFeesEUR * appliedInsuranceDiscount.percentage) / 100
+      (baseInsuranceFeesEUR * appliedInsuranceDiscount.percentage) / 100
       : baseInsuranceFeesEUR;
 
   const _giftCardFeesEUR = calculatePaymentFees(giftCardFees, "EUR");
@@ -963,8 +961,8 @@ const VisaCheckout = () => {
       selectedVisaType && selectedVisaType.priceGBP
         ? Number(selectedVisaType.priceGBP)
         : selectedVisaType && selectedVisaType.price
-        ? Math.round(Number(selectedVisaType.price) / 100)
-        : baseVisaFee;
+          ? Math.round(Number(selectedVisaType.price) / 100)
+          : baseVisaFee;
 
     let visaFees = currentBaseFee * travelers;
 
@@ -1092,7 +1090,7 @@ const VisaCheckout = () => {
               "Apple Pay",
               "Apple Pay setup required. Redirecting to standard checkout..."
             );
-          } catch {}
+          } catch { }
 
           setSelectedPaymentMethod("stripe");
           await handleProceedToCheckout();
@@ -1179,8 +1177,8 @@ const VisaCheckout = () => {
       selectedVisaType && selectedVisaType.priceGBP
         ? Number(selectedVisaType.priceGBP)
         : selectedVisaType && selectedVisaType.price
-        ? Math.round(Number(selectedVisaType.price) / 100)
-        : baseVisaFee;
+          ? Math.round(Number(selectedVisaType.price) / 100)
+          : baseVisaFee;
 
     let visaFees = currentBaseFee * travelers;
 
@@ -1471,13 +1469,11 @@ const VisaCheckout = () => {
                     onChange={(e) => setEmail(e.target.value)}
                     onBlur={handleEmailBlur}
                     placeholder="name@example.com"
-                    className={`w-full border ${
-                      emailError ? "border-red-400" : "border-gray-300"
-                    } rounded-md p-2 text-sm  ${
-                      emailError
+                    className={`w-full border ${emailError ? "border-red-400" : "border-gray-300"
+                      } rounded-md p-2 text-sm  ${emailError
                         ? "outline-none ring-2 ring-red-400"
                         : "focus:outline-none focus:ring-2 focus:ring-black"
-                    }`}
+                      }`}
                   />
                   {emailError && (
                     <span className="text-sm text-red-400 mt-1">
@@ -1500,11 +1496,10 @@ const VisaCheckout = () => {
                     onChange={(e) => setPhone(e.target.value)}
                     onBlur={handlePhoneBlur}
                     placeholder="e.g. 0123456789"
-                    className={`w-full border ${
-                      phoneError
-                        ? "border-red-400 outline-none ring-2 ring-red-400"
-                        : "border-gray-300 focus:outline-none focus:ring-2 focus:ring-black"
-                    } rounded-md p-2 text-sm`}
+                    className={`w-full border ${phoneError
+                      ? "border-red-400 outline-none ring-2 ring-red-400"
+                      : "border-gray-300 focus:outline-none focus:ring-2 focus:ring-black"
+                      } rounded-md p-2 text-sm`}
                   />
                   {phoneError && (
                     <span className="text-sm text-red-400 mt-1">
@@ -1527,13 +1522,11 @@ const VisaCheckout = () => {
                     onChange={(e) => setPostcode(e.target.value)}
                     onBlur={handlePostcodeBlur}
                     placeholder="SW1A 1AA"
-                    className={`w-full border ${
-                      postcodeError ? "border-red-400" : "border-gray-300"
-                    } rounded-md p-2 text-sm  ${
-                      postcodeError
+                    className={`w-full border ${postcodeError ? "border-red-400" : "border-gray-300"
+                      } rounded-md p-2 text-sm  ${postcodeError
                         ? "outline-none ring-2 ring-red-400"
                         : "focus:outline-none focus:ring-2 focus:ring-black"
-                    }`}
+                      }`}
                   />
                   {postcodeError && (
                     <span className="text-sm text-red-400 mt-1">
@@ -1576,11 +1569,10 @@ const VisaCheckout = () => {
               <h2 className="font-medium text-lg">Payment Method</h2>
               <div className="space-y-2">
                 <div
-                  className={`border rounded-md p-3 cursor-pointer ${
-                    selectedPaymentMethod === "stripe"
-                      ? "border-black bg-gray-50"
-                      : "border-gray-300"
-                  }`}
+                  className={`border rounded-md p-3 cursor-pointer ${selectedPaymentMethod === "stripe"
+                    ? "border-black bg-gray-50"
+                    : "border-gray-300"
+                    }`}
                   onClick={() => setSelectedPaymentMethod("stripe")}
                 >
                   <div className="flex items-center justify-between">
@@ -1648,15 +1640,13 @@ const VisaCheckout = () => {
                             onBlur={handleCardFieldBlur}
                             placeholder="1234 5678 9012 3456"
                             maxLength={19}
-                            className={`w-full border ${
-                              cardErrors.cardNumber
-                                ? "border-red-400"
-                                : "border-gray-300"
-                            } rounded-md p-3 text-sm pr-10 ${
-                              cardErrors.cardNumber
+                            className={`w-full border ${cardErrors.cardNumber
+                              ? "border-red-400"
+                              : "border-gray-300"
+                              } rounded-md p-3 text-sm pr-10 ${cardErrors.cardNumber
                                 ? "outline-none ring-2 ring-red-400"
                                 : "focus:outline-none focus:ring-2 focus:ring-black"
-                            }`}
+                              }`}
                           />
                           <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                             <svg
@@ -1711,15 +1701,13 @@ const VisaCheckout = () => {
                             onBlur={handleCardFieldBlur}
                             placeholder="MM / YY"
                             maxLength={7}
-                            className={`w-full border ${
-                              cardErrors.expirationDate
-                                ? "border-red-400"
-                                : "border-gray-300"
-                            } rounded-md p-3 text-sm ${
-                              cardErrors.expirationDate
+                            className={`w-full border ${cardErrors.expirationDate
+                              ? "border-red-400"
+                              : "border-gray-300"
+                              } rounded-md p-3 text-sm ${cardErrors.expirationDate
                                 ? "outline-none ring-2 ring-red-400"
                                 : "focus:outline-none focus:ring-2 focus:ring-black"
-                            }`}
+                              }`}
                           />
                           {cardErrors.expirationDate && (
                             <span className="text-sm text-red-400 mt-1">
@@ -1758,15 +1746,13 @@ const VisaCheckout = () => {
                             onBlur={handleCardFieldBlur}
                             placeholder="123"
                             maxLength={4}
-                            className={`w-full border ${
-                              cardErrors.securityCode
-                                ? "border-red-400"
-                                : "border-gray-300"
-                            } rounded-md p-3 text-sm ${
-                              cardErrors.securityCode
+                            className={`w-full border ${cardErrors.securityCode
+                              ? "border-red-400"
+                              : "border-gray-300"
+                              } rounded-md p-3 text-sm ${cardErrors.securityCode
                                 ? "outline-none ring-2 ring-red-400"
                                 : "focus:outline-none focus:ring-2 focus:ring-black"
-                            }`}
+                              }`}
                           />
                           {cardErrors.securityCode && (
                             <span className="text-sm text-red-400 mt-1">
@@ -1791,15 +1777,13 @@ const VisaCheckout = () => {
                           onChange={(e) => setNameOnCard(e.target.value)}
                           onBlur={handleCardFieldBlur}
                           placeholder="John Doe"
-                          className={`w-full border ${
-                            cardErrors.nameOnCard
-                              ? "border-red-400"
-                              : "border-gray-300"
-                          } rounded-md p-3 text-sm ${
-                            cardErrors.nameOnCard
+                          className={`w-full border ${cardErrors.nameOnCard
+                            ? "border-red-400"
+                            : "border-gray-300"
+                            } rounded-md p-3 text-sm ${cardErrors.nameOnCard
                               ? "outline-none ring-2 ring-red-400"
                               : "focus:outline-none focus:ring-2 focus:ring-black"
-                          }`}
+                            }`}
                         />
                         {cardErrors.nameOnCard && (
                           <span className="text-sm text-red-400 mt-1">
@@ -1877,15 +1861,13 @@ const VisaCheckout = () => {
                                   setBillingFirstName(e.target.value)
                                 }
                                 onBlur={handleBillingFieldBlur}
-                                className={`w-full border ${
-                                  cardErrors.billingFirstName
-                                    ? "border-red-400"
-                                    : "border-gray-300"
-                                } rounded-md p-3 text-sm ${
-                                  cardErrors.billingFirstName
+                                className={`w-full border ${cardErrors.billingFirstName
+                                  ? "border-red-400"
+                                  : "border-gray-300"
+                                  } rounded-md p-3 text-sm ${cardErrors.billingFirstName
                                     ? "outline-none ring-2 ring-red-400"
                                     : "focus:outline-none focus:ring-2 focus:ring-black"
-                                }`}
+                                  }`}
                               />
                               {cardErrors.billingFirstName && (
                                 <span className="text-sm text-red-400 mt-1">
@@ -1909,15 +1891,13 @@ const VisaCheckout = () => {
                                   setBillingLastName(e.target.value)
                                 }
                                 onBlur={handleBillingFieldBlur}
-                                className={`w-full border ${
-                                  cardErrors.billingLastName
-                                    ? "border-red-400"
-                                    : "border-gray-300"
-                                } rounded-md p-3 text-sm ${
-                                  cardErrors.billingLastName
+                                className={`w-full border ${cardErrors.billingLastName
+                                  ? "border-red-400"
+                                  : "border-gray-300"
+                                  } rounded-md p-3 text-sm ${cardErrors.billingLastName
                                     ? "outline-none ring-2 ring-red-400"
                                     : "focus:outline-none focus:ring-2 focus:ring-black"
-                                }`}
+                                  }`}
                               />
                               {cardErrors.billingLastName && (
                                 <span className="text-sm text-red-400 mt-1">
@@ -1956,15 +1936,13 @@ const VisaCheckout = () => {
                               onChange={(e) =>
                                 setBillingAddress(e.target.value)
                               }
-                              className={`w-full border ${
-                                cardErrors.billingAddress
-                                  ? "border-red-400"
-                                  : "border-gray-300"
-                              } rounded-md p-3 text-sm ${
-                                cardErrors.billingAddress
+                              className={`w-full border ${cardErrors.billingAddress
+                                ? "border-red-400"
+                                : "border-gray-300"
+                                } rounded-md p-3 text-sm ${cardErrors.billingAddress
                                   ? "outline-none ring-2 ring-red-400"
                                   : "focus:outline-none focus:ring-2 focus:ring-black"
-                              }`}
+                                }`}
                             />
                             {cardErrors.billingAddress && (
                               <span className="text-sm text-red-400 mt-1">
@@ -2005,15 +1983,13 @@ const VisaCheckout = () => {
                                 value={billingCity}
                                 onChange={(e) => setBillingCity(e.target.value)}
                                 onBlur={handleBillingFieldBlur}
-                                className={`w-full border ${
-                                  cardErrors.billingCity
-                                    ? "border-red-400"
-                                    : "border-gray-300"
-                                } rounded-md p-3 text-sm ${
-                                  cardErrors.billingCity
+                                className={`w-full border ${cardErrors.billingCity
+                                  ? "border-red-400"
+                                  : "border-gray-300"
+                                  } rounded-md p-3 text-sm ${cardErrors.billingCity
                                     ? "outline-none ring-2 ring-red-400"
                                     : "focus:outline-none focus:ring-2 focus:ring-black"
-                                }`}
+                                  }`}
                               />
                               {cardErrors.billingCity && (
                                 <span className="text-sm text-red-400 mt-1">
@@ -2059,15 +2035,13 @@ const VisaCheckout = () => {
                                     }
                                   }
                                 }}
-                                className={`w-full border ${
-                                  cardErrors.billingPostcode
-                                    ? "border-red-400"
-                                    : "border-gray-300"
-                                } rounded-md p-3 text-sm ${
-                                  cardErrors.billingPostcode
+                                className={`w-full border ${cardErrors.billingPostcode
+                                  ? "border-red-400"
+                                  : "border-gray-300"
+                                  } rounded-md p-3 text-sm ${cardErrors.billingPostcode
                                     ? "outline-none ring-2 ring-red-400"
                                     : "focus:outline-none focus:ring-2 focus:ring-black"
-                                }`}
+                                  }`}
                               />
                               {cardErrors.billingPostcode && (
                                 <span className="text-sm text-red-400 mt-1">
@@ -2101,11 +2075,10 @@ const VisaCheckout = () => {
                               value={billingPhone}
                               onChange={(e) => setBillingPhone(e.target.value)}
                               placeholder="e.g. 0123456789"
-                              className={`w-full border ${
-                                billingPhoneError
-                                  ? "border-red-400"
-                                  : "border-gray-300"
-                              } rounded-md p-3 text-sm focus:outline-none focus:ring-2 focus:ring-black`}
+                              className={`w-full border ${billingPhoneError
+                                ? "border-red-400"
+                                : "border-gray-300"
+                                } rounded-md p-3 text-sm focus:outline-none focus:ring-2 focus:ring-black`}
                             />
                             {billingPhoneError && (
                               <span className="text-sm text-red-400 mt-1">
@@ -2120,11 +2093,10 @@ const VisaCheckout = () => {
                 </div>
 
                 <div
-                  className={`border rounded-md p-3 cursor-pointer ${
-                    selectedPaymentMethod === "klarna"
-                      ? "border-black bg-gray-50"
-                      : "border-gray-300"
-                  }`}
+                  className={`border rounded-md p-3 cursor-pointer ${selectedPaymentMethod === "klarna"
+                    ? "border-black bg-gray-50"
+                    : "border-gray-300"
+                    }`}
                   onClick={() => setSelectedPaymentMethod("klarna")}
                 >
                   <div className="flex items-center space-x-2">
@@ -2149,11 +2121,10 @@ const VisaCheckout = () => {
 
                 <div className="space-y-2">
                   <div
-                    className={`border rounded-md p-3 cursor-pointer transition-all ${
-                      selectedPaymentMethod === "apple"
-                        ? "border-black bg-gray-50"
-                        : "border-gray-300"
-                    }`}
+                    className={`border rounded-md p-3 cursor-pointer transition-all ${selectedPaymentMethod === "apple"
+                      ? "border-black bg-gray-50"
+                      : "border-gray-300"
+                      }`}
                     onClick={() => setSelectedPaymentMethod("apple")}
                   >
                     <div className="flex items-center space-x-2">
@@ -2178,11 +2149,10 @@ const VisaCheckout = () => {
                   </div>
 
                   <div
-                    className={`border rounded-md p-3 cursor-pointer ${
-                      selectedPaymentMethod === "google"
-                        ? "border-black bg-gray-50"
-                        : "border-gray-300"
-                    }`}
+                    className={`border rounded-md p-3 cursor-pointer ${selectedPaymentMethod === "google"
+                      ? "border-black bg-gray-50"
+                      : "border-gray-300"
+                      }`}
                     onClick={() => setSelectedPaymentMethod("google")}
                   >
                     <div className="flex items-center space-x-2">
@@ -2219,17 +2189,16 @@ const VisaCheckout = () => {
                     !studentVerified)
                 }
                 onClick={handleProceedToCheckout}
-                className={`w-full bg-black text-white py-3 rounded-md font-semibold hover:bg-gray-900 transition-colors ${
-                  cretingDynamicCheckout ||
+                className={`w-full bg-black text-white py-3 rounded-md font-semibold hover:bg-gray-900 transition-colors ${cretingDynamicCheckout ||
                   (appliedDiscount &&
                     appliedDiscount.description &&
                     appliedDiscount.description
                       .toLowerCase()
                       .includes("student") &&
                     !studentVerified)
-                    ? "cursor-not-allowed opacity-50"
-                    : "cursor-pointer"
-                }`}
+                  ? "cursor-not-allowed opacity-50"
+                  : "cursor-pointer"
+                  }`}
               >
                 {cretingDynamicCheckout ? (
                   "Processing..."
@@ -2389,7 +2358,7 @@ const VisaCheckout = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <HiOutlineDeviceMobile />
-                <span className="text-sm">E visa card</span>
+                <span className="text-sm">Digital gift card</span>
               </div>
               <span className="text-sm">
                 {formatCurrency(eVisaFeesEUR, "EUR")}
@@ -2436,13 +2405,11 @@ const VisaCheckout = () => {
                         setCouponCodeLocal(e.target.value.toUpperCase())
                       }
                       placeholder="Enter coupon code (e.g., STUDENT10)"
-                      className={`w-full border ${
-                        couponError ? "border-red-400" : "border-gray-300"
-                      } rounded-md p-2 text-sm ${
-                        couponError
+                      className={`w-full border ${couponError ? "border-red-400" : "border-gray-300"
+                        } rounded-md p-2 text-sm ${couponError
                           ? "outline-none ring-2 ring-red-400"
                           : "focus:outline-none focus:ring-2 focus:ring-black"
-                      }`}
+                        }`}
                       disabled={appliedDiscount}
                     />
                   </div>
