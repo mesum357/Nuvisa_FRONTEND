@@ -53,7 +53,7 @@ const MultiStepAccordion = () => {
   const [_isClient, setIsClient] = useState(false);
   const [parentVisaApplication, setParentVisaApplication] = useState(null);
   const isApplicationSubmitted =
-    ["submitted", "under_review", "processing", "approved", "rejected", "cancelled", "at_embassy", "completed"].includes(parentVisaApplication?.applicationStatus);
+    ["submitted", "under_review", "processing", "approved", "rejected", "cancelled", "at_embassy", "completed", "appointment_booked"].includes(parentVisaApplication?.applicationStatus);
 
   const [travelersStepInfo, setTravelersStepInfo] = useState({});
   const [loading, setLoading] = useState(false);
