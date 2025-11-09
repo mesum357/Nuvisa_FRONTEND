@@ -2254,6 +2254,7 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                   `Complete Order`
                 )}
               </button>
+              <p className="text-xs text-gray-600 mt-2 text-center"> All transactions are secure and encrypted. Powered by Stripe (strip link in word stripe)</p>
             </div>
           </div>
 

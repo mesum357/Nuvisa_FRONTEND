@@ -49,11 +49,11 @@ const Navbar = () => {
   return (
     <ClientOnly>
       <div className="text-white">
-        <div className="sec_bg px-10 py-2.5 border-[#423577] border-b text-sm rounded-b-[23px] flex items-center justify-between">
+        <div className="sec_bg md:px-10 px-5  py-2.5 border-[#423577] border-b text-sm rounded-b-[23px] flex md:flex-row flex-col items-center justify-between">
 
           {/* Left Content (Text + Button aligned LEFT) */}
           <div className="flex items-center gap-3">
-            <span className="font-medium md:font-semibold">
+            <span className="font-medium md:font-semibold md:text-base text-sm">
               {getContent('banner_offer_text', ' NEW CUSTOMER OFFER - £20 fee for your first visa with us, then £200')}
             </span>
             <Link href={getContent('banner_button_link', '#')}>
@@ -163,7 +163,7 @@ const Navbar = () => {
               {/* Close button */}
               <button
                 aria-label="Close Menu"
-                className="absolute right-8 top-3 w-9 h-9 rounded-full border border-white/40 hover:border-white/70 flex items-center justify-center bg-black/50"
+                className="absolute right-10 top-3 w-9 h-9 rounded-full border border-white/40 hover:border-white/70 flex items-center justify-center bg-black/50"
                 onClick={() => setIsMenuOpen(false)}
               >
                 <FaTimes />
