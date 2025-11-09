@@ -19,14 +19,14 @@ const VisaInformation = () => {
 
   return (
     <ClientOnly>
-      <div className="bg-[#1E1E27] text-white">
+      <div className="bg-[#1E1E27] text-white w-full overflow-x-hidden">
         <Navbar />
-        <div className=" mx-auto flex-col gap-0 flex items-center justify-center mt-5">
+        <div className="w-full mx-auto flex flex-col gap-0 items-center justify-center mt-5 overflow-x-hidden">
           <CountrySlider />
 
           {/* Visa Type Selection */}
 
-          <div className="px-5 pt-5 w-full flex items-center justify-center">
+          <div className="px-5 pt-5 w-full flex items-center justify-center overflow-x-hidden">
             <div className="max-w-[88rem] bg-[#F3E5FF] text-[#FFF] w-full rounded-3xl py-12 px-10 text-center shadow-2xl">
               {/* Main Heading */}
               <h2 className="text-[26px] max-md:px-8 lg:text-[38px] font-gilroy-bold text-[#212529] mb-2 leading-tight flex items-center gap-3 justify-center">
@@ -53,12 +53,12 @@ const VisaInformation = () => {
             </div>
           </div>
 
-          <div className="px-5 pt-5 w-full flex items-center justify-center">
-            <div className="text-[#FFF] w-full rounded-3xl md:py-5 md:px-5 text-center shadow-2xl mt-20 max-w-[88rem]">
+          <div className="px-5 pt-5 w-full flex items-center justify-center overflow-x-hidden">
+            <div className="text-[#FFF] w-full rounded-3xl md:py-5 md:px-5 text-center shadow-2xl mt-20 max-w-[88rem] overflow-x-hidden">
               <div className="row justify-content-center">
                 <div className="col-12 py-4">
                   <div className="pdp_media_el bg-purple p-3 pt-5 pb-5">
-                    <div className=" w-full flex items-center gap-5 md:gap-10 max-md:flex-col max-md:text-center px-6 mb-6">
+                    <div className=" w-full flex items-center gap-5 md:gap-10 max-md:flex-col max-md:text-center px-6 mb-6 overflow-x-hidden">
                       <h2 className="text-3xl md:text-6xl font-gilroy-bold text-[#FFF] mb-4 text-left mb-10 flex-1 whitespace-pre-line">
                         {processLoading ? "Loading..." : processContent.heading}
                       </h2>

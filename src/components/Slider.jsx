@@ -694,7 +694,6 @@ const CountrySlider = () => {
   const _handleTravelerChange = (increment) => {
     const newValue = travelers + increment;
     if (newValue >= 1) {
-      setTravelersLocal(newValue);
       dispatch(setReduxTravelers(Number(newValue)));
     }
   };
@@ -773,44 +772,36 @@ const CountrySlider = () => {
 
     if (clampedValue !== insuranceDays) {
       setInsuranceDays(clampedValue);
-      // Update the recommended items state based on days value
       if (clampedValue > 0 && !recommendedItems.insuranceCertificate) {
-        setRecommendedItemsLocal((prev) => ({
-          ...prev,
-          insuranceCertificate: true,
-        }));
-      } else if (clampedValue === 0 && recommendedItems.insuranceCertificate) {
-        setRecommendedItemsLocal((prev) => ({
-          ...prev,
-          insuranceCertificate: false,
-        }));
+        const next = { ...recommendedItems, insuranceCertificate: true };
+        dispatch(setRecommendedItems(next));
       }
     }
   };
 
   const handleGiftCardChange = (increment) => {
     const newValue = giftCardCount + increment;
-    if (newValue >= 1) {
-      dispatch(setReduxGiftCardCount(newValue));
-      if (newValue > 0 && !recommendedItems.giftCard) {
-        setRecommendedItemsLocal((prev) => ({ ...prev, giftCard: true }));
-      } else if (newValue === 0 && recommendedItems.giftCard) {
-        setRecommendedItemsLocal((prev) => ({ ...prev, giftCard: false }));
-      }
+    if (newValue < 0) return;
+    dispatch(setReduxGiftCardCount(Number(newValue)));
+    if (newValue > 0 && !recommendedItems.giftCard) {
+      const next = { ...recommendedItems, giftCard: true };
+      dispatch(setRecommendedItems(next));
+    } else if (newValue === 0 && recommendedItems.giftCard) {
+      const next = { ...recommendedItems, giftCard: false };
+      dispatch(setRecommendedItems(next));
     }
   };
 
   const handleInsuranceChange = (increment) => {
     const newValue = insuranceCount + increment;
-    if (newValue >= 1 && newValue <= travelers) {
-      dispatch(setReduxInsuranceCount(Number(newValue)));
-
-      if (newValue > 0 && !recommendedItems.insuranceCertificate) {
-        setRecommendedItemsLocal((prev) => ({
-          ...prev,
-          insuranceCertificate: true,
-        }));
-      }
+    if (newValue < 0 || newValue > travelers) return;
+    dispatch(setReduxInsuranceCount(Number(newValue)));
+    if (newValue > 0 && !recommendedItems.insuranceCertificate) {
+      const next = { ...recommendedItems, insuranceCertificate: true };
+      dispatch(setRecommendedItems(next));
+    } else if (newValue === 0 && recommendedItems.insuranceCertificate) {
+      const next = { ...recommendedItems, insuranceCertificate: false };
+      dispatch(setRecommendedItems(next));
     }
   };
 
@@ -1977,8 +1968,9 @@ const CountrySlider = () => {
     }
   };
 
-  return (
-    <div className="w-full max-w-[1300px] gap-20 max-lg:flex-col flex items-start justify-center mt-5 px-5">
+
+return (
+    <div className="w-full max-w-[1300px] gap-20 max-lg:flex-col max-lg:gap-10 flex items-start justify-center mt-5 px-5 max-sm:px-3">
       {/* System Alerts */}
       <SimpleAlert
         isOpen={alertState.isOpen}
@@ -2000,144 +1992,140 @@ const CountrySlider = () => {
         cancelText="Cancel"
         type="info"
       />
-      <div className="w-full gap-3 flex flex-col items-start lg:max-w-[60%]">
-        <section className=" text-center text-white rounded-2xl p-2">
-          <div className="w-full flex justify-center items-center gap-2 px-3">
-            <button className="bg-[#24242D] border border-white px-6 py-[10px] rounded-full font-medium text-white select-none transition-colors relative overflow-hidden">
-              <span className="relative z-10 font-bold text-[22px] leading-none">
+      
+      {/* Left Column */}
+      <div className="w-full gap-3 flex flex-col items-start lg:max-w-[60%] max-sm:gap-4">
+        {/* Badges Section */}
+        <section className="text-center text-white rounded-2xl p-2 w-full max-sm:p-1">
+          <div className="w-full flex justify-center items-center gap-2 px-3 max-sm:flex-col max-sm:gap-3 max-sm:px-1">
+            <button className="bg-[#24242D] border border-white px-6 py-[10px] rounded-full font-medium text-white select-none transition-colors relative overflow-hidden max-sm:w-full max-sm:px-4 max-sm:py-3">
+              <span className="relative z-10 font-bold text-[22px] leading-none max-sm:text-[18px]">
                 {sliderContent["badge_1_text"]}
               </span>
             </button>
 
-            <button className="bg-[#24242D] border border-white px-6 py-[10px] rounded-full font-medium text-white select-none transition-colors relative overflow-hidden">
-              <span className="relative z-10 font-bold text-[22px] leading-none">
+            <button className="bg-[#24242D] border border-white px-6 py-[10px] rounded-full font-medium text-white select-none transition-colors relative overflow-hidden max-sm:w-full max-sm:px-4 max-sm:py-3">
+              <span className="relative z-10 font-bold text-[22px] leading-none max-sm:text-[18px]">
                 {sliderContent["badge_2_text"]}
               </span>
             </button>
           </div>
         </section>
 
-        <section className="w-full gap-3 flex flex-col items-start ">
+        {/* Visa Information Section */}
+        <section className="w-full gap-3 flex flex-col items-start max-sm:gap-4">
           <section className="w-full">
-            <div className="bg-[#24242D] rounded-2xl shadow-sm p-4">
-              <div className="bg-[#24242D] flex justify-between text-white  max-sm:flex-col items-center">
-                <h2 className="text-3xl md:text-[40px] font-gilroy-bold my-auto">
+            <div className="bg-[#24242D] rounded-2xl shadow-sm p-4 max-sm:p-3">
+              <div className="bg-[#24242D] flex justify-between text-white max-sm:flex-col max-sm:items-start max-sm:gap-4">
+                <h2 className="text-3xl md:text-[40px] font-gilroy-bold my-auto max-sm:text-2xl max-sm:mb-2">
                   Visa <br className="hidden sm:block" /> information
                 </h2>
 
-                <div className="flex max-sm:py-5 sm:flex-col flex-wrap gap-1">
+                <div className="flex max-sm:py-2 sm:flex-col flex-wrap gap-1 max-sm:gap-2 max-sm:w-full">
                   {/* Visa Types */}
-                  <div className="flex items-center">
-                    <FileText className="h-5 w-5 text-[#24242D] stroke-[#24242D] mr-3 fill-white" />
+                  <div className="flex items-center max-sm:text-sm">
+                    <FileText className="h-5 w-5 text-[#24242D] stroke-[#24242D] mr-3 fill-white max-sm:mr-2 max-sm:h-4 max-sm:w-4" />
                     <span className="">Visa Types</span>
                   </div>
 
                   {/* Stay Duration */}
-                  <div className="flex items-center">
-                    <Home className="h-5 w-5 mr-3 text-white" />
+                  <div className="flex items-center max-sm:text-sm">
+                    <Home className="h-5 w-5 mr-3 text-white max-sm:mr-2 max-sm:h-4 max-sm:w-4" />
                     <span className="">Stay Duration</span>
                   </div>
 
                   {/* Term Type */}
-                  <div className="flex items-center">
-                    <ClipboardList className="h-5 w-5 text-[#24242D] stroke-[#24242D] mr-3 fill-white" />
+                  <div className="flex items-center max-sm:text-sm">
+                    <ClipboardList className="h-5 w-5 text-[#24242D] stroke-[#24242D] mr-3 fill-white max-sm:mr-2 max-sm:h-4 max-sm:w-4" />
                     <span className="">Term Type</span>
                   </div>
 
                   {/* Entry */}
-                  <div className="flex items-center">
-                    <Clock className="h-5 w-5  mr-3 text-white" />
+                  <div className="flex items-center max-sm:text-sm">
+                    <Clock className="h-5 w-5 mr-3 text-white max-sm:mr-2 max-sm:h-4 max-sm:w-4" />
                     <span className="">Entry</span>
                   </div>
                 </div>
 
-                <div className="flex flex-col mr-10">
-                  <div className="grid gap-1">
+                <div className="flex flex-col mr-10 max-sm:mr-0 max-sm:w-full max-sm:mt-2">
+                  <div className="grid gap-1 max-sm:grid-cols-2 max-sm:gap-2">
                     {/* Sticker */}
                     <div
-                      className="relative border-b border-dashed border-white/40 w-fit font-semibold"
+                      className="relative border-b border-dashed border-white/40 w-fit font-semibold max-sm:w-full"
                       onMouseEnter={() => setActiveTooltip("sticker")}
                       onMouseLeave={() => setActiveTooltip(null)}
                     >
-                      <div className="flex items-center">
-                        <span>Sticker</span>
-                        {/* <HelpCircle className="ml-1 h-4 w-4 text-gray-400" /> */}
+                      <div className="flex items-center max-sm:justify-between">
+                        <span className="max-sm:text-sm">Sticker</span>
                       </div>
-                      {/* <p className="text-gray-500 mt-1">30 Days</p> */}
 
                       {activeTooltip === "sticker" && (
-                        <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200">
-                          <p className="text-sm ">{tooltips.sticker}</p>
-                          <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200"></div>
+                        <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200 max-sm:w-48 max-sm:-left-20">
+                          <p className="text-sm max-sm:text-xs">{tooltips.sticker}</p>
+                          <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200 max-sm:left-20"></div>
                         </div>
                       )}
                     </div>
 
                     {/* Duration */}
                     <div
-                      className="relative border-b border-dashed border-white/40 w-fit font-semibold"
+                      className="relative border-b border-dashed border-white/40 w-fit font-semibold max-sm:w-full"
                       onMouseEnter={() => setActiveTooltip("duration")}
                       onMouseLeave={() => setActiveTooltip(null)}
                     >
-                      <div className="flex items-center">
-                        <span>90 Days</span>
-                        {/* <HelpCircle className="ml-1 h-4 w-4 text-gray-400" /> */}
+                      <div className="flex items-center max-sm:justify-between">
+                        <span className="max-sm:text-sm">90 Days</span>
                       </div>
-                      {/* <p className="text-gray-500 mt-1">Short-term</p> */}
 
                       {activeTooltip === "duration" && (
-                        <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200">
-                          <div className="text-sm">
+                        <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200 max-sm:w-48 max-sm:-left-20">
+                          <div className="text-sm max-sm:text-xs">
                             {tooltips.duration.map((line, index) => (
                               <p
                                 key={index}
-                                className={index > 0 ? "mt-1" : ""}
+                                className={index > 0 ? "mt-1 max-sm:mt-0.5" : ""}
                               >
                                 {line}
                               </p>
                             ))}
                           </div>
-                          <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200"></div>
+                          <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200 max-sm:left-20"></div>
                         </div>
                       )}
                     </div>
 
                     {/* Term Type */}
                     <div
-                      className="relative border-b border-dashed border-white/40 w-fit font-semibold"
+                      className="relative border-b border-dashed border-white/40 w-fit font-semibold max-sm:w-full"
                       onMouseEnter={() => setActiveTooltip("term")}
                       onMouseLeave={() => setActiveTooltip(null)}
                     >
-                      <div className="flex items-center">
-                        <span>Short Term</span>
-                        {/* <HelpCircle className="ml-1 h-4 w-4 text-gray-400" /> */}
+                      <div className="flex items-center max-sm:justify-between">
+                        <span className="max-sm:text-sm">Short Term</span>
                       </div>
-                      {/* <p className="text-gray-500 mt-1">Multiple</p> */}
 
                       {activeTooltip === "term" && (
-                        <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200">
-                          <p className="text-sm ">{tooltips.term}</p>
-                          <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200"></div>
+                        <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200 max-sm:w-48 max-sm:-left-20">
+                          <p className="text-sm max-sm:text-xs">{tooltips.term}</p>
+                          <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200 max-sm:left-20"></div>
                         </div>
                       )}
                     </div>
 
                     {/* Entry */}
                     <div
-                      className="relative border-b border-dashed border-white/40 w-fit font-semibold"
+                      className="relative border-b border-dashed border-white/40 w-fit font-semibold max-sm:w-full"
                       onMouseEnter={() => setActiveTooltip("entry")}
                       onMouseLeave={() => setActiveTooltip(null)}
                     >
-                      <div className="flex items-center">
-                        <span>Multiple</span>
-                        {/* <HelpCircle className="ml-1 h-4 w-4 text-gray-400" /> */}
+                      <div className="flex items-center max-sm:justify-between">
+                        <span className="max-sm:text-sm">Multiple</span>
                       </div>
-                      {/* <p className="text-gray-500 mt-1">Multiple</p> */}
 
                       {activeTooltip === "entry" && (
-                        <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200">
-                          <p className="text-sm ">{tooltips.entry}</p>
-                          <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200"></div>
+                        <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200 max-sm:w-48 max-sm:-left-20">
+                          <p className="text-sm max-sm:text-xs">{tooltips.entry}</p>
+                          <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200 max-sm:left-20"></div>
                         </div>
                       )}
                     </div>
@@ -2145,31 +2133,28 @@ const CountrySlider = () => {
                 </div>
               </div>
 
-              <div className="text-left my-4">
-                <p className="flex gap-2">
-                  <img src="/icons/megaphone.png " className="w-6 h-5" />
+              <div className="text-left my-4 max-sm:my-3">
+                <p className="flex gap-2 max-sm:gap-1 max-sm:text-sm">
+                  <img src="/icons/megaphone.png" className="w-6 h-5 max-sm:w-5 max-sm:h-4" alt="Notice" />
                   <span>{sliderContent["embassy_notice_text"]}</span>
                 </p>
               </div>
             </div>
           </section>
 
-          <section className="mt-1 w-full ">
-            {/* <h2 className="text-3xl font-gilroy-bold text-start mb-6">
-            Explore Schengen Countries
-          </h2> */}
-
+          {/* Slider Section */}
+          <section className="mt-1 w-full max-sm:mt-0">
             <div className="relative w-full">
               {/* Slider container */}
-              <div className="overflow-hidden rounded-3xl shadow-lg">
+              <div className="overflow-hidden rounded-3xl shadow-lg max-sm:rounded-2xl">
                 <div className="relative h-full w-full">
                   <img
                     src={countries[currentIndex].image}
                     alt={countries[currentIndex].name}
                     className="w-full aspect-square object-cover"
                   />
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6">
-                    <h3 className="text-2xl font-gilroy-bold text-white">
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6 max-sm:p-4">
+                    <h3 className="text-2xl font-gilroy-bold text-white max-sm:text-xl">
                       {countries[currentIndex].name}
                     </h3>
                   </div>
@@ -2179,20 +2164,20 @@ const CountrySlider = () => {
               {/* Navigation arrows */}
               <button
                 onClick={goToPrevious}
-                className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/70 flex items-center text-black/80 hover:bg-white p-2 rounded-full shadow-md transition-all duration-300 z-10"
+                className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/70 flex items-center text-black/80 hover:bg-white p-2 rounded-full shadow-md transition-all duration-300 z-10 max-sm:left-2 max-sm:p-1.5"
                 aria-label="Previous slide"
               >
-                <ChevronLeft size={24} />
+                <ChevronLeft size={24} className="max-sm:w-5 max-sm:h-5" />
               </button>
               <button
                 onClick={goToNext}
-                className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/70 flex items-center text-black/80 hover:bg-white p-2 rounded-full shadow-md transition-all duration-300 z-10"
+                className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/70 flex items-center text-black/80 hover:bg-white p-2 rounded-full shadow-md transition-all duration-300 z-10 max-sm:right-2 max-sm:p-1.5"
                 aria-label="Next slide"
               >
-                <ChevronRight size={24} />
+                <ChevronRight size={24} className="max-sm:w-5 max-sm:h-5" />
               </button>
 
-              <div className="flex justify-center gap-2 absolute bottom-5 left-1/2 -translate-x-1/2">
+              <div className="flex justify-center gap-2 absolute bottom-5 left-1/2 -translate-x-1/2 max-sm:bottom-3">
                 {countries.map((_, index) => (
                   <button
                     key={index}
@@ -2200,8 +2185,8 @@ const CountrySlider = () => {
                       setCurrentIndex(index);
                       resetTimer();
                     }}
-                    className={`w-2.5 h-2.5 cursor-pointer rounded-full transition-all ${
-                      index === currentIndex ? "bg-white w-6" : "bg-white/50"
+                    className={`w-2.5 h-2.5 cursor-pointer rounded-full transition-all max-sm:w-2 max-sm:h-2 ${
+                      index === currentIndex ? "bg-white w-6 max-sm:w-4" : "bg-white/50"
                     }`}
                     aria-label={`Go to slide ${index + 1}`}
                   />
@@ -2210,7 +2195,7 @@ const CountrySlider = () => {
             </div>
 
             {/* Thumbnails for slider navigation */}
-            <div className="flex justify-center gap-2 max-lg:hidden mt-8 overflow-auto w-full">
+            <div className="flex justify-center gap-2 max-lg:hidden mt-8 overflow-auto w-full max-sm:mt-4">
               {countries.map((country, index) => (
                 <img
                   key={country.id}
@@ -2220,7 +2205,7 @@ const CountrySlider = () => {
                     setCurrentIndex(index);
                     resetTimer();
                   }}
-                  className={`w-20 aspect-square object-cover cursor-pointer rounded-xl border-2 transition-all border-white ${
+                  className={`w-20 aspect-square object-cover cursor-pointer rounded-xl border-2 transition-all border-white max-sm:w-12 max-sm:rounded-lg ${
                     index === currentIndex
                       ? "border-none"
                       : "opacity-70 hover:opacity-100"
@@ -2229,52 +2214,57 @@ const CountrySlider = () => {
                 />
               ))}
             </div>
-            <p className="text-[18px] mt-8 text-white font-gilroy-bold text-center">
+            <p className="text-[18px] mt-8 text-white font-gilroy-bold text-center max-sm:text-[16px] max-sm:mt-4">
               {sliderContent["urgent_note_text"]}
             </p>
           </section>
         </section>
       </div>
-      <div className="w-full gap-3 flex flex-col items-start lg:max-w-[60%]">
-        <section className=" text-center text-white rounded-2xl p-2">
+
+      {/* Right Column */}
+      <div className="w-full gap-3 flex flex-col items-start lg:max-w-[60%] max-sm:gap-4">
+        {/* NRI Badge Section */}
+        <section className="text-center text-white rounded-2xl p-2 w-full max-sm:p-1">
           <div className="flex justify-center items-center">
-            <button className="bg-[#24242D] border border-white px-4 py-[7px] pb-[18px] rounded-full font-medium text-sm text-white select-none transition-colors relative overflow-hidden text-center">
+            <button className="bg-[#24242D] border border-white px-4 py-[7px] pb-[18px] rounded-full font-medium text-sm text-white select-none transition-colors relative overflow-hidden text-center max-sm:w-full max-sm:px-3 max-sm:py-2">
               <span
-                className="relative z-10 leading-none  text-center font-bold flex justify-center items-center pt-2"
+                className="relative z-10 leading-none text-center font-bold flex justify-center items-center pt-2 max-sm:text-[18px]"
                 style={{ fontSize: "21px" }}
               >
                 {sliderContent["nri_badge_text"]}
               </span>
-              {/* <span className="absolute bottom-[2px] left-1/2 -translate-x-1/2 z-10 text-[9px] leading-none opacity-70">Coming Soon</span> */}
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse"></div>
             </button>
           </div>
         </section>
 
-        <section className="bg-[#24242D] text-white rounded-2xl p-6">
+        {/* Main Content Section */}
+        <section className="bg-[#24242D] text-white rounded-2xl p-6 w-full max-sm:p-4">
           <div className="w-full">
             {/* Header with pricing */}
-            <div className="mb-6">
-              <h1 className="text-3xl font-gilroy-bold mb-4">
+            <div className="mb-6 max-sm:mb-4">
+              <h1 className="text-3xl font-gilroy-bold mb-4 max-sm:text-2xl max-sm:mb-3">
                 Schengen visa from the UK
               </h1>
-              <div className="flex items-center justify-between gap-3 mb-4">
-                <div className="flex gap-3">
-                  <span className="text-lg font-semibold line-through">
+              <div className="flex items-center justify-between gap-3 mb-4 max-sm:flex-col max-sm:items-start max-sm:gap-3">
+                <div className="flex gap-3 max-sm:w-full max-sm:justify-between">
+                  <span className="text-lg font-semibold line-through max-sm:text-base">
                     £{calculateOriginalPrice()}
                   </span>
                   <div className="flex flex-col items-end">
-                    <span className="text-2xl font-gilroy-bold">
+                    <span className="text-2xl font-gilroy-bold max-sm:text-xl">
                       £{Math.round(calculateFinalPrice())}
                     </span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 shadow-lg shadow-black/20 p-2 rounded-full">
-                  <div className="w-4 h-4 rounded-full flex items-center justify-center">
-                    <UserIcon className="fill-white" />
+                <div className="flex items-center gap-2 shadow-lg shadow-black/20 p-2 rounded-full max-sm:w-full max-sm:justify-between max-sm:px-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded-full flex items-center justify-center">
+                      <UserIcon className="fill-white max-sm:w-3 max-sm:h-3" />
+                    </div>
+                    <span className="text-xs font-gilroy-bold max-sm:text-xs">Travellers</span>
                   </div>
-                  <span className="text-xs font-gilroy-bold">Travellers</span>
                   <QtyInput
                     value={travelers}
                     onChange={(next) => {
@@ -2286,7 +2276,7 @@ const CountrySlider = () => {
                 </div>
 
                 {/* Country Selector */}
-                <div className=" w-fit">
+                <div className="w-fit max-sm:w-full">
                   <label htmlFor="country-select" className="sr-only">
                     Select Country
                   </label>
@@ -2294,7 +2284,7 @@ const CountrySlider = () => {
                     id="country-select"
                     value={selectedCountry}
                     onChange={(e) => selectCountry(e.target.value)}
-                    className="px-2 py-2 font-semibold rounded-full shadow-black/20 shadow-lg cursor-pointer focus:outline-none"
+                    className="px-2 py-2 font-semibold rounded-full shadow-black/20 shadow-lg cursor-pointer focus:outline-none max-sm:w-full max-sm:text-center"
                   >
                     {schengenCountries.map((country) => (
                       <option
@@ -2310,13 +2300,13 @@ const CountrySlider = () => {
               </div>
             </div>
           </div>
+
           <div className="w-full">
-            <p className="text-sm mb-4 ">
-              {" "}
+            <p className="text-sm mb-4 max-sm:text-xs max-sm:mb-3">
               Dates are required for visa processing only and can be changed
               later within visa validity period.
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 items-start">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 items-start max-sm:gap-3">
               <div className="w-full">
                 <CommonDatePicker
                   label={"Start date"}
@@ -2327,7 +2317,7 @@ const CountrySlider = () => {
                   endDate={departureDate}
                   minDate={new Date()}
                   dayClassName={getDayClassName}
-                  className="!w-full bg-white/10 backdrop-blur-sm text-white rounded-lg px-4 py-3 font-semibold border-2 border-white/20 hover:border-white/40 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 focus:outline-none"
+                  className="!w-full bg-white/10 backdrop-blur-sm text-white rounded-lg px-4 py-3 font-semibold border-2 border-white/20 hover:border-white/40 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 focus:outline-none max-sm:py-2 max-sm:text-sm"
                   dateFormat="dd-MM-yyyy"
                   wrapperClassName="!w-full"
                   placeholderText="DD-MM-YYYY"
@@ -2344,7 +2334,7 @@ const CountrySlider = () => {
                   endDate={departureDate}
                   minDate={arrivalDate}
                   dayClassName={getDayClassName}
-                  className="w-full bg-white/10 backdrop-blur-sm text-white rounded-lg px-4 py-3 font-semibold border-2 border-white/20 hover:border-white/40 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 focus:outline-none"
+                  className="w-full bg-white/10 backdrop-blur-sm text-white rounded-lg px-4 py-3 font-semibold border-2 border-white/20 hover:border-white/40 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 focus:outline-none max-sm:py-2 max-sm:text-sm"
                   dateFormat="yyyy-MM-dd"
                   placeholderText="YYYY-MM-DD"
                   maxDate={maxDepartureDate}
@@ -2352,8 +2342,8 @@ const CountrySlider = () => {
               </div>
             </div>
 
-            {/* Show only one error message at a time, prioritized - Full width below both inputs */}
-            <div className="text-xs mt-2">
+            {/* Date validation messages */}
+            <div className="text-xs mt-2 max-sm:text-xs">
               {dateValidationErrors.pastDate && (
                 <p className="text-red-400">
                   {dateValidationErrors.pastDate}
@@ -2369,7 +2359,6 @@ const CountrySlider = () => {
                   {dateValidationErrors.exceedsLimit}
                 </p>
               )}
-              {/* Show success message only when there are no errors */}
               {!dateValidationErrors.pastDate && 
                !dateValidationErrors.dateOrder && 
                !dateValidationErrors.exceedsLimit && 
@@ -2389,16 +2378,11 @@ const CountrySlider = () => {
                 </p>
               )}
             </div>
-
-            {/* <p className="text-xs text-purple-300 mt-3">
-            For a higher chance of approval, please select travel dates that are
-            at least 15-20 days in the future.
-          </p> */}
           </div>
 
           {/* Required Documents */}
           <ClientOnly>
-            <div className="my-6" data-documents-section>
+            <div className="my-6 max-sm:my-4" data-documents-section>
               <div
                 className={`bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden transition-all duration-300 hover:bg-white/10 ${
                   validationErrors.size > 0
@@ -2407,17 +2391,17 @@ const CountrySlider = () => {
                 }`}
               >
                 <h2
-                  className={`text-xl font-gilroy-bold p-4 cursor-pointer flex items-center justify-between hover:bg-white/5 transition-all duration-200`}
+                  className={`text-xl font-gilroy-bold p-4 cursor-pointer flex items-center justify-between hover:bg-white/5 transition-all duration-200 max-sm:p-3 max-sm:text-lg`}
                   onClick={() =>
                     setDocumentsAccordionOpen(!documentsAccordionOpen)
                   }
                 >
-                  <span className={`flex items-center gap-3`}>
-                    <div className="w-6 h-6 rounded-full bg-[#7350FF] flex items-center justify-center">
-                      <FileText className="w-3.5 h-3.5 text-white" />
+                  <span className={`flex items-center gap-3 max-sm:gap-2`}>
+                    <div className="w-6 h-6 rounded-full bg-[#7350FF] flex items-center justify-center max-sm:w-5 max-sm:h-5">
+                      <FileText className="w-3.5 h-3.5 text-white max-sm:w-3 max-sm:h-3" />
                     </div>
                     <span>Required Documents</span>
-                    <div className="ml-2 px-2 py-1 bg-white/10 rounded-full text-xs font-medium">
+                    <div className="ml-2 px-2 py-1 bg-white/10 rounded-full text-xs font-medium max-sm:ml-1 max-sm:px-1.5 max-sm:py-0.5">
                       {Object.values(requiredDocuments).filter(Boolean).length}
                       /6 selected
                     </div>
@@ -2433,6 +2417,7 @@ const CountrySlider = () => {
                       viewBox="0 0 16 16"
                       fill="none"
                       xmlns="http://www.w3.org/2000/svg"
+                      className="max-sm:w-4 max-sm:h-4"
                     >
                       <path
                         d="M4 6L8 10L12 6"
@@ -2452,11 +2437,12 @@ const CountrySlider = () => {
                       : "max-h-0 opacity-0"
                   }`}
                 >
-                  <div className="px-4 pb-4">
+                  <div className="px-4 pb-4 max-sm:px-3 max-sm:pb-3">
                     <div className="h-px bg-white/10 mb-4"></div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1 max-sm:gap-2">
+                      {/* Passport */}
                       <div
-                        className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border ${
+                        className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border max-sm:p-2 ${
                           requiredDocuments.passport
                             ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
                             : validationErrors.has("passport")
@@ -2466,27 +2452,29 @@ const CountrySlider = () => {
                         onClick={() => toggleRequiredDocument("passport")}
                       >
                         <div
-                          className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all ${
+                          className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all max-sm:w-4 max-sm:h-4 ${
                             requiredDocuments.passport
                               ? "bg-[#7350FF] border-2 border-[#7350FF]"
                               : "bg-transparent border-2 border-white/40"
                           }`}
                         >
                           {requiredDocuments.passport && (
-                            <Check className="w-3 h-3 text-white" />
+                            <Check className="w-3 h-3 text-white max-sm:w-2.5 max-sm:h-2.5" />
                           )}
                         </div>
                         <div className="flex-1">
-                          <span className="text-base font-medium">
+                          <span className="text-base font-medium max-sm:text-sm">
                             Passport
                           </span>
-                          <p className="text-sm text-white/70 mt-1">
+                          <p className="text-sm text-white/70 mt-1 max-sm:text-xs max-sm:mt-0.5">
                             Valid 3+ months after Schengen trip, 2 blank pages
                           </p>
                         </div>
                       </div>
+
+                      {/* UK Visa */}
                       <div
-                        className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border ${
+                        className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border max-sm:p-2 ${
                           requiredDocuments.ukVisa
                             ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
                             : validationErrors.has("ukVisa")
@@ -2496,25 +2484,27 @@ const CountrySlider = () => {
                         onClick={() => toggleRequiredDocument("ukVisa")}
                       >
                         <div
-                          className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all ${
+                          className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all max-sm:w-4 max-sm:h-4 ${
                             requiredDocuments.ukVisa
                               ? "bg-[#7350FF] border-2 border-[#7350FF]"
                               : "bg-transparent border-2 border-white/40"
                           }`}
                         >
                           {requiredDocuments.ukVisa && (
-                            <Check className="w-3 h-3 text-white" />
+                            <Check className="w-3 h-3 text-white max-sm:w-2.5 max-sm:h-2.5" />
                           )}
                         </div>
                         <div className="flex-1">
-                          <span className="text-base font-medium">UK Visa</span>
-                          <p className="text-sm text-white/70 mt-1">
+                          <span className="text-base font-medium max-sm:text-sm">UK Visa</span>
+                          <p className="text-sm text-white/70 mt-1 max-sm:text-xs max-sm:mt-0.5">
                             Valid 3+ months after Schengen trip
                           </p>
                         </div>
                       </div>
+
+                      {/* Photos */}
                       <div
-                        className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border ${
+                        className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border max-sm:p-2 ${
                           requiredDocuments.photos
                             ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
                             : validationErrors.has("photos")
@@ -2524,27 +2514,29 @@ const CountrySlider = () => {
                         onClick={() => toggleRequiredDocument("photos")}
                       >
                         <div
-                          className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all ${
+                          className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all max-sm:w-4 max-sm:h-4 ${
                             requiredDocuments.photos
                               ? "bg-[#7350FF] border-2 border-[#7350FF]"
                               : "bg-transparent border-2 border-white/40"
                           }`}
                         >
                           {requiredDocuments.photos && (
-                            <Check className="w-3 h-3 text-white" />
+                            <Check className="w-3 h-3 text-white max-sm:w-2.5 max-sm:h-2.5" />
                           )}
                         </div>
                         <div className="flex-1">
-                          <span className="text-base font-medium">
+                          <span className="text-base font-medium max-sm:text-sm">
                             Passport-Sized Photographs
                           </span>
-                          <p className="text-sm text-white/70 mt-1">
+                          <p className="text-sm text-white/70 mt-1 max-sm:text-xs max-sm:mt-0.5">
                             Two 35mm x 45mm photos required
                           </p>
                         </div>
                       </div>
+
+                      {/* Bank Statements */}
                       <div
-                        className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border ${
+                        className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border max-sm:p-2 ${
                           requiredDocuments.bankStatements
                             ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
                             : validationErrors.has("bankStatements")
@@ -2554,28 +2546,29 @@ const CountrySlider = () => {
                         onClick={() => toggleRequiredDocument("bankStatements")}
                       >
                         <div
-                          className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all ${
+                          className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all max-sm:w-4 max-sm:h-4 ${
                             requiredDocuments.bankStatements
                               ? "bg-[#7350FF] border-2 border-[#7350FF]"
                               : "bg-transparent border-2 border-white/40"
                           }`}
                         >
                           {requiredDocuments.bankStatements && (
-                            <Check className="w-3 h-3 text-white" />
+                            <Check className="w-3 h-3 text-white max-sm:w-2.5 max-sm:h-2.5" />
                           )}
                         </div>
                         <div className="flex-1">
-                          <span className="text-base font-medium">
+                          <span className="text-base font-medium max-sm:text-sm">
                             Bank Statements
                           </span>
-                          <p className="text-sm text-white/70 mt-1">
-                            Last 3 months showing sufficient funds £50–£80/day
-                            per person
+                          <p className="text-sm text-white/70 mt-1 max-sm:text-xs max-sm:mt-0.5">
+                            Last 3 months showing sufficient funds £50–£80/day per person
                           </p>
                         </div>
                       </div>
+
+                      {/* Employment Proof */}
                       <div
-                        className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border ${
+                        className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border max-sm:p-2 ${
                           requiredDocuments.employmentProof
                             ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
                             : validationErrors.has("employmentProof")
@@ -2587,28 +2580,29 @@ const CountrySlider = () => {
                         }
                       >
                         <div
-                          className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all ${
+                          className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all max-sm:w-4 max-sm:h-4 ${
                             requiredDocuments.employmentProof
                               ? "bg-[#7350FF] border-2 border-[#7350FF]"
                               : "bg-transparent border-2 border-white/40"
                           }`}
                         >
                           {requiredDocuments.employmentProof && (
-                            <Check className="w-3 h-3 text-white" />
+                            <Check className="w-3 h-3 text-white max-sm:w-2.5 max-sm:h-2.5" />
                           )}
                         </div>
                         <div className="flex-1">
-                          <span className="text-base font-medium">
+                          <span className="text-base font-medium max-sm:text-sm">
                             Employment Proof
                           </span>
-                          <p className="text-sm text-white/70 mt-1">
-                            Last 3 months payslips, or uni enrollment letter if
-                            student
+                          <p className="text-sm text-white/70 mt-1 max-sm:text-xs max-sm:mt-0.5">
+                            Last 3 months payslips, or uni enrollment letter if student
                           </p>
                         </div>
                       </div>
+
+                      {/* Insurance */}
                       <div
-                        className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border ${
+                        className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border max-sm:p-2 ${
                           requiredDocuments.insurance
                             ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
                             : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
@@ -2616,21 +2610,21 @@ const CountrySlider = () => {
                         onClick={() => toggleRequiredDocument("insurance")}
                       >
                         <div
-                          className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all ${
+                          className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all max-sm:w-4 max-sm:h-4 ${
                             requiredDocuments.insurance
                               ? "bg-[#7350FF] border-2 border-[#7350FF]"
                               : "bg-transparent border-2 border-white/40"
                           }`}
                         >
                           {requiredDocuments.insurance && (
-                            <Check className="w-3 h-3 text-white" />
+                            <Check className="w-3 h-3 text-white max-sm:w-2.5 max-sm:h-2.5" />
                           )}
                         </div>
                         <div className="flex-1">
-                          <span className="text-base font-medium">
+                          <span className="text-base font-medium max-sm:text-sm">
                             Insurance Certificate
                           </span>
-                          <p className="text-sm text-white/70 mt-1">
+                          <p className="text-sm text-white/70 mt-1 max-sm:text-xs max-sm:mt-0.5">
                             Must be valid for the entire duration of stay
                           </p>
                         </div>
@@ -2642,126 +2636,66 @@ const CountrySlider = () => {
             </div>
           </ClientOnly>
 
-          {/* Recommended */}
-          <div className="mb-6">
-            <h2 className="text-xl font-gilroy-bold mb-4">Recommended</h2>
+          {/* Recommended Section */}
+          <div className="mb-6 max-sm:mb-4">
+            <h2 className="text-xl font-gilroy-bold mb-4 max-sm:text-lg max-sm:mb-3">Recommended</h2>
 
-            {/* Insurance Certificate */}
-            <div className="shadow-xl shadow-black/10 rounded-xl mb-4 ">
-              <div className="flex gap-[10px]">
-                <div className="flex  flex-col items-center gap-2 mb-6 bg-white p-2 rounded-2xl text-[#23232B] w-[220px]">
-                  <div className="w-full flex items-center  ">
-                  <div
-                    className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black self-start mt-2 cursor-pointer ${
-                      recommendedItems.insuranceCertificate
-                        ? "bg-[#7350FF] border border-transparent"
-                        : "bg-white border border-gray-500"
-                    }`}
-                    onClick={() => toggleRecommendedItem("insuranceCertificate")}
-                  >
-                    {recommendedItems.insuranceCertificate && (
-                      <Check className="w-3.5 h-3.5 text-white" />
-                    )}
-                  </div>
+            {/* Insurance Certificate & Gift Card */}
+            <div className="shadow-xl shadow-black/10 rounded-xl mb-4 max-sm:mb-3">
+              <div className="flex gap-[10px] max-sm:flex-col max-sm:gap-3">
+                {/* Insurance Certificate */}
+                <div className="flex flex-col items-center gap-2 mb-6 border-white/20 bg-white/5 border p-2 rounded-2xl text-white w-[220px] max-sm:w-full max-sm:mb-3">
+                  <div className="w-full flex items-center max-sm:justify-between">
+                    <div
+                      className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all self-start mt-2 cursor-pointer max-sm:mt-1 border ${
+                        recommendedItems.insuranceCertificate
+                          ? "border-transparent bg-[#7350FF]"
+                          : "border-gray-400 bg-white"
+                      }`}
+                      onClick={() => toggleRecommendedItem("insuranceCertificate")}
+                    >
+                      {recommendedItems.insuranceCertificate && (
+                        <Check className="w-3.5 h-3.5 text-white max-sm:w-3 max-sm:h-3" />
+                      )}
+                    </div>
 
                     <img
                       src="/image/certificatee.jpg"
-                      alt=""
-                      className=" w-[120px] rounded-lg ml-2"
+                      alt="Insurance Certificate"
+                      className="w-[120px] rounded-lg ml-2 max-sm:w-[100px] max-sm:ml-1"
                     />
-                    <div className="flex items-center space-x-4">
-                      {/* Days Count Controls */}
-                      <div className="flex items-center space-x-2">
-                        {/* <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleInsuranceChange(-1);
-                    }}
-                    disabled={insuranceDays <= 1}
-                    className={`size-4 border border-white/50 text-white bg-transparent rounded-full flex items-center justify-center text-sm font-gilroy-bold ${
-                      insuranceDays <= 1
-                        ? "bg-gray-600 text-gray-400 cursor-not-allowed"
-                        : ""
-                    }`}
-                  >
-                    -
-                  </button> */}
-                        <span className="mx-2 text-[12px]">
-                          {insuranceDays} Days
-                        </span>
-                        {(() => {
-                          let maxAllowedDays = 90;
-                          if (
-                            selectedVisaType &&
-                            selectedVisaType.duration_permitted
-                          ) {
-                            maxAllowedDays = parseInt(
-                              selectedVisaType.duration_permitted.replace(
-                                /[^\d]/g,
-                                ""
-                              )
-                            );
-                          }
-                          if (arrivalDate && departureDate) {
-                            const tripDuration = Math.ceil(
-                              (departureDate - arrivalDate) /
-                                (1000 * 60 * 60 * 24)
-                            );
-                            maxAllowedDays = Math.min(
-                              maxAllowedDays,
-                              tripDuration
-                            );
-                          }
-                        })()}
-                      </div>
+                    <div className="flex items-center space-x-4 max-sm:space-x-2">
+                      <span className="mx-2 text-[12px] max-sm:text-xs">
+                        {insuranceDays} Days
+                      </span>
                     </div>
                   </div>
                   <div className="w-full">
-                    <div className="cursor-pointer rounded  transition-colors flex-1 mb-2">
-                      <div className="flex items-center space-x-2">
+                    <div className=" cursor-pointer rounded transition-colors flex-1 mb-2">
+                      <div className="flex items-center space-x-2 max-sm:space-x-1">
                         <div
-                          onClick={() =>
-                            toggleRecommendedItem("insuranceCertificate")
-                          }
+                          onClick={() => toggleRecommendedItem("insuranceCertificate")}
                           className="flex items-center space-x-2 cursor-pointer"
                         >
-                          <span className="font-semibold">
+                          <span className="font-semibold max-sm:text-sm">
                             Insurance certificate
                           </span>
                         </div>
-                        <ClientOnly
-                          fallback={
-                            <div className="flex items-center space-x-2 mt-1 ml-6">
-                              <span className="text-lg font-semibold line-through">
-                                £{Math.round(400 * 1.25 * travelers)}
-                              </span>
-                              <span className="font-gilroy-bold text-2xl">
-                                £{400 * travelers}
-                              </span>
-                            </div>
-                          }
-                        >
-                          {" "}
-                        </ClientOnly>
                       </div>
                     </div>
 
-                    {/* Travel Dates Section */}
                     <div className="mb-2">
-                      {selectedVisaType &&
-                        selectedVisaType.duration_permitted && (
-                          <div className="mb-2 p-2 bg-purple-600/20 rounded-lg">
-                            <p className="text-xs text-purple-200">
-                              📅 Maximum stay:{" "}
-                              {selectedVisaType.duration_permitted}
-                              {selectedVisaType.validity_period &&
-                                ` | Visa valid for: ${selectedVisaType.validity_period}`}
-                            </p>
-                          </div>
-                        )}
+                      {selectedVisaType && selectedVisaType.duration_permitted && (
+                        <div className="mb-2 p-2 bg-purple-600/20 rounded-lg max-sm:p-1.5 max-sm:mb-1">
+                          <p className="text-xs text-purple-200 max-sm:text-xs">
+                            📅 Maximum stay: {selectedVisaType.duration_permitted}
+                            {selectedVisaType.validity_period && ` | Visa valid for: ${selectedVisaType.validity_period}`}
+                          </p>
+                        </div>
+                      )}
 
-                      <div className="flex items-center space-x-2">
-                        <div className="flex items-end gap-8">
+                      <div className="flex items-center space-x-2 max-sm:flex-col max-sm:items-start max-sm:space-x-0 max-sm:gap-2">
+                        <div className="flex items-end gap-8 max-sm:gap-4 max-sm:w-full max-sm:justify-between">
                           <div className="flex items-center gap-2">
                             <QtyInput
                               value={insuranceCount}
@@ -2770,19 +2704,13 @@ const CountrySlider = () => {
                               min={1}
                             />
                           </div>
-                          <div className="flex items-center space-x-2 ">
-                            <span className="text-lg font-semibold line-through">
-                              £{Math.round(computedInsuranceTotal * 1.25)}
+                          <div className="flex items-center space-x-2 max-sm:space-x-1">
+                            <span className="text-lg font-semibold line-through max-sm:text-base">
+                              £{45 * insuranceCount}
                             </span>
-                            <span className="font-gilroy-bold text-2xl">
-                              £{Math.round(calculateDiscountedInsurancePrice())}
+                            <span className="font-gilroy-bold text-2xl max-sm:text-xl">
+                              £{29 * insuranceCount}
                             </span>
-                            {appliedInsuranceDiscount &&
-                              computedInsuranceTotal > 0 && (
-                                <span className="text-xs bg-green-600/20 text-green-400 px-2 py-1 rounded-full">
-                                  -{appliedInsuranceDiscount.percentage}%
-                                </span>
-                              )}
                           </div>
                         </div>
                       </div>
@@ -2790,36 +2718,39 @@ const CountrySlider = () => {
                   </div>
                 </div>
 
-                <div className=" rounded-xl  mb-6 flex flex-col gap-2 w-[220px]">
-                  <div className="flex flex-col items-center gap-2  bg-white p-2 rounded-2xl text-[#23232B]">
-                    <div className="w-full flex items-center ">
+                {/* Gift Card */}
+                <div className="rounded-xl mb-6 flex flex-col gap-2 w-[220px] max-sm:w-full max-sm:mb-3">
+                  <div className="flex flex-col items-center gap-2 border-white/20 bg-white/5 p-2 rounded-2xl text-white border">
+                    <div className="w-full flex items-center max-sm:justify-start">
                       <div
-                        className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all shadow-sm hover:shadow-md hover:border-black self-start mt-2 cursor-pointer ${
+                        className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all self-start mt-2 cursor-pointer max-sm:mt-1 border ${
                           recommendedItems.giftCard
-                            ? "bg-[#7350FF] border border-transparent"
-                            : "bg-white border border-gray-500"
+                            ? "border-transparent bg-[#7350FF]"
+                            : "border-gray-400 bg-white"
                         }`}
                         onClick={() => toggleRecommendedItem("giftCard")}
                       >
                         {recommendedItems.giftCard && (
-                          <Check className="w-3.5 h-3.5 text-white" />
+                          <Check className="w-3.5 h-3.5 text-white max-sm:w-3 max-sm:h-3" />
                         )}
                       </div>
-                      <img
-                        src="/image/digital card NUvisa.png"
-                        alt=""
-                        className="w-[120px] rounded-lg ml-2"
-                      />
+                      <div className="max-sm:flex-1 max-sm:flex max-sm:justify-center">
+                        <img
+                          src="/image/digital card NUvisa.png"
+                          alt="Gift Card"
+                          className="w-[120px] rounded-lg ml-2 max-sm:w-[100px] max-sm:ml-0"
+                        />
+                      </div>
                     </div>
-                    <div className="w-full ">
+                    <div className="w-full">
                       <div className="flex items-center justify-between mb-1">
-                        <div className="cursor-pointer rounded  transition-colors flex-1 mb-2">
-                          <div className="flex items-center space-x-2">
+                        <div className="cursor-pointer rounded transition-colors flex-1 mb-2">
+                          <div className="flex items-center space-x-2 max-sm:space-x-1">
                             <div
                               onClick={() => toggleRecommendedItem("giftCard")}
-                              className="flex items-center space-x-2 cursor-pointer "
+                              className="flex items-center space-x-2 cursor-pointer"
                             >
-                              <span className="font-semibold">
+                              <span className="font-semibold max-sm:text-sm">
                                 NUvisa digital gift card
                               </span>
                             </div>
@@ -2827,79 +2758,66 @@ const CountrySlider = () => {
                         </div>
                       </div>
 
-                      <div className="flex items-center space-x-2 mb-2">
-                        <div className="flex items-center space-x-2 mb-2">
+                      <div className="flex items-center space-x-2 mb-2 max-sm:flex-col max-sm:items-start max-sm:space-x-0 max-sm:gap-2">
+                        <div className="flex items-center space-x-2 mb-2 max-sm:mb-0">
                           <QtyInput
                             value={giftCardCount}
                             onIncrement={() => handleGiftCardChange(1)}
                             onDecrement={() => handleGiftCardChange(-1)}
                           />
                         </div>
-                        <div className="flex items-center space-x-2 ">
-                          <span className="text-lg font-semibold line-through">
+                        <div className="flex items-center space-x-2 max-sm:space-x-1">
+                          <span className="text-lg font-semibold line-through max-sm:text-base">
                             £{245 * giftCardCount}
                           </span>
-                          <span className="font-gilroy-bold text-2xl">
-                            £{Math.round(calculateDiscountedGiftCardPrice())}
+                          <span className="font-gilroy-bold text-2xl max-sm:text-xl">
+                            £{188 * giftCardCount}
                           </span>
-                          {appliedDiscount && recommendedItems.giftCard && (
-                            <span className="text-xs bg-green-600/20 text-green-400 px-2 py-1 rounded-full">
-                              -{appliedDiscount.percentage}%
-                            </span>
-                          )}
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-{/* 
-              <p className="">
-                Give the gift of unforgettable memories this Christmas! Order
-                now and your digital gift card will be sent to your email
-                address immediately.
-              </p> */}
 
-              <div className="mb-6">
-                <div className="space-y-4 font-gilroy-medium !font-semibold">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 aspect-square rounded-full flex items-center justify-center">
-                        {/* <Clock className="size-6 text-white" /> */}
-                        <img src="/image/calendar.jpg" alt="" />
+              {/* Free Services */}
+              <div className="mb-6 max-sm:mb-4">
+                <div className="space-y-4 font-gilroy-medium !font-semibold max-sm:space-y-3">
+                  {/* Auto-booking */}
+                  <div className="flex items-center justify-between max-sm:items-start max-sm:gap-2">
+                    <div className="flex items-center space-x-3 max-sm:space-x-2">
+                      <div className="w-10 aspect-square rounded-full flex items-center justify-center max-sm:w-8">
+                        <img src="/image/calendar.jpg" alt="Calendar" className="max-sm:w-6 max-sm:h-6" />
                       </div>
                       <div>
-                        <h3 className="">Auto-booking appointment</h3>
-                        {/* <p className="font-semibold">(In 10 days or less)</p> */}
+                        <h3 className="max-sm:text-sm">Auto-booking appointment</h3>
                       </div>
                     </div>
-                    <div className=" flex gap-[2px] items-center">
-                      <span className="line-through">£100</span>
-                      <span className="ml-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                    <div className="flex gap-[2px] items-center max-sm:flex-shrink-0">
+                      <span className="line-through max-sm:text-sm">£100</span>
+                      <span className="ml-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium max-sm:ml-1 max-sm:px-2 max-sm:py-0.5 max-sm:text-xs">
                         Free
                       </span>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 aspect-square rounded-full flex items-center justify-center">
-                        {/* <Clock className="size-6 text-white" /> */}
+                  {/* Concierge assistance */}
+                  <div className="flex items-center justify-between max-sm:items-start max-sm:gap-2">
+                    <div className="flex items-center space-x-3 max-sm:space-x-2">
+                      <div className="w-10 aspect-square rounded-full flex items-center justify-center max-sm:w-8">
                         <img
                           src="/image/flights.jpg"
-                          alt=""
-                          className="w-10 aspect-square"
+                          alt="Flights"
+                          className="w-10 aspect-square max-sm:w-6 max-sm:h-6"
                         />
                       </div>
                       <div>
-                        <h3 className="">Concierge assistance</h3>
-                        {/* <p className="">(Keeping your financials risk-free)</p> */}
+                        <h3 className="max-sm:text-sm">Concierge assistance</h3>
                       </div>
                     </div>
-
-                    <div className=" flex gap-[2px] items-center">
-                      <span className="line-through">£35</span>
-                      <span className="ml-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                    <div className="flex gap-[2px] items-center max-sm:flex-shrink-0">
+                      <span className="line-through max-sm:text-sm">£35</span>
+                      <span className="ml-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium max-sm:ml-1 max-sm:px-2 max-sm:py-0.5 max-sm:text-xs">
                         Free
                       </span>
                     </div>
@@ -2910,19 +2828,19 @@ const CountrySlider = () => {
 
             {/* Alert Message */}
             {validationErrors.size > 0 && (
-              <div className="mb-4 p-3 bg-red-500/20 border border-red-500 rounded-lg">
-                <p className="text-red-300 text-sm font-medium">
+              <div className="mb-4 p-3 bg-red-500/20 border border-red-500 rounded-lg max-sm:p-2 max-sm:mb-3">
+                <p className="text-red-300 text-sm font-medium max-sm:text-xs">
                   Confirm required documents
                 </p>
               </div>
             )}
 
             {/* Discount Code Section */}
-            <div className="space-y-3 mb-6">
-              <h2 className="font-medium text-lg">Discount Code</h2>
+            <div className="space-y-3 mb-6 max-sm:mb-4">
+              <h2 className="font-medium text-lg max-sm:text-base">Discount Code</h2>
               <div className="space-y-2">
-                <div className="flex space-x-2">
-                  <div className="flex-1">
+                <div className="flex space-x-2 max-sm:flex-col max-sm:space-x-0 max-sm:space-y-2">
+                  <div className="flex-1 max-sm:w-full">
                     <input
                       type="text"
                       value={couponCode}
@@ -2932,7 +2850,7 @@ const CountrySlider = () => {
                       placeholder="Enter coupon code (e.g., STUDENT10)"
                       className={`w-full border ${
                         couponError ? "border-red-400" : "border-gray-500"
-                      } bg-[#24242D] text-white rounded-md p-2 text-sm ${
+                      } bg-[#24242D] text-white rounded-md p-2 text-sm max-sm:text-xs ${
                         couponError
                           ? "outline-none ring-2 ring-red-400"
                           : "focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -2943,14 +2861,14 @@ const CountrySlider = () => {
                   {!appliedDiscount ? (
                     <button
                       onClick={applyCouponCode}
-                      className="px-4 py-2 bg-white text-black text-sm rounded-md hover:bg-gray-200 transition-colors font-medium"
+                      className="px-4 py-2 bg-white text-black text-sm rounded-md hover:bg-gray-200 transition-colors font-medium max-sm:text-xs max-sm:px-3"
                     >
                       Apply
                     </button>
                   ) : (
                     <button
                       onClick={removeCoupon}
-                      className="px-4 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors"
+                      className="px-4 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors max-sm:text-xs max-sm:px-3"
                     >
                       Remove
                     </button>
@@ -2958,11 +2876,11 @@ const CountrySlider = () => {
                 </div>
 
                 {couponError && (
-                  <span className="text-sm text-red-400">{couponError}</span>
+                  <span className="text-sm text-red-400 max-sm:text-xs">{couponError}</span>
                 )}
 
                 {appliedDiscount && (
-                  <div className="flex items-center space-x-2 text-sm text-green-400 bg-green-600/20 p-2 rounded-md">
+                  <div className="flex items-center space-x-2 text-sm text-green-400 bg-green-600/20 p-2 rounded-md max-sm:text-xs max-sm:p-1.5">
                     <span>
                       ✓ {appliedDiscount.description} (
                       {appliedDiscount.percentage}% off) applied!
@@ -2972,27 +2890,24 @@ const CountrySlider = () => {
               </div>
             </div>
 
-            <div className="text-xs pb-4">
-              Student? Add your student email, we’ll send verification email
-              there.
+            <div className="text-xs pb-4 max-sm:text-xs max-sm:pb-2">
+              Student? Add your student email, we'll send verification email there.
             </div>
 
-            {/* Email Verification Section - Shows when student discount is applied */}
+            {/* Email Verification Section */}
             {appliedDiscount &&
               appliedDiscount.description.toLowerCase().includes("student") && (
-                <div className="space-y-3 mb-6">
-                  <h2 className="font-medium text-lg">
+                <div className="space-y-3 mb-6 max-sm:mb-4">
+                  <h2 className="font-medium text-lg max-sm:text-base">
                     Student Verification Required
                   </h2>
                   <div className="space-y-2">
-                    <div className="text-sm text-yellow-300 mb-2">
-                      <span className="font-medium">📧 Email Verification</span>{" "}
-                      - Please verify your student email to continue with the
-                      discount
+                    <div className="text-sm text-yellow-300 mb-2 max-sm:text-xs">
+                      <span className="font-medium">📧 Email Verification</span> - Please verify your student email to continue with the discount
                     </div>
 
-                    <div className="flex space-x-2">
-                      <div className="flex-1">
+                    <div className="flex space-x-2 max-sm:flex-col max-sm:space-x-0 max-sm:space-y-2">
+                      <div className="flex-1 max-sm:w-full">
                         <input
                           type="email"
                           value={userEmail}
@@ -3000,7 +2915,7 @@ const CountrySlider = () => {
                           placeholder="Enter your student email (e.g., you@student.uni.ac.uk)"
                           className={`w-full border ${
                             emailError ? "border-red-400" : "border-gray-500"
-                          } bg-[#24242D] text-white rounded-md p-2 text-sm ${
+                          } bg-[#24242D] text-white rounded-md p-2 text-sm max-sm:text-xs ${
                             emailError
                               ? "outline-none ring-2 ring-red-400"
                               : "focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -3012,62 +2927,61 @@ const CountrySlider = () => {
                         <button
                           onClick={() => sendStudentVerification(userEmail)}
                           disabled={isSendingVerification || !userEmail}
-                          className="px-4 py-2 bg-yellow-600 text-white text-sm rounded-md hover:bg-yellow-700 transition-colors font-medium disabled:bg-gray-600 disabled:cursor-not-allowed"
+                          className="px-4 py-2 bg-yellow-600 text-white text-sm rounded-md hover:bg-yellow-700 transition-colors font-medium disabled:bg-gray-600 disabled:cursor-not-allowed max-sm:text-xs max-sm:px-3"
                         >
                           {isSendingVerification
                             ? "Sending..."
                             : "Verify Email"}
                         </button>
                       ) : (
-                        <div className="px-4 py-2 bg-green-600 text-white text-sm rounded-md flex items-center">
+                        <div className="px-4 py-2 bg-green-600 text-white text-sm rounded-md flex items-center max-sm:text-xs max-sm:px-3">
                           ✓ Verified
                         </div>
                       )}
                     </div>
 
                     {emailError && (
-                      <span className="text-sm text-red-400">{emailError}</span>
+                      <span className="text-sm text-red-400 max-sm:text-xs">{emailError}</span>
                     )}
 
                     {studentVerificationSent && !studentVerified && (
-                      <div className="text-sm text-green-400 bg-green-600/20 p-2 rounded-md">
-                        ✓ Verification email sent! Please check your inbox and
-                        click the verification link.
+                      <div className="text-sm text-green-400 bg-green-600/20 p-2 rounded-md max-sm:text-xs max-sm:p-1.5">
+                        ✓ Verification email sent! Please check your inbox and click the verification link.
                       </div>
                     )}
 
                     {studentVerified && (
-                      <div className="text-sm text-green-400 bg-green-600/20 p-2 rounded-md">
-                        ✓ Student email verified! You can now proceed with the
-                        student discount.
+                      <div className="text-sm text-green-400 bg-green-600/20 p-2 rounded-md max-sm:text-xs max-sm:p-1.5">
+                        ✓ Student email verified! You can now proceed with the student discount.
                       </div>
                     )}
                   </div>
                 </div>
               )}
 
-            <div className="border rounded-3xl border-white/20 bg-white/5 backdrop-blur-sm overflow-hidden">
-              <div className="flex items-center gap-4 p-4 border-b border-white/10">
+            {/* Free Offer Banner */}
+            <div className="border rounded-3xl border-white/20 bg-white/5 backdrop-blur-sm overflow-hidden max-sm:rounded-2xl">
+              <div className="flex items-center gap-4 p-4 border-b border-white/10 max-sm:p-3 max-sm:gap-3">
                 <div
                   className="h-4 w-4 rounded-full 
               bg-purple-500
-               min-w-4 animate-pulse"
+               min-w-4 animate-pulse max-sm:h-3 max-sm:w-3"
                 ></div>
                 <div>
-                  <span className="text-sm font-medium text-white">
+                  <span className="text-sm font-medium text-white max-sm:text-xs">
                     {sliderContent["free_offer_banner_text"]}
                   </span>
                 </div>
               </div>
-              <div className="p-4">
-                <div className="grid grid-cols-3 gap-3">
+              <div className="p-4 max-sm:p-3">
+                <div className="grid grid-cols-3 gap-3 max-sm:gap-2">
                   {/* August slots */}
                   <div className="text-center">
-                    <div className="text-xs text-white/70 mb-2 font-medium">
+                    <div className="text-xs text-white/70 mb-2 font-medium max-sm:text-xs max-sm:mb-1">
                       {sliderContent["slot1_label"]}
                     </div>
-                    <div className="bg-[#1e1e27] rounded-full p-2">
-                      <div className="text-xs text-white font-semibold">
+                    <div className="bg-[#1e1e27] rounded-full p-2 max-sm:p-1.5">
+                      <div className="text-xs text-white font-semibold max-sm:text-xs">
                         {sliderContent["slot1_status"]}
                       </div>
                     </div>
@@ -3075,11 +2989,11 @@ const CountrySlider = () => {
 
                   {/* September slots */}
                   <div className="text-center">
-                    <div className="text-xs text-white/70 mb-2 font-medium">
+                    <div className="text-xs text-white/70 mb-2 font-medium max-sm:text-xs max-sm:mb-1">
                       {sliderContent["slot2_label"]}
                     </div>
-                    <div className="bg-[#5a3ddb]   rounded-full p-2">
-                      <div className="text-xs text-white font-semibold">
+                    <div className="bg-[#5a3ddb] rounded-full p-2 max-sm:p-1.5">
+                      <div className="text-xs text-white font-semibold max-sm:text-xs">
                         {sliderContent["slot2_status"]}
                       </div>
                     </div>
@@ -3087,11 +3001,11 @@ const CountrySlider = () => {
 
                   {/* October slots */}
                   <div className="text-center">
-                    <div className="text-xs text-white/70 mb-2 font-medium">
+                    <div className="text-xs text-white/70 mb-2 font-medium max-sm:text-xs max-sm:mb-1">
                       {sliderContent["slot3_label"]}
                     </div>
-                    <div className="bg-[#1e1e27] rounded-full p-2">
-                      <div className="text-xs text-white font-semibold">
+                    <div className="bg-[#1e1e27] rounded-full p-2 max-sm:p-1.5">
+                      <div className="text-xs text-white font-semibold max-sm:text-xs">
                         {sliderContent["slot3_status"]}
                       </div>
                     </div>
@@ -3101,17 +3015,16 @@ const CountrySlider = () => {
             </div>
 
             {/* Express Checkout Section */}
-            <div className="space-y-3 mb-6">
-              <h2 className="font-medium text-lg pt-4">Payment Methods</h2>
+            <div className="space-y-3 mb-6 max-sm:mb-4">
+              <h2 className="font-medium text-lg pt-4 max-sm:text-base max-sm:pt-3">Choose one payment method from the list below</h2>
 
-              {/* Apple Pay & Google Pay - Express Checkout */}
+              {/* Apple Pay & Google Pay */}
               <div className="space-y-2">
-                {/* Apple Pay & Google Pay - Official Branded Buttons */}
-                <div className="grid grid-cols-2 gap-3">
-                  {/* Apple Pay Button - Official Style */}
+                <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1 max-sm:gap-2">
+                  {/* Apple Pay Button */}
                   <button
                     onClick={handleApplePayClick}
-                    className="group relative flex items-center justify-center bg-black text-white rounded-full px-6 py-3 text-sm font-medium hover:opacity-90 transition-all duration-200 shadow-sm"
+                    className="group relative flex items-center justify-center bg-black text-white rounded-full px-6 py-3 text-sm font-medium hover:opacity-90 transition-all duration-200 shadow-sm max-sm:py-2.5"
                     style={{
                       backgroundColor: "#000",
                       minHeight: "44px",
@@ -3119,20 +3032,19 @@ const CountrySlider = () => {
                     }}
                   >
                     <div className="flex items-center gap-2">
-                      <FaApple className="text-lg" />
-                      <span className="font-medium tracking-wide">Pay</span>
+                      <FaApple className="text-lg max-sm:text-base" />
+                      <span className="font-medium tracking-wide max-sm:text-sm">Pay</span>
                     </div>
                     <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-5 rounded-lg transition-opacity duration-200"></div>
                   </button>
 
-                  {/* Google Pay Button - Official Style */}
+                  {/* Google Pay Button */}
                   <button
                     onClick={handleGooglePayClick}
-                    className="group relative flex items-center justify-center bg-white text-gray-800 rounded-full px-6 py-3 text-sm font-medium hover:shadow-md transition-all duration-200 shadow-sm border border-gray-200"
+                    className="group relative flex items-center justify-center bg-white text-gray-800 rounded-full px-6 py-3 text-sm font-medium hover:shadow-md transition-all duration-200 shadow-sm border border-gray-200 max-sm:py-2.5"
                     style={{
                       minHeight: "44px",
-                      background:
-                        "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)",
+                      background: "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)",
                     }}
                   >
                     <div className="flex items-center gap-2">
@@ -3140,7 +3052,7 @@ const CountrySlider = () => {
                         width="18"
                         height="18"
                         viewBox="0 0 18 18"
-                        className="flex-shrink-0"
+                        className="flex-shrink-0 max-sm:w-4 max-sm:h-4"
                       >
                         <g fill="none" fillRule="evenodd">
                           <path
@@ -3161,7 +3073,7 @@ const CountrySlider = () => {
                           />
                         </g>
                       </svg>
-                      <span className="font-medium tracking-wide text-gray-700">
+                      <span className="font-medium tracking-wide text-gray-700 max-sm:text-sm">
                         Pay
                       </span>
                     </div>
@@ -3174,38 +3086,38 @@ const CountrySlider = () => {
             {/* Checkout Button */}
             <button
               onClick={handleGetVisa}
-              className="group flex w-full justify-between items-center bg-[#6B4EFF] text-white  gap-[16px] font-medium px-[20px] py-3.5 rounded-full cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb]"
+              className="group flex w-full justify-between items-center bg-[#6B4EFF] text-white gap-[16px] font-medium px-[20px] py-3.5 rounded-full cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb] max-sm:py-3 max-sm:px-4"
             >
-              <span className="mr-3 text-xl font-semibold">
+              <span className="mr-3 text-xl font-semibold max-sm:text-lg max-sm:mr-2">
                 {selectedPaymentMethod === "stripe"
                   ? "CONTINUE WITH CREDIT CARD"
                   : selectedPaymentMethod === "klarna"
                   ? "CONTINUE WITH KLARNA"
                   : "CONTINUE TO CHECKOUT"}
               </span>
-              <span className="bg-white rounded-full p-1.5 transition-transform duration-300 group-hover:rotate-45 group-hover:translate-x-1 group-hover:-translate-y-0">
-                <ArrowUpRight className="w-5 h-5 text-[#6B4EFF]" />
+              <span className="bg-white rounded-full p-1.5 transition-transform duration-300 group-hover:rotate-45 group-hover:translate-x-1 group-hover:-translate-y-0 max-sm:p-1">
+                <ArrowUpRight className="w-5 h-5 text-[#6B4EFF] max-sm:w-4 max-sm:h-4" />
               </span>
             </button>
 
             {/* Footer Info */}
-            <div className="mt-4 space-y-2">
-              <div className="flex items-center space-x-2 text-sm">
-                <MedalIcon className="size-5 text-white/70" />
+            <div className="mt-4 space-y-2 max-sm:mt-3 max-sm:space-y-1.5">
+              <div className="flex items-center space-x-2 text-sm max-sm:text-xs">
+                <MedalIcon className="size-5 text-white/70 max-sm:w-4 max-sm:h-4" />
                 <span>99.3% Visa approval rate</span>
               </div>
-              <div className="flex items-center space-x-2 text-sm">
-                <ShieldCheckIcon className="size-5 text-white/70" />
+              <div className="flex items-center space-x-2 text-sm max-sm:text-xs">
+                <ShieldCheckIcon className="size-5 text-white/70 max-sm:w-4 max-sm:h-4" />
                 <span>100% Risk free - Get your visa or full refund</span>
               </div>
             </div>
 
             {/* Get Help Button */}
-            <button className="mt-4 w-fit rounded-full border border-white text-white py-1.5 hover:border-purple-500 transition-colors text-sm px-4 cursor-pointer">
+            <button className="mt-4 w-fit rounded-full border border-white text-white py-1.5 hover:border-purple-500 transition-colors text-sm px-4 cursor-pointer max-sm:mt-3 max-sm:py-1 max-sm:px-3 max-sm:text-xs">
               <img
                 src="/icons/whatsapp.svg"
                 alt="Get Help"
-                className="inline-block mr-1 size-5 text-white"
+                className="inline-block mr-1 size-5 text-white max-sm:w-4 max-sm:h-4"
               />
               Get Help
             </button>
@@ -3214,6 +3126,9 @@ const CountrySlider = () => {
       </div>
     </div>
   );
+
+  
+
 };
 
 export default CountrySlider;

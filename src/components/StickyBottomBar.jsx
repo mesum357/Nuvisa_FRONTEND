@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
-import { Gift, Shield, Plus, Minus, ShoppingCart, ArrowUpRight } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Gift, Shield, Plus, Minus, ShoppingCart, ArrowUpRight, ChevronUp, ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAppSelector, useAppDispatch } from "@/store";
 import { setTravelers, setReduxInsuranceCount, setReduxGiftCardCount, setRecommendedItems, setRequiredDocuments, setVisaFees, setInsuranceFees, setGiftCardFees, setTotalAmount, setInsuranceOnly, triggerDocumentValidation } from "@/store/visaSlice";
+import Drawer from "./Drawer";
 
 const StickyBottomBar = () => {
   const dispatch = useAppDispatch();
@@ -10,6 +11,9 @@ const StickyBottomBar = () => {
   const router = useRouter();
   
   const [isVisible, setIsVisible] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const barRef = useRef(null);
+  const [barHeight, setBarHeight] = useState(0);
   
   // Get traveler, insurance, and gift card counts from Redux store
   const travelerCount = visaState.travelers || 0;
@@ -168,12 +172,45 @@ const StickyBottomBar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Measure sticky bar height to offset drawer
+  useEffect(() => {
+    if (!isVisible) return;
+    const measure = () => {
+      if (barRef.current) setBarHeight(barRef.current.offsetHeight);
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [isVisible]);
+
+  // Re-measure when drawer toggles (layout may shift)
+  useEffect(() => {
+    if (!isVisible) return;
+    const t = setTimeout(() => {
+      if (barRef.current) setBarHeight(barRef.current.offsetHeight);
+    }, 50);
+    return () => clearTimeout(t);
+  }, [isDrawerOpen, isVisible]);
+
+  // Auto-close drawer on lg and above
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024 && isDrawerOpen) {
+        setIsDrawerOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isDrawerOpen]);
+
   if (!isVisible) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#1e1e27] shadow-2xl animate-slide-up">
-      <div className=" mx-auto px-10 py-4">
-        <div className="flex items-center justify-between gap-4">
+    <>
+    <div ref={barRef} className={`fixed bottom-0 left-0 right-0 z-50 bg-[#1e1e27] ${isDrawerOpen ? 'shadow-none' : 'shadow-2xl'} animate-slide-up`}>
+      <div className="mx-auto px-4 sm:px-10 py-4">
+        {/* Desktop Layout (lg and above) */}
+        <div className="hidden lg:flex items-center justify-between gap-4">
           
           {/* Travellers Section - Left Side */}
           <div className="flex items-center gap-3 text-white">
@@ -335,8 +372,149 @@ const StickyBottomBar = () => {
           </div>
 
         </div>
+
+        {/* Mobile/Tablet Layout (max-lg) */}
+        <div className="lg:hidden">
+          {/* Pair with Button - on top. Hide when drawer open */}
+          {!isDrawerOpen && (
+            <button
+              onClick={() => setIsDrawerOpen(true)}
+              className="w-full bg-[#24242D] rounded-2xl px-4 py-3 mb-3 flex items-center justify-between text-white hover:bg-[#2a2a35] transition-colors"
+            >
+              <span className="font-medium">Pair with</span>
+              <ChevronDown className="w-5 h-5" />
+            </button>
+          )}
+
+          {/* Schengen Visa Section - Full Width */}
+          <div className="mb-3">
+            {items.filter(item => item.id === 'schengen').map((item) => (
+              <div key={item.id} className="bg-[#24242D] rounded-2xl px-4 py-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col flex-1">
+                    <h3 className="text-sm font-medium text-white mb-1">{item.title}</h3>
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-400 line-through text-sm">
+                        £{quantities[item.id] > 0 ? item.originalPrice * quantities[item.id] : item.originalPrice}
+                      </span>
+                      <span className="text-white font-bold">
+                        £{quantities[item.id] > 0 ? item.currentPrice * quantities[item.id] : item.currentPrice}
+                      </span>
+                      {item.badge && (
+                        <div className="text-white px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1" style={{backgroundColor: '#6B4EFF'}}>
+                          <Gift className="w-3 h-3" />
+                          {item.badge}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Quantity Controls */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => updateQuantity(item.id, -1)}
+                      disabled={quantities[item.id] === 0}
+                      className="w-8 h-8 rounded-full text-white flex items-center justify-center disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
+                      style={{backgroundColor: '#6B4EFF'}}
+                    >
+                      <Minus className="w-4 h-4 text-white" strokeWidth={3} />
+                    </button>
+                    <span className="w-8 text-center text-white font-bold text-lg">
+                      {quantities[item.id]}
+                    </span>
+                    <button
+                      onClick={() => updateQuantity(item.id, 1)}
+                      className="w-8 h-8 rounded-full text-white flex items-center justify-center transition-colors"
+                      style={{backgroundColor: '#6B4EFF'}}
+                    >
+                      <Plus className="w-4 h-4 text-white" strokeWidth={3} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Add to Cart Button */}
+          <button
+            onClick={handleAddToCart}
+            className="w-full text-white px-6 py-3 rounded-full font-semibold text-lg flex items-center justify-center gap-2"
+            style={{backgroundColor: '#6B4EFF'}}
+            disabled={getTotalItems() === 0}
+          >
+            ADD TO CART
+            <div className="bg-white rounded-full w-8 h-8 flex items-center justify-center">
+              <ArrowUpRight className="w-4 h-4" style={{color: '#6B4EFF'}} />
+            </div>
+          </button>
+        </div>
       </div>
     </div>
+
+    {/* Drawer for Insurance and Gift Card */}
+    <Drawer 
+      isOpen={isDrawerOpen} 
+      onClose={() => setIsDrawerOpen(false)}
+      title="Pair with"
+      bottomOffset={barHeight - 16}
+      centerClose
+    >
+      <div className="space-y-4">
+        {items.filter(item => item.id === 'insurance' || item.id === 'giftCard').map((item) => (
+          <div key={item.id} className="bg-[#24242D] rounded-2xl px-4 py-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex-1">
+                <h3 className="text-base font-medium text-white mb-2">{item.title}</h3>
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-400 line-through text-sm">
+                    £{quantities[item.id] > 0 ? item.originalPrice * quantities[item.id] : item.originalPrice}
+                  </span>
+                  <span className="text-white font-bold">
+                    £{quantities[item.id] > 0 ? item.currentPrice * quantities[item.id] : item.currentPrice}
+                  </span>
+                </div>
+              </div>
+              
+              {/* Toggle Switch */}
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={quantities[item.id] > 0}
+                  onChange={() => updateQuantity(item.id, quantities[item.id] > 0 ? -quantities[item.id] : 1)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all" style={{'--tw-bg-opacity': quantities[item.id] > 0 ? '1' : '0', backgroundColor: quantities[item.id] > 0 ? '#6B4EFF' : '#6b7280'}}></div>
+              </label>
+            </div>
+            
+            {/* Quantity Controls */}
+            {quantities[item.id] > 0 && (
+              <div className="flex items-center justify-center gap-3 pt-3 border-t border-gray-700">
+                <button
+                  onClick={() => updateQuantity(item.id, -1)}
+                  disabled={quantities[item.id] === 0}
+                  className="w-10 h-10 rounded-full text-white flex items-center justify-center disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
+                  style={{backgroundColor: quantities[item.id] === 0 ? '#6b7280' : '#6B4EFF'}}
+                >
+                  <Minus className="w-4 h-4" />
+                </button>
+                <span className="w-12 text-center text-white font-bold text-xl">
+                  {quantities[item.id]}
+                </span>
+                <button
+                  onClick={() => updateQuantity(item.id, 1)}
+                  className="w-10 h-10 rounded-full text-white flex items-center justify-center transition-colors"
+                  style={{backgroundColor: '#6B4EFF'}}
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </Drawer>
+    </>
   );
 };
 
