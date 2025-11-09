@@ -1,4 +1,4 @@
-order checkout
+
 "use client";
 
 import { localStorageEnums } from "@/enums/localstorage.enums";
@@ -1386,7 +1386,7 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                 />
               </Link>
               <p className="text-sm text-gray-700">
-                Complete your Schengen visa application
+                Choose one payment method from the list below
               </p>
             </div>
 

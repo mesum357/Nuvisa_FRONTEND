@@ -157,7 +157,7 @@ const Navbar = () => {
             className={`max-[1302px]:block hidden absolute left-0 right-0 top-0 z-30 overflow-visible pointer-events-none`}
           >
             <div
-              className={`relative pointer-events-auto absolute left-0 top-0 w-screen bg-black/70 backdrop-blur-sm border-y border-white/10 flex flex-col items-start gap-3 px-4 py-3 transition-transform duration-300 ease-out ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
+              className={`relative pointer-events-auto absolute left-0 top-0 w-screen sec_bg backdrop-blur-sm border-y border-white/10 flex flex-col items-start gap-3 px-4 py-3 transition-transform duration-300 ease-out ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
               style={{ height: 'auto' }}
             >
               {/* Close button */}
