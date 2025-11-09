@@ -71,8 +71,8 @@ const ComparisonSection = () => {
   }
 
   return (
-    <div className="bg-gradient-to-br w-full from-purple-100 to-[#f3e6ff] py-20 px-6">
-      <div className="max-w-[800px] mx-auto">
+    <div className="bg-gradient-to-br w-full from-purple-100 to-[#f3e6ff] py-20 px-6 overflow-x-hidden">
+      <div className="max-w-[800px] mx-auto overflow-x-hidden">
         <div className="flex justify-between items-center">
           <div className="w-full items-center justify-center flex">
             <p className="text-3xl font-gilroy-bold text-black">
@@ -93,7 +93,7 @@ const ComparisonSection = () => {
         </div>
 
         {/* Comparison Cards */}
-        <div className="grid grid-cols-2 gap-3 md:gap-4 relative">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 relative overflow-x-hidden">
           {/* Travel Agency Side */}
           <div className=" rounded-3xl flex flex-col items-center gap-3 ">
             <div className="max-md:aspect-square w-full md:h-[346px] mb-8 rounded-[30px] overflow-hidden bg-gray-100">
@@ -106,7 +106,7 @@ const ComparisonSection = () => {
               />
             </div>
           </div>
-          <div className="flex justify-center bg-white p-0.5 md:p-[8px] top-[31%] rounded-full left-[44%] absolute">
+          <div className="flex justify-center bg-white p-0.5 md:p-[8px] top-[31%] rounded-full absolute left-1/2 -translate-x-1/2">
             <img
               src="/image/vs.svg"
               alt=""
@@ -128,7 +128,7 @@ const ComparisonSection = () => {
         </div>
 
         {/* Comparison List */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-x-hidden">
           {/* Traditional Side */}
           <div className="flex flex-col gap-2">
             {leftItems.map((item, i) => (

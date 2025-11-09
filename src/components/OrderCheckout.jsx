@@ -1,3 +1,4 @@
+
 "use client";
 
 import { localStorageEnums } from "@/enums/localstorage.enums";
@@ -92,7 +93,9 @@ const VisaCheckout = () => {
   const [postcode, setPostcode] = useState("");
   const [postcodeError, setPostcodeError] = useState("");
   const [emailNewsOffers, setEmailNewsOffers] = useState(false);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(
+    visaState.selectedPaymentMethod || "stripe"
+  );
   const [couponCode, setCouponCodeLocal] = useState(visaState.couponCode || "");
   const [insuranceCouponCode, setInsuranceCouponCode] = useState();
   const [appliedDiscount, setAppliedDiscount] = useState(
@@ -474,6 +477,23 @@ const VisaCheckout = () => {
     setAppliedDiscount(null);
     setCouponError("");
   };
+  const [includeGiftCard, setIncludeGiftCard] = useState(
+    visaState.recommendedItems?.giftCard || false
+  );
+  const [giftCardCount, setGiftCardCount] = useState(1);
+
+  const handleGiftCardChange = (increment) => {
+    const newValue = giftCardCount + increment;
+    if (newValue >= 1) {
+      setGiftCardCount(newValue);
+
+      if (newValue > 0 && !includeGiftCard) {
+        setIncludeGiftCard(true);
+      } else if (newValue === 0 && includeGiftCard) {
+        setIncludeGiftCard(false);
+      }
+    }
+  };
 
   // Card validation and formatting functions
   const formatCardNumber = (value) => {
@@ -641,7 +661,7 @@ const VisaCheckout = () => {
   }
 
   const insuranceFees = includeInsurance ? insuranceFeesTotal : 0;
-  const giftCardFees = Number(visaState.giftCardFees) || 0;
+  const giftCardFees = includeGiftCard ? 188 * giftCardCount : 0;
   const insuranceWithDiscount =
     appliedInsuranceDiscount && includeInsurance
       ? insuranceFees -
@@ -651,9 +671,8 @@ const VisaCheckout = () => {
     ? visaFeesTotal - (visaFeesTotal * appliedDiscount.percentage) / 100
     : visaFeesTotal;
   const eVisaFees = 0; // Currently free
-  const subtotal = visaFeesTotal + insuranceFees + giftCardFees + eVisaFees;
-  const total =
-    visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVisaFees;
+ const subtotal = visaFeesTotal + insuranceFees + giftCardFees + eVisaFees;
+const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVisaFees;
   const insuranceDiscountAmount =
     appliedInsuranceDiscount && includeInsurance
       ? (insuranceFees * appliedInsuranceDiscount.percentage) / 100
@@ -975,7 +994,7 @@ const VisaCheckout = () => {
     const insuranceFees = includeInsurance
       ? perDayInsurancePrice * travelDays * insuranceCount
       : 0;
-    const giftCardFees = Number(visaState.giftCardFees) || 0;
+    const giftCardFees = includeGiftCard ? 188 * giftCardCount : 0;
 
     const totalAmount = Math.round(visaFees + insuranceFees + giftCardFees);
 
@@ -1191,7 +1210,7 @@ const VisaCheckout = () => {
     const insuranceFees = includeInsurance
       ? perDayInsurancePrice * travelDays * insuranceCount
       : 0;
-    const giftCardFees = Number(visaState.giftCardFees) || 0;
+    const giftCardFees = includeGiftCard ? 188 * giftCardCount : 0;
 
     const totalAmount = Math.round(visaFees + insuranceFees + giftCardFees);
 
@@ -1367,7 +1386,7 @@ const VisaCheckout = () => {
                 />
               </Link>
               <p className="text-sm text-gray-700">
-                Complete your Schengen visa application
+                Choose one payment method from the list below
               </p>
             </div>
 
@@ -1508,7 +1527,7 @@ const VisaCheckout = () => {
                   )}
                 </div>
 
-                <div>
+                {/* <div>
                   <label
                     htmlFor="postcode"
                     className="block text-sm font-medium mb-1"
@@ -1533,7 +1552,7 @@ const VisaCheckout = () => {
                       {postcodeError}
                     </span>
                   )}
-                </div>
+                </div> */}
 
                 <div className="flex items-center space-x-2">
                   <input
@@ -2235,6 +2254,7 @@ const VisaCheckout = () => {
                   `Complete Order`
                 )}
               </button>
+              <p className="text-xs text-gray-600 mt-2 text-center"> All transactions are secure and encrypted. Powered by Stripe (strip link in word stripe)</p>
             </div>
           </div>
 
@@ -2355,15 +2375,52 @@ const VisaCheckout = () => {
             )}
 
             {/* E visa card */}
+            {/* Digital Gift Card */}
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
+              <div
+                className="flex items-center space-x-2 cursor-pointer"
+                onClick={() => {
+                  setIncludeGiftCard(!includeGiftCard);
+                  if (!includeGiftCard) {
+                    setGiftCardCount(1);
+                  }
+                }}
+              >
+                <input
+                  type="checkbox"
+                  id="giftCard"
+                  checked={includeGiftCard}
+                  onChange={(e) => {
+                    setIncludeGiftCard(e.target.checked);
+                    if (e.target.checked && giftCardCount === 0) {
+                      setGiftCardCount(1);
+                    }
+                  }}
+                  className="h-4 w-4 border-gray-300 rounded"
+                />
                 <HiOutlineDeviceMobile />
                 <span className="text-sm">Digital gift card</span>
               </div>
-              <span className="text-sm">
-                {formatCurrency(eVisaFeesEUR, "EUR")}
-              </span>
+              <div className="flex flex-col gap-2 items-end">
+                <QtyInput
+                  value={giftCardCount}
+                  onIncrement={() => handleGiftCardChange(1)}
+                  onDecrement={() => handleGiftCardChange(-1)}
+                  min={1}
+                />
+                <span className="text-sm">
+                  {includeGiftCard
+                    ? formatCurrency(188 * giftCardCount, "EUR")
+                    : formatCurrency(0, "EUR")
+                  }
+                </span>
+              </div>
             </div>
+            {includeGiftCard && (
+              <p className="text-xs text-gray-400">
+                Digital gift card for {giftCardCount} recipient{giftCardCount > 1 ? "s" : ""}
+              </p>
+            )}
 
             {/* Subtotal */}
             <div className="flex justify-between text-sm pt-2 border-t border-gray-700">
@@ -2394,7 +2451,7 @@ const VisaCheckout = () => {
             </div>
 
             <div className="space-y-3">
-              <h2 className="font-medium text-lg">Discount Code</h2>
+              {/* <h2 className="font-medium text-lg">Discount Code</h2> */}
               <div className="space-y-2">
                 <div className="flex space-x-2">
                   <div className="flex-1">
@@ -2404,7 +2461,7 @@ const VisaCheckout = () => {
                       onChange={(e) =>
                         setCouponCodeLocal(e.target.value.toUpperCase())
                       }
-                      placeholder="Enter coupon code (e.g., STUDENT10)"
+                      placeholder="Discount Code"
                       className={`w-full border ${couponError ? "border-red-400" : "border-gray-300"
                         } rounded-md p-2 text-sm ${couponError
                           ? "outline-none ring-2 ring-red-400"
