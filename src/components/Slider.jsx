@@ -160,7 +160,7 @@ const CountrySlider = () => {
   const travelers = visaState.travelers || 1;
   const insuranceCount = visaState.insuranceCount || 0;
   const giftCardCount = visaState.giftCardCount || 0;
-  // Default arrival = 4 weeks from today, default departure = arrival + 15 days
+  // Default arrival = 4 weeks from today, default departure = arrival + 14 days (15 days inclusive)
   const computeDefaultArrival = () => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -172,7 +172,7 @@ const CountrySlider = () => {
   const computeDefaultDeparture = (arrival) => {
     const d = new Date(arrival);
     d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() + 15); // 15 days ahead of the 4 week date
+    d.setDate(d.getDate() + 14); // 14 days ahead to show 15 days inclusive
     return d;
   };
 
