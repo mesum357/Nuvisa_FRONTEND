@@ -44,6 +44,8 @@ const VisaCheckout = () => {
       : visaState.selectedVisaType && visaState.selectedVisaType.price
         ? Math.round(Number(visaState.selectedVisaType.price) / 100)
         : 129;
+        ? Math.round(Number(visaState.selectedVisaType.price) / 100)
+        : 129;
 
   const selectedCountry = visaState.selectedCountry;
   const selectedVisaType = visaState.selectedVisaType;
@@ -92,9 +94,7 @@ const VisaCheckout = () => {
   const [postcode, setPostcode] = useState("");
   const [postcodeError, setPostcodeError] = useState("");
   const [emailNewsOffers, setEmailNewsOffers] = useState(false);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(
-    visaState.selectedPaymentMethod || "stripe"
-  );
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
   const [couponCode, setCouponCodeLocal] = useState(visaState.couponCode || "");
   const [insuranceCouponCode, setInsuranceCouponCode] = useState();
   const [appliedDiscount, setAppliedDiscount] = useState(
@@ -210,6 +210,7 @@ const VisaCheckout = () => {
               showSuccess("Email verified — student discount applied.");
             }
           } catch { }
+          } catch { }
 
           if (
             pendingCheckoutQuery &&
@@ -252,6 +253,7 @@ const VisaCheckout = () => {
               showSuccess("Email verified — student discount applied.");
             }
           } catch { }
+          } catch { }
 
           if (
             pendingCheckoutQuery &&
@@ -263,6 +265,7 @@ const VisaCheckout = () => {
             window.location.href = `/visa-checkout`;
           }
         }
+      } catch { }
       } catch { }
     };
 
@@ -301,6 +304,7 @@ const VisaCheckout = () => {
           }
         }
       }
+    } catch { }
     } catch { }
   }, []);
 
@@ -421,6 +425,8 @@ const VisaCheckout = () => {
       selectedVisaType && selectedVisaType.priceGBP
         ? Number(selectedVisaType.priceGBP)
         : selectedVisaType && selectedVisaType.price
+          ? Math.round(Number(selectedVisaType.price) / 100)
+          : 129; // baseFee
           ? Math.round(Number(selectedVisaType.price) / 100)
           : 129; // baseFee
     const currentVisaFees = currentBaseFee * travelers;
@@ -665,6 +671,7 @@ const VisaCheckout = () => {
     appliedInsuranceDiscount && includeInsurance
       ? insuranceFees -
       (insuranceFees * appliedInsuranceDiscount.percentage) / 100
+      (insuranceFees * appliedInsuranceDiscount.percentage) / 100
       : insuranceFees;
   const visaFeesWithDiscount = appliedDiscount
     ? visaFeesTotal - (visaFeesTotal * appliedDiscount.percentage) / 100
@@ -698,11 +705,15 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
       (calculatePaymentFees(insuranceFees, "EUR") *
         appliedInsuranceDiscount.percentage) /
       100
+      (calculatePaymentFees(insuranceFees, "EUR") *
+        appliedInsuranceDiscount.percentage) /
+      100
       : calculatePaymentFees(insuranceFees, "EUR")
     : 0;
   const discountedInsuranceFeesEUR =
     appliedInsuranceDiscount && includeInsurance
       ? baseInsuranceFeesEUR -
+      (baseInsuranceFeesEUR * appliedInsuranceDiscount.percentage) / 100
       (baseInsuranceFeesEUR * appliedInsuranceDiscount.percentage) / 100
       : baseInsuranceFeesEUR;
 
@@ -981,6 +992,8 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
         : selectedVisaType && selectedVisaType.price
           ? Math.round(Number(selectedVisaType.price) / 100)
           : baseVisaFee;
+          ? Math.round(Number(selectedVisaType.price) / 100)
+          : baseVisaFee;
 
     let visaFees = currentBaseFee * travelers;
 
@@ -1109,6 +1122,7 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
               "Apple Pay setup required. Redirecting to standard checkout..."
             );
           } catch { }
+          } catch { }
 
           setSelectedPaymentMethod("stripe");
           await handleProceedToCheckout();
@@ -1195,6 +1209,8 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
       selectedVisaType && selectedVisaType.priceGBP
         ? Number(selectedVisaType.priceGBP)
         : selectedVisaType && selectedVisaType.price
+          ? Math.round(Number(selectedVisaType.price) / 100)
+          : baseVisaFee;
           ? Math.round(Number(selectedVisaType.price) / 100)
           : baseVisaFee;
 
@@ -1489,8 +1505,11 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                     placeholder="name@example.com"
                     className={`w-full border ${emailError ? "border-red-400" : "border-gray-300"
                       } rounded-md p-2 text-sm  ${emailError
+                    className={`w-full border ${emailError ? "border-red-400" : "border-gray-300"
+                      } rounded-md p-2 text-sm  ${emailError
                         ? "outline-none ring-2 ring-red-400"
                         : "focus:outline-none focus:ring-2 focus:ring-black"
+                      }`}
                       }`}
                   />
                   {emailError && (
@@ -1514,6 +1533,10 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                     onChange={(e) => setPhone(e.target.value)}
                     onBlur={handlePhoneBlur}
                     placeholder="e.g. 0123456789"
+                    className={`w-full border ${phoneError
+                      ? "border-red-400 outline-none ring-2 ring-red-400"
+                      : "border-gray-300 focus:outline-none focus:ring-2 focus:ring-black"
+                      } rounded-md p-2 text-sm`}
                     className={`w-full border ${phoneError
                       ? "border-red-400 outline-none ring-2 ring-red-400"
                       : "border-gray-300 focus:outline-none focus:ring-2 focus:ring-black"
@@ -1542,8 +1565,11 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                     placeholder="SW1A 1AA"
                     className={`w-full border ${postcodeError ? "border-red-400" : "border-gray-300"
                       } rounded-md p-2 text-sm  ${postcodeError
+                    className={`w-full border ${postcodeError ? "border-red-400" : "border-gray-300"
+                      } rounded-md p-2 text-sm  ${postcodeError
                         ? "outline-none ring-2 ring-red-400"
                         : "focus:outline-none focus:ring-2 focus:ring-black"
+                      }`}
                       }`}
                   />
                   {postcodeError && (
@@ -1587,6 +1613,10 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
               <h2 className="font-medium text-lg">Payment Method</h2>
               <div className="space-y-2">
                 <div
+                  className={`border rounded-md p-3 cursor-pointer ${selectedPaymentMethod === "stripe"
+                    ? "border-black bg-gray-50"
+                    : "border-gray-300"
+                    }`}
                   className={`border rounded-md p-3 cursor-pointer ${selectedPaymentMethod === "stripe"
                     ? "border-black bg-gray-50"
                     : "border-gray-300"
@@ -1662,8 +1692,13 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                               ? "border-red-400"
                               : "border-gray-300"
                               } rounded-md p-3 text-sm pr-10 ${cardErrors.cardNumber
+                            className={`w-full border ${cardErrors.cardNumber
+                              ? "border-red-400"
+                              : "border-gray-300"
+                              } rounded-md p-3 text-sm pr-10 ${cardErrors.cardNumber
                                 ? "outline-none ring-2 ring-red-400"
                                 : "focus:outline-none focus:ring-2 focus:ring-black"
+                              }`}
                               }`}
                           />
                           <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
@@ -1723,8 +1758,13 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                               ? "border-red-400"
                               : "border-gray-300"
                               } rounded-md p-3 text-sm ${cardErrors.expirationDate
+                            className={`w-full border ${cardErrors.expirationDate
+                              ? "border-red-400"
+                              : "border-gray-300"
+                              } rounded-md p-3 text-sm ${cardErrors.expirationDate
                                 ? "outline-none ring-2 ring-red-400"
                                 : "focus:outline-none focus:ring-2 focus:ring-black"
+                              }`}
                               }`}
                           />
                           {cardErrors.expirationDate && (
@@ -1768,8 +1808,13 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                               ? "border-red-400"
                               : "border-gray-300"
                               } rounded-md p-3 text-sm ${cardErrors.securityCode
+                            className={`w-full border ${cardErrors.securityCode
+                              ? "border-red-400"
+                              : "border-gray-300"
+                              } rounded-md p-3 text-sm ${cardErrors.securityCode
                                 ? "outline-none ring-2 ring-red-400"
                                 : "focus:outline-none focus:ring-2 focus:ring-black"
+                              }`}
                               }`}
                           />
                           {cardErrors.securityCode && (
@@ -1799,8 +1844,13 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                             ? "border-red-400"
                             : "border-gray-300"
                             } rounded-md p-3 text-sm ${cardErrors.nameOnCard
+                          className={`w-full border ${cardErrors.nameOnCard
+                            ? "border-red-400"
+                            : "border-gray-300"
+                            } rounded-md p-3 text-sm ${cardErrors.nameOnCard
                               ? "outline-none ring-2 ring-red-400"
                               : "focus:outline-none focus:ring-2 focus:ring-black"
+                            }`}
                             }`}
                         />
                         {cardErrors.nameOnCard && (
@@ -1883,8 +1933,13 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                                   ? "border-red-400"
                                   : "border-gray-300"
                                   } rounded-md p-3 text-sm ${cardErrors.billingFirstName
+                                className={`w-full border ${cardErrors.billingFirstName
+                                  ? "border-red-400"
+                                  : "border-gray-300"
+                                  } rounded-md p-3 text-sm ${cardErrors.billingFirstName
                                     ? "outline-none ring-2 ring-red-400"
                                     : "focus:outline-none focus:ring-2 focus:ring-black"
+                                  }`}
                                   }`}
                               />
                               {cardErrors.billingFirstName && (
@@ -1913,8 +1968,13 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                                   ? "border-red-400"
                                   : "border-gray-300"
                                   } rounded-md p-3 text-sm ${cardErrors.billingLastName
+                                className={`w-full border ${cardErrors.billingLastName
+                                  ? "border-red-400"
+                                  : "border-gray-300"
+                                  } rounded-md p-3 text-sm ${cardErrors.billingLastName
                                     ? "outline-none ring-2 ring-red-400"
                                     : "focus:outline-none focus:ring-2 focus:ring-black"
+                                  }`}
                                   }`}
                               />
                               {cardErrors.billingLastName && (
@@ -1958,8 +2018,13 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                                 ? "border-red-400"
                                 : "border-gray-300"
                                 } rounded-md p-3 text-sm ${cardErrors.billingAddress
+                              className={`w-full border ${cardErrors.billingAddress
+                                ? "border-red-400"
+                                : "border-gray-300"
+                                } rounded-md p-3 text-sm ${cardErrors.billingAddress
                                   ? "outline-none ring-2 ring-red-400"
                                   : "focus:outline-none focus:ring-2 focus:ring-black"
+                                }`}
                                 }`}
                             />
                             {cardErrors.billingAddress && (
@@ -2005,8 +2070,13 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                                   ? "border-red-400"
                                   : "border-gray-300"
                                   } rounded-md p-3 text-sm ${cardErrors.billingCity
+                                className={`w-full border ${cardErrors.billingCity
+                                  ? "border-red-400"
+                                  : "border-gray-300"
+                                  } rounded-md p-3 text-sm ${cardErrors.billingCity
                                     ? "outline-none ring-2 ring-red-400"
                                     : "focus:outline-none focus:ring-2 focus:ring-black"
+                                  }`}
                                   }`}
                               />
                               {cardErrors.billingCity && (
@@ -2057,8 +2127,13 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                                   ? "border-red-400"
                                   : "border-gray-300"
                                   } rounded-md p-3 text-sm ${cardErrors.billingPostcode
+                                className={`w-full border ${cardErrors.billingPostcode
+                                  ? "border-red-400"
+                                  : "border-gray-300"
+                                  } rounded-md p-3 text-sm ${cardErrors.billingPostcode
                                     ? "outline-none ring-2 ring-red-400"
                                     : "focus:outline-none focus:ring-2 focus:ring-black"
+                                  }`}
                                   }`}
                               />
                               {cardErrors.billingPostcode && (
@@ -2097,6 +2172,10 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                                 ? "border-red-400"
                                 : "border-gray-300"
                                 } rounded-md p-3 text-sm focus:outline-none focus:ring-2 focus:ring-black`}
+                              className={`w-full border ${billingPhoneError
+                                ? "border-red-400"
+                                : "border-gray-300"
+                                } rounded-md p-3 text-sm focus:outline-none focus:ring-2 focus:ring-black`}
                             />
                             {billingPhoneError && (
                               <span className="text-sm text-red-400 mt-1">
@@ -2111,6 +2190,10 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                 </div>
 
                 <div
+                  className={`border rounded-md p-3 cursor-pointer ${selectedPaymentMethod === "klarna"
+                    ? "border-black bg-gray-50"
+                    : "border-gray-300"
+                    }`}
                   className={`border rounded-md p-3 cursor-pointer ${selectedPaymentMethod === "klarna"
                     ? "border-black bg-gray-50"
                     : "border-gray-300"
@@ -2143,6 +2226,10 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                       ? "border-black bg-gray-50"
                       : "border-gray-300"
                       }`}
+                    className={`border rounded-md p-3 cursor-pointer transition-all ${selectedPaymentMethod === "apple"
+                      ? "border-black bg-gray-50"
+                      : "border-gray-300"
+                      }`}
                     onClick={() => setSelectedPaymentMethod("apple")}
                   >
                     <div className="flex items-center space-x-2">
@@ -2167,6 +2254,10 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                   </div>
 
                   <div
+                    className={`border rounded-md p-3 cursor-pointer ${selectedPaymentMethod === "google"
+                      ? "border-black bg-gray-50"
+                      : "border-gray-300"
+                      }`}
                     className={`border rounded-md p-3 cursor-pointer ${selectedPaymentMethod === "google"
                       ? "border-black bg-gray-50"
                       : "border-gray-300"
@@ -2208,12 +2299,16 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                 }
                 onClick={handleProceedToCheckout}
                 className={`w-full bg-black text-white py-3 rounded-md font-semibold hover:bg-gray-900 transition-colors ${cretingDynamicCheckout ||
+                className={`w-full bg-black text-white py-3 rounded-md font-semibold hover:bg-gray-900 transition-colors ${cretingDynamicCheckout ||
                   (appliedDiscount &&
                     appliedDiscount.description &&
                     appliedDiscount.description
                       .toLowerCase()
                       .includes("student") &&
                     !studentVerified)
+                  ? "cursor-not-allowed opacity-50"
+                  : "cursor-pointer"
+                  }`}
                   ? "cursor-not-allowed opacity-50"
                   : "cursor-pointer"
                   }`}
@@ -2398,6 +2493,7 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                 />
                 <HiOutlineDeviceMobile />
                 <span className="text-sm">Digital gift card</span>
+                <span className="text-sm">Digital gift card</span>
               </div>
               <div className="flex flex-col gap-2 items-end">
                 <QtyInput
@@ -2464,6 +2560,7 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                         } rounded-md p-2 text-sm ${couponError
                           ? "outline-none ring-2 ring-red-400"
                           : "focus:outline-none focus:ring-2 focus:ring-black"
+                        }`}
                         }`}
                       disabled={appliedDiscount}
                     />
