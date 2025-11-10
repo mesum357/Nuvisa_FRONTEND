@@ -69,7 +69,7 @@ const initialState: IVisaState = {
   appliedDiscount: null,
   couponCode: "",
   userEmail: "",
-  selectedPaymentMethod: "stripe",
+  selectedPaymentMethod: "",
   giftCardFees: 0,
   totalAmount: 0,
   insuranceOnly: false,
@@ -170,7 +170,7 @@ export const visaSlice = createSlice({
       state.appliedDiscount = null;
       state.couponCode = "";
       state.userEmail = "";
-      state.selectedPaymentMethod = "stripe";
+      state.selectedPaymentMethod = "";
       state.giftCardFees = 0;
       state.totalAmount = 0;
       state.insuranceOnly = false;

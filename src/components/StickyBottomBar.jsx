@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { Gift, Shield, Plus, Minus, ShoppingCart, ArrowUpRight, ChevronUp, ChevronDown } from "lucide-react";
+import { Gift, Shield, Plus, Minus, ShoppingCart, ArrowUpRight, ChevronUp, ChevronDown  ,  UserIcon} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAppSelector, useAppDispatch } from "@/store";
 import { setTravelers, setReduxInsuranceCount, setReduxGiftCardCount, setRecommendedItems, setRequiredDocuments, setVisaFees, setInsuranceFees, setGiftCardFees, setTotalAmount, setInsuranceOnly, triggerDocumentValidation } from "@/store/visaSlice";
 import Drawer from "./Drawer";
+
 
 const StickyBottomBar = () => {
   const dispatch = useAppDispatch();
@@ -43,7 +44,7 @@ const StickyBottomBar = () => {
       id: 'schengen',
       title: 'Schengen visa from the UK',
       originalPrice: 200,
-      currentPrice: 159,
+      currentPrice: 129,
       badge: 'Travellers',
     
     },
@@ -51,7 +52,7 @@ const StickyBottomBar = () => {
       id: 'insurance',
       title: 'Insurance Certificate',
       originalPrice: 45,
-      currentPrice: 29,
+      currentPrice: 30,
       badge: null,
       badgeCount: null
     },
@@ -59,7 +60,7 @@ const StickyBottomBar = () => {
       id: 'giftCard',
       title: 'NUvisa Digital Gift Card',
       originalPrice: 245,
-      currentPrice: 188,
+      currentPrice: 159,
       badge: null,
       badgeCount: null
     }
@@ -129,9 +130,9 @@ const StickyBottomBar = () => {
     dispatch(triggerDocumentValidation());
 
     // Calculate fees and dispatch to Redux to ensure checkout has correct values
-    const visaFees = travelerCount * 159; // Using the current price from items
-    const insuranceFees = insuranceCount * 29;
-    const giftCardFees = giftCardCount * 188;
+    const visaFees = travelerCount * 129; // Using the current price from items
+    const insuranceFees = insuranceCount * 30;
+    const giftCardFees = giftCardCount * 159;
     const totalAmount = visaFees + insuranceFees + giftCardFees;
 
     dispatch(setVisaFees(visaFees));
@@ -229,7 +230,7 @@ const StickyBottomBar = () => {
                     {item.badge && (
                       <div className="flex items-center gap-1">
                         <div className="text-white px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1" style={{backgroundColor: '#6B4EFF'}}>
-                          <Gift className="w-3 h-3" />
+                   <UserIcon className="fill-white max-sm:w-3 max-sm:h-3" />
                           {item.badge}
                         </div>
                         

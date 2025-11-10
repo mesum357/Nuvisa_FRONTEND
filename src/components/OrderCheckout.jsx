@@ -1,4 +1,3 @@
-
 "use client";
 
 import { localStorageEnums } from "@/enums/localstorage.enums";
@@ -43,8 +42,8 @@ const VisaCheckout = () => {
     visaState.selectedVisaType && visaState.selectedVisaType.priceGBP
       ? Number(visaState.selectedVisaType.priceGBP)
       : visaState.selectedVisaType && visaState.selectedVisaType.price
-        ? Math.round(Number(visaState.selectedVisaType.price) / 100)
-        : 129;
+      ? Math.round(Number(visaState.selectedVisaType.price) / 100)
+      : 129;
 
   const selectedCountry = visaState.selectedCountry;
   const selectedVisaType = visaState.selectedVisaType;
@@ -94,7 +93,10 @@ const VisaCheckout = () => {
   const [postcodeError, setPostcodeError] = useState("");
   const [emailNewsOffers, setEmailNewsOffers] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(
-    visaState.selectedPaymentMethod || "stripe"
+    visaState.selectedPaymentMethod &&
+      visaState.selectedPaymentMethod.trim() !== ""
+      ? visaState.selectedPaymentMethod
+      : null
   );
   const [couponCode, setCouponCodeLocal] = useState(visaState.couponCode || "");
   const [insuranceCouponCode, setInsuranceCouponCode] = useState();
@@ -210,7 +212,7 @@ const VisaCheckout = () => {
             if (typeof showSuccess === "function") {
               showSuccess("Email verified — student discount applied.");
             }
-          } catch { }
+          } catch {}
 
           if (
             pendingCheckoutQuery &&
@@ -252,7 +254,7 @@ const VisaCheckout = () => {
             if (typeof showSuccess === "function") {
               showSuccess("Email verified — student discount applied.");
             }
-          } catch { }
+          } catch {}
 
           if (
             pendingCheckoutQuery &&
@@ -264,7 +266,7 @@ const VisaCheckout = () => {
             window.location.href = `/visa-checkout`;
           }
         }
-      } catch { }
+      } catch {}
     };
 
     window.addEventListener("message", onMessage);
@@ -302,7 +304,7 @@ const VisaCheckout = () => {
           }
         }
       }
-    } catch { }
+    } catch {}
   }, []);
 
   useEffect(() => {
@@ -422,8 +424,8 @@ const VisaCheckout = () => {
       selectedVisaType && selectedVisaType.priceGBP
         ? Number(selectedVisaType.priceGBP)
         : selectedVisaType && selectedVisaType.price
-          ? Math.round(Number(selectedVisaType.price) / 100)
-          : 129; // baseFee
+        ? Math.round(Number(selectedVisaType.price) / 100)
+        : 129; // baseFee
     const currentVisaFees = currentBaseFee * travelers;
     const calculatedDiscountAmount =
       (currentVisaFees * discount.percentage) / 100;
@@ -665,14 +667,15 @@ const VisaCheckout = () => {
   const insuranceWithDiscount =
     appliedInsuranceDiscount && includeInsurance
       ? insuranceFees -
-      (insuranceFees * appliedInsuranceDiscount.percentage) / 100
+        (insuranceFees * appliedInsuranceDiscount.percentage) / 100
       : insuranceFees;
   const visaFeesWithDiscount = appliedDiscount
     ? visaFeesTotal - (visaFeesTotal * appliedDiscount.percentage) / 100
     : visaFeesTotal;
   const eVisaFees = 0; // Currently free
- const subtotal = visaFeesTotal + insuranceFees + giftCardFees + eVisaFees;
-const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVisaFees;
+  const subtotal = visaFeesTotal + insuranceFees + giftCardFees + eVisaFees;
+  const total =
+    visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVisaFees;
   const insuranceDiscountAmount =
     appliedInsuranceDiscount && includeInsurance
       ? (insuranceFees * appliedInsuranceDiscount.percentage) / 100
@@ -696,15 +699,15 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
   const baseInsuranceFeesEUR = includeInsurance
     ? appliedInsuranceDiscount
       ? calculatePaymentFees(insuranceFees, "EUR") -
-      (calculatePaymentFees(insuranceFees, "EUR") *
-        appliedInsuranceDiscount.percentage) /
-      100
+        (calculatePaymentFees(insuranceFees, "EUR") *
+          appliedInsuranceDiscount.percentage) /
+          100
       : calculatePaymentFees(insuranceFees, "EUR")
     : 0;
   const discountedInsuranceFeesEUR =
     appliedInsuranceDiscount && includeInsurance
       ? baseInsuranceFeesEUR -
-      (baseInsuranceFeesEUR * appliedInsuranceDiscount.percentage) / 100
+        (baseInsuranceFeesEUR * appliedInsuranceDiscount.percentage) / 100
       : baseInsuranceFeesEUR;
 
   const _giftCardFeesEUR = calculatePaymentFees(giftCardFees, "EUR");
@@ -773,23 +776,29 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
 
     if (cretingDynamicCheckout) return;
 
-    if (!email) {
-      setEmailError("Email is required for checkout");
-      return;
-    }
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setEmailError("Please enter a valid email for checkout");
-      return;
-    }
-
-    if (!postcode) {
-      setPostcodeError("Postcode is required for checkout");
-      return;
+    // Skip email validation for Apple Pay since it provides user info
+    if (selectedPaymentMethod !== "apple" && selectedPaymentMethod !== "apple-pay") {
+      if (!email) {
+        setEmailError("Email is required for checkout");
+        return;
+      }
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        setEmailError("Please enter a valid email for checkout");
+        return;
+      }
     }
 
-    if (postcode && !isValidUKPostcode(postcode)) {
-      setPostcodeError("Please enter a valid UK postcode (e.g. SW1A 1AA)");
-      return;
+    // Skip postcode validation for Apple Pay since it provides billing address
+    if (selectedPaymentMethod !== "apple" && selectedPaymentMethod !== "apple-pay") {
+      if (!postcode) {
+        setPostcodeError("Postcode is required for checkout");
+        return;
+      }
+
+      if (postcode && !isValidUKPostcode(postcode)) {
+        setPostcodeError("Please enter a valid UK postcode (e.g. SW1A 1AA)");
+        return;
+      }
     }
 
     if (phone && String(phone).trim() && !isValidPhone(phone)) {
@@ -807,6 +816,13 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
       setBillingPhoneError(
         "Please enter a valid phone number (10 digits or 11 digits starting with 0)"
       );
+      return;
+    }
+
+    // Validate payment method selection
+    if (!selectedPaymentMethod) {
+      // You could add a state for payment method error if needed
+      alert("Please select a payment method to continue");
       return;
     }
 
@@ -941,7 +957,6 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
     }
   }, []);
 
-
   // Apple Pay click handler
   const handleApplePayClick = async () => {
     // Validate required documents for express payment
@@ -980,8 +995,8 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
       selectedVisaType && selectedVisaType.priceGBP
         ? Number(selectedVisaType.priceGBP)
         : selectedVisaType && selectedVisaType.price
-          ? Math.round(Number(selectedVisaType.price) / 100)
-          : baseVisaFee;
+        ? Math.round(Number(selectedVisaType.price) / 100)
+        : baseVisaFee;
 
     let visaFees = currentBaseFee * travelers;
 
@@ -1037,7 +1052,9 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
       // Build line items for detailed breakdown
       const lineItems = [
         {
-          label: `Visa Processing Fee (${travelers} traveller${travelers > 1 ? "s" : ""})`,
+          label: `Visa Processing Fee (${travelers} traveller${
+            travelers > 1 ? "s" : ""
+          })`,
           amount: Math.round(visaFees).toString(),
           type: "final",
         },
@@ -1045,7 +1062,9 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
 
       if (includeInsurance) {
         lineItems.push({
-          label: `Insurance Certificate (${insuranceCount} traveller${insuranceCount > 1 ? "s" : ""})`,
+          label: `Insurance Certificate (${insuranceCount} traveller${
+            insuranceCount > 1 ? "s" : ""
+          })`,
           amount: insuranceFees.toString(),
           type: "final",
         });
@@ -1062,7 +1081,9 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
       if (appliedDiscount) {
         lineItems.push({
           label: `Discount (${appliedDiscount.percentage}% off)`,
-          amount: `-${Math.round((currentBaseFee * travelers * appliedDiscount.percentage) / 100)}`,
+          amount: `-${Math.round(
+            (currentBaseFee * travelers * appliedDiscount.percentage) / 100
+          )}`,
           type: "final",
         });
       }
@@ -1109,7 +1130,7 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
               "Apple Pay",
               "Apple Pay setup required. Redirecting to standard checkout..."
             );
-          } catch { }
+          } catch {}
 
           setSelectedPaymentMethod("stripe");
           await handleProceedToCheckout();
@@ -1123,7 +1144,9 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
           const pm = stored ? JSON.parse(stored) : null;
           const appId = pm?.applicationId || null;
           if (appId) {
-            window.location.href = `/application-step?application_id=${encodeURIComponent(appId)}`;
+            window.location.href = `/application-step?application_id=${encodeURIComponent(
+              appId
+            )}`;
           } else {
             window.location.href = "/payment-success";
           }
@@ -1196,8 +1219,8 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
       selectedVisaType && selectedVisaType.priceGBP
         ? Number(selectedVisaType.priceGBP)
         : selectedVisaType && selectedVisaType.price
-          ? Math.round(Number(selectedVisaType.price) / 100)
-          : baseVisaFee;
+        ? Math.round(Number(selectedVisaType.price) / 100)
+        : baseVisaFee;
 
     let visaFees = currentBaseFee * travelers;
 
@@ -1242,7 +1265,9 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                   const pm = stored ? JSON.parse(stored) : null;
                   const appId = pm?.applicationId || null;
                   if (appId) {
-                    window.location.href = `/application-step?application_id=${encodeURIComponent(appId)}`;
+                    window.location.href = `/application-step?application_id=${encodeURIComponent(
+                      appId
+                    )}`;
                   } else {
                     window.location.href = "/payment-success";
                   }
@@ -1271,7 +1296,9 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
         ],
       };
 
-      const isReadyToPay = await paymentsClient.isReadyToPay(isReadyToPayRequest);
+      const isReadyToPay = await paymentsClient.isReadyToPay(
+        isReadyToPayRequest
+      );
 
       if (!isReadyToPay.result) {
         showAlert(
@@ -1284,7 +1311,9 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
       // Build display items for detailed breakdown
       const displayItems = [
         {
-          label: `Visa Processing Fee (${travelers} traveller${travelers > 1 ? "s" : ""})`,
+          label: `Visa Processing Fee (${travelers} traveller${
+            travelers > 1 ? "s" : ""
+          })`,
           type: "LINE_ITEM",
           price: Math.round(visaFees).toString(),
         },
@@ -1292,7 +1321,9 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
 
       if (includeInsurance) {
         displayItems.push({
-          label: `Insurance Certificate (${insuranceCount} traveller${insuranceCount > 1 ? "s" : ""})`,
+          label: `Insurance Certificate (${insuranceCount} traveller${
+            insuranceCount > 1 ? "s" : ""
+          })`,
           type: "LINE_ITEM",
           price: insuranceFees.toString(),
         });
@@ -1310,7 +1341,9 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
         displayItems.push({
           label: `Discount (${appliedDiscount.percentage}% off)`,
           type: "LINE_ITEM",
-          price: `-${Math.round((currentBaseFee * travelers * appliedDiscount.percentage) / 100)}`,
+          price: `-${Math.round(
+            (currentBaseFee * travelers * appliedDiscount.percentage) / 100
+          )}`,
         });
       }
 
@@ -1357,7 +1390,9 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
       };
 
       // This will show the Google Pay interface, not credit card selection
-      const paymentData = await paymentsClient.loadPaymentData(paymentDataRequest);
+      const paymentData = await paymentsClient.loadPaymentData(
+        paymentDataRequest
+      );
     } catch (error) {
       console.error("Google Pay error:", error);
       if (error.statusCode === "CANCELED") {
@@ -1386,7 +1421,7 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                 />
               </Link>
               <p className="text-sm text-gray-700">
-                Choose one payment method from the list below
+                Choose one payment method from the options below
               </p>
             </div>
 
@@ -1488,11 +1523,13 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                     onChange={(e) => setEmail(e.target.value)}
                     onBlur={handleEmailBlur}
                     placeholder="name@example.com"
-                    className={`w-full border ${emailError ? "border-red-400" : "border-gray-300"
-                      } rounded-md p-2 text-sm  ${emailError
+                    className={`w-full border ${
+                      emailError ? "border-red-400" : "border-gray-300"
+                    } rounded-md p-2 text-sm  ${
+                      emailError
                         ? "outline-none ring-2 ring-red-400"
                         : "focus:outline-none focus:ring-2 focus:ring-black"
-                      }`}
+                    }`}
                   />
                   {emailError && (
                     <span className="text-sm text-red-400 mt-1">
@@ -1515,10 +1552,11 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                     onChange={(e) => setPhone(e.target.value)}
                     onBlur={handlePhoneBlur}
                     placeholder="e.g. 0123456789"
-                    className={`w-full border ${phoneError
-                      ? "border-red-400 outline-none ring-2 ring-red-400"
-                      : "border-gray-300 focus:outline-none focus:ring-2 focus:ring-black"
-                      } rounded-md p-2 text-sm`}
+                    className={`w-full border ${
+                      phoneError
+                        ? "border-red-400 outline-none ring-2 ring-red-400"
+                        : "border-gray-300 focus:outline-none focus:ring-2 focus:ring-black"
+                    } rounded-md p-2 text-sm`}
                   />
                   {phoneError && (
                     <span className="text-sm text-red-400 mt-1">
@@ -1588,10 +1626,11 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
               <h2 className="font-medium text-lg">Payment Method</h2>
               <div className="space-y-2">
                 <div
-                  className={`border rounded-md p-3 cursor-pointer ${selectedPaymentMethod === "stripe"
-                    ? "border-black bg-gray-50"
-                    : "border-gray-300"
-                    }`}
+                  className={`border rounded-md p-3 cursor-pointer ${
+                    selectedPaymentMethod === "stripe"
+                      ? "border-black bg-gray-50"
+                      : "border-gray-300"
+                  }`}
                   onClick={() => setSelectedPaymentMethod("stripe")}
                 >
                   <div className="flex items-center justify-between">
@@ -1659,13 +1698,15 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                             onBlur={handleCardFieldBlur}
                             placeholder="1234 5678 9012 3456"
                             maxLength={19}
-                            className={`w-full border ${cardErrors.cardNumber
-                              ? "border-red-400"
-                              : "border-gray-300"
-                              } rounded-md p-3 text-sm pr-10 ${cardErrors.cardNumber
+                            className={`w-full border ${
+                              cardErrors.cardNumber
+                                ? "border-red-400"
+                                : "border-gray-300"
+                            } rounded-md p-3 text-sm pr-10 ${
+                              cardErrors.cardNumber
                                 ? "outline-none ring-2 ring-red-400"
                                 : "focus:outline-none focus:ring-2 focus:ring-black"
-                              }`}
+                            }`}
                           />
                           <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                             <svg
@@ -1720,13 +1761,15 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                             onBlur={handleCardFieldBlur}
                             placeholder="MM / YY"
                             maxLength={7}
-                            className={`w-full border ${cardErrors.expirationDate
-                              ? "border-red-400"
-                              : "border-gray-300"
-                              } rounded-md p-3 text-sm ${cardErrors.expirationDate
+                            className={`w-full border ${
+                              cardErrors.expirationDate
+                                ? "border-red-400"
+                                : "border-gray-300"
+                            } rounded-md p-3 text-sm ${
+                              cardErrors.expirationDate
                                 ? "outline-none ring-2 ring-red-400"
                                 : "focus:outline-none focus:ring-2 focus:ring-black"
-                              }`}
+                            }`}
                           />
                           {cardErrors.expirationDate && (
                             <span className="text-sm text-red-400 mt-1">
@@ -1765,13 +1808,15 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                             onBlur={handleCardFieldBlur}
                             placeholder="123"
                             maxLength={4}
-                            className={`w-full border ${cardErrors.securityCode
-                              ? "border-red-400"
-                              : "border-gray-300"
-                              } rounded-md p-3 text-sm ${cardErrors.securityCode
+                            className={`w-full border ${
+                              cardErrors.securityCode
+                                ? "border-red-400"
+                                : "border-gray-300"
+                            } rounded-md p-3 text-sm ${
+                              cardErrors.securityCode
                                 ? "outline-none ring-2 ring-red-400"
                                 : "focus:outline-none focus:ring-2 focus:ring-black"
-                              }`}
+                            }`}
                           />
                           {cardErrors.securityCode && (
                             <span className="text-sm text-red-400 mt-1">
@@ -1796,13 +1841,15 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                           onChange={(e) => setNameOnCard(e.target.value)}
                           onBlur={handleCardFieldBlur}
                           placeholder="John Doe"
-                          className={`w-full border ${cardErrors.nameOnCard
-                            ? "border-red-400"
-                            : "border-gray-300"
-                            } rounded-md p-3 text-sm ${cardErrors.nameOnCard
+                          className={`w-full border ${
+                            cardErrors.nameOnCard
+                              ? "border-red-400"
+                              : "border-gray-300"
+                          } rounded-md p-3 text-sm ${
+                            cardErrors.nameOnCard
                               ? "outline-none ring-2 ring-red-400"
                               : "focus:outline-none focus:ring-2 focus:ring-black"
-                            }`}
+                          }`}
                         />
                         {cardErrors.nameOnCard && (
                           <span className="text-sm text-red-400 mt-1">
@@ -1880,13 +1927,15 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                                   setBillingFirstName(e.target.value)
                                 }
                                 onBlur={handleBillingFieldBlur}
-                                className={`w-full border ${cardErrors.billingFirstName
-                                  ? "border-red-400"
-                                  : "border-gray-300"
-                                  } rounded-md p-3 text-sm ${cardErrors.billingFirstName
+                                className={`w-full border ${
+                                  cardErrors.billingFirstName
+                                    ? "border-red-400"
+                                    : "border-gray-300"
+                                } rounded-md p-3 text-sm ${
+                                  cardErrors.billingFirstName
                                     ? "outline-none ring-2 ring-red-400"
                                     : "focus:outline-none focus:ring-2 focus:ring-black"
-                                  }`}
+                                }`}
                               />
                               {cardErrors.billingFirstName && (
                                 <span className="text-sm text-red-400 mt-1">
@@ -1910,13 +1959,15 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                                   setBillingLastName(e.target.value)
                                 }
                                 onBlur={handleBillingFieldBlur}
-                                className={`w-full border ${cardErrors.billingLastName
-                                  ? "border-red-400"
-                                  : "border-gray-300"
-                                  } rounded-md p-3 text-sm ${cardErrors.billingLastName
+                                className={`w-full border ${
+                                  cardErrors.billingLastName
+                                    ? "border-red-400"
+                                    : "border-gray-300"
+                                } rounded-md p-3 text-sm ${
+                                  cardErrors.billingLastName
                                     ? "outline-none ring-2 ring-red-400"
                                     : "focus:outline-none focus:ring-2 focus:ring-black"
-                                  }`}
+                                }`}
                               />
                               {cardErrors.billingLastName && (
                                 <span className="text-sm text-red-400 mt-1">
@@ -1955,13 +2006,15 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                               onChange={(e) =>
                                 setBillingAddress(e.target.value)
                               }
-                              className={`w-full border ${cardErrors.billingAddress
-                                ? "border-red-400"
-                                : "border-gray-300"
-                                } rounded-md p-3 text-sm ${cardErrors.billingAddress
+                              className={`w-full border ${
+                                cardErrors.billingAddress
+                                  ? "border-red-400"
+                                  : "border-gray-300"
+                              } rounded-md p-3 text-sm ${
+                                cardErrors.billingAddress
                                   ? "outline-none ring-2 ring-red-400"
                                   : "focus:outline-none focus:ring-2 focus:ring-black"
-                                }`}
+                              }`}
                             />
                             {cardErrors.billingAddress && (
                               <span className="text-sm text-red-400 mt-1">
@@ -2002,13 +2055,15 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                                 value={billingCity}
                                 onChange={(e) => setBillingCity(e.target.value)}
                                 onBlur={handleBillingFieldBlur}
-                                className={`w-full border ${cardErrors.billingCity
-                                  ? "border-red-400"
-                                  : "border-gray-300"
-                                  } rounded-md p-3 text-sm ${cardErrors.billingCity
+                                className={`w-full border ${
+                                  cardErrors.billingCity
+                                    ? "border-red-400"
+                                    : "border-gray-300"
+                                } rounded-md p-3 text-sm ${
+                                  cardErrors.billingCity
                                     ? "outline-none ring-2 ring-red-400"
                                     : "focus:outline-none focus:ring-2 focus:ring-black"
-                                  }`}
+                                }`}
                               />
                               {cardErrors.billingCity && (
                                 <span className="text-sm text-red-400 mt-1">
@@ -2054,13 +2109,15 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                                     }
                                   }
                                 }}
-                                className={`w-full border ${cardErrors.billingPostcode
-                                  ? "border-red-400"
-                                  : "border-gray-300"
-                                  } rounded-md p-3 text-sm ${cardErrors.billingPostcode
+                                className={`w-full border ${
+                                  cardErrors.billingPostcode
+                                    ? "border-red-400"
+                                    : "border-gray-300"
+                                } rounded-md p-3 text-sm ${
+                                  cardErrors.billingPostcode
                                     ? "outline-none ring-2 ring-red-400"
                                     : "focus:outline-none focus:ring-2 focus:ring-black"
-                                  }`}
+                                }`}
                               />
                               {cardErrors.billingPostcode && (
                                 <span className="text-sm text-red-400 mt-1">
@@ -2094,10 +2151,11 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                               value={billingPhone}
                               onChange={(e) => setBillingPhone(e.target.value)}
                               placeholder="e.g. 0123456789"
-                              className={`w-full border ${billingPhoneError
-                                ? "border-red-400"
-                                : "border-gray-300"
-                                } rounded-md p-3 text-sm focus:outline-none focus:ring-2 focus:ring-black`}
+                              className={`w-full border ${
+                                billingPhoneError
+                                  ? "border-red-400"
+                                  : "border-gray-300"
+                              } rounded-md p-3 text-sm focus:outline-none focus:ring-2 focus:ring-black`}
                             />
                             {billingPhoneError && (
                               <span className="text-sm text-red-400 mt-1">
@@ -2112,10 +2170,11 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                 </div>
 
                 <div
-                  className={`border rounded-md p-3 cursor-pointer ${selectedPaymentMethod === "klarna"
-                    ? "border-black bg-gray-50"
-                    : "border-gray-300"
-                    }`}
+                  className={`border rounded-md p-3 cursor-pointer ${
+                    selectedPaymentMethod === "klarna"
+                      ? "border-black bg-gray-50"
+                      : "border-gray-300"
+                  }`}
                   onClick={() => setSelectedPaymentMethod("klarna")}
                 >
                   <div className="flex items-center space-x-2">
@@ -2140,10 +2199,11 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
 
                 <div className="space-y-2">
                   <div
-                    className={`border rounded-md p-3 cursor-pointer transition-all ${selectedPaymentMethod === "apple"
-                      ? "border-black bg-gray-50"
-                      : "border-gray-300"
-                      }`}
+                    className={`border rounded-md p-3 cursor-pointer transition-all ${
+                      selectedPaymentMethod === "apple"
+                        ? "border-black bg-gray-50"
+                        : "border-gray-300"
+                    }`}
                     onClick={() => setSelectedPaymentMethod("apple")}
                   >
                     <div className="flex items-center space-x-2">
@@ -2168,10 +2228,11 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                   </div>
 
                   <div
-                    className={`border rounded-md p-3 cursor-pointer ${selectedPaymentMethod === "google"
-                      ? "border-black bg-gray-50"
-                      : "border-gray-300"
-                      }`}
+                    className={`border rounded-md p-3 cursor-pointer ${
+                      selectedPaymentMethod === "google"
+                        ? "border-black bg-gray-50"
+                        : "border-gray-300"
+                    }`}
                     onClick={() => setSelectedPaymentMethod("google")}
                   >
                     <div className="flex items-center space-x-2">
@@ -2208,16 +2269,17 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                     !studentVerified)
                 }
                 onClick={handleProceedToCheckout}
-                className={`w-full bg-black text-white py-3 rounded-md font-semibold hover:bg-gray-900 transition-colors ${cretingDynamicCheckout ||
+                className={`w-full bg-black text-white py-3 rounded-md font-semibold hover:bg-gray-900 transition-colors ${
+                  cretingDynamicCheckout ||
                   (appliedDiscount &&
                     appliedDiscount.description &&
                     appliedDiscount.description
                       .toLowerCase()
                       .includes("student") &&
                     !studentVerified)
-                  ? "cursor-not-allowed opacity-50"
-                  : "cursor-pointer"
-                  }`}
+                    ? "cursor-not-allowed opacity-50"
+                    : "cursor-pointer"
+                }`}
               >
                 {cretingDynamicCheckout ? (
                   "Processing..."
@@ -2254,7 +2316,15 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                   `Complete Order`
                 )}
               </button>
-              <p className="text-xs text-gray-600 mt-2 text-center"> All transactions are secure and encrypted. Powered by Stripe (strip link in word stripe)</p>
+              <p className="text-xs text-gray-600 mt-2 text-center">
+                {" "}
+                All transactions are secure and encrypted. Powered by  
+                <a rel="stylesheet" href="https://stripe.com" className="ml-[3px] text-blue-400 underline">
+                  Stripe
+                </a>
+                
+                
+              </p>
             </div>
           </div>
 
@@ -2341,7 +2411,7 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                   className="h-4 w-4 border-gray-300 rounded"
                 />
                 <FaShieldAlt />
-                <span className="text-sm">Insurance certificate</span>
+                <span className="text-sm">Travel Insurance </span>
               </div>
               <div className="flex flex-col gap-2 items-end">
                 <QtyInput
@@ -2369,7 +2439,7 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
             </div>
             {includeInsurance && (
               <p className="text-xs text-gray-400">
-                NEWVOU400 (Included for {insuranceCount} traveler
+                 (Included for {insuranceCount} traveler
                 {travelers > 1 ? "s" : ""})
               </p>
             )}
@@ -2398,7 +2468,7 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                   }}
                   className="h-4 w-4 border-gray-300 rounded"
                 />
-                <HiOutlineDeviceMobile />
+                <HiOutlineDeviceMobile className="rotate-90" />
                 <span className="text-sm">Digital gift card</span>
               </div>
               <div className="flex flex-col gap-2 items-end">
@@ -2411,14 +2481,14 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                 <span className="text-sm">
                   {includeGiftCard
                     ? formatCurrency(188 * giftCardCount, "EUR")
-                    : formatCurrency(0, "EUR")
-                  }
+                    : formatCurrency(0, "EUR")}
                 </span>
               </div>
             </div>
             {includeGiftCard && (
               <p className="text-xs text-gray-400">
-                Digital gift card for {giftCardCount} recipient{giftCardCount > 1 ? "s" : ""}
+                Digital gift card for {giftCardCount} recipient
+                {giftCardCount > 1 ? "s" : ""}
               </p>
             )}
 
@@ -2450,6 +2520,8 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
               <span>{formatCurrency(total, "EUR")} EUR</span>
             </div>
 
+            <div class="flex items-center gap-4 p-4 border-b border-white/10 max-sm:p-3 max-sm:gap-3"><div class="h-4 w-4 rounded-full  bg-purple-500 min-w-4 animate-pulse max-sm:h-3 max-sm:w-3"></div><div><span class="text-sm font-medium text-white max-sm:text-xs">Free Auto-booking appointment and concierge assistance ends soon - Until Jan 2026.</span></div></div>
+
             <div className="space-y-3">
               {/* <h2 className="font-medium text-lg">Discount Code</h2> */}
               <div className="space-y-2">
@@ -2462,11 +2534,13 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                         setCouponCodeLocal(e.target.value.toUpperCase())
                       }
                       placeholder="Discount Code"
-                      className={`w-full border ${couponError ? "border-red-400" : "border-gray-300"
-                        } rounded-md p-2 text-sm ${couponError
+                      className={`w-full border text-white placeholder-white ${
+                        couponError ? "border-red-400" : "border-gray-300"
+                      } rounded-md p-2 text-sm ${
+                        couponError
                           ? "outline-none ring-2 ring-red-400"
                           : "focus:outline-none focus:ring-2 focus:ring-black"
-                        }`}
+                      }`}
                       disabled={appliedDiscount}
                     />
                   </div>
