@@ -1651,10 +1651,10 @@ const VisaCheckout = () => {
                     {/* Payment Method Icons */}
                     <div className="flex items-center space-x-1">
                       {/* Visa */}
-                      <Image src="/image/visa.sxIq5Dot.svg" width={55} height={55} alt="Visa" />
-                      <Image src="/image/mastercard.1c4_lyMp (1).svg" width={55} height={55} alt="Visa" />
-                      <Image src="/image/Amex Card.svg" width={60} height={60} alt="Visa" />
-                      <Image src="/image/DGN_AcceptanceMark_FC_Hrz_RGB (1).jpg" width={50} height={50} alt="Visa" />
+                      <Image src="/image/visa.sxIq5Dot.svg" width={45} height={45} alt="Visa" />
+                      <Image src="/image/mastercard.1c4_lyMp (1).svg" width={45} height={45} alt="Visa" />
+                      <Image src="/image/Amex Card.svg" width={55} height={55} alt="Visa" />
+                      <Image src="/image/DGN_AcceptanceMark_FC_Hrz_RGB (1).jpg" width={40} height={40} alt="Visa" />
 
                       {/* <div className="bg-[#7350FF] text-white px-2 py-1 rounded text-xs font-bold">
                         VISA
@@ -2524,7 +2524,7 @@ const VisaCheckout = () => {
               <span>{formatCurrency(total, "EUR")} EUR</span>
             </div>
 
-            <div class="flex items-center gap-4 p-4 border-b border-white/10 max-sm:p-3 max-sm:gap-3"><div class="h-4 w-4 rounded-full  bg-purple-500 min-w-4 animate-pulse max-sm:h-3 max-sm:w-3"></div><div><span class="text-sm font-medium text-white max-sm:text-xs">Free Auto-booking appointment and concierge assistance ends soon - Until Jan 2026.</span></div></div>
+         <div class="border rounded-3xl border-white/20 bg-white/5 backdrop-blur-sm overflow-hidden max-sm:rounded-2xl"><div class="flex items-center gap-4 p-4 border-b border-white/10 max-sm:p-3 max-sm:gap-3"><div class="h-4 w-4 rounded-full  bg-purple-500 min-w-4 animate-pulse max-sm:h-3 max-sm:w-3"></div><div><span class="text-sm font-medium text-white max-sm:text-xs">Free Auto-booking appointment and concierge assistance ends soon - Until Jan 2026.</span></div></div><div class="p-4 max-sm:p-3"><div class="grid grid-cols-3 gap-3 max-sm:gap-2"><div class="text-center"><div class="text-xs text-white/70 mb-2 font-medium max-sm:text-xs max-sm:mb-1">Oct slots</div><div class="bg-[#1e1e27] rounded-full p-2 max-sm:p-1.5"><div class="text-xs text-white font-semibold max-sm:text-xs">Sold out</div></div></div><div class="text-center"><div class="text-xs text-white/70 mb-2 font-medium max-sm:text-xs max-sm:mb-1">Nov slots</div><div class="bg-[#5a3ddb] rounded-full p-2 max-sm:p-1.5"><div class="text-xs text-white font-semibold max-sm:text-xs">&lt; 10 left!</div></div></div><div class="text-center"><div class="text-xs text-white/70 mb-2 font-medium max-sm:text-xs max-sm:mb-1">Dec slots</div><div class="bg-[#1e1e27] rounded-full p-2 max-sm:p-1.5"><div class="text-xs text-white font-semibold max-sm:text-xs">45% reserved</div></div></div></div></div></div>
 
             <div className="space-y-3">
               {/* <h2 className="font-medium text-lg">Discount Code</h2> */}
