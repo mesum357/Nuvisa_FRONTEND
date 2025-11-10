@@ -320,7 +320,7 @@ const CountrySlider = () => {
     if (departure) {
       const departureDate = new Date(departure);
       
-      if (arrivalDate >= departureDate) {
+      if (arrivalDate > departureDate) {
         errors.dateOrder = "Departure date must be after arrival date";
         return errors; // Early return - second priority
       }
@@ -614,7 +614,7 @@ const CountrySlider = () => {
       } else {
         // Checking gift card
         dispatch(setReduxGiftCardCount(1));
-        dispatch(setGiftCardFees(188));
+        dispatch(setGiftCardFees(159));
       }
     } else if (itemKey === "insuranceCertificate") {
       if (isCurrentlyChecked) {
@@ -832,7 +832,7 @@ const CountrySlider = () => {
 
     const basePrice = currentBaseFee * travelers;
     // Gift card cost
-    const giftCardCost = recommendedItems.giftCard ? 188 * giftCardCount : 0;
+    const giftCardCost = recommendedItems.giftCard ? 159 * giftCardCount : 0;
 
     let insuranceCost = computedInsuranceTotal;
 
@@ -865,7 +865,7 @@ const CountrySlider = () => {
   };
 
   const calculateDiscountedGiftCardPrice = () => {
-    const originalPrice = 188 * giftCardCount;
+    const originalPrice = 159 * giftCardCount;
     if (appliedDiscount && originalPrice > 0) {
       const discountAmount = (originalPrice * appliedDiscount.percentage) / 100;
       return originalPrice - discountAmount;
@@ -1212,7 +1212,7 @@ const CountrySlider = () => {
         (insuranceFees * appliedInsuranceDiscount.percentage) / 100;
       insuranceFees = Math.max(0, Math.round(insuranceFees - insDisc));
     }
-    const giftCardFees = recommendedItems.giftCard ? 188 * giftCardCount : 0;
+    const giftCardFees = recommendedItems.giftCard ? 159 * giftCardCount : 0;
     const totalAmount = Math.round(visaFees + insuranceFees + giftCardFees);
 
     const countryName = getCountryParam(selectedCountry) || "Germany";
@@ -1562,7 +1562,7 @@ const CountrySlider = () => {
     const insuranceFees = recommendedItems.insuranceCertificate
       ? perDayInsurancePrice * insuranceDays * travelers
       : 0;
-    const giftCardFees = recommendedItems.giftCard ? 188 * giftCardCount : 0;
+    const giftCardFees = recommendedItems.giftCard ? 159 * giftCardCount : 0;
 
     const totalAmount = Math.round(visaFees + insuranceFees + giftCardFees);
 
@@ -1816,7 +1816,7 @@ const CountrySlider = () => {
     const insuranceFees = recommendedItems.insuranceCertificate
       ? perDayInsurancePrice * insuranceDays * travelers
       : 0;
-    const giftCardFees = recommendedItems.giftCard ? 188 * giftCardCount : 0;
+    const giftCardFees = recommendedItems.giftCard ? 159 * giftCardCount : 0;
 
     const totalAmount = Math.round(visaFees + insuranceFees + giftCardFees);
 
@@ -2253,7 +2253,7 @@ return (
             <button className="bg-[#24242D] border border-white px-4 py-[7px] pb-[18px] rounded-full font-medium text-sm text-white select-none transition-colors relative overflow-hidden text-center max-sm:w-full max-sm:px-3 max-sm:py-2">
               <span
                 className="relative z-10 leading-none text-center font-bold flex justify-center items-center pt-2 max-sm:text-[18px]"
-                style={{ fontSize: "21px" }}
+                style={{ fontSize: "17px" }}
               >
                 {sliderContent["nri_badge_text"]}
               </span>
@@ -2733,7 +2733,7 @@ return (
                               £{45 * insuranceCount}
                             </span>
                             <span className="font-gilroy-bold text-2xl max-sm:text-xl">
-                              £{29 * insuranceCount}
+                              £{30 * insuranceCount}
                             </span>
                           </div>
                         </div>
@@ -2795,7 +2795,7 @@ return (
                             £{245 * giftCardCount}
                           </span>
                           <span className="font-gilroy-bold text-2xl max-sm:text-xl">
-                            £{188 * giftCardCount}
+                            £{159 * giftCardCount}
                           </span>
                         </div>
                       </div>
@@ -3040,7 +3040,7 @@ return (
 
             {/* Express Checkout Section */}
             <div className="space-y-3 mb-6 max-sm:mb-4">
-              <h2 className="font-medium text-lg pt-4 max-sm:text-base max-sm:pt-3">Choose one payment method from the list below</h2>
+              <h2 className="font-medium text-lg pt-4 max-sm:text-base max-sm:pt-3">Choose one payment method from the options below</h2>
 
               {/* Apple Pay & Google Pay */}
               <div className="space-y-2">

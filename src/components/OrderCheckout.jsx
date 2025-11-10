@@ -1386,7 +1386,7 @@ const total = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVis
                 />
               </Link>
               <p className="text-sm text-gray-700">
-                Choose one payment method from the list below
+                Choose one payment method from the options below
               </p>
             </div>
 
