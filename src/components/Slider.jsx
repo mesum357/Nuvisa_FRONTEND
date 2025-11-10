@@ -1227,7 +1227,7 @@ const CountrySlider = () => {
 
     dispatch(setCouponCode(couponCode || ""));
     dispatch(setUserEmail(userEmail || ""));
-    dispatch(setSelectedPaymentMethod(selectedPaymentMethod || "stripe"));
+    dispatch(setSelectedPaymentMethod(selectedPaymentMethod || ""));
     dispatch(setGiftCardFees(giftCardFees || 0));
     dispatch(setTotalAmount(totalAmount || 0));
     dispatch(setInsuranceOnly(hasOnlyInsurance || false));
