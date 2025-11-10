@@ -2519,7 +2519,7 @@ const VisaCheckout = () => {
             </div>
             {includeGiftCard && (
               <p className="text-xs text-gray-400">
-                Digital gift card for {giftCardCount} recipient
+                Digital gift card for {giftCardCount} 
                 {giftCardCount > 1 ? "s" : ""}
               </p>
             )}
