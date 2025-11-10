@@ -61,7 +61,7 @@ const VisaCheckout = () => {
     }
     setTravelersLocal(newCount);
   };
-  let travelDays = 1;
+  let travelDays = 15;
   try {
     const arrival = visaState.arrivalDate
       ? new Date(visaState.arrivalDate)
@@ -75,7 +75,7 @@ const VisaCheckout = () => {
       travelDays = Math.max(1, diffDays);
     }
   } catch {
-    travelDays = 1;
+    travelDays = 15;
   }
   const userEmail = localStorageGateway("userEmail", localStorageEnums.GET);
 
@@ -663,7 +663,7 @@ const VisaCheckout = () => {
   }
 
   const insuranceFees = includeInsurance ? insuranceFeesTotal : 0;
-  const giftCardFees = includeGiftCard ? 188 * giftCardCount : 0;
+  const giftCardFees = includeGiftCard ? 159 * giftCardCount : 0;
   const insuranceWithDiscount =
     appliedInsuranceDiscount && includeInsurance
       ? insuranceFees -
@@ -690,6 +690,20 @@ const VisaCheckout = () => {
   const originalPrice = visaState.insuranceOnly ? 0 : baseVisaFee * travelers;
   const savings = originalPrice - visaFeesTotal; // Any savings from discounts
 
+  // Traveller strike-out price per traveller based on default 200, scaled if visa type custom price exists
+  const travellerBaseStrike = 200;
+  const defaultBaseForRatio = 129;
+
+  const travellerStrikePer = (() => {
+    const current = baseVisaFee;
+    if (defaultBaseForRatio > 0) {
+      return Math.round((travellerBaseStrike * current) / defaultBaseForRatio);
+    }
+    return travellerBaseStrike;
+  })();
+
+  const travellerStrikeTotal = travellerStrikePer * travelers;
+
   // Calculate dynamic values based on user selections in EUR
   const visaFeesEUR = calculatePaymentFees(visaFeesTotal, "EUR");
   const discountedVisaFeesEUR =
@@ -711,8 +725,23 @@ const VisaCheckout = () => {
       : baseInsuranceFeesEUR;
 
   const _giftCardFeesEUR = calculatePaymentFees(giftCardFees, "EUR");
+  const giftCardStrikeTotal = 245 * giftCardCount;
+  const insuranceStrikeTotal = Math.round(insuranceFeesPerTraveller * 1.5 * insuranceCount);
+  const displayInsuranceEUR = calculatePaymentFees(insuranceFees, "EUR");
+
+  const travellerStrikeEUR = calculatePaymentFees(travellerStrikeTotal, "EUR");
+  const insuranceStrikeEUR = calculatePaymentFees(insuranceStrikeTotal, "EUR");
+  const giftCardStrikeEUR = calculatePaymentFees(giftCardStrikeTotal, "EUR");
   const eVisaFeesEUR = 0; // Currently free
   const subtotalEUR = calculatePaymentFees(subtotal, "EUR");
+
+  // GBP display values to match Slider.jsx (rounded, no pennies)
+  const travellerStrikeGBP = travellerStrikeTotal; // already in GBP units
+  const visaFeesGBPDisplay = Math.round(
+    appliedDiscount
+      ? visaFeesTotal - (visaFeesTotal * (appliedDiscount.percentage || 0)) / 100
+      : visaFeesTotal
+  );
 
   const discountAmountEUR = calculatePaymentFees(discountAmount, "EUR");
   const discountedSubtotalEUR = calculatePaymentFees(discountedSubtotal, "EUR");
@@ -1009,7 +1038,7 @@ const VisaCheckout = () => {
     const insuranceFees = includeInsurance
       ? perDayInsurancePrice * travelDays * insuranceCount
       : 0;
-    const giftCardFees = includeGiftCard ? 188 * giftCardCount : 0;
+    const giftCardFees = includeGiftCard ? 159 * giftCardCount : 0;
 
     const totalAmount = Math.round(visaFees + insuranceFees + giftCardFees);
 
@@ -1233,7 +1262,7 @@ const VisaCheckout = () => {
     const insuranceFees = includeInsurance
       ? perDayInsurancePrice * travelDays * insuranceCount
       : 0;
-    const giftCardFees = includeGiftCard ? 188 * giftCardCount : 0;
+    const giftCardFees = includeGiftCard ? 159 * giftCardCount : 0;
 
     const totalAmount = Math.round(visaFees + insuranceFees + giftCardFees);
 
@@ -2387,15 +2416,12 @@ const VisaCheckout = () => {
             </div>
 
             <div className="flex items-center gap-2 justify-end">
-              <span className={appliedDiscount && "line-through"}>
-                {formatCurrency(visaFeesEUR, "EUR")}
+              <span className="line-through">
+                {formatCurrency(travellerStrikeGBP, "GBP")}
               </span>
-
-              {appliedDiscount && (
-                <span className="text-sm font-medium">
-                  {formatCurrency(discountedVisaFeesEUR, "EUR")}
-                </span>
-              )}
+              <span className="text-sm font-medium">
+                {formatCurrency(visaFeesGBPDisplay, "GBP")}
+              </span>
             </div>
 
             {/* Insurance */}
@@ -2425,17 +2451,12 @@ const VisaCheckout = () => {
                   min={1}
                 />
                 <div className="flex item-center gap-2">
-                  {appliedInsuranceDiscount && (
-                    <span className="line-through">
-                      {formatCurrency(
-                        insuranceFeesPerTraveller * insuranceCount,
-                        "EUR"
-                      )}
-                    </span>
-                  )}
+                  <span className="line-through">
+                    {formatCurrency(insuranceStrikeEUR, "EUR")}
+                  </span>
                   <span className={`text-sm `}>
                     {includeInsurance
-                      ? formatCurrency(baseInsuranceFeesEUR, "EUR")
+                      ? formatCurrency(displayInsuranceEUR, "EUR")
                       : formatCurrency(0, "EUR")}
                   </span>
                 </div>
@@ -2482,11 +2503,18 @@ const VisaCheckout = () => {
                   onDecrement={() => handleGiftCardChange(-1)}
                   min={1}
                 />
-                <span className="text-sm">
-                  {includeGiftCard
-                    ? formatCurrency(188 * giftCardCount, "EUR")
-                    : formatCurrency(0, "EUR")}
-                </span>
+                <div className="flex items-center gap-2">
+                  {includeGiftCard && (
+                    <span className="line-through">
+                      {formatCurrency(giftCardStrikeEUR, "EUR")}
+                    </span>
+                  )}
+                  <span className="text-sm">
+                    {includeGiftCard
+                      ? formatCurrency(_giftCardFeesEUR, "EUR")
+                      : formatCurrency(0, "EUR")}
+                  </span>
+                </div>
               </div>
             </div>
             {includeGiftCard && (
