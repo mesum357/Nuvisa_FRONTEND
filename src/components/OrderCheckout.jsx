@@ -1651,27 +1651,31 @@ const VisaCheckout = () => {
                     {/* Payment Method Icons */}
                     <div className="flex items-center space-x-1">
                       {/* Visa */}
-                      <div className="bg-[#7350FF] text-white px-2 py-1 rounded text-xs font-bold">
+                      <Image src="/image/visa.sxIq5Dot.svg" width={55} height={55} alt="Visa" />
+                      <Image src="/image/mastercard.1c4_lyMp (1).svg" width={55} height={55} alt="Visa" />
+                      <Image src="/image/Amex Card.svg" width={60} height={60} alt="Visa" />
+                      <Image src="/image/DGN_AcceptanceMark_FC_Hrz_RGB (1).jpg" width={50} height={50} alt="Visa" />
+
+                      {/* <div className="bg-[#7350FF] text-white px-2 py-1 rounded text-xs font-bold">
                         VISA
                       </div>
-                      {/* Maestro */}
+                  
                       <div className="bg-red-500 text-white w-6 h-4 rounded flex items-center justify-center">
                         <div className="w-3 h-3 bg-red-500 rounded-full"></div>
                         <div className="w-3 h-3 bg-yellow-400 rounded-full -ml-1"></div>
                       </div>
-                      {/* Mastercard */}
+      
                       <div className="relative w-6 h-4 flex items-center justify-center">
                         <div className="w-3 h-3 bg-red-500 rounded-full"></div>
                         <div className="w-3 h-3 bg-yellow-400 rounded-full -ml-1"></div>
-                      </div>
-                      {/* American Express */}
+              
                       <div className="bg-[#7350FF] text-white px-1 py-1 rounded text-xs font-bold">
                         AMEX
                       </div>
-                      {/* +4 more */}
+               
                       <span className="text-xs text-gray-500 font-medium">
                         +4
-                      </span>
+                      </span> */}
                     </div>
                   </div>
 
