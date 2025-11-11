@@ -300,31 +300,32 @@ const CountrySlider = () => {
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const fourWeeksFromNow = new Date();
     fourWeeksFromNow.setHours(0, 0, 0, 0);
     fourWeeksFromNow.setDate(today.getDate() + 28);
-    
+
     // Priority 1: Check for past dates or dates before 4 weeks
     if (arrivalDate < today) {
       errors.pastDate = "Arrival date cannot be in the past";
       return errors; // Early return - highest priority
     }
-    
+
     if (arrivalDate < fourWeeksFromNow) {
-      errors.pastDate = "Your travel dates are too close. Embassies take up to 15 days after your visa appointment, ideal gap between applying and travel date is 4-6 weeks. You can still proceed if your travel dates are flexible";
+      errors.pastDate =
+        "Your travel dates are too close. Embassies take up to 15 days after your visa appointment, ideal gap between applying and travel date is 4-6 weeks. You can still proceed if your travel dates are flexible";
       return errors; // Early return - highest priority
     }
 
     // Priority 2: Check date order (only if arrival date is valid)
     if (departure) {
       const departureDate = new Date(departure);
-      
+
       if (arrivalDate > departureDate) {
         errors.dateOrder = "Departure date must be after arrival date";
         return errors; // Early return - second priority
       }
-      
+
       // Priority 3: Check trip duration limits (only if dates are in correct order)
       const tripDuration = Math.ceil(
         (departureDate - arrivalDate) / (1000 * 60 * 60 * 24)
@@ -347,7 +348,11 @@ const CountrySlider = () => {
     }
 
     // If arrival date is at least 4 weeks away and no errors, show success message
-    if (arrivalDate >= fourWeeksFromNow && !errors.dateOrder && !errors.exceedsLimit) {
+    if (
+      arrivalDate >= fourWeeksFromNow &&
+      !errors.dateOrder &&
+      !errors.exceedsLimit
+    ) {
       // Calculate 48 hours (2 days) from today
       const nextDay = new Date(today);
       nextDay.setDate(nextDay.getDate() + 2);
@@ -526,9 +531,10 @@ const CountrySlider = () => {
   }
 
   // Compute current trip duration helpers
-  const tripDays = arrivalDate && departureDate
-    ? Math.ceil((departureDate - arrivalDate) / (1000 * 60 * 60 * 24))
-    : null;
+  const tripDays =
+    arrivalDate && departureDate
+      ? Math.ceil((departureDate - arrivalDate) / (1000 * 60 * 60 * 24))
+      : null;
   const isAtLeastFourWeeks = typeof tripDays === "number" && tripDays >= 28;
   const isLessThanFourWeeks = typeof tripDays === "number" && tripDays < 28;
 
@@ -577,9 +583,14 @@ const CountrySlider = () => {
       if (missingDocs.length > 0) {
         setValidationErrors(new Set(missingDocs));
         // Scroll to documents section
-        const documentsSection = document.querySelector('[data-documents-section]');
+        const documentsSection = document.querySelector(
+          "[data-documents-section]"
+        );
         if (documentsSection) {
-          documentsSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          documentsSection.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
         }
       }
     }
@@ -603,7 +614,10 @@ const CountrySlider = () => {
 
   const toggleRecommendedItem = (itemKey) => {
     const isCurrentlyChecked = recommendedItems[itemKey];
-    const newRecommendedItems = { ...recommendedItems, [itemKey]: !isCurrentlyChecked };
+    const newRecommendedItems = {
+      ...recommendedItems,
+      [itemKey]: !isCurrentlyChecked,
+    };
     dispatch(setRecommendedItems(newRecommendedItems));
 
     if (itemKey === "giftCard") {
@@ -878,7 +892,7 @@ const CountrySlider = () => {
     // If a visa type is selected with a specific price, calculate proportional strike-out price
     // Otherwise use the base strike-out price
     let currentStrikeOutPrice = strikeOutPrice;
-    
+
     if (baseFee > 0 && selectedVisaType) {
       if (selectedVisaType.priceGBP) {
         // If visa type has a specific GBP price, maintain the same ratio
@@ -1660,7 +1674,7 @@ const CountrySlider = () => {
         },
         lineItems: lineItems,
       };
-      
+
       const session = new ApplePaySession(3, request);
 
       // Flag used to avoid logging a cancellation when we are intentionally redirecting
@@ -1676,19 +1690,22 @@ const CountrySlider = () => {
       session.onvalidatemerchant = async (event) => {
         try {
           dispatch(setSelectedPaymentMethod("apple-pay"));
-          
+
           // Try to validate merchant through backend API
           // If backend endpoint doesn't exist, this will fail gracefully
           try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
-            const response = await fetch(`${apiUrl}/stripe_payment/apple-pay/validate-merchant`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ validationURL: event.validationURL }),
-            });
-            
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+            const response = await fetch(
+              `${apiUrl}/stripe_payment/apple-pay/validate-merchant`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ validationURL: event.validationURL }),
+              }
+            );
+
             if (response.ok) {
               const merchantSession = await response.json();
               session.completeMerchantValidation(merchantSession);
@@ -1698,7 +1715,7 @@ const CountrySlider = () => {
             // Backend endpoint doesn't exist or failed - handle gracefully
             // Don't redirect, just abort the session
           }
-          
+
           // If backend validation fails, abort gracefully without redirecting
           // This keeps the user on the /get-the-visa page
           suppressCancel = true;
@@ -1992,8 +2009,7 @@ const CountrySlider = () => {
     }
   };
 
-
-return (
+  return (
     <div className="w-full max-w-[1300px] gap-20 max-lg:flex-col max-lg:gap-10 flex items-start justify-center mt-5 px-5 max-sm:px-3">
       {/* System Alerts */}
       <SimpleAlert
@@ -2016,7 +2032,7 @@ return (
         cancelText="Cancel"
         type="info"
       />
-      
+
       {/* Left Column */}
       <div className="w-full gap-3 flex flex-col items-start lg:max-w-[60%] max-sm:gap-4">
         {/* Badges Section */}
@@ -2085,7 +2101,9 @@ return (
 
                       {activeTooltip === "sticker" && (
                         <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200 max-sm:w-48 max-sm:-left-20">
-                          <p className="text-sm max-sm:text-xs">{tooltips.sticker}</p>
+                          <p className="text-sm max-sm:text-xs">
+                            {tooltips.sticker}
+                          </p>
                           <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200 max-sm:left-20"></div>
                         </div>
                       )}
@@ -2107,7 +2125,9 @@ return (
                             {tooltips.duration.map((line, index) => (
                               <p
                                 key={index}
-                                className={index > 0 ? "mt-1 max-sm:mt-0.5" : ""}
+                                className={
+                                  index > 0 ? "mt-1 max-sm:mt-0.5" : ""
+                                }
                               >
                                 {line}
                               </p>
@@ -2130,7 +2150,9 @@ return (
 
                       {activeTooltip === "term" && (
                         <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200 max-sm:w-48 max-sm:-left-20">
-                          <p className="text-sm max-sm:text-xs">{tooltips.term}</p>
+                          <p className="text-sm max-sm:text-xs">
+                            {tooltips.term}
+                          </p>
                           <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200 max-sm:left-20"></div>
                         </div>
                       )}
@@ -2148,7 +2170,9 @@ return (
 
                       {activeTooltip === "entry" && (
                         <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200 max-sm:w-48 max-sm:-left-20">
-                          <p className="text-sm max-sm:text-xs">{tooltips.entry}</p>
+                          <p className="text-sm max-sm:text-xs">
+                            {tooltips.entry}
+                          </p>
                           <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200 max-sm:left-20"></div>
                         </div>
                       )}
@@ -2159,7 +2183,11 @@ return (
 
               <div className="text-left my-4 max-sm:my-3">
                 <p className="flex gap-2 max-sm:gap-1 max-sm:text-sm">
-                  <img src="/icons/megaphone.png" className="w-6 h-5 max-sm:w-5 max-sm:h-4" alt="Notice" />
+                  <img
+                    src="/icons/megaphone.png"
+                    className="w-6 h-5 max-sm:w-5 max-sm:h-4"
+                    alt="Notice"
+                  />
                   <span>{sliderContent["embassy_notice_text"]}</span>
                 </p>
               </div>
@@ -2210,7 +2238,9 @@ return (
                       resetTimer();
                     }}
                     className={`w-2.5 h-2.5 cursor-pointer rounded-full transition-all max-sm:w-2 max-sm:h-2 ${
-                      index === currentIndex ? "bg-white w-6 max-sm:w-4" : "bg-white/50"
+                      index === currentIndex
+                        ? "bg-white w-6 max-sm:w-4"
+                        : "bg-white/50"
                     }`}
                     aria-label={`Go to slide ${index + 1}`}
                   />
@@ -2287,7 +2317,9 @@ return (
                     <div className="w-4 h-4 rounded-full flex items-center justify-center">
                       <UserIcon className="fill-white max-sm:w-3 max-sm:h-3" />
                     </div>
-                    <span className="text-xs font-gilroy-bold max-sm:text-xs">Travellers</span>
+                    <span className="text-xs font-gilroy-bold max-sm:text-xs">
+                      Travellers
+                    </span>
                   </div>
                   <QtyInput
                     value={travelers}
@@ -2369,38 +2401,39 @@ return (
             {/* Date validation messages */}
             <div className="text-xs mt-2 max-sm:text-xs">
               {dateValidationErrors.pastDate && (
-                <p className="text-red-400">
-                  {dateValidationErrors.pastDate}
-                </p>
+                <p className="text-red-400">{dateValidationErrors.pastDate}</p>
               )}
-              {!dateValidationErrors.pastDate && dateValidationErrors.dateOrder && (
-                <p className="text-red-400">
-                  {dateValidationErrors.dateOrder}
-                </p>
-              )}
-              {!dateValidationErrors.pastDate && !dateValidationErrors.dateOrder && dateValidationErrors.exceedsLimit && (
-                <p className="text-red-400">
-                  {dateValidationErrors.exceedsLimit}
-                </p>
-              )}
-              {!dateValidationErrors.pastDate && 
-               !dateValidationErrors.dateOrder && 
-               !dateValidationErrors.exceedsLimit && 
-               dateValidationErrors.tooClosee && (
-                <p className="text-gray-500 mt-1">
-                  {dateValidationErrors.tooClosee}
-                </p>
-              )}
-              {!dateValidationErrors.pastDate && 
-               !dateValidationErrors.dateOrder && 
-               !dateValidationErrors.exceedsLimit && 
-               !dateValidationErrors.tooClosee &&
-               typeof tripDays === "number" && 
-               isAtLeastFourWeeks && (
-                <p className="text-green-400 mt-1">
-                  All good. Your trip length is 4 weeks or more.
-                </p>
-              )}
+              {!dateValidationErrors.pastDate &&
+                dateValidationErrors.dateOrder && (
+                  <p className="text-red-400">
+                    {dateValidationErrors.dateOrder}
+                  </p>
+                )}
+              {!dateValidationErrors.pastDate &&
+                !dateValidationErrors.dateOrder &&
+                dateValidationErrors.exceedsLimit && (
+                  <p className="text-red-400">
+                    {dateValidationErrors.exceedsLimit}
+                  </p>
+                )}
+              {!dateValidationErrors.pastDate &&
+                !dateValidationErrors.dateOrder &&
+                !dateValidationErrors.exceedsLimit &&
+                dateValidationErrors.tooClosee && (
+                  <p className="text-gray-500 mt-1">
+                    {dateValidationErrors.tooClosee}
+                  </p>
+                )}
+              {!dateValidationErrors.pastDate &&
+                !dateValidationErrors.dateOrder &&
+                !dateValidationErrors.exceedsLimit &&
+                !dateValidationErrors.tooClosee &&
+                typeof tripDays === "number" &&
+                isAtLeastFourWeeks && (
+                  <p className="text-green-400 mt-1">
+                    All good. Your trip length is 4 weeks or more.
+                  </p>
+                )}
             </div>
           </div>
 
@@ -2519,7 +2552,9 @@ return (
                           )}
                         </div>
                         <div className="flex-1">
-                          <span className="text-base font-medium max-sm:text-sm">UK Visa</span>
+                          <span className="text-base font-medium max-sm:text-sm">
+                            UK Visa
+                          </span>
                           <p className="text-sm text-white/70 mt-1 max-sm:text-xs max-sm:mt-0.5">
                             Valid 3+ months after Schengen trip
                           </p>
@@ -2585,7 +2620,8 @@ return (
                             Bank Statements
                           </span>
                           <p className="text-sm text-white/70 mt-1 max-sm:text-xs max-sm:mt-0.5">
-                            Last 3 months showing sufficient funds £50–£80/day per person
+                            Last 3 months showing sufficient funds £50–£80/day
+                            per person
                           </p>
                         </div>
                       </div>
@@ -2619,7 +2655,8 @@ return (
                             Employment Proof
                           </span>
                           <p className="text-sm text-white/70 mt-1 max-sm:text-xs max-sm:mt-0.5">
-                            Last 3 months payslips, or uni enrollment letter if student
+                            Last 3 months payslips, or uni enrollment letter if
+                            student
                           </p>
                         </div>
                       </div>
@@ -2662,7 +2699,9 @@ return (
 
           {/* Recommended Section */}
           <div className="mb-6 max-sm:mb-4">
-            <h2 className="text-xl font-gilroy-bold mb-4 max-sm:text-lg max-sm:mb-3">Recommended</h2>
+            <h2 className="text-xl font-gilroy-bold mb-4 max-sm:text-lg max-sm:mb-3">
+              Recommended
+            </h2>
 
             {/* Insurance Certificate & Gift Card */}
             <div className="shadow-xl shadow-black/10 rounded-xl mb-4 max-sm:mb-3">
@@ -2676,7 +2715,9 @@ return (
                           ? "border-transparent bg-[#7350FF]"
                           : "border-gray-400 bg-white"
                       }`}
-                      onClick={() => toggleRecommendedItem("insuranceCertificate")}
+                      onClick={() =>
+                        toggleRecommendedItem("insuranceCertificate")
+                      }
                     >
                       {recommendedItems.insuranceCertificate && (
                         <Check className="w-3.5 h-3.5 text-white max-sm:w-3 max-sm:h-3" />
@@ -2698,7 +2739,9 @@ return (
                     <div className=" cursor-pointer rounded transition-colors flex-1 mb-2">
                       <div className="flex items-center space-x-2 max-sm:space-x-1">
                         <div
-                          onClick={() => toggleRecommendedItem("insuranceCertificate")}
+                          onClick={() =>
+                            toggleRecommendedItem("insuranceCertificate")
+                          }
                           className="flex items-center space-x-2 cursor-pointer"
                         >
                           <span className="font-semibold max-sm:text-sm">
@@ -2709,14 +2752,17 @@ return (
                     </div>
 
                     <div className="mb-2">
-                      {selectedVisaType && selectedVisaType.duration_permitted && (
-                        <div className="mb-2 p-2 bg-purple-600/20 rounded-lg max-sm:p-1.5 max-sm:mb-1">
-                          <p className="text-xs text-purple-200 max-sm:text-xs">
-                            📅 Maximum stay: {selectedVisaType.duration_permitted}
-                            {selectedVisaType.validity_period && ` | Visa valid for: ${selectedVisaType.validity_period}`}
-                          </p>
-                        </div>
-                      )}
+                      {selectedVisaType &&
+                        selectedVisaType.duration_permitted && (
+                          <div className="mb-2 p-2 bg-purple-600/20 rounded-lg max-sm:p-1.5 max-sm:mb-1">
+                            <p className="text-xs text-purple-200 max-sm:text-xs">
+                              📅 Maximum stay:{" "}
+                              {selectedVisaType.duration_permitted}
+                              {selectedVisaType.validity_period &&
+                                ` | Visa valid for: ${selectedVisaType.validity_period}`}
+                            </p>
+                          </div>
+                        )}
 
                       <div className="flex items-center space-x-2 max-sm:flex-col max-sm:items-start max-sm:space-x-0 max-sm:gap-2">
                         <div className="flex items-end gap-8 max-sm:gap-4 max-sm:w-full max-sm:justify-between">
@@ -2760,7 +2806,7 @@ return (
                       </div>
                       <div className="max-sm:flex-1 max-sm:flex max-sm:justify-center">
                         <img
-                          src="/image/digital card NUvisa.png"
+                          src="/image/gitftnewcard.png"
                           alt="Gift Card"
                           className="w-[120px] rounded-lg ml-2 max-sm:w-[100px] max-sm:ml-0"
                         />
@@ -2811,10 +2857,16 @@ return (
                   <div className="flex items-center justify-between max-sm:items-start max-sm:gap-2">
                     <div className="flex items-center space-x-3 max-sm:space-x-2">
                       <div className="w-10 aspect-square rounded-full flex items-center justify-center max-sm:w-8">
-                        <img src="/image/calendar.jpg" alt="Calendar" className="max-sm:w-6 max-sm:h-6" />
+                        <img
+                          src="/image/calendar.jpg"
+                          alt="Calendar"
+                          className="max-sm:w-6 max-sm:h-6"
+                        />
                       </div>
                       <div>
-                        <h3 className="max-sm:text-sm">Auto-booking appointment</h3>
+                        <h3 className="max-sm:text-sm">
+                          Auto-booking appointment
+                        </h3>
                       </div>
                     </div>
                     <div className="flex gap-[2px] items-center max-sm:flex-shrink-0">
@@ -2861,7 +2913,9 @@ return (
 
             {/* Discount Code Section */}
             <div className="space-y-3 mb-6 max-sm:mb-4">
-              <h2 className="font-medium text-lg max-sm:text-base">Discount Code</h2>
+              <h2 className="font-medium text-lg max-sm:text-base">
+                Discount Code
+              </h2>
               <div className="space-y-2">
                 <div className="flex space-x-2 max-sm:flex-col max-sm:space-x-0 max-sm:space-y-2">
                   <div className="flex-1 max-sm:w-full">
@@ -2900,7 +2954,9 @@ return (
                 </div>
 
                 {couponError && (
-                  <span className="text-sm text-red-400 max-sm:text-xs">{couponError}</span>
+                  <span className="text-sm text-red-400 max-sm:text-xs">
+                    {couponError}
+                  </span>
                 )}
 
                 {appliedDiscount && (
@@ -2915,7 +2971,8 @@ return (
             </div>
 
             <div className="text-xs pb-4 max-sm:text-xs max-sm:pb-2">
-              Student? Add your student email, we'll send verification email there.
+              Student? Add your student email, we'll send verification email
+              there.
             </div>
 
             {/* Email Verification Section */}
@@ -2927,7 +2984,9 @@ return (
                   </h2>
                   <div className="space-y-2">
                     <div className="text-sm text-yellow-300 mb-2 max-sm:text-xs">
-                      <span className="font-medium">📧 Email Verification</span> - Please verify your student email to continue with the discount
+                      <span className="font-medium">📧 Email Verification</span>{" "}
+                      - Please verify your student email to continue with the
+                      discount
                     </div>
 
                     <div className="flex space-x-2 max-sm:flex-col max-sm:space-x-0 max-sm:space-y-2">
@@ -2965,18 +3024,22 @@ return (
                     </div>
 
                     {emailError && (
-                      <span className="text-sm text-red-400 max-sm:text-xs">{emailError}</span>
+                      <span className="text-sm text-red-400 max-sm:text-xs">
+                        {emailError}
+                      </span>
                     )}
 
                     {studentVerificationSent && !studentVerified && (
                       <div className="text-sm text-green-400 bg-green-600/20 p-2 rounded-md max-sm:text-xs max-sm:p-1.5">
-                        ✓ Verification email sent! Please check your inbox and click the verification link.
+                        ✓ Verification email sent! Please check your inbox and
+                        click the verification link.
                       </div>
                     )}
 
                     {studentVerified && (
                       <div className="text-sm text-green-400 bg-green-600/20 p-2 rounded-md max-sm:text-xs max-sm:p-1.5">
-                        ✓ Student email verified! You can now proceed with the student discount.
+                        ✓ Student email verified! You can now proceed with the
+                        student discount.
                       </div>
                     )}
                   </div>
@@ -3040,7 +3103,9 @@ return (
 
             {/* Express Checkout Section */}
             <div className="space-y-3 mb-6 max-sm:mb-4">
-              <h2 className="font-medium text-lg pt-4 max-sm:text-base max-sm:pt-3">Choose one payment method from the options below</h2>
+              <h2 className="font-medium text-lg pt-4 max-sm:text-base max-sm:pt-3">
+                Choose one payment method from the options below
+              </h2>
 
               {/* Apple Pay & Google Pay */}
               <div className="space-y-2">
@@ -3057,7 +3122,9 @@ return (
                   >
                     <div className="flex items-center gap-2">
                       <FaApple className="text-lg max-sm:text-base" />
-                      <span className="font-medium tracking-wide max-sm:text-sm">Pay</span>
+                      <span className="font-medium tracking-wide max-sm:text-sm">
+                        Pay
+                      </span>
                     </div>
                     <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-5 rounded-lg transition-opacity duration-200"></div>
                   </button>
@@ -3068,7 +3135,8 @@ return (
                     className="group relative flex items-center justify-center bg-white text-gray-800 rounded-full px-6 py-3 text-sm font-medium hover:shadow-md transition-all duration-200 shadow-sm border border-gray-200 max-sm:py-2.5"
                     style={{
                       minHeight: "44px",
-                      background: "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)",
+                      background:
+                        "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)",
                     }}
                   >
                     <div className="flex items-center gap-2">
@@ -3150,9 +3218,6 @@ return (
       </div>
     </div>
   );
-
-  
-
 };
 
 export default CountrySlider;

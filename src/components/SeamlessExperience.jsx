@@ -41,7 +41,7 @@ const SeamlessExperience = () => {
 
           <div className="bg-white backdrop-blur-sm rounded-[2rem] flex items-center gap-5 md:gap-10 text-gray-800 p-6 md:py-12 md:px-5 shadow-none transition-shadow duration-300">
             <Image
-              src="/image/digital card NUvisa.png"
+              src="/image/gitftnewcard.png"
               width={160}
               height={160}
               alt="Check Rectangle Icon"
