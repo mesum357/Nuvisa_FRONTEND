@@ -2056,12 +2056,12 @@ const CountrySlider = () => {
         <section className="w-full gap-3 flex flex-col items-start max-sm:gap-4">
           <section className="w-full">
             <div className="bg-[#24242D] rounded-2xl shadow-sm p-4 max-sm:p-3">
-              <div className="bg-[#24242D] flex justify-between text-white max-sm:flex-col max-sm:items-start max-sm:gap-4">
+              <div className="bg-[#24242D] flex justify-between  text-white max-sm:flex-col max-sm:items-start max-sm:gap-4">
                 <h2 className="text-3xl md:text-[40px] font-gilroy-bold my-auto max-sm:text-2xl max-sm:mb-2">
                   Visa <br className="hidden sm:block" /> information
                 </h2>
-
-                <div className="flex max-sm:py-2 sm:flex-col flex-wrap gap-1 max-sm:gap-2 max-sm:w-full">
+                <div className="flex gap-10 justify-between w-full md:px-5 px-0">
+                    <div className="flex max-sm:py-2 flex-col gap-1 max-sm:gap-2  max-sm:w-full">
                   {/* Visa Types */}
                   <div className="flex items-center max-sm:text-sm">
                     <FileText className="h-5 w-5 text-[#24242D] stroke-[#24242D] mr-3 fill-white max-sm:mr-2 max-sm:h-4 max-sm:w-4" />
@@ -2088,7 +2088,7 @@ const CountrySlider = () => {
                 </div>
 
                 <div className="flex flex-col mr-10 max-sm:mr-0 max-sm:w-full max-sm:mt-2">
-                  <div className="grid gap-1 max-sm:grid-cols-2 max-sm:gap-2">
+                  <div className="grid gap-1 max-sm:gap-2">
                     {/* Sticker */}
                     <div
                       className="relative border-b border-dashed border-white/40 w-fit font-semibold max-sm:w-full"
@@ -2179,6 +2179,10 @@ const CountrySlider = () => {
                     </div>
                   </div>
                 </div>
+
+                </div>
+
+              
               </div>
 
               <div className="text-left my-4 max-sm:my-3">
@@ -2705,9 +2709,9 @@ const CountrySlider = () => {
 
             {/* Insurance Certificate & Gift Card */}
             <div className="shadow-xl shadow-black/10 rounded-xl mb-4 max-sm:mb-3">
-              <div className="flex gap-[10px] max-sm:flex-col max-sm:gap-3">
+              <div className="flex gap-[10px] max-sm:gap-2">
                 {/* Insurance Certificate */}
-                <div className="flex flex-col items-center gap-2 mb-6 border-white/20 bg-white/5 border p-2 rounded-2xl text-white w-[220px] max-sm:w-full max-sm:mb-3">
+                <div className="flex flex-col items-center gap-2 mb-6 border-white/20 bg-white/5 border p-2 rounded-2xl text-white w-[220px] max-sm:w-1/2 max-sm:mb-3 max-sm:p-1.5">
                   <div className="w-full flex items-center max-sm:justify-between">
                     <div
                       className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all self-start mt-2 cursor-pointer max-sm:mt-1 border ${
@@ -2727,10 +2731,10 @@ const CountrySlider = () => {
                     <img
                       src="/image/certificatee.jpg"
                       alt="Insurance Certificate"
-                      className="w-[120px] rounded-lg ml-2 max-sm:w-[100px] max-sm:ml-1"
+                      className="w-[120px] rounded-lg ml-2 max-sm:w-[60px] max-sm:ml-0.5"
                     />
-                    <div className="flex items-center space-x-4 max-sm:space-x-2">
-                      <span className="mx-2 text-[12px] max-sm:text-xs">
+                    <div className="flex items-center space-x-4 max-sm:space-x-1">
+                      <span className="mx-2 text-[12px] max-sm:text-[10px] max-sm:mx-1">
                         {insuranceDays} Days
                       </span>
                     </div>
@@ -2744,7 +2748,7 @@ const CountrySlider = () => {
                           }
                           className="flex items-center space-x-2 cursor-pointer"
                         >
-                          <span className="font-semibold max-sm:text-sm">
+                          <span className="font-semibold max-sm:text-xs">
                             Insurance certificate
                           </span>
                         </div>
@@ -2755,7 +2759,7 @@ const CountrySlider = () => {
                       {selectedVisaType &&
                         selectedVisaType.duration_permitted && (
                           <div className="mb-2 p-2 bg-purple-600/20 rounded-lg max-sm:p-1.5 max-sm:mb-1">
-                            <p className="text-xs text-purple-200 max-sm:text-xs">
+                            <p className="text-xs text-purple-200 max-sm:text-[10px]">
                               📅 Maximum stay:{" "}
                               {selectedVisaType.duration_permitted}
                               {selectedVisaType.validity_period &&
@@ -2765,23 +2769,21 @@ const CountrySlider = () => {
                         )}
 
                       <div className="flex items-center space-x-2 max-sm:flex-col max-sm:items-start max-sm:space-x-0 max-sm:gap-2">
-                        <div className="flex items-end gap-8 max-sm:gap-4 max-sm:w-full max-sm:justify-between">
-                          <div className="flex items-center gap-2">
-                            <QtyInput
-                              value={insuranceCount}
-                              onIncrement={() => handleInsuranceChange(1)}
-                              onDecrement={() => handleInsuranceChange(-1)}
-                              min={1}
-                            />
-                          </div>
-                          <div className="flex items-center space-x-2 max-sm:space-x-1">
-                            <span className="text-lg font-semibold line-through max-sm:text-base">
-                              £{45 * insuranceCount}
-                            </span>
-                            <span className="font-gilroy-bold text-2xl max-sm:text-xl">
-                              £{30 * insuranceCount}
-                            </span>
-                          </div>
+                        <div className="flex items-center gap-2">
+                          <QtyInput
+                            value={insuranceCount}
+                            onIncrement={() => handleInsuranceChange(1)}
+                            onDecrement={() => handleInsuranceChange(-1)}
+                            min={1}
+                          />
+                        </div>
+                        <div className="flex items-center space-x-2 max-sm:space-x-1">
+                          <span className="text-lg font-semibold line-through max-sm:text-sm">
+                            £{45 * insuranceCount}
+                          </span>
+                          <span className="font-gilroy-bold text-2xl max-sm:text-lg">
+                            £{30 * insuranceCount}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -2789,8 +2791,8 @@ const CountrySlider = () => {
                 </div>
 
                 {/* Gift Card */}
-                <div className="rounded-xl mb-6 flex flex-col gap-2 w-[220px] max-sm:w-full max-sm:mb-3">
-                  <div className="flex flex-col items-center gap-2 border-white/20 bg-white/5 p-2 rounded-2xl text-white border">
+                <div className="rounded-xl mb-6 flex flex-col gap-2 w-[220px] max-sm:w-1/2 max-sm:mb-3">
+                  <div className="flex flex-col items-center gap-2 border-white/20 bg-white/5 p-2 rounded-2xl text-white border max-sm:p-1.5">
                     <div className="w-full flex items-center max-sm:justify-start">
                       <div
                         className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all self-start mt-2 cursor-pointer max-sm:mt-1 border ${
@@ -2808,7 +2810,7 @@ const CountrySlider = () => {
                         <img
                           src="/image/gitftnewcard.png"
                           alt="Gift Card"
-                          className="w-[120px] rounded-lg ml-2 max-sm:w-[100px] max-sm:ml-0"
+                          className="w-[120px] rounded-lg ml-2 max-sm:w-[60px] max-sm:ml-0"
                         />
                       </div>
                     </div>
@@ -2820,7 +2822,7 @@ const CountrySlider = () => {
                               onClick={() => toggleRecommendedItem("giftCard")}
                               className="flex items-center space-x-2 cursor-pointer"
                             >
-                              <span className="font-semibold max-sm:text-sm">
+                              <span className="font-semibold max-sm:text-xs">
                                 NUvisa digital gift card
                               </span>
                             </div>
@@ -2837,10 +2839,10 @@ const CountrySlider = () => {
                           />
                         </div>
                         <div className="flex items-center space-x-2 max-sm:space-x-1">
-                          <span className="text-lg font-semibold line-through max-sm:text-base">
+                          <span className="text-lg font-semibold line-through max-sm:text-sm">
                             £{245 * giftCardCount}
                           </span>
-                          <span className="font-gilroy-bold text-2xl max-sm:text-xl">
+                          <span className="font-gilroy-bold text-2xl max-sm:text-lg">
                             £{159 * giftCardCount}
                           </span>
                         </div>
