@@ -73,9 +73,9 @@ const ComparisonSection = () => {
   return (
     <div className="bg-gradient-to-br w-full from-purple-100 to-[#f3e6ff] py-20 px-6 overflow-x-hidden">
       <div className="max-w-[800px] mx-auto overflow-x-hidden">
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center mb-6">
           <div className="w-full items-center justify-center flex">
-            <p className="text-3xl font-gilroy-bold text-black">
+            <p className="text-xl max-sm:text-lg font-gilroy-bold text-black">
               {data.title || "Travel Agency"}
             </p>
           </div>
@@ -86,17 +86,17 @@ const ComparisonSection = () => {
                 alt="Icon"
                 width={200}
                 height={92}
-                className="object-contain"
+                className="object-contain max-sm:w-32 max-sm:h-auto"
               />{" "}
             </Link>
           </div>
         </div>
 
         {/* Comparison Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 relative overflow-x-hidden">
+        <div className="grid grid-cols-2 gap-2 max-sm:gap-1 relative overflow-x-hidden mb-6">
           {/* Travel Agency Side */}
-          <div className=" rounded-3xl flex flex-col items-center gap-3 ">
-            <div className="max-md:aspect-square w-full md:h-[346px] mb-8 rounded-[30px] overflow-hidden bg-gray-100">
+          <div className="rounded-3xl max-sm:rounded-2xl flex flex-col items-center gap-3">
+            <div className="aspect-square w-full max-sm:h-[140px] md:h-[346px] mb-4 max-sm:mb-2 rounded-[30px] max-sm:rounded-[20px] overflow-hidden bg-gray-100">
               <Image
                 width={384}
                 height={346}
@@ -106,16 +106,16 @@ const ComparisonSection = () => {
               />
             </div>
           </div>
-          <div className="flex justify-center bg-white p-0.5 md:p-[8px] top-[31%] rounded-full absolute left-1/2 -translate-x-1/2">
+          <div className="flex justify-center bg-white p-0.5 md:p-[8px] top-[25%] max-sm:top-[20%] rounded-full absolute left-1/2 -translate-x-1/2 z-10">
             <img
               src="/image/vs.svg"
               alt=""
-              className="w-12 h-12 md:w-20 md:h-20"
+              className="w-8 h-8 max-sm:w-6 max-sm:h-6 md:w-20 md:h-20"
             />
           </div>
           {/* NUvisa Side */}
-          <div className="rounded-3xl flex flex-col items-center gap-3">
-            <div className="max-md:aspect-square w-full md:h-[346px] mb-8 rounded-[30px] overflow-hidden bg-gray-100">
+          <div className="rounded-3xl max-sm:rounded-2xl flex flex-col items-center gap-3">
+            <div className="aspect-square w-full max-sm:h-[140px] md:h-[346px] mb-4 max-sm:mb-2 rounded-[30px] max-sm:rounded-[20px] overflow-hidden bg-gray-100">
               <img
                 src={data.rightSideImage || "/image/nuvisa-image.jpg"}
                 width={384}
@@ -128,19 +128,19 @@ const ComparisonSection = () => {
         </div>
 
         {/* Comparison List */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-x-hidden">
+        <div className="grid grid-cols-2 gap-2 max-sm:gap-1 overflow-x-hidden">
           {/* Traditional Side */}
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 max-sm:gap-1 pr-1">
             {leftItems.map((item, i) => (
-              <div key={i} className="flex items-center gap-[7px]">
-                <div className="size-4 md:size-6">
+              <div key={i} className="flex items-start gap-[4px] max-sm:gap-[2px]">
+                <div className="size-4 max-sm:size-3 md:size-6 flex-shrink-0 mt-0.5">
                   <CircleX
                     size={26}
                     strokeWidth={2}
-                    className="text-gray-500 size-4 md:size-6"
+                    className="text-gray-500 size-4 max-sm:size-3 md:size-6"
                   />
                 </div>
-                <p className="text-black text-xs md:text-[18px] font-gilroy-bold !font-gilroy-bold">
+                <p className="text-black text-[10px] max-sm:text-[8px] md:text-[18px] font-gilroy-bold !font-gilroy-bold leading-tight">
                   {item}
                 </p>
               </div>
@@ -148,17 +148,17 @@ const ComparisonSection = () => {
           </div>
 
           {/* NUvisa Side */}
-          <div className="flex flex-col gap-2 md:ml-6">
+          <div className="flex flex-col gap-2 max-sm:gap-1 pl-1 md:ml-6">
             {rightItems.map((item, i) => (
-              <div key={i} className="flex items-start gap-[7px]">
-                <div className="p-0.5 md:w-6 md:h-6 flex items-center justify-center rounded-full bg-[#6F48FF] text-white">
+              <div key={i} className="flex items-start gap-[4px] max-sm:gap-[2px]">
+                <div className="p-0.5 w-4 h-4 max-sm:w-3 max-sm:h-3 md:w-6 md:h-6 flex items-center justify-center rounded-full bg-[#6F48FF] text-white flex-shrink-0 mt-0.5">
                   <Check
                     size={16}
                     strokeWidth={3}
-                    className="size-3 stroke-[4px]"
+                    className="size-2 max-sm:size-1.5 md:size-3 stroke-[4px]"
                   />
                 </div>
-                <p className="text-black text-xs md:text-[18px] font-gilroy-bold !font-gilroy-bold">
+                <p className="text-black text-[10px] max-sm:text-[8px] md:text-[18px] font-gilroy-bold !font-gilroy-bold leading-tight">
                   {item}
                 </p>
               </div>
