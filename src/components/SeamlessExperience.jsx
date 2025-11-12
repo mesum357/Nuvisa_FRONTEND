@@ -34,7 +34,7 @@ const SeamlessExperience = () => {
               </p>
 
               <p className="font-semibold">
-                <s className="text-gray-500">£45</s> £29
+                <s className="text-gray-500">£45</s> £30
               </p>
             </div>
           </div>
@@ -58,7 +58,7 @@ const SeamlessExperience = () => {
               </p>
 
               <p className="font-semibold">
-                <s className="text-gray-500">£245</s> £188
+                <s className="text-gray-500">£245</s> £159
               </p>
             </div>
           </div>

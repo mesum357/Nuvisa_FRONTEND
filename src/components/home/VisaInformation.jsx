@@ -29,7 +29,7 @@ const VisaInformation = () => {
           <div className="px-5 pt-5 w-full flex items-center justify-center overflow-x-hidden">
             <div className="max-w-[88rem] bg-[#F3E5FF] text-[#FFF] w-full rounded-3xl py-12 px-10 text-center shadow-2xl">
               {/* Main Heading */}
-              <h2 className="text-[26px] max-md:px-8 lg:text-[38px] font-gilroy-bold text-[#212529] mb-2 leading-tight flex items-center gap-3 justify-center">
+              <h2 className="text-[26px] max-md:px-8 lg:text-[38px] font-gilroy-bold text-[#212529] mb-2 leading-tight flex items-center gap-3 justify-center lg:flex-row flex-col">
                 <img src="/icons/klarna.png" alt="Klarna" className="" />
                 {klarnaLoading ? "Loading..." : klarnaContent.heading}
               </h2>

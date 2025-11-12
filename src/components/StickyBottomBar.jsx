@@ -208,7 +208,7 @@ const StickyBottomBar = () => {
 
   return (
     <>
-    <div ref={barRef} className={`fixed bottom-0 left-0 right-0 z-50 bg-[#1e1e27] ${isDrawerOpen ? 'shadow-none' : 'shadow-2xl'} animate-slide-up`}>
+    <div ref={barRef} className={`fixed bottom-0 left-0 right-0 z-[70] bg-[#1e1e27] ${isDrawerOpen ? 'shadow-none' : 'shadow-2xl'} animate-slide-up`}>
       <div className="mx-auto px-4 sm:px-10 py-4">
         {/* Desktop Layout (lg and above) */}
         <div className="hidden lg:flex items-center justify-between gap-4">
@@ -376,19 +376,17 @@ const StickyBottomBar = () => {
 
         {/* Mobile/Tablet Layout (max-lg) */}
         <div className="lg:hidden">
-          {/* Pair with Button - on top. Hide when drawer open */}
-          {!isDrawerOpen && (
-            <button
-              onClick={() => setIsDrawerOpen(true)}
-              className="w-full bg-[#24242D] rounded-2xl px-4 py-3 mb-3 flex items-center justify-between text-white hover:bg-[#2a2a35] transition-colors"
-            >
-              <span className="font-medium">Pair with</span>
-              <ChevronDown className="w-5 h-5" />
-            </button>
-          )}
+          {/* Pair with Button - always visible, toggles drawer */}
+          <button
+            onClick={() => setIsDrawerOpen(!isDrawerOpen)}
+            className="w-full bg-[#24242D] rounded-2xl px-4 py-3 mb-3 flex items-center justify-between text-white hover:bg-[#2a2a35] transition-colors"
+          >
+            <span className="font-medium">Pair with</span>
+            {isDrawerOpen ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+          </button>
 
-          {/* Schengen Visa Section - Full Width */}
-          <div className="mb-3">
+          {/* Schengen Visa Section - Full Width - Always visible and functional */}
+          <div className="mb-3 relative z-[80]">
             {items.filter(item => item.id === 'schengen').map((item) => (
               <div key={item.id} className="bg-[#24242D] rounded-2xl px-4 py-3">
                 <div className="flex items-center justify-between">
@@ -403,20 +401,35 @@ const StickyBottomBar = () => {
                       </span>
                       {item.badge && (
                         <div className="text-white px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1" style={{backgroundColor: '#6B4EFF'}}>
-                          <Gift className="w-3 h-3" />
+                          <UserIcon className="w-3 h-3" />
                           {item.badge}
                         </div>
                       )}
                     </div>
                   </div>
                   
-                  {/* Quantity Controls */}
-                  <div className="flex items-center gap-2">
+                  {/* Quantity Controls - Ensure they work regardless of drawer state */}
+                  <div className="flex items-center gap-2 relative z-[90]">
                     <button
-                      onClick={() => updateQuantity(item.id, -1)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        updateQuantity(item.id, -1);
+                      }}
                       disabled={quantities[item.id] === 0}
                       className="w-8 h-8 rounded-full text-white flex items-center justify-center disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
-                      style={{backgroundColor: '#6B4EFF'}}
+                      style={{backgroundColor: quantities[item.id] === 0 ? '#6b7280' : '#6B4EFF'}}
+                      onMouseEnter={(e) => {
+                        if (quantities[item.id] > 0) {
+                          e.target.style.backgroundColor = '#5A3FE6';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (quantities[item.id] > 0) {
+                          e.target.style.backgroundColor = '#6B4EFF';
+                        } else {
+                          e.target.style.backgroundColor = '#6b7280';
+                        }
+                      }}
                     >
                       <Minus className="w-4 h-4 text-white" strokeWidth={3} />
                     </button>
@@ -424,9 +437,18 @@ const StickyBottomBar = () => {
                       {quantities[item.id]}
                     </span>
                     <button
-                      onClick={() => updateQuantity(item.id, 1)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        updateQuantity(item.id, 1);
+                      }}
                       className="w-8 h-8 rounded-full text-white flex items-center justify-center transition-colors"
                       style={{backgroundColor: '#6B4EFF'}}
+                      onMouseEnter={(e) => {
+                        e.target.style.backgroundColor = '#5A3FE6';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.backgroundColor = '#6B4EFF';
+                      }}
                     >
                       <Plus className="w-4 h-4 text-white" strokeWidth={3} />
                     </button>
@@ -439,9 +461,15 @@ const StickyBottomBar = () => {
           {/* Add to Cart Button */}
           <button
             onClick={handleAddToCart}
-            className="w-full text-white px-6 py-3 rounded-full font-semibold text-lg flex items-center justify-center gap-2"
+            className="w-full text-white px-6 py-3 rounded-full font-semibold text-lg flex items-center justify-center gap-2 relative z-[80]"
             style={{backgroundColor: '#6B4EFF'}}
             disabled={getTotalItems() === 0}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = '#5A3FE6';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = '#6B4EFF';
+            }}
           >
             ADD TO CART
             <div className="bg-white rounded-full w-8 h-8 flex items-center justify-center">

@@ -52,19 +52,21 @@ const Navbar = () => {
         <div className="sec_bg md:px-10 px-5  py-2.5 border-[#423577] border-b text-sm rounded-b-[23px] flex md:flex-row flex-col items-center justify-between">
 
           {/* Left Content (Text + Button aligned LEFT) */}
-          <div className="flex items-center gap-3">
-            <span className="font-medium md:font-semibold md:text-base text-sm">
+          <div className="flex items-center gap-3 md:flex-row   ">
+            <span className="font-medium md:text-start text-center md:font-semibold md:text-base text-sm">
               {getContent('banner_offer_text', ' NEW CUSTOMER OFFER - £20 fee for your first visa with us, then £200')}
-            </span>
-            <Link href={getContent('banner_button_link', '#')}>
-              <button className="underline decoration-[#7351ff] public_text_clr rounded-md text-white font-medium transition-colors">
-                {getContent('banner_button_text', 'Get Offer')}
-              </button>
+
+ <Link href={getContent('banner_button_link', '#')}>
+              <span className="underline decoration-[#7351ff] public_text_clr ml-2 rounded-md text-white font-medium transition-colors">
+                {getContent('banner_button_text', 'Get now')}
+              </span>
             </Link>
+            </span>
+           
           </div>
 
           {/* Right Content (WhatsApp + Email aligned RIGHT) */}
-          <div className="flex items-center gap-4">
+          <div className=" items-center gap-4  hidden md:flex  ">
             <div className="flex items-center gap-2">
               <FaWhatsapp className="text-green-400 size-4" />
               <span className="text-sm font-medium text-gray-300 hidden md:inline">
@@ -81,7 +83,7 @@ const Navbar = () => {
         </div>
 
         <div className="text-center mt-5">
-          <span className="text-xl sm:text-2xl font-gilroy-bold">
+          <span className="text-xl sm:text-2xl font-gilroy-bold md:block ">
             {getContent('nav_tagline', 'Schengen visa for Indians from the UK')}
           </span>
         </div>

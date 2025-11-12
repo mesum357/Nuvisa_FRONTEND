@@ -750,6 +750,12 @@ const VisaCheckout = () => {
   const _savingsEUR = calculatePaymentFees(savings, "EUR");
   const totalAmountEUR = discountedSubtotalEUR;
 
+  // Calculate total savings from original strike price to final price
+  const totalOriginalPrice = travellerStrikeTotal + (includeInsurance ? insuranceStrikeTotal : 0) + (includeGiftCard ? giftCardStrikeTotal : 0);
+  const finalPrice = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees;
+  const totalSavingsAmount = totalOriginalPrice - finalPrice;
+  const totalSavingsEUR = calculatePaymentFees(totalSavingsAmount, "EUR");
+
   const handleProceedToCheckout = async () => {
     await localStorageGateway(
       "paymentAmount",
@@ -2543,7 +2549,7 @@ const VisaCheckout = () => {
             {/* You Save */}
             <div className="flex justify-between text-sm text-green-400">
               <span>You save</span>
-              <span>{formatCurrency(discountAmountEUR, "EUR")}</span>
+              <span>{formatCurrency(totalSavingsEUR, "EUR")}</span>
             </div>
 
             {/* Total */}
