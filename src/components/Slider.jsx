@@ -196,7 +196,8 @@ const CountrySlider = () => {
   const [couponError, setCouponError] = useState("");
   const [insuranceCouponCode, setInsuranceCouponCode] = useState("");
   const [insuranceCouponError, setInsuranceCouponError] = useState("");
-  const [appliedDiscount, setAppliedDiscountLocal] = useState(null);
+  // Read appliedDiscount from Redux instead of local state
+  const appliedDiscount = visaState.appliedDiscount;
   const [appliedInsuranceDiscount, setAppliedInsuranceDiscount] =
     useState(null);
   const [insuranceAutoApplied, setInsuranceAutoApplied] = useState(false);
@@ -837,54 +838,145 @@ const CountrySlider = () => {
   };
 
   const calculateFinalPrice = () => {
-    const currentBaseFee =
-      selectedVisaType && selectedVisaType.priceGBP
-        ? Number(selectedVisaType.priceGBP)
-        : selectedVisaType && selectedVisaType.price
-        ? Math.round(Number(selectedVisaType.price) / 100)
-        : baseFee;
+    // NEW DISCOUNT LOGIC - matching OrderCheckout.jsx
+    console.log("Slider calculateFinalPrice - Input values:", {
+      travelers,
+      insuranceCount,
+      giftCardCount,
+      recommendedItems,
+      appliedDiscount
+    });
+    
+    // Base discounted prices (not original prices)
+    const baseDiscountedVisaFees = 129 * travelers; // £129 per traveler
+    const baseDiscountedInsuranceFees = recommendedItems.insuranceCertificate ? 30 * insuranceCount : 0; // £30 per insurance
+    const baseDiscountedGiftCardFees = recommendedItems.giftCard ? 159 * giftCardCount : 0; // £159 per gift card
 
-    const basePrice = currentBaseFee * travelers;
-    // Gift card cost
-    const giftCardCost = recommendedItems.giftCard ? 159 * giftCardCount : 0;
+    // Calculate individual component discounts
+    let visaDiscountPercentage = 0;
+    let insuranceDiscountPercentage = 0;
+    let giftCardDiscountPercentage = 0;
 
-    let insuranceCost = computedInsuranceTotal;
+    // Check if any component qualifies for quantity discount (3+)
+    // Note: Insurance count cannot exceed traveler count (insurance certificates are for travelers)
+    const effectiveInsuranceCount = Math.min(insuranceCount, travelers);
+    
+    const travelersQualify = travelers >= 3;
+    const insuranceQualify = effectiveInsuranceCount >= 3;
+    const giftCardQualify = giftCardCount >= 3;
 
-    if (appliedInsuranceDiscount && insuranceCost > 0) {
-      const insDiscountAmount =
-        (insuranceCost * appliedInsuranceDiscount.percentage) / 100;
-      insuranceCost = Math.max(0, insuranceCost - insDiscountAmount);
+    // Apply quantity-based discounts (20% for 3+ items)
+    if (travelersQualify) visaDiscountPercentage += 20;
+    if (insuranceQualify) insuranceDiscountPercentage += 20;
+    if (giftCardQualify) giftCardDiscountPercentage += 20;
+
+    // Apply coupon discounts
+    if (appliedDiscount) {
+      console.log("Slider Applied Discount:", appliedDiscount); // Debug log
+      if (appliedDiscount.code === "GROUP20") {
+        // GROUP20: Only applies if travelers >= 3 AND at least one other component >= 3
+        if (travelersQualify && (insuranceQualify || giftCardQualify)) {
+          // Apply 20% to all components that have 3+ items
+          if (travelersQualify) visaDiscountPercentage = Math.max(visaDiscountPercentage, 20);
+          if (insuranceQualify) insuranceDiscountPercentage = Math.max(insuranceDiscountPercentage, 20);
+          if (giftCardQualify) giftCardDiscountPercentage = Math.max(giftCardDiscountPercentage, 20);
+        }
+      } else if (appliedDiscount.code === "STUDENT10") {
+        console.log("Slider Applying STUDENT10 discount"); // Debug log
+        // STUDENT10: Adds 10% to ALL components (stacks with quantity discounts)
+        visaDiscountPercentage += 10;
+        if (recommendedItems.insuranceCertificate) insuranceDiscountPercentage += 10;
+        if (recommendedItems.giftCard) giftCardDiscountPercentage += 10;
+      }
     }
+    
+    console.log("Slider Final discount percentages:", { // Debug log
+      visa: visaDiscountPercentage,
+      insurance: insuranceDiscountPercentage,
+      giftCard: giftCardDiscountPercentage
+    });
 
-    let visaNet = basePrice;
-    if (appliedDiscount && appliedDiscount.percentage) {
-      const visaDiscountAmount = (basePrice * appliedDiscount.percentage) / 100;
-      visaNet = Math.max(0, basePrice - visaDiscountAmount);
-    }
+    // Calculate discount amounts
+    const visaDiscountAmount = (baseDiscountedVisaFees * visaDiscountPercentage) / 100;
+    const insuranceDiscountAmount = recommendedItems.insuranceCertificate 
+      ? (baseDiscountedInsuranceFees * insuranceDiscountPercentage) / 100 
+      : 0;
+    const giftCardDiscountAmount = recommendedItems.giftCard 
+      ? (baseDiscountedGiftCardFees * giftCardDiscountPercentage) / 100 
+      : 0;
 
-    return visaNet?.toFixed(2);
+    // Calculate final prices after discounts
+    const finalVisaPrice = baseDiscountedVisaFees - visaDiscountAmount;
+    const finalInsurancePrice = baseDiscountedInsuranceFees - insuranceDiscountAmount;
+    const finalGiftCardPrice = baseDiscountedGiftCardFees - giftCardDiscountAmount;
+
+    console.log("Slider calculateFinalPrice - Final results:", {
+      finalVisaPrice,
+      finalInsurancePrice,
+      finalGiftCardPrice,
+      totalPrice: finalVisaPrice + finalInsurancePrice + finalGiftCardPrice
+    });
+
+    // Return only visa fees for main display (matching original behavior)
+    return finalVisaPrice?.toFixed(2);
   };
 
   const calculateDiscountedInsurancePrice = () => {
-    const originalPrice = computedInsuranceTotal;
-    if (appliedInsuranceDiscount && originalPrice > 0) {
-      let discountAmount;
+    // Use same logic as calculateFinalPrice for insurance
+    const baseDiscountedInsuranceFees = recommendedItems.insuranceCertificate ? 30 * insuranceCount : 0;
+    let insuranceDiscountPercentage = 0;
 
-      discountAmount =
-        (originalPrice * appliedInsuranceDiscount.percentage) / 100;
+    // Check if insurance qualifies for quantity discount (3+)
+    const effectiveInsuranceCount = Math.min(insuranceCount, travelers);
+    const insuranceQualify = effectiveInsuranceCount >= 3;
+    
+    // Apply quantity-based discount (20% for 3+ items)
+    if (insuranceQualify) insuranceDiscountPercentage += 20;
 
-      return originalPrice - discountAmount;
+    // Apply coupon discounts
+    if (appliedDiscount) {
+      if (appliedDiscount.code === "GROUP20") {
+        const travelersQualify = travelers >= 3;
+        const giftCardQualify = giftCardCount >= 3;
+        if (travelersQualify && (insuranceQualify || giftCardQualify)) {
+          if (insuranceQualify) insuranceDiscountPercentage = Math.max(insuranceDiscountPercentage, 20);
+        }
+      } else if (appliedDiscount.code === "STUDENT10") {
+        if (recommendedItems.insuranceCertificate) insuranceDiscountPercentage += 10;
+      }
     }
-    return originalPrice;
+
+    const insuranceDiscountAmount = (baseDiscountedInsuranceFees * insuranceDiscountPercentage) / 100;
+    return baseDiscountedInsuranceFees - insuranceDiscountAmount;
   };
 
   const calculateDiscountedGiftCardPrice = () => {
-    const originalPrice = 159 * giftCardCount;
-    if (appliedDiscount && originalPrice > 0) {
-      const discountAmount = (originalPrice * appliedDiscount.percentage) / 100;
-      return originalPrice - discountAmount;
+    // Use same logic as calculateFinalPrice for gift cards
+    const baseDiscountedGiftCardFees = recommendedItems.giftCard ? 159 * giftCardCount : 0;
+    let giftCardDiscountPercentage = 0;
+
+    // Check if gift cards qualify for quantity discount (3+)
+    const giftCardQualify = giftCardCount >= 3;
+    
+    // Apply quantity-based discount (20% for 3+ items)
+    if (giftCardQualify) giftCardDiscountPercentage += 20;
+
+    // Apply coupon discounts
+    if (appliedDiscount) {
+      if (appliedDiscount.code === "GROUP20") {
+        const travelersQualify = travelers >= 3;
+        const effectiveInsuranceCount = Math.min(insuranceCount, travelers);
+        const insuranceQualify = effectiveInsuranceCount >= 3;
+        if (travelersQualify && (insuranceQualify || giftCardQualify)) {
+          if (giftCardQualify) giftCardDiscountPercentage = Math.max(giftCardDiscountPercentage, 20);
+        }
+      } else if (appliedDiscount.code === "STUDENT10") {
+        if (recommendedItems.giftCard) giftCardDiscountPercentage += 10;
+      }
     }
-    return originalPrice;
+
+    const giftCardDiscountAmount = (baseDiscountedGiftCardFees * giftCardDiscountPercentage) / 100;
+    return baseDiscountedGiftCardFees - giftCardDiscountAmount;
   };
 
   const calculateOriginalPrice = () => {
@@ -970,15 +1062,16 @@ const CountrySlider = () => {
 
     const discountWithAmount = {
       ...discount,
+      code: couponCode.toUpperCase(),
       discountAmount: Math.round(calculatedDiscountAmount),
     };
 
     if (couponCode.toUpperCase() === "STUDENT10") {
-      setAppliedDiscountLocal(discountWithAmount);
+      dispatch(setAppliedDiscount(discountWithAmount));
       setAppliedInsuranceDiscount({ ...discountWithAmount, code: "STUDENT10" });
       setInsuranceCouponCode("STUDENT10");
     } else {
-      setAppliedDiscountLocal(discountWithAmount);
+      dispatch(setAppliedDiscount(discountWithAmount));
     }
 
     setCouponError("");
@@ -1046,7 +1139,7 @@ const CountrySlider = () => {
   };
 
   const removeCoupon = () => {
-    setAppliedDiscountLocal(null);
+    dispatch(setAppliedDiscount(null));
     setAppliedInsuranceDiscount(null);
     setCouponCodeLocal("");
     setCouponError("");
@@ -1076,12 +1169,13 @@ const CountrySlider = () => {
           const calculatedDiscountAmount = (currentVisaFees * 20) / 100;
 
           const groupDiscount = {
+            code: "GROUP20",
             description: "Group discount (3+ travellers)",
             percentage: 20,
             requiresMinTravellers: 3,
             discountAmount: Math.round(calculatedDiscountAmount),
           };
-          setAppliedDiscountLocal(groupDiscount);
+          dispatch(setAppliedDiscount(groupDiscount));
           setCouponCodeLocal("GROUP20");
           setCouponError("");
           setGroupAutoApplied(true);
@@ -1091,7 +1185,7 @@ const CountrySlider = () => {
       } else {
         // If travelers dropped below 3 and we auto-applied the group discount, remove it
         if (groupAutoApplied) {
-          setAppliedDiscountLocal(null);
+          dispatch(setAppliedDiscount(null));
           // Only clear couponCode if it was the auto-applied GROUP20
           if (currentCode === "GROUP20") setCouponCodeLocal("");
           setGroupAutoApplied(false);
@@ -1470,11 +1564,11 @@ const CountrySlider = () => {
             !appliedDiscount ||
             (appliedDiscount && appliedDiscount.code !== "STUDENT10")
           ) {
-            setAppliedDiscountLocal({
+            dispatch(setAppliedDiscount({
               code: "STUDENT10",
               percentage: 10,
               description: "Student discount",
-            });
+            }));
             setCouponCodeLocal("STUDENT10");
           }
         }
@@ -2037,7 +2131,7 @@ const CountrySlider = () => {
       <div className="w-full gap-3 flex flex-col items-start lg:max-w-[60%] max-sm:gap-4">
         {/* Badges Section */}
         <section className="text-center text-white rounded-2xl p-2 w-full max-sm:p-1">
-          <div className="w-full flex justify-center items-center gap-2 px-3 max-sm:flex-col max-sm:gap-3 max-sm:px-1">
+          <div className="w-full flex justify-start items-center gap-2 px-3 max-sm:flex-col max-sm:gap-3 max-sm:px-1">
             <button className="bg-[#24242D] border border-white px-6 py-[10px] rounded-full font-medium text-white select-none transition-colors relative overflow-hidden max-sm:w-full max-sm:px-4 max-sm:py-3">
               <span className="relative z-10 font-bold text-[22px] leading-none max-sm:text-[18px]">
                 {sliderContent["badge_1_text"]}
@@ -2061,128 +2155,125 @@ const CountrySlider = () => {
                   Visa <br className="hidden sm:block" /> information
                 </h2>
                 <div className="flex gap-10 justify-between w-full md:px-5 px-0">
-                    <div className="flex max-sm:py-2 flex-col gap-1 max-sm:gap-2  max-sm:w-full">
-                  {/* Visa Types */}
-                  <div className="flex items-center max-sm:text-sm">
-                    <FileText className="h-5 w-5 text-[#24242D] stroke-[#24242D] mr-3 fill-white max-sm:mr-2 max-sm:h-4 max-sm:w-4" />
-                    <span className="">Visa Types</span>
-                  </div>
-
-                  {/* Stay Duration */}
-                  <div className="flex items-center max-sm:text-sm">
-                    <Home className="h-5 w-5 mr-3 text-white max-sm:mr-2 max-sm:h-4 max-sm:w-4" />
-                    <span className="">Stay Duration</span>
-                  </div>
-
-                  {/* Term Type */}
-                  <div className="flex items-center max-sm:text-sm">
-                    <ClipboardList className="h-5 w-5 text-[#24242D] stroke-[#24242D] mr-3 fill-white max-sm:mr-2 max-sm:h-4 max-sm:w-4" />
-                    <span className="">Term Type</span>
-                  </div>
-
-                  {/* Entry */}
-                  <div className="flex items-center max-sm:text-sm">
-                    <Clock className="h-5 w-5 mr-3 text-white max-sm:mr-2 max-sm:h-4 max-sm:w-4" />
-                    <span className="">Entry</span>
-                  </div>
-                </div>
-
-                <div className="flex flex-col mr-10 max-sm:mr-0 max-sm:w-full max-sm:mt-2">
-                  <div className="grid gap-1 max-sm:gap-2">
-                    {/* Sticker */}
-                    <div
-                      className="relative border-b border-dashed border-white/40 w-fit font-semibold max-sm:w-full"
-                      onMouseEnter={() => setActiveTooltip("sticker")}
-                      onMouseLeave={() => setActiveTooltip(null)}
-                    >
-                      <div className="flex items-center max-sm:justify-between">
-                        <span className="max-sm:text-sm">Sticker</span>
-                      </div>
-
-                      {activeTooltip === "sticker" && (
-                        <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200 max-sm:w-48 max-sm:-left-20">
-                          <p className="text-sm max-sm:text-xs">
-                            {tooltips.sticker}
-                          </p>
-                          <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200 max-sm:left-20"></div>
-                        </div>
-                      )}
+                  <div className="flex max-sm:py-2 flex-col gap-1 max-sm:gap-2  max-sm:w-full">
+                    {/* Visa Types */}
+                    <div className="flex items-center max-sm:text-sm">
+                      <FileText className="h-5 w-5 text-[#24242D] stroke-[#24242D] mr-3 fill-white max-sm:mr-2 max-sm:h-4 max-sm:w-4" />
+                      <span className="">Visa Types</span>
                     </div>
 
-                    {/* Duration */}
-                    <div
-                      className="relative border-b border-dashed border-white/40 w-fit font-semibold max-sm:w-full"
-                      onMouseEnter={() => setActiveTooltip("duration")}
-                      onMouseLeave={() => setActiveTooltip(null)}
-                    >
-                      <div className="flex items-center max-sm:justify-between">
-                        <span className="max-sm:text-sm">90 Days</span>
-                      </div>
-
-                      {activeTooltip === "duration" && (
-                        <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200 max-sm:w-48 max-sm:-left-20">
-                          <div className="text-sm max-sm:text-xs">
-                            {tooltips.duration.map((line, index) => (
-                              <p
-                                key={index}
-                                className={
-                                  index > 0 ? "mt-1 max-sm:mt-0.5" : ""
-                                }
-                              >
-                                {line}
-                              </p>
-                            ))}
-                          </div>
-                          <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200 max-sm:left-20"></div>
-                        </div>
-                      )}
+                    {/* Stay Duration */}
+                    <div className="flex items-center max-sm:text-sm">
+                      <Home className="h-5 w-5 mr-3 text-white max-sm:mr-2 max-sm:h-4 max-sm:w-4" />
+                      <span className="">Stay Duration</span>
                     </div>
 
                     {/* Term Type */}
-                    <div
-                      className="relative border-b border-dashed border-white/40 w-fit font-semibold max-sm:w-full"
-                      onMouseEnter={() => setActiveTooltip("term")}
-                      onMouseLeave={() => setActiveTooltip(null)}
-                    >
-                      <div className="flex items-center max-sm:justify-between">
-                        <span className="max-sm:text-sm">Short Term</span>
-                      </div>
-
-                      {activeTooltip === "term" && (
-                        <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200 max-sm:w-48 max-sm:-left-20">
-                          <p className="text-sm max-sm:text-xs">
-                            {tooltips.term}
-                          </p>
-                          <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200 max-sm:left-20"></div>
-                        </div>
-                      )}
+                    <div className="flex items-center max-sm:text-sm">
+                      <ClipboardList className="h-5 w-5 text-[#24242D] stroke-[#24242D] mr-3 fill-white max-sm:mr-2 max-sm:h-4 max-sm:w-4" />
+                      <span className="">Term Type</span>
                     </div>
 
                     {/* Entry */}
-                    <div
-                      className="relative border-b border-dashed border-white/40 w-fit font-semibold max-sm:w-full"
-                      onMouseEnter={() => setActiveTooltip("entry")}
-                      onMouseLeave={() => setActiveTooltip(null)}
-                    >
-                      <div className="flex items-center max-sm:justify-between">
-                        <span className="max-sm:text-sm">Multiple</span>
+                    <div className="flex items-center max-sm:text-sm">
+                      <Clock className="h-5 w-5 mr-3 text-white max-sm:mr-2 max-sm:h-4 max-sm:w-4" />
+                      <span className="">Entry</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col mr-10 max-sm:mr-0 max-sm:w-full max-sm:mt-2">
+                    <div className="grid gap-1 max-sm:gap-2">
+                      {/* Sticker */}
+                      <div
+                        className="relative border-b border-dashed border-white/40 w-fit font-semibold max-sm:w-full"
+                        onMouseEnter={() => setActiveTooltip("sticker")}
+                        onMouseLeave={() => setActiveTooltip(null)}
+                      >
+                        <div className="flex items-center max-sm:justify-between">
+                          <span className="max-sm:text-sm">Sticker</span>
+                        </div>
+
+                        {activeTooltip === "sticker" && (
+                          <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200 max-sm:w-48 max-sm:-left-20">
+                            <p className="text-sm max-sm:text-xs">
+                              {tooltips.sticker}
+                            </p>
+                            <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200 max-sm:left-20"></div>
+                          </div>
+                        )}
                       </div>
 
-                      {activeTooltip === "entry" && (
-                        <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200 max-sm:w-48 max-sm:-left-20">
-                          <p className="text-sm max-sm:text-xs">
-                            {tooltips.entry}
-                          </p>
-                          <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200 max-sm:left-20"></div>
+                      {/* Duration */}
+                      <div
+                        className="relative border-b border-dashed border-white/40 w-fit font-semibold max-sm:w-full"
+                        onMouseEnter={() => setActiveTooltip("duration")}
+                        onMouseLeave={() => setActiveTooltip(null)}
+                      >
+                        <div className="flex items-center max-sm:justify-between">
+                          <span className="max-sm:text-sm">90 Days</span>
                         </div>
-                      )}
+
+                        {activeTooltip === "duration" && (
+                          <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200 max-sm:w-48 max-sm:-left-20">
+                            <div className="text-sm max-sm:text-xs">
+                              {tooltips.duration.map((line, index) => (
+                                <p
+                                  key={index}
+                                  className={
+                                    index > 0 ? "mt-1 max-sm:mt-0.5" : ""
+                                  }
+                                >
+                                  {line}
+                                </p>
+                              ))}
+                            </div>
+                            <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200 max-sm:left-20"></div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Term Type */}
+                      <div
+                        className="relative border-b border-dashed border-white/40 w-fit font-semibold max-sm:w-full"
+                        onMouseEnter={() => setActiveTooltip("term")}
+                        onMouseLeave={() => setActiveTooltip(null)}
+                      >
+                        <div className="flex items-center max-sm:justify-between">
+                          <span className="max-sm:text-sm">Short Term</span>
+                        </div>
+
+                        {activeTooltip === "term" && (
+                          <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200 max-sm:w-48 max-sm:-left-20">
+                            <p className="text-sm max-sm:text-xs">
+                              {tooltips.term}
+                            </p>
+                            <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200 max-sm:left-20"></div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Entry */}
+                      <div
+                        className="relative border-b border-dashed border-white/40 w-fit font-semibold max-sm:w-full"
+                        onMouseEnter={() => setActiveTooltip("entry")}
+                        onMouseLeave={() => setActiveTooltip(null)}
+                      >
+                        <div className="flex items-center max-sm:justify-between">
+                          <span className="max-sm:text-sm">Multiple</span>
+                        </div>
+
+                        {activeTooltip === "entry" && (
+                          <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200 max-sm:w-48 max-sm:-left-20">
+                            <p className="text-sm max-sm:text-xs">
+                              {tooltips.entry}
+                            </p>
+                            <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200 max-sm:left-20"></div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
-
-                </div>
-
-              
               </div>
 
               <div className="text-left my-4 max-sm:my-3">
@@ -2283,13 +2374,13 @@ const CountrySlider = () => {
       <div className="w-full gap-3 flex flex-col items-start lg:max-w-[60%] max-sm:gap-4">
         {/* NRI Badge Section */}
         <section className="text-center text-white rounded-2xl p-2 w-full max-sm:p-1">
-          <div className="flex justify-center items-center">
+          <div className="flex justify-start items-center">
             <button className="bg-[#24242D] border border-white px-4 py-[7px] pb-[18px] rounded-full font-medium text-sm text-white select-none transition-colors relative overflow-hidden text-center max-sm:w-full max-sm:px-3 max-sm:py-2">
               <span
                 className="relative z-10 leading-none text-center font-bold flex justify-center items-center pt-2 max-sm:text-[18px]"
                 style={{ fontSize: "17px" }}
               >
-                {sliderContent["nri_badge_text"]}
+                {sliderContent["nri_badge_text"] || ""}
               </span>
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse"></div>
             </button>
@@ -2739,7 +2830,7 @@ const CountrySlider = () => {
                       </span>
                     </div>
                   </div>
-                  <div className="w-full">
+                  <div className="w-full  flex flex-col items-center md:items-start">
                     <div className=" cursor-pointer rounded transition-colors flex-1 mb-2">
                       <div className="flex items-center space-x-2 max-sm:space-x-1">
                         <div
@@ -2768,7 +2859,7 @@ const CountrySlider = () => {
                           </div>
                         )}
 
-                      <div className="flex items-center space-x-2 max-sm:flex-col max-sm:items-start max-sm:space-x-0 max-sm:gap-2">
+                      <div className="flex items-center space-x-2 max-sm:flex-col max-sm:space-x-0 max-sm:gap-2">
                         <div className="flex items-center gap-2">
                           <QtyInput
                             value={insuranceCount}
@@ -2782,7 +2873,7 @@ const CountrySlider = () => {
                             £{45 * insuranceCount}
                           </span>
                           <span className="font-gilroy-bold text-2xl max-sm:text-lg">
-                            £{30 * insuranceCount}
+                            £{Math.round(calculateDiscountedInsurancePrice())}
                           </span>
                         </div>
                       </div>
@@ -2830,7 +2921,7 @@ const CountrySlider = () => {
                         </div>
                       </div>
 
-                      <div className="flex items-center space-x-2 mb-2 max-sm:flex-col max-sm:items-start max-sm:space-x-0 max-sm:gap-2">
+                      <div className="flex items-center space-x-2 mb-2 max-sm:flex-col max-sm:space-x-0 max-sm:gap-2 sm:flex-row">
                         <div className="flex items-center space-x-2 mb-2 max-sm:mb-0">
                           <QtyInput
                             value={giftCardCount}
@@ -2843,7 +2934,7 @@ const CountrySlider = () => {
                             £{245 * giftCardCount}
                           </span>
                           <span className="font-gilroy-bold text-2xl max-sm:text-lg">
-                            £{159 * giftCardCount}
+                            £{Math.round(calculateDiscountedGiftCardPrice())}
                           </span>
                         </div>
                       </div>

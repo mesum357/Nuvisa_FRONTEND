@@ -75,7 +75,7 @@ const ComparisonSection = () => {
       <div className="max-w-[800px] mx-auto overflow-x-hidden">
         <div className="flex justify-between items-center mb-6">
           <div className="w-full items-center justify-center flex">
-            <p className="text-xl max-sm:text-lg font-gilroy-bold text-black">
+            <p className="text-[16px] md:text-[27px] font-gilroy-bold text-black">
               {data.title || "Travel Agency"}
             </p>
           </div>
@@ -102,11 +102,11 @@ const ComparisonSection = () => {
                 height={346}
                 src={data.leftSideImage || "/image/visa-agency.png"}
                 alt={data.leftSideTitle || "Travel Agency Representative"}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-top object-cover"
               />
             </div>
           </div>
-          <div className="flex justify-center bg-white p-0.5 md:p-[8px] top-[25%] max-sm:top-[20%] rounded-full absolute left-1/2 -translate-x-1/2 z-10">
+          <div className="flex justify-center bg-white p-0.5 md:p-[8px] top-1/2 -translate-y-1/2 rounded-full absolute left-1/2 -translate-x-1/2 z-10">
             <img
               src="/image/vs.svg"
               alt=""

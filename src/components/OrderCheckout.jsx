@@ -19,6 +19,7 @@ import QtyInput from "./QtyInput";
 import { useSliderContent } from "@/hooks/useSliderContent";
 import {
   setAmountWithoutDiscount,
+  setAppliedDiscount,
   setCouponCode,
   setGiftCardFees,
   setInsuranceFees,
@@ -102,9 +103,8 @@ const VisaCheckout = () => {
   );
   const [couponCode, setCouponCodeLocal] = useState(visaState.couponCode || "");
   const [insuranceCouponCode, setInsuranceCouponCode] = useState();
-  const [appliedDiscount, setAppliedDiscount] = useState(
-    visaState.appliedDiscount || null
-  );
+  // Read appliedDiscount from Redux instead of local state
+  const appliedDiscount = visaState.appliedDiscount;
   const [appliedInsuranceDiscount, setAppliedInsuranceDiscount] =
     useState(null);
   const [insuranceCouponError, setInsuranceCouponError] = useState("");
@@ -297,11 +297,11 @@ const VisaCheckout = () => {
             !appliedDiscount ||
             (appliedDiscount && appliedDiscount.code !== "STUDENT10")
           ) {
-            setAppliedDiscount({
+            dispatch(setAppliedDiscount({
               code: "STUDENT10",
               percentage: 10,
               description: "Student discount",
-            });
+            }));
             setCouponCodeLocal("STUDENT10");
           }
         }
@@ -338,7 +338,7 @@ const VisaCheckout = () => {
         appliedDiscount.code === "GROUP20" &&
         !groupAutoApplied
       ) {
-        setAppliedDiscount(null);
+        dispatch(setAppliedDiscount(null));
         setCouponCodeLocal("");
         setCouponError("");
       }
@@ -348,11 +348,11 @@ const VisaCheckout = () => {
           (appliedDiscount && appliedDiscount.code !== "GROUP20")) &&
         !groupAutoApplied
       ) {
-        setAppliedDiscount({
+        dispatch(setAppliedDiscount({
           code: "GROUP20",
           percentage: 20,
           description: "Group discount (3+ travellers)",
-        });
+        }));
         setCouponCodeLocal("GROUP20");
       }
     }
@@ -434,10 +434,11 @@ const VisaCheckout = () => {
 
     const discountWithAmount = {
       ...discount,
+      code: couponCode.toUpperCase(),
       discountAmount: Math.round(calculatedDiscountAmount),
     };
 
-    setAppliedDiscount(discountWithAmount);
+    dispatch(setAppliedDiscount(discountWithAmount));
     setCouponError("");
     // If user manually applied GROUP20, mark it as manual (not auto-applied)
     if (couponCode.toUpperCase() === "GROUP20") {
@@ -478,13 +479,13 @@ const VisaCheckout = () => {
 
   const removeCoupon = () => {
     setCouponCodeLocal("");
-    setAppliedDiscount(null);
+    dispatch(setAppliedDiscount(null));
     setCouponError("");
   };
   const [includeGiftCard, setIncludeGiftCard] = useState(
     visaState.recommendedItems?.giftCard || false
   );
-  const [giftCardCount, setGiftCardCount] = useState(1);
+  const [giftCardCount, setGiftCardCount] = useState(visaState.giftCardCount || 1);
 
   const handleGiftCardChange = (increment) => {
     const newValue = giftCardCount + increment;
@@ -651,112 +652,127 @@ const VisaCheckout = () => {
     validateCardDetails();
   };
 
-  const expectedVisaFeesTotal = baseVisaFee * travelers;
-  let visaFeesTotal = 0;
-  if (
-    Number.isFinite(Number(visaState.visaFees)) &&
-    Number(visaState.visaFees) === expectedVisaFeesTotal
-  ) {
-    visaFeesTotal = Number(visaState.visaFees);
-  } else if (travelers === 0) {
-    visaFeesTotal = 0;
-  } else {
-    visaFeesTotal = expectedVisaFeesTotal;
-  }
-
-  const insuranceFees = includeInsurance ? insuranceFeesTotal : 0;
-  const giftCardFees = includeGiftCard ? 159 * giftCardCount : 0;
-  const insuranceWithDiscount =
-    appliedInsuranceDiscount && includeInsurance
-      ? insuranceFees -
-        (insuranceFees * appliedInsuranceDiscount.percentage) / 100
-      : insuranceFees;
-  const visaFeesWithDiscount = appliedDiscount
-    ? visaFeesTotal - (visaFeesTotal * appliedDiscount.percentage) / 100
-    : visaFeesTotal;
+  // SUBTOTAL: Original prices (no discounts applied)
+  const originalVisaFees = 200 * travelers; // £200 per traveler
+  const originalInsuranceFees = includeInsurance ? 45 * insuranceCount : 0; // £45 per insurance
+  const originalGiftCardFees = includeGiftCard ? 245 * giftCardCount : 0; // £245 per gift card
   const eVisaFees = 0; // Currently free
-  const subtotal = visaFeesTotal + insuranceFees + giftCardFees + eVisaFees;
-  const total =
-    visaFeesWithDiscount + insuranceWithDiscount + giftCardFees + eVisaFees;
-  const insuranceDiscountAmount =
-    appliedInsuranceDiscount && includeInsurance
-      ? (insuranceFees * appliedInsuranceDiscount.percentage) / 100
-      : 0;
-  const discountAmount =
-    insuranceDiscountAmount +
-    (appliedDiscount ? (visaFeesTotal * appliedDiscount.percentage) / 100 : 0);
+  const subtotal = originalVisaFees + originalInsuranceFees + originalGiftCardFees + eVisaFees;
 
-  const discountedSubtotal = subtotal - discountAmount;
+  // TOTAL: Start with discounted base prices
+  const baseDiscountedVisaFees = 129 * travelers; // £129 per traveler
+  const baseDiscountedInsuranceFees = includeInsurance ? 30 * insuranceCount : 0; // £30 per insurance
+  const baseDiscountedGiftCardFees = includeGiftCard ? 159 * giftCardCount : 0; // £159 per gift card
 
-  // Calculate original price and savings (for display purposes)
-  const originalPrice = visaState.insuranceOnly ? 0 : baseVisaFee * travelers;
-  const savings = originalPrice - visaFeesTotal; // Any savings from discounts
+  // Calculate individual component discounts
+  let visaDiscountPercentage = 0;
+  let insuranceDiscountPercentage = 0;
+  let giftCardDiscountPercentage = 0;
 
-  // Traveller strike-out price per traveller based on default 200, scaled if visa type custom price exists
-  const travellerBaseStrike = 200;
-  const defaultBaseForRatio = 129;
+  // Check if any component qualifies for quantity discount (3+)
+  // Note: Insurance count cannot exceed traveler count (insurance certificates are for travelers)
+  const effectiveInsuranceCount = Math.min(insuranceCount, travelers);
+  
+  const travelersQualify = travelers >= 3;
+  const insuranceQualify = effectiveInsuranceCount >= 3;
+  const giftCardQualify = giftCardCount >= 3;
 
-  const travellerStrikePer = (() => {
-    const current = baseVisaFee;
-    if (defaultBaseForRatio > 0) {
-      return Math.round((travellerBaseStrike * current) / defaultBaseForRatio);
+  // Apply quantity-based discounts (20% for 3+ items)
+  if (travelersQualify) visaDiscountPercentage += 20;
+  if (insuranceQualify) insuranceDiscountPercentage += 20;
+  if (giftCardQualify) giftCardDiscountPercentage += 20;
+
+  // Apply coupon discounts
+  if (appliedDiscount) {
+    console.log("Applied Discount:", appliedDiscount); // Debug log
+    if (appliedDiscount.code === "GROUP20") {
+      // GROUP20: Only applies if travelers >= 3 AND at least one other component >= 3
+      if (travelersQualify && (insuranceQualify || giftCardQualify)) {
+        // Apply 20% to all components that have 3+ items
+        if (travelersQualify) visaDiscountPercentage = Math.max(visaDiscountPercentage, 20);
+        if (insuranceQualify) insuranceDiscountPercentage = Math.max(insuranceDiscountPercentage, 20);
+        if (giftCardQualify) giftCardDiscountPercentage = Math.max(giftCardDiscountPercentage, 20);
+      }
+    } else if (appliedDiscount.code === "STUDENT10") {
+      console.log("Applying STUDENT10 discount"); // Debug log
+      // STUDENT10: Adds 10% to ALL components (stacks with quantity discounts)
+      visaDiscountPercentage += 10;
+      if (includeInsurance) insuranceDiscountPercentage += 10;
+      if (includeGiftCard) giftCardDiscountPercentage += 10;
     }
-    return travellerBaseStrike;
-  })();
+  }
+  
+  console.log("Final discount percentages:", { // Debug log
+    visa: visaDiscountPercentage,
+    insurance: insuranceDiscountPercentage,
+    giftCard: giftCardDiscountPercentage
+  });
 
-  const travellerStrikeTotal = travellerStrikePer * travelers;
-
-  // Calculate dynamic values based on user selections in EUR
-  const visaFeesEUR = calculatePaymentFees(visaFeesTotal, "EUR");
-  const discountedVisaFeesEUR =
-    visaFeesEUR - (visaFeesEUR * appliedDiscount?.percentage) / 100;
-
-  // Calculate discounted insurance fees
-  const baseInsuranceFeesEUR = includeInsurance
-    ? appliedInsuranceDiscount
-      ? calculatePaymentFees(insuranceFees, "EUR") -
-        (calculatePaymentFees(insuranceFees, "EUR") *
-          appliedInsuranceDiscount.percentage) /
-          100
-      : calculatePaymentFees(insuranceFees, "EUR")
+  // Calculate discount amounts
+  const visaDiscountAmount = (baseDiscountedVisaFees * visaDiscountPercentage) / 100;
+  const insuranceDiscountAmount = includeInsurance 
+    ? (baseDiscountedInsuranceFees * insuranceDiscountPercentage) / 100 
     : 0;
-  const discountedInsuranceFeesEUR =
-    appliedInsuranceDiscount && includeInsurance
-      ? baseInsuranceFeesEUR -
-        (baseInsuranceFeesEUR * appliedInsuranceDiscount.percentage) / 100
-      : baseInsuranceFeesEUR;
+  const giftCardDiscountAmount = includeGiftCard 
+    ? (baseDiscountedGiftCardFees * giftCardDiscountPercentage) / 100 
+    : 0;
 
-  const _giftCardFeesEUR = calculatePaymentFees(giftCardFees, "EUR");
-  const giftCardStrikeTotal = 245 * giftCardCount;
-  const insuranceStrikeTotal = Math.round(insuranceFeesPerTraveller * 1.5 * insuranceCount);
-  const displayInsuranceEUR = calculatePaymentFees(insuranceFees, "EUR");
+  // Calculate final amounts after discounts
+  const finalVisaFees = baseDiscountedVisaFees - visaDiscountAmount;
+  const finalInsuranceFees = baseDiscountedInsuranceFees - insuranceDiscountAmount;
+  const finalGiftCardFees = baseDiscountedGiftCardFees - giftCardDiscountAmount;
 
+  const total = finalVisaFees + finalInsuranceFees + finalGiftCardFees + eVisaFees;
+
+  // YOU SAVE: Subtotal minus Total
+  const totalSavingsAmount = subtotal - total;
+
+  // Calculate EUR values for display
+  const subtotalEUR = calculatePaymentFees(subtotal, "EUR");
+  const totalEUR = calculatePaymentFees(total, "EUR");
+  const totalSavingsEUR = calculatePaymentFees(totalSavingsAmount, "EUR");
+  
+  // Individual component EUR values (final amounts after discounts)
+  const visaFeesEUR = calculatePaymentFees(finalVisaFees, "EUR");
+  const discountedVisaFeesEUR = visaFeesEUR;
+  
+  const baseInsuranceFeesEUR = calculatePaymentFees(finalInsuranceFees, "EUR");
+  const discountedInsuranceFeesEUR = baseInsuranceFeesEUR;
+  
+  const giftCardFeesEUR = calculatePaymentFees(finalGiftCardFees, "EUR");
+  
+  // Strike-through prices (original prices)
+  const travellerStrikeTotal = originalVisaFees;
+  const insuranceStrikeTotal = originalInsuranceFees;
+  const giftCardStrikeTotal = originalGiftCardFees;
+  
   const travellerStrikeEUR = calculatePaymentFees(travellerStrikeTotal, "EUR");
   const insuranceStrikeEUR = calculatePaymentFees(insuranceStrikeTotal, "EUR");
   const giftCardStrikeEUR = calculatePaymentFees(giftCardStrikeTotal, "EUR");
+  
   const eVisaFeesEUR = 0; // Currently free
-  const subtotalEUR = calculatePaymentFees(subtotal, "EUR");
+  const totalAmountEUR = totalEUR;
 
-  // GBP display values to match Slider.jsx (rounded, no pennies)
+  // GBP display values for the UI
   const travellerStrikeGBP = travellerStrikeTotal; // already in GBP units
-  const visaFeesGBPDisplay = Math.round(
-    appliedDiscount
-      ? visaFeesTotal - (visaFeesTotal * (appliedDiscount.percentage || 0)) / 100
-      : visaFeesTotal
-  );
-
-  const discountAmountEUR = calculatePaymentFees(discountAmount, "EUR");
-  const discountedSubtotalEUR = calculatePaymentFees(discountedSubtotal, "EUR");
-
-  const _originalPriceEUR = calculatePaymentFees(originalPrice, "EUR");
-  const _savingsEUR = calculatePaymentFees(savings, "EUR");
-  const totalAmountEUR = discountedSubtotalEUR;
-
-  // Calculate total savings from original strike price to final price
-  const totalOriginalPrice = travellerStrikeTotal + (includeInsurance ? insuranceStrikeTotal : 0) + (includeGiftCard ? giftCardStrikeTotal : 0);
-  const finalPrice = visaFeesWithDiscount + insuranceWithDiscount + giftCardFees;
-  const totalSavingsAmount = totalOriginalPrice - finalPrice;
-  const totalSavingsEUR = calculatePaymentFees(totalSavingsAmount, "EUR");
+  const visaFeesGBPDisplay = Math.round(finalVisaFees);
+  
+  // Insurance display value in EUR (after discounts)
+  const displayInsuranceEUR = discountedInsuranceFeesEUR;
+  
+  // Gift card display value in EUR
+  const _giftCardFeesEUR = giftCardFeesEUR;
+  
+  // Discount amount in EUR (for display purposes)
+  const totalCouponDiscount = visaDiscountAmount + insuranceDiscountAmount + giftCardDiscountAmount;
+  const discountAmountEUR = calculatePaymentFees(totalCouponDiscount, "EUR");
+  
+  // Variables for Apple Pay and other payment methods
+  const visaFees = finalVisaFees;
+  const insuranceFees = finalInsuranceFees;
+  const giftCardFees = finalGiftCardFees;
+  const currentBaseFee = 129; // Current base fee per traveler
+  const totalAmount = total;
 
   const handleProceedToCheckout = async () => {
     await localStorageGateway(
@@ -808,7 +824,7 @@ const VisaCheckout = () => {
     await localStorageGateway(
       "paymentWithDiscount",
       localStorageEnums.SET,
-      String(discountedSubtotalEUR - insuranceFees)
+      String(totalEUR - discountedInsuranceFeesEUR)
     );
 
     if (cretingDynamicCheckout) return;
@@ -980,11 +996,11 @@ const VisaCheckout = () => {
             !appliedDiscount ||
             (appliedDiscount && appliedDiscount.code !== "STUDENT10")
           ) {
-            setAppliedDiscount({
+            dispatch(setAppliedDiscount({
               code: "STUDENT10",
               percentage: 10,
               description: "Student discount",
-            });
+            }));
             setCouponCodeLocal("STUDENT10");
           }
         }
@@ -2557,7 +2573,7 @@ const VisaCheckout = () => {
             {/* Total */}
             <div className="flex justify-between font-gilroy-bold text-xl pt-2 border-t border-gray-700">
               <span>Total</span>
-              <span>{formatCurrency(total, "EUR")} EUR</span>
+              <span>{formatCurrency(totalEUR, "EUR")} EUR</span>
             </div>
 
             {/* Free Offer Banner */}

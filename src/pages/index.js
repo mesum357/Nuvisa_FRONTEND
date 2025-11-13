@@ -66,18 +66,18 @@ const Index = () => {
               {/* Main Heading */}
               <h2 className="text-[26px] max-md:px-8 lg:text-[38px] font-gilroy-bold text-[#fff] mb-2 leading-tight flex items-center gap-3 justify-center">
                 <Image src="/icons/klarna.png" alt="Klarna" width={40} height={40} className="" />
-                {klarnaLoading ? "Loading..." : klarnaContent.heading}
+                {klarnaLoading ? "Loading..." : klarnaContent.heading }
               </h2>
 
               {/* Subheading with Details */}
               <div className=" flex items-center gap-2 max-md:flex-col text-white justify-center font-gilroy-medium">
-                <p className="text-sm md:text-[16px] font-semibold">
+                <p className="text-sm md:text-[16px] font-semibold"> hhh
                   {klarnaLoading ? "Loading..." : klarnaContent.subtitle}
                 </p>
                 <p className="font-gilroy-bold text-lg md:text-[20px] ">
                   <span className="">{!klarnaLoading && klarnaContent.paymentAmount}</span> each |
                   <span className="mx-2">{!klarnaLoading && klarnaContent.interestRate}</span>|
-                  <span> {!klarnaLoading && klarnaContent.fees}</span>
+                  <span> {!klarnaLoading && klarnaContent.fees}  hhhhggg</span>
                 </p>
               </div>
             </div>

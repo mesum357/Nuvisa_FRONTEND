@@ -82,7 +82,7 @@ const Navbar = () => {
 
         </div>
 
-        <div className="text-center mt-5">
+        <div className="text-center mt-5 md:hidden block">
           <span className="text-xl sm:text-2xl font-gilroy-bold md:block ">
             {getContent('nav_tagline', 'Schengen visa for Indians from the UK')}
           </span>
@@ -101,6 +101,13 @@ const Navbar = () => {
                 className="object-contain"
               />
             </Link>
+          </div> 
+
+           {/* Center Text */}
+          <div className="absolute left-1/2 transform -translate-x-1/2 md:block hidden">
+            <span className="text-[22px] font-gilroy-bold text-center">
+              {getContent('nav_tagline') || 'Schengen visa for Indians from the UK'}
+            </span>
           </div>
 
 

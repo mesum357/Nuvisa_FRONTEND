@@ -118,10 +118,111 @@ const StickyBottomBar = () => {
     return Object.values(quantities).reduce((sum, qty) => sum + qty, 0);
   };
 
+  // NEW DISCOUNT CALCULATION LOGIC - matching OrderCheckout.jsx and Slider.jsx
+  const calculateDiscountedPrices = () => {
+    console.log("StickyBottomBar calculateDiscountedPrices - Input values:", {
+      quantities,
+      recommendedItems,
+      appliedDiscount: visaState.appliedDiscount
+    });
+    
+    // Base discounted prices (not original prices)
+    const baseDiscountedVisaFees = 129 * quantities.schengen;
+    const baseDiscountedInsuranceFees = recommendedItems?.insuranceCertificate ? 30 * quantities.insurance : 0;
+    const baseDiscountedGiftCardFees = recommendedItems?.giftCard ? 159 * quantities.giftCard : 0;
+
+    // Calculate individual component discounts
+    let visaDiscountPercentage = 0;
+    let insuranceDiscountPercentage = 0;
+    let giftCardDiscountPercentage = 0;
+
+    // Check if any component qualifies for quantity discount (3+)
+    // Note: Insurance count cannot exceed traveler count (insurance certificates are for travelers)
+    const effectiveInsuranceCount = Math.min(quantities.insurance, quantities.schengen);
+    
+    const travelersQualify = quantities.schengen >= 3;
+    const insuranceQualify = effectiveInsuranceCount >= 3;
+    const giftCardQualify = quantities.giftCard >= 3;
+
+    // Apply quantity-based discounts (20% for 3+ items)
+    if (travelersQualify) visaDiscountPercentage += 20;
+    if (insuranceQualify) insuranceDiscountPercentage += 20;
+    if (giftCardQualify) giftCardDiscountPercentage += 20;
+
+    // Apply coupon discounts from Redux state
+    const appliedDiscount = visaState.appliedDiscount;
+    if (appliedDiscount) {
+      console.log("StickyBottomBar Applied Discount:", appliedDiscount); // Debug log
+      if (appliedDiscount.code === "GROUP20") {
+        // GROUP20: Only applies if travelers >= 3 AND at least one other component >= 3
+        if (travelersQualify && (insuranceQualify || giftCardQualify)) {
+          // Apply 20% to all components that have 3+ items
+          if (travelersQualify) visaDiscountPercentage = Math.max(visaDiscountPercentage, 20);
+          if (insuranceQualify) insuranceDiscountPercentage = Math.max(insuranceDiscountPercentage, 20);
+          if (giftCardQualify) giftCardDiscountPercentage = Math.max(giftCardDiscountPercentage, 20);
+        }
+      } else if (appliedDiscount.code === "STUDENT10") {
+        console.log("StickyBottomBar Applying STUDENT10 discount"); // Debug log
+        // STUDENT10: Adds 10% to ALL components (stacks with quantity discounts)
+        visaDiscountPercentage += 10;
+        if (recommendedItems?.insuranceCertificate) insuranceDiscountPercentage += 10;
+        if (recommendedItems?.giftCard) giftCardDiscountPercentage += 10;
+      }
+    }
+    
+    console.log("StickyBottomBar Final discount percentages:", { // Debug log
+      visa: visaDiscountPercentage,
+      insurance: insuranceDiscountPercentage,
+      giftCard: giftCardDiscountPercentage
+    });
+
+    // Calculate discount amounts
+    const visaDiscountAmount = (baseDiscountedVisaFees * visaDiscountPercentage) / 100;
+    const insuranceDiscountAmount = recommendedItems?.insuranceCertificate 
+      ? (baseDiscountedInsuranceFees * insuranceDiscountPercentage) / 100 
+      : 0;
+    const giftCardDiscountAmount = recommendedItems?.giftCard 
+      ? (baseDiscountedGiftCardFees * giftCardDiscountPercentage) / 100 
+      : 0;
+
+    // Calculate final amounts after discounts
+    const finalVisaFees = baseDiscountedVisaFees - visaDiscountAmount;
+    const finalInsuranceFees = baseDiscountedInsuranceFees - insuranceDiscountAmount;
+    const finalGiftCardFees = baseDiscountedGiftCardFees - giftCardDiscountAmount;
+
+    console.log("StickyBottomBar calculateDiscountedPrices - Final results:", {
+      finalVisaFees,
+      finalInsuranceFees,
+      finalGiftCardFees,
+      totalPrice: finalVisaFees + finalInsuranceFees + finalGiftCardFees
+    });
+
+    return {
+      visa: finalVisaFees,
+      insurance: finalInsuranceFees,
+      giftCard: finalGiftCardFees,
+      total: finalVisaFees + finalInsuranceFees + finalGiftCardFees
+    };
+  };
+
   const getTotalPrice = () => {
-    return items.reduce((total, item) => {
-      return total + (item.currentPrice * quantities[item.id]);
-    }, 0);
+    const discountedPrices = calculateDiscountedPrices();
+    return discountedPrices.total;
+  };
+
+  // Helper function to get individual item discounted price
+  const getItemDiscountedPrice = (itemId) => {
+    const discountedPrices = calculateDiscountedPrices();
+    switch(itemId) {
+      case 'schengen':
+        return discountedPrices.visa;
+      case 'insurance':
+        return discountedPrices.insurance;
+      case 'giftCard':
+        return discountedPrices.giftCard;
+      default:
+        return 0;
+    }
   };
 
 
@@ -129,16 +230,13 @@ const StickyBottomBar = () => {
     // Always trigger document validation when Add to Cart is clicked
     dispatch(triggerDocumentValidation());
 
-    // Calculate fees and dispatch to Redux to ensure checkout has correct values
-    const visaFees = travelerCount * 129; // Using the current price from items
-    const insuranceFees = insuranceCount * 30;
-    const giftCardFees = giftCardCount * 159;
-    const totalAmount = visaFees + insuranceFees + giftCardFees;
-
-    dispatch(setVisaFees(visaFees));
-    dispatch(setInsuranceFees(insuranceFees));
-    dispatch(setGiftCardFees(giftCardFees));
-    dispatch(setTotalAmount(totalAmount));
+    // Calculate fees using new discount logic and dispatch to Redux
+    const discountedPrices = calculateDiscountedPrices();
+    
+    dispatch(setVisaFees(Math.round(discountedPrices.visa)));
+    dispatch(setInsuranceFees(Math.round(discountedPrices.insurance)));
+    dispatch(setGiftCardFees(Math.round(discountedPrices.giftCard)));
+    dispatch(setTotalAmount(Math.round(discountedPrices.total)));
     dispatch(setRequiredDocuments(requiredDocuments));
     dispatch(setRecommendedItems(recommendedItems));
 
@@ -225,7 +323,7 @@ const StickyBottomBar = () => {
                       £{quantities[item.id] > 0 ? item.originalPrice * quantities[item.id] : item.originalPrice}
                     </span>
                     <span className="text-white font-bold">
-                      £{quantities[item.id] > 0 ? item.currentPrice * quantities[item.id] : item.currentPrice}
+                      £{quantities[item.id] > 0 ? Math.round(getItemDiscountedPrice(item.id)) : item.currentPrice}
                     </span>
                     {item.badge && (
                       <div className="flex items-center gap-1">
@@ -282,6 +380,12 @@ const StickyBottomBar = () => {
               <div key={item.id} className="flex items-center gap-3 text-white">
                 {/* Background Container for Insurance Certificate and Gift Card */}
                 <div className="bg-[#24242D] rounded-2xl px-6 py-3 flex items-center gap-3 min-w-[280px]">
+                  {/* Item Image */}
+                  <img 
+                    src={item.id === 'insurance' ? '/image/certificatee.jpg' : '/image/gitftnewcard.png'}
+                    alt={item.title}
+                    className="w-16 h-12 rounded-lg object-contain flex-shrink-0 bg-white/10"
+                  />
                   {/* Item Info */}
                   <div className="flex flex-col">
                     <h3 className="text-sm font-medium text-white mb-1">{item.title}</h3>
@@ -290,7 +394,7 @@ const StickyBottomBar = () => {
                         £{quantities[item.id] > 0 ? item.originalPrice * quantities[item.id] : item.originalPrice}
                       </span>
                       <span className="text-white font-bold">
-                        £{quantities[item.id] > 0 ? item.currentPrice * quantities[item.id] : item.currentPrice}
+                        £{quantities[item.id] > 0 ? Math.round(getItemDiscountedPrice(item.id)) : item.currentPrice}
                       </span>
                       
                       {/* Quantity Controls - inline with price */}
@@ -397,7 +501,7 @@ const StickyBottomBar = () => {
                         £{quantities[item.id] > 0 ? item.originalPrice * quantities[item.id] : item.originalPrice}
                       </span>
                       <span className="text-white font-bold">
-                        £{quantities[item.id] > 0 ? item.currentPrice * quantities[item.id] : item.currentPrice}
+                        £{quantities[item.id] > 0 ? Math.round(getItemDiscountedPrice(item.id)) : item.currentPrice}
                       </span>
                       {item.badge && (
                         <div className="text-white px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1" style={{backgroundColor: '#6B4EFF'}}>
@@ -492,6 +596,12 @@ const StickyBottomBar = () => {
         {items.filter(item => item.id === 'insurance' || item.id === 'giftCard').map((item) => (
           <div key={item.id} className="bg-[#24242D] rounded-2xl px-4 py-4">
             <div className="flex items-center justify-between mb-3">
+              {/* Item Image */}
+              <img 
+                src={item.id === 'insurance' ? '/image/certificatee.jpg' : '/image/gitftnewcard.png'}
+                alt={item.title}
+                className="w-20 h-16 rounded-lg object-contain flex-shrink-0 mr-3 bg-white/10"
+              />
               <div className="flex-1">
                 <h3 className="text-base font-medium text-white mb-2">{item.title}</h3>
                 <div className="flex items-center gap-2">
@@ -499,7 +609,7 @@ const StickyBottomBar = () => {
                     £{quantities[item.id] > 0 ? item.originalPrice * quantities[item.id] : item.originalPrice}
                   </span>
                   <span className="text-white font-bold">
-                    £{quantities[item.id] > 0 ? item.currentPrice * quantities[item.id] : item.currentPrice}
+                    £{quantities[item.id] > 0 ? Math.round(getItemDiscountedPrice(item.id)) : item.currentPrice}
                   </span>
                 </div>
               </div>
