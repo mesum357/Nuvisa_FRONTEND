@@ -102,7 +102,7 @@ const ComparisonSection = () => {
                 height={346}
                 src={data.leftSideImage || "/image/visa-agency.png"}
                 alt={data.leftSideTitle || "Travel Agency Representative"}
-                className="w-full h-full object-top object-cover"
+                className="w-full h-full md:object-center object-top  object-cover"
               />
             </div>
           </div>

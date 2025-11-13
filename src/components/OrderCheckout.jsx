@@ -318,6 +318,7 @@ const VisaCheckout = () => {
       });
       setInsuranceCouponCode("GROUP20");
       setCouponError("");
+      showSuccess("Insurance group-20 applied — 20% off for 3+ insurances");
     } else {
       setAppliedInsuranceDiscount(null);
       setInsuranceCouponCode("");
