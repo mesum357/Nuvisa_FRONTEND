@@ -2037,7 +2037,7 @@ const CountrySlider = () => {
       <div className="w-full gap-3 flex flex-col items-start lg:max-w-[60%] max-sm:gap-4">
         {/* Badges Section */}
         <section className="text-center text-white rounded-2xl p-2 w-full max-sm:p-1">
-          <div className="w-full flex justify-center items-center gap-2 px-3 max-sm:flex-col max-sm:gap-3 max-sm:px-1">
+          <div className="w-full flex justify-start items-center gap-2 px-3 max-sm:flex-col max-sm:gap-3 max-sm:px-1">
             <button className="bg-[#24242D] border border-white px-6 py-[10px] rounded-full font-medium text-white select-none transition-colors relative overflow-hidden max-sm:w-full max-sm:px-4 max-sm:py-3">
               <span className="relative z-10 font-bold text-[22px] leading-none max-sm:text-[18px]">
                 {sliderContent["badge_1_text"]}
@@ -2280,13 +2280,13 @@ const CountrySlider = () => {
       <div className="w-full gap-3 flex flex-col items-start lg:max-w-[60%] max-sm:gap-4">
         {/* NRI Badge Section */}
         <section className="text-center text-white rounded-2xl p-2 w-full max-sm:p-1">
-          <div className="flex justify-center items-center">
+          <div className="flex justify-start items-center">
             <button className="bg-[#24242D] border border-white px-4 py-[7px] pb-[18px] rounded-full font-medium text-sm text-white select-none transition-colors relative overflow-hidden text-center max-sm:w-full max-sm:px-3 max-sm:py-2">
               <span
                 className="relative z-10 leading-none text-center font-bold flex justify-center items-center pt-2 max-sm:text-[18px]"
                 style={{ fontSize: "17px" }}
               >
-                {sliderContent["nri_badge_text"]}
+                {sliderContent["nri_badge_text"] || ""}
               </span>
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse"></div>
             </button>
