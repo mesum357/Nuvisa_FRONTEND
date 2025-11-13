@@ -15,7 +15,7 @@ import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import StickyBottomBar from "@/components/StickyBottomBar";
-
+import Carousel from "@/components/Carousel";
 const Index = () => {
   const { heroContent, loading } = useHeroContent();
   const { klarnaContent, loading: klarnaLoading } = useKlarnaContent();
@@ -53,12 +53,13 @@ const Index = () => {
           </div>
           <VisaHeroSection />
         </main>
-        <CountryCardsSection />
+        {/* <CountryCardsSection /> */}
       </div>
       <FeaturesSection />
       <VisaSolution />
       <ComparisonSection />
       <PremiumServiceSection />
+      <Carousel />
       <div className="bg-gradient-to-br from-purple-100 to-[#f3e6ff]">
         <div className=" py-16 px-6">
           <div className="max-[1200px] mx-auto">
