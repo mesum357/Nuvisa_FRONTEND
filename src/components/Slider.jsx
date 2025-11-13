@@ -196,7 +196,8 @@ const CountrySlider = () => {
   const [couponError, setCouponError] = useState("");
   const [insuranceCouponCode, setInsuranceCouponCode] = useState("");
   const [insuranceCouponError, setInsuranceCouponError] = useState("");
-  const [appliedDiscount, setAppliedDiscountLocal] = useState(null);
+  // Read appliedDiscount from Redux instead of local state
+  const appliedDiscount = visaState.appliedDiscount;
   const [appliedInsuranceDiscount, setAppliedInsuranceDiscount] =
     useState(null);
   const [insuranceAutoApplied, setInsuranceAutoApplied] = useState(false);
@@ -837,54 +838,145 @@ const CountrySlider = () => {
   };
 
   const calculateFinalPrice = () => {
-    const currentBaseFee =
-      selectedVisaType && selectedVisaType.priceGBP
-        ? Number(selectedVisaType.priceGBP)
-        : selectedVisaType && selectedVisaType.price
-        ? Math.round(Number(selectedVisaType.price) / 100)
-        : baseFee;
+    // NEW DISCOUNT LOGIC - matching OrderCheckout.jsx
+    console.log("Slider calculateFinalPrice - Input values:", {
+      travelers,
+      insuranceCount,
+      giftCardCount,
+      recommendedItems,
+      appliedDiscount
+    });
+    
+    // Base discounted prices (not original prices)
+    const baseDiscountedVisaFees = 129 * travelers; // £129 per traveler
+    const baseDiscountedInsuranceFees = recommendedItems.insuranceCertificate ? 30 * insuranceCount : 0; // £30 per insurance
+    const baseDiscountedGiftCardFees = recommendedItems.giftCard ? 159 * giftCardCount : 0; // £159 per gift card
 
-    const basePrice = currentBaseFee * travelers;
-    // Gift card cost
-    const giftCardCost = recommendedItems.giftCard ? 159 * giftCardCount : 0;
+    // Calculate individual component discounts
+    let visaDiscountPercentage = 0;
+    let insuranceDiscountPercentage = 0;
+    let giftCardDiscountPercentage = 0;
 
-    let insuranceCost = computedInsuranceTotal;
+    // Check if any component qualifies for quantity discount (3+)
+    // Note: Insurance count cannot exceed traveler count (insurance certificates are for travelers)
+    const effectiveInsuranceCount = Math.min(insuranceCount, travelers);
+    
+    const travelersQualify = travelers >= 3;
+    const insuranceQualify = effectiveInsuranceCount >= 3;
+    const giftCardQualify = giftCardCount >= 3;
 
-    if (appliedInsuranceDiscount && insuranceCost > 0) {
-      const insDiscountAmount =
-        (insuranceCost * appliedInsuranceDiscount.percentage) / 100;
-      insuranceCost = Math.max(0, insuranceCost - insDiscountAmount);
+    // Apply quantity-based discounts (20% for 3+ items)
+    if (travelersQualify) visaDiscountPercentage += 20;
+    if (insuranceQualify) insuranceDiscountPercentage += 20;
+    if (giftCardQualify) giftCardDiscountPercentage += 20;
+
+    // Apply coupon discounts
+    if (appliedDiscount) {
+      console.log("Slider Applied Discount:", appliedDiscount); // Debug log
+      if (appliedDiscount.code === "GROUP20") {
+        // GROUP20: Only applies if travelers >= 3 AND at least one other component >= 3
+        if (travelersQualify && (insuranceQualify || giftCardQualify)) {
+          // Apply 20% to all components that have 3+ items
+          if (travelersQualify) visaDiscountPercentage = Math.max(visaDiscountPercentage, 20);
+          if (insuranceQualify) insuranceDiscountPercentage = Math.max(insuranceDiscountPercentage, 20);
+          if (giftCardQualify) giftCardDiscountPercentage = Math.max(giftCardDiscountPercentage, 20);
+        }
+      } else if (appliedDiscount.code === "STUDENT10") {
+        console.log("Slider Applying STUDENT10 discount"); // Debug log
+        // STUDENT10: Adds 10% to ALL components (stacks with quantity discounts)
+        visaDiscountPercentage += 10;
+        if (recommendedItems.insuranceCertificate) insuranceDiscountPercentage += 10;
+        if (recommendedItems.giftCard) giftCardDiscountPercentage += 10;
+      }
     }
+    
+    console.log("Slider Final discount percentages:", { // Debug log
+      visa: visaDiscountPercentage,
+      insurance: insuranceDiscountPercentage,
+      giftCard: giftCardDiscountPercentage
+    });
 
-    let visaNet = basePrice;
-    if (appliedDiscount && appliedDiscount.percentage) {
-      const visaDiscountAmount = (basePrice * appliedDiscount.percentage) / 100;
-      visaNet = Math.max(0, basePrice - visaDiscountAmount);
-    }
+    // Calculate discount amounts
+    const visaDiscountAmount = (baseDiscountedVisaFees * visaDiscountPercentage) / 100;
+    const insuranceDiscountAmount = recommendedItems.insuranceCertificate 
+      ? (baseDiscountedInsuranceFees * insuranceDiscountPercentage) / 100 
+      : 0;
+    const giftCardDiscountAmount = recommendedItems.giftCard 
+      ? (baseDiscountedGiftCardFees * giftCardDiscountPercentage) / 100 
+      : 0;
 
-    return visaNet?.toFixed(2);
+    // Calculate final prices after discounts
+    const finalVisaPrice = baseDiscountedVisaFees - visaDiscountAmount;
+    const finalInsurancePrice = baseDiscountedInsuranceFees - insuranceDiscountAmount;
+    const finalGiftCardPrice = baseDiscountedGiftCardFees - giftCardDiscountAmount;
+
+    console.log("Slider calculateFinalPrice - Final results:", {
+      finalVisaPrice,
+      finalInsurancePrice,
+      finalGiftCardPrice,
+      totalPrice: finalVisaPrice + finalInsurancePrice + finalGiftCardPrice
+    });
+
+    // Return only visa fees for main display (matching original behavior)
+    return finalVisaPrice?.toFixed(2);
   };
 
   const calculateDiscountedInsurancePrice = () => {
-    const originalPrice = computedInsuranceTotal;
-    if (appliedInsuranceDiscount && originalPrice > 0) {
-      let discountAmount;
+    // Use same logic as calculateFinalPrice for insurance
+    const baseDiscountedInsuranceFees = recommendedItems.insuranceCertificate ? 30 * insuranceCount : 0;
+    let insuranceDiscountPercentage = 0;
 
-      discountAmount =
-        (originalPrice * appliedInsuranceDiscount.percentage) / 100;
+    // Check if insurance qualifies for quantity discount (3+)
+    const effectiveInsuranceCount = Math.min(insuranceCount, travelers);
+    const insuranceQualify = effectiveInsuranceCount >= 3;
+    
+    // Apply quantity-based discount (20% for 3+ items)
+    if (insuranceQualify) insuranceDiscountPercentage += 20;
 
-      return originalPrice - discountAmount;
+    // Apply coupon discounts
+    if (appliedDiscount) {
+      if (appliedDiscount.code === "GROUP20") {
+        const travelersQualify = travelers >= 3;
+        const giftCardQualify = giftCardCount >= 3;
+        if (travelersQualify && (insuranceQualify || giftCardQualify)) {
+          if (insuranceQualify) insuranceDiscountPercentage = Math.max(insuranceDiscountPercentage, 20);
+        }
+      } else if (appliedDiscount.code === "STUDENT10") {
+        if (recommendedItems.insuranceCertificate) insuranceDiscountPercentage += 10;
+      }
     }
-    return originalPrice;
+
+    const insuranceDiscountAmount = (baseDiscountedInsuranceFees * insuranceDiscountPercentage) / 100;
+    return baseDiscountedInsuranceFees - insuranceDiscountAmount;
   };
 
   const calculateDiscountedGiftCardPrice = () => {
-    const originalPrice = 159 * giftCardCount;
-    if (appliedDiscount && originalPrice > 0) {
-      const discountAmount = (originalPrice * appliedDiscount.percentage) / 100;
-      return originalPrice - discountAmount;
+    // Use same logic as calculateFinalPrice for gift cards
+    const baseDiscountedGiftCardFees = recommendedItems.giftCard ? 159 * giftCardCount : 0;
+    let giftCardDiscountPercentage = 0;
+
+    // Check if gift cards qualify for quantity discount (3+)
+    const giftCardQualify = giftCardCount >= 3;
+    
+    // Apply quantity-based discount (20% for 3+ items)
+    if (giftCardQualify) giftCardDiscountPercentage += 20;
+
+    // Apply coupon discounts
+    if (appliedDiscount) {
+      if (appliedDiscount.code === "GROUP20") {
+        const travelersQualify = travelers >= 3;
+        const effectiveInsuranceCount = Math.min(insuranceCount, travelers);
+        const insuranceQualify = effectiveInsuranceCount >= 3;
+        if (travelersQualify && (insuranceQualify || giftCardQualify)) {
+          if (giftCardQualify) giftCardDiscountPercentage = Math.max(giftCardDiscountPercentage, 20);
+        }
+      } else if (appliedDiscount.code === "STUDENT10") {
+        if (recommendedItems.giftCard) giftCardDiscountPercentage += 10;
+      }
     }
-    return originalPrice;
+
+    const giftCardDiscountAmount = (baseDiscountedGiftCardFees * giftCardDiscountPercentage) / 100;
+    return baseDiscountedGiftCardFees - giftCardDiscountAmount;
   };
 
   const calculateOriginalPrice = () => {
@@ -970,15 +1062,16 @@ const CountrySlider = () => {
 
     const discountWithAmount = {
       ...discount,
+      code: couponCode.toUpperCase(),
       discountAmount: Math.round(calculatedDiscountAmount),
     };
 
     if (couponCode.toUpperCase() === "STUDENT10") {
-      setAppliedDiscountLocal(discountWithAmount);
+      dispatch(setAppliedDiscount(discountWithAmount));
       setAppliedInsuranceDiscount({ ...discountWithAmount, code: "STUDENT10" });
       setInsuranceCouponCode("STUDENT10");
     } else {
-      setAppliedDiscountLocal(discountWithAmount);
+      dispatch(setAppliedDiscount(discountWithAmount));
     }
 
     setCouponError("");
@@ -1046,7 +1139,7 @@ const CountrySlider = () => {
   };
 
   const removeCoupon = () => {
-    setAppliedDiscountLocal(null);
+    dispatch(setAppliedDiscount(null));
     setAppliedInsuranceDiscount(null);
     setCouponCodeLocal("");
     setCouponError("");
@@ -1076,12 +1169,13 @@ const CountrySlider = () => {
           const calculatedDiscountAmount = (currentVisaFees * 20) / 100;
 
           const groupDiscount = {
+            code: "GROUP20",
             description: "Group discount (3+ travellers)",
             percentage: 20,
             requiresMinTravellers: 3,
             discountAmount: Math.round(calculatedDiscountAmount),
           };
-          setAppliedDiscountLocal(groupDiscount);
+          dispatch(setAppliedDiscount(groupDiscount));
           setCouponCodeLocal("GROUP20");
           setCouponError("");
           setGroupAutoApplied(true);
@@ -1091,7 +1185,7 @@ const CountrySlider = () => {
       } else {
         // If travelers dropped below 3 and we auto-applied the group discount, remove it
         if (groupAutoApplied) {
-          setAppliedDiscountLocal(null);
+          dispatch(setAppliedDiscount(null));
           // Only clear couponCode if it was the auto-applied GROUP20
           if (currentCode === "GROUP20") setCouponCodeLocal("");
           setGroupAutoApplied(false);
@@ -1470,11 +1564,11 @@ const CountrySlider = () => {
             !appliedDiscount ||
             (appliedDiscount && appliedDiscount.code !== "STUDENT10")
           ) {
-            setAppliedDiscountLocal({
+            dispatch(setAppliedDiscount({
               code: "STUDENT10",
               percentage: 10,
               description: "Student discount",
-            });
+            }));
             setCouponCodeLocal("STUDENT10");
           }
         }
@@ -2779,7 +2873,7 @@ const CountrySlider = () => {
                             £{45 * insuranceCount}
                           </span>
                           <span className="font-gilroy-bold text-2xl max-sm:text-lg">
-                            £{30 * insuranceCount}
+                            £{Math.round(calculateDiscountedInsurancePrice())}
                           </span>
                         </div>
                       </div>
@@ -2840,7 +2934,7 @@ const CountrySlider = () => {
                             £{245 * giftCardCount}
                           </span>
                           <span className="font-gilroy-bold text-2xl max-sm:text-lg">
-                            £{159 * giftCardCount}
+                            £{Math.round(calculateDiscountedGiftCardPrice())}
                           </span>
                         </div>
                       </div>
