@@ -2061,128 +2061,125 @@ const CountrySlider = () => {
                   Visa <br className="hidden sm:block" /> information
                 </h2>
                 <div className="flex gap-10 justify-between w-full md:px-5 px-0">
-                    <div className="flex max-sm:py-2 flex-col gap-1 max-sm:gap-2  max-sm:w-full">
-                  {/* Visa Types */}
-                  <div className="flex items-center max-sm:text-sm">
-                    <FileText className="h-5 w-5 text-[#24242D] stroke-[#24242D] mr-3 fill-white max-sm:mr-2 max-sm:h-4 max-sm:w-4" />
-                    <span className="">Visa Types</span>
-                  </div>
-
-                  {/* Stay Duration */}
-                  <div className="flex items-center max-sm:text-sm">
-                    <Home className="h-5 w-5 mr-3 text-white max-sm:mr-2 max-sm:h-4 max-sm:w-4" />
-                    <span className="">Stay Duration</span>
-                  </div>
-
-                  {/* Term Type */}
-                  <div className="flex items-center max-sm:text-sm">
-                    <ClipboardList className="h-5 w-5 text-[#24242D] stroke-[#24242D] mr-3 fill-white max-sm:mr-2 max-sm:h-4 max-sm:w-4" />
-                    <span className="">Term Type</span>
-                  </div>
-
-                  {/* Entry */}
-                  <div className="flex items-center max-sm:text-sm">
-                    <Clock className="h-5 w-5 mr-3 text-white max-sm:mr-2 max-sm:h-4 max-sm:w-4" />
-                    <span className="">Entry</span>
-                  </div>
-                </div>
-
-                <div className="flex flex-col mr-10 max-sm:mr-0 max-sm:w-full max-sm:mt-2">
-                  <div className="grid gap-1 max-sm:gap-2">
-                    {/* Sticker */}
-                    <div
-                      className="relative border-b border-dashed border-white/40 w-fit font-semibold max-sm:w-full"
-                      onMouseEnter={() => setActiveTooltip("sticker")}
-                      onMouseLeave={() => setActiveTooltip(null)}
-                    >
-                      <div className="flex items-center max-sm:justify-between">
-                        <span className="max-sm:text-sm">Sticker</span>
-                      </div>
-
-                      {activeTooltip === "sticker" && (
-                        <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200 max-sm:w-48 max-sm:-left-20">
-                          <p className="text-sm max-sm:text-xs">
-                            {tooltips.sticker}
-                          </p>
-                          <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200 max-sm:left-20"></div>
-                        </div>
-                      )}
+                  <div className="flex max-sm:py-2 flex-col gap-1 max-sm:gap-2  max-sm:w-full">
+                    {/* Visa Types */}
+                    <div className="flex items-center max-sm:text-sm">
+                      <FileText className="h-5 w-5 text-[#24242D] stroke-[#24242D] mr-3 fill-white max-sm:mr-2 max-sm:h-4 max-sm:w-4" />
+                      <span className="">Visa Types</span>
                     </div>
 
-                    {/* Duration */}
-                    <div
-                      className="relative border-b border-dashed border-white/40 w-fit font-semibold max-sm:w-full"
-                      onMouseEnter={() => setActiveTooltip("duration")}
-                      onMouseLeave={() => setActiveTooltip(null)}
-                    >
-                      <div className="flex items-center max-sm:justify-between">
-                        <span className="max-sm:text-sm">90 Days</span>
-                      </div>
-
-                      {activeTooltip === "duration" && (
-                        <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200 max-sm:w-48 max-sm:-left-20">
-                          <div className="text-sm max-sm:text-xs">
-                            {tooltips.duration.map((line, index) => (
-                              <p
-                                key={index}
-                                className={
-                                  index > 0 ? "mt-1 max-sm:mt-0.5" : ""
-                                }
-                              >
-                                {line}
-                              </p>
-                            ))}
-                          </div>
-                          <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200 max-sm:left-20"></div>
-                        </div>
-                      )}
+                    {/* Stay Duration */}
+                    <div className="flex items-center max-sm:text-sm">
+                      <Home className="h-5 w-5 mr-3 text-white max-sm:mr-2 max-sm:h-4 max-sm:w-4" />
+                      <span className="">Stay Duration</span>
                     </div>
 
                     {/* Term Type */}
-                    <div
-                      className="relative border-b border-dashed border-white/40 w-fit font-semibold max-sm:w-full"
-                      onMouseEnter={() => setActiveTooltip("term")}
-                      onMouseLeave={() => setActiveTooltip(null)}
-                    >
-                      <div className="flex items-center max-sm:justify-between">
-                        <span className="max-sm:text-sm">Short Term</span>
-                      </div>
-
-                      {activeTooltip === "term" && (
-                        <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200 max-sm:w-48 max-sm:-left-20">
-                          <p className="text-sm max-sm:text-xs">
-                            {tooltips.term}
-                          </p>
-                          <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200 max-sm:left-20"></div>
-                        </div>
-                      )}
+                    <div className="flex items-center max-sm:text-sm">
+                      <ClipboardList className="h-5 w-5 text-[#24242D] stroke-[#24242D] mr-3 fill-white max-sm:mr-2 max-sm:h-4 max-sm:w-4" />
+                      <span className="">Term Type</span>
                     </div>
 
                     {/* Entry */}
-                    <div
-                      className="relative border-b border-dashed border-white/40 w-fit font-semibold max-sm:w-full"
-                      onMouseEnter={() => setActiveTooltip("entry")}
-                      onMouseLeave={() => setActiveTooltip(null)}
-                    >
-                      <div className="flex items-center max-sm:justify-between">
-                        <span className="max-sm:text-sm">Multiple</span>
+                    <div className="flex items-center max-sm:text-sm">
+                      <Clock className="h-5 w-5 mr-3 text-white max-sm:mr-2 max-sm:h-4 max-sm:w-4" />
+                      <span className="">Entry</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col mr-10 max-sm:mr-0 max-sm:w-full max-sm:mt-2">
+                    <div className="grid gap-1 max-sm:gap-2">
+                      {/* Sticker */}
+                      <div
+                        className="relative border-b border-dashed border-white/40 w-fit font-semibold max-sm:w-full"
+                        onMouseEnter={() => setActiveTooltip("sticker")}
+                        onMouseLeave={() => setActiveTooltip(null)}
+                      >
+                        <div className="flex items-center max-sm:justify-between">
+                          <span className="max-sm:text-sm">Sticker</span>
+                        </div>
+
+                        {activeTooltip === "sticker" && (
+                          <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200 max-sm:w-48 max-sm:-left-20">
+                            <p className="text-sm max-sm:text-xs">
+                              {tooltips.sticker}
+                            </p>
+                            <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200 max-sm:left-20"></div>
+                          </div>
+                        )}
                       </div>
 
-                      {activeTooltip === "entry" && (
-                        <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200 max-sm:w-48 max-sm:-left-20">
-                          <p className="text-sm max-sm:text-xs">
-                            {tooltips.entry}
-                          </p>
-                          <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200 max-sm:left-20"></div>
+                      {/* Duration */}
+                      <div
+                        className="relative border-b border-dashed border-white/40 w-fit font-semibold max-sm:w-full"
+                        onMouseEnter={() => setActiveTooltip("duration")}
+                        onMouseLeave={() => setActiveTooltip(null)}
+                      >
+                        <div className="flex items-center max-sm:justify-between">
+                          <span className="max-sm:text-sm">90 Days</span>
                         </div>
-                      )}
+
+                        {activeTooltip === "duration" && (
+                          <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200 max-sm:w-48 max-sm:-left-20">
+                            <div className="text-sm max-sm:text-xs">
+                              {tooltips.duration.map((line, index) => (
+                                <p
+                                  key={index}
+                                  className={
+                                    index > 0 ? "mt-1 max-sm:mt-0.5" : ""
+                                  }
+                                >
+                                  {line}
+                                </p>
+                              ))}
+                            </div>
+                            <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200 max-sm:left-20"></div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Term Type */}
+                      <div
+                        className="relative border-b border-dashed border-white/40 w-fit font-semibold max-sm:w-full"
+                        onMouseEnter={() => setActiveTooltip("term")}
+                        onMouseLeave={() => setActiveTooltip(null)}
+                      >
+                        <div className="flex items-center max-sm:justify-between">
+                          <span className="max-sm:text-sm">Short Term</span>
+                        </div>
+
+                        {activeTooltip === "term" && (
+                          <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200 max-sm:w-48 max-sm:-left-20">
+                            <p className="text-sm max-sm:text-xs">
+                              {tooltips.term}
+                            </p>
+                            <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200 max-sm:left-20"></div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Entry */}
+                      <div
+                        className="relative border-b border-dashed border-white/40 w-fit font-semibold max-sm:w-full"
+                        onMouseEnter={() => setActiveTooltip("entry")}
+                        onMouseLeave={() => setActiveTooltip(null)}
+                      >
+                        <div className="flex items-center max-sm:justify-between">
+                          <span className="max-sm:text-sm">Multiple</span>
+                        </div>
+
+                        {activeTooltip === "entry" && (
+                          <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200 max-sm:w-48 max-sm:-left-20">
+                            <p className="text-sm max-sm:text-xs">
+                              {tooltips.entry}
+                            </p>
+                            <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200 max-sm:left-20"></div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
-
-                </div>
-
-              
               </div>
 
               <div className="text-left my-4 max-sm:my-3">
@@ -2739,7 +2736,7 @@ const CountrySlider = () => {
                       </span>
                     </div>
                   </div>
-                  <div className="w-full">
+                  <div className="w-full  flex flex-col items-center md:items-start">
                     <div className=" cursor-pointer rounded transition-colors flex-1 mb-2">
                       <div className="flex items-center space-x-2 max-sm:space-x-1">
                         <div
@@ -2768,7 +2765,7 @@ const CountrySlider = () => {
                           </div>
                         )}
 
-                      <div className="flex items-center space-x-2 max-sm:flex-col max-sm:items-start max-sm:space-x-0 max-sm:gap-2">
+                      <div className="flex items-center space-x-2 max-sm:flex-col max-sm:space-x-0 max-sm:gap-2">
                         <div className="flex items-center gap-2">
                           <QtyInput
                             value={insuranceCount}
@@ -2830,7 +2827,7 @@ const CountrySlider = () => {
                         </div>
                       </div>
 
-                      <div className="flex items-center space-x-2 mb-2 max-sm:flex-col max-sm:items-start max-sm:space-x-0 max-sm:gap-2">
+                      <div className="flex items-center space-x-2 mb-2 max-sm:flex-col max-sm:space-x-0 max-sm:gap-2 sm:flex-row">
                         <div className="flex items-center space-x-2 mb-2 max-sm:mb-0">
                           <QtyInput
                             value={giftCardCount}

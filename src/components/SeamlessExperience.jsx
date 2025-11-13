@@ -16,19 +16,19 @@ const SeamlessExperience = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 px-6 md:px-16 mx-auto">
-          <div className="bg-white backdrop-blur-sm rounded-[2rem] flex items-center gap-5 md:gap-10 text-gray-800 p-6 md:py-12 md:px-5 shadow-none transition-shadow duration-300">
+          <div className="bg-white backdrop-blur-sm rounded-[2rem] flex items-center gap-5 md:gap-10 text-gray-800p-6 md:py-12 md:px-5 shadow-none transition-shadow duration-300">
             <Image
               src="/image/certificatee.jpg"
               width={160}
               height={160}
               alt="Check Rectangle Icon"
-              className="md:w-[160px] w-[100px] object-cover"
+              className="md:w-[160px] w-[100px] object-cover rounded-[10px]"
             />
             <div className="flex flex-col gap-1">
               <h3 className="text-lg font-gilroy-bold font-semibold text-gray-800">
                 Insurance certificate
               </h3>
-              <p className="text-sm md:text-lg font-medium leading-relaxed">
+              <p className="text-sm md:text-lg font-medium leading-relaxed text-gray-600">
                 Travel insurance certificate is required document for the
                 schengen visa, add to your cart for a seamless experience.
               </p>

@@ -482,7 +482,7 @@ const VisaCheckout = () => {
   const [includeGiftCard, setIncludeGiftCard] = useState(
     visaState.recommendedItems?.giftCard || false
   );
-  const [giftCardCount, setGiftCardCount] = useState(1);
+  const [giftCardCount, setGiftCardCount] = useState(visaState.giftCardCount || 1);
 
   const handleGiftCardChange = (increment) => {
     const newValue = giftCardCount + increment;
