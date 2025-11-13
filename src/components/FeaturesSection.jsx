@@ -46,7 +46,7 @@ const FeaturesSection = () => {
           >
             More cash in your pocket
           </h1>
-          <h1 className="text-[50px] md:text-[80px] whitespace-nowrap lg:text-[100px] font-extrabold leading-tight transition-transform duration-300 ease-out max-md:tracking-tight sm:hidden">
+          <h1 className="text-[32px] sm:text-[50px] md:text-[80px] lg:text-[100px] font-extrabold leading-tight transition-transform duration-300 ease-out max-md:tracking-tight sm:hidden block text-center px-4">
             More cash in your pocket
           </h1>
         </div>
