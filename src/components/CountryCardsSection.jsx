@@ -211,22 +211,62 @@ const CountryCardsSection = () => {
   ];
 
   const displayedCountries = useMemo(() => {
-    // Create a map of appointment texts for quick lookup
+    // Create a map of appointment texts and images for quick lookup
     const appointmentTextMap = appointmentTexts.reduce((acc, item) => {
-      acc[item.countryName] = item.appointmentText;
+      acc[item.countryName] = {
+        appointmentText: item.appointmentText,
+        image: item.image || null,
+      };
       return acc;
     }, {});
 
-    // Map static countries with dynamic appointment text
-    const list = countries.map((country) => ({
-      name: country.name,
-      image: country.image,
-      landmark: country.landmark,
-      visaFee: Number(getCountryConfig(country.name).visaFee),
-      insuranceFee: Number(getCountryConfig(country.name).insuranceFee),
-      appointmentText:
-        appointmentTextMap[country.name] || "Appointment in 10 days or less",
-    }));
+    // Create a map of static countries for quick lookup
+    const staticCountriesMap = countries.reduce((acc, country) => {
+      acc[country.name] = country;
+      return acc;
+    }, {});
+
+    // Get all unique country names (from both static list and database)
+    const allCountryNames = new Set([
+      ...countries.map(c => c.name),
+      ...appointmentTexts.map(item => item.countryName)
+    ]);
+
+    // Map all countries (static + database) with dynamic appointment text and image
+    const list = Array.from(allCountryNames).map((countryName) => {
+      const staticCountry = staticCountriesMap[countryName];
+      const countryData = appointmentTextMap[countryName] || {};
+      
+      // Use image from database if available, otherwise use static image or default
+      let countryImage;
+      if (countryData.image) {
+        // Image from database
+        countryImage = countryData.image.startsWith('http') 
+          ? countryData.image 
+          : countryData.image.startsWith('/')
+          ? `${process.env.NEXT_PUBLIC_ADMIN_API_URL || ''}${countryData.image}`
+          : countryData.image;
+      } else if (staticCountry?.image) {
+        // Use static image
+        countryImage = staticCountry.image;
+      } else {
+        // Default fallback image
+        countryImage = "/image/country/default.jpg";
+      }
+
+      return {
+        name: countryName,
+        image: countryImage,
+        landmark: staticCountry?.landmark || countryName,
+        visaFee: Number(getCountryConfig(countryName).visaFee),
+        insuranceFee: Number(getCountryConfig(countryName).insuranceFee),
+        appointmentText:
+          countryData.appointmentText || "Appointment in 10 days or less",
+      };
+    });
+
+    // Sort countries alphabetically
+    list.sort((a, b) => a.name.localeCompare(b.name));
 
     return showAll ? list : list.slice(0, 6);
   }, [appointmentTexts, showAll]);

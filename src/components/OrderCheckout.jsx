@@ -16,6 +16,7 @@ import { calculatePaymentFees, formatCurrency } from "@/utils/currency";
 import ClientOnly from "./ClientOnly";
 import { useToast } from "@/contexts/ToastContext";
 import QtyInput from "./QtyInput";
+import { useSliderContent } from "@/hooks/useSliderContent";
 import {
   setAmountWithoutDiscount,
   setCouponCode,
@@ -30,6 +31,7 @@ const VisaCheckout = () => {
   const dispatch = useAppDispatch();
   const { handleCreateDynamicCheckoutSession, cretingDynamicCheckout } =
     useCreateDynamicCheckoutSession();
+  const { content: sliderContent, loading: sliderLoading } = useSliderContent();
 
   // Get data from Redux store first, fallback to URL params if not available
   const visaState = useAppSelector((state) => state.visa);
@@ -2558,7 +2560,80 @@ const VisaCheckout = () => {
               <span>{formatCurrency(total, "EUR")} EUR</span>
             </div>
 
-         <div class="border rounded-3xl border-white/20 bg-white/5 backdrop-blur-sm overflow-hidden max-sm:rounded-2xl"><div class="flex items-center gap-4 p-4 border-b border-white/10 max-sm:p-3 max-sm:gap-3"><div class="h-4 w-4 rounded-full  bg-purple-500 min-w-4 animate-pulse max-sm:h-3 max-sm:w-3"></div><div><span class="text-sm font-medium text-white max-sm:text-xs">Free Auto-booking appointment and concierge assistance ends soon - Until Jan 2026.</span></div></div><div class="p-4 max-sm:p-3"><div class="grid grid-cols-3 gap-3 max-sm:gap-2"><div class="text-center"><div class="text-xs text-white/70 mb-2 font-medium max-sm:text-xs max-sm:mb-1">Oct slots</div><div class="bg-[#1e1e27] rounded-full p-2 max-sm:p-1.5"><div class="text-xs text-white font-semibold max-sm:text-xs">Sold out</div></div></div><div class="text-center"><div class="text-xs text-white/70 mb-2 font-medium max-sm:text-xs max-sm:mb-1">Nov slots</div><div class="bg-[#5a3ddb] rounded-full p-2 max-sm:p-1.5"><div class="text-xs text-white font-semibold max-sm:text-xs">&lt; 10 left!</div></div></div><div class="text-center"><div class="text-xs text-white/70 mb-2 font-medium max-sm:text-xs max-sm:mb-1">Dec slots</div><div class="bg-[#1e1e27] rounded-full p-2 max-sm:p-1.5"><div class="text-xs text-white font-semibold max-sm:text-xs">45% reserved</div></div></div></div></div></div>
+            {/* Free Offer Banner */}
+            {sliderLoading ? (
+              <div className="border rounded-3xl border-white/20 bg-white/5 backdrop-blur-sm overflow-hidden max-sm:rounded-2xl">
+                <div className="flex items-center gap-4 p-4 border-b border-white/10 max-sm:p-3 max-sm:gap-3">
+                  <div className="h-4 w-4 rounded-full bg-purple-500 min-w-4 animate-pulse max-sm:h-3 max-sm:w-3"></div>
+                  <div className="flex-1">
+                    <div className="h-4 bg-white/20 rounded animate-pulse max-sm:h-3"></div>
+                  </div>
+                </div>
+                <div className="p-4 max-sm:p-3">
+                  <div className="grid grid-cols-3 gap-3 max-sm:gap-2">
+                    {/* Loading skeleton for 3 slots */}
+                    {[1, 2, 3].map((index) => (
+                      <div key={index} className="text-center">
+                        <div className="h-3 bg-white/20 rounded mb-2 animate-pulse max-sm:h-2 max-sm:mb-1"></div>
+                        <div className="bg-[#1e1e27] rounded-full p-2 max-sm:p-1.5">
+                          <div className="h-3 bg-white/20 rounded animate-pulse max-sm:h-2"></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="border rounded-3xl border-white/20 bg-white/5 backdrop-blur-sm overflow-hidden max-sm:rounded-2xl">
+                <div className="flex items-center gap-4 p-4 border-b border-white/10 max-sm:p-3 max-sm:gap-3">
+                  <div className="h-4 w-4 rounded-full bg-purple-500 min-w-4 animate-pulse max-sm:h-3 max-sm:w-3"></div>
+                  <div>
+                    <span className="text-sm font-medium text-white max-sm:text-xs">
+                      {sliderContent["free_offer_banner_text"] || "Free Auto-booking appointment and concierge assistance ends soon - Until Jan 2026."}
+                    </span>
+                  </div>
+                </div>
+                <div className="p-4 max-sm:p-3">
+                  <div className="grid grid-cols-3 gap-3 max-sm:gap-2">
+                    {/* Slot 1 */}
+                    <div className="text-center">
+                      <div className="text-xs text-white/70 mb-2 font-medium max-sm:text-xs max-sm:mb-1">
+                        {sliderContent["slot1_label"] || "Oct slots"}
+                      </div>
+                      <div className="bg-[#1e1e27] rounded-full p-2 max-sm:p-1.5">
+                        <div className="text-xs text-white font-semibold max-sm:text-xs">
+                          {sliderContent["slot1_status"] || "Sold out"}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Slot 2 */}
+                    <div className="text-center">
+                      <div className="text-xs text-white/70 mb-2 font-medium max-sm:text-xs max-sm:mb-1">
+                        {sliderContent["slot2_label"] || "Nov slots"}
+                      </div>
+                      <div className="bg-[#5a3ddb] rounded-full p-2 max-sm:p-1.5">
+                        <div className="text-xs text-white font-semibold max-sm:text-xs">
+                          {sliderContent["slot2_status"] || "< 10 left!"}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Slot 3 */}
+                    <div className="text-center">
+                      <div className="text-xs text-white/70 mb-2 font-medium max-sm:text-xs max-sm:mb-1">
+                        {sliderContent["slot3_label"] || "Dec slots"}
+                      </div>
+                      <div className="bg-[#1e1e27] rounded-full p-2 max-sm:p-1.5">
+                        <div className="text-xs text-white font-semibold max-sm:text-xs">
+                          {sliderContent["slot3_status"] || "45% reserved"}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-3">
               {/* <h2 className="font-medium text-lg">Discount Code</h2> */}

@@ -674,6 +674,7 @@ function ApplicationCard({
 
 const ProgressTimeline = ({ currentStatus, applicant, allTravelers = [], currentLabel }) => {
   const steps = [
+    { id: "submitted", label: "Submitted", icon: <CheckCircle2 size={20} /> },
     { id: "under_review", label: "Under Review", icon: <FileText size={20} /> },
     { id: "appointment_booked", label: "Appointment booked", icon: <CalendarDays size={20} /> },
     { id: "at_embassy", label: "At embassy", icon: <Building2 size={20} /> },
@@ -685,14 +686,19 @@ const ProgressTimeline = ({ currentStatus, applicant, allTravelers = [], current
     if (typeof statusOrProgress === "number") {
       const p = statusOrProgress;
       if (p >= 100) return steps.length - 1;
-      if (p >= 66) return 2;
-      if (p >= 33) return 1;
-      return 0;
+      if (p >= 90) return 3;
+      if (p >= 75) return 2;
+      if (p >= 50) return 1;
+      if (p >= 25) return 0;
+      return -1;
     }
 
     const s = String(statusOrProgress).toLowerCase();
     const mapping = {
-      submitted: "under_review",
+      submitted: "submitted",
+      new: "submitted",
+      draft: "submitted",
+      pending: "submitted",
       under_review: "under_review",
       "under review": "under_review",
       "under-review": "under_review",
