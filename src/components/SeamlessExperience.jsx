@@ -35,7 +35,7 @@ const SeamlessExperience = () => {
               </p>
 
               <p className="font-semibold">
-                <s className="text-gray-500">£45</s> £30
+                <s className="text-gray-500">£45</s> <span className="text-black">£30 </span>
               </p>
             </div>
           </div>
