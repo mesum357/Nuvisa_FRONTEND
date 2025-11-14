@@ -97,11 +97,7 @@ export default function Reviews() {
     }, [isPaused]);
 
     return (
-        <section className="w-full py-20 bg-[#0F0F19] text-white flex flex-col items-center justify-center gap-10">
-            <h2 className="text-4xl md:text-5xl font-extrabold text-center mb-6">
-                What Our Clients Say
-            </h2>
-
+        <section className="w-full py-20  text-white flex flex-col items-center justify-center gap-10">
             <div
                 ref={galleryRef}
                 className="flex overflow-x-hidden w-full justify-center items-center gap-6"
@@ -111,10 +107,10 @@ export default function Reviews() {
                 {[...reviews, ...reviews].map((r, index) => (
                     <div
                         key={index}
-                        className="flex-shrink-0 w-[320px] md:w-[360px] h-[240px] bg-[#1E1E27] rounded-2xl p-6 transition-transform duration-500 group hover:shadow-[0_10px_25px_rgba(255,255,255,0.1)] cursor-pointer"
+                        className="flex-shrink-0 w-[320px] md:w-[360px] h-[200px] bg-[#1E1E27] rounded-2xl p-6 transition-transform duration-500 group hover:shadow-[0_10px_25px_rgba(255,255,255,0.1)] cursor-pointer"
                     >
                         
-            <div className="review-header flex items-center justify-between mb-4">
+                        <div className="review-header flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                     <Image
                         src={r.img}
@@ -130,13 +126,15 @@ export default function Reviews() {
                 </div>
 
                 {/* Stars */}
-                            <div className="flex items-center text-yellow-400 text-lg rating inline-block bg-gray-800 text-gray-300 px-3 py-1 rounded-md text-sm font-medium ml-auto">
-                    <span>★</span>
-                    <span>★</span>
-                    <span>★</span>
-                    <span>★</span>
-                    <span>★</span>
-                </div>
+                            <div className="flex items-center text-yellow-400 text-lg rating inline-block bg-yellow-200/15 px-3 py-1 rounded-md text-lg font-medium ml-auto">
+                                <span>★</span>
+                                <span>★</span>
+                                <span>★</span>
+                                <span>★</span>
+                                <span>★</span>
+                            </div>
+
+
             </div>
 
                         <p className="text-gray-300 text-sm leading-relaxed italic">
