@@ -452,7 +452,8 @@ function ApplicationCard({
       : null,
   };
 
-  const waHref = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER}`;
+  //const waHref = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER}`;
+  const waHref = `https://wa.me/447387667534`;
 
   return (
     <motion.div

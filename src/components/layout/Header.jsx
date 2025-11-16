@@ -102,7 +102,7 @@ export const Header = ({ href }) => {
           {/* WhatsApp */}
           <motion.a
             whileHover={{ scale: 1.05 }}
-            href="https://wa.me/9417251840"
+            href="https://wa.me/447387667534" 
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center space-x-2 bg-green-600/20 border border-green-500/30 rounded-full px-3 py-1.5 hover:bg-green-600/30 transition-colors"
@@ -116,7 +116,7 @@ export const Header = ({ href }) => {
           {/* Phone */}
           <motion.a
             whileHover={{ scale: 1.05 }}
-            href="tel:9417251840"
+            href="tel:+447387667534"
             className="flex items-center space-x-2 bg-[#7350FF] border border-[#7350FF]/30 rounded-full px-3 py-1.5 hover:bg-[#7350FF]/30 transition-colors"
           >
             <Phone className="size-4" />
