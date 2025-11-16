@@ -71,7 +71,7 @@ const reviews = [
 export default function Reviews() {
     const galleryRef = useRef(null);
     const [isPaused, setIsPaused] = useState(false);
-    const speed = 2; // scroll speed
+    const speed = 1; // scroll speed
 
     useEffect(() => {
         const gallery = galleryRef.current;
