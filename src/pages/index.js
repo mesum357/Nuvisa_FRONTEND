@@ -34,7 +34,7 @@ const Index = () => {
               Schengen visa for Indians from the UK
             </span> */}
             </div>
-            <h1 className="text-5xl sm:text-6xl md:text-[6.5rem] font-gilroy-bold leading-tight mb-4 sm:mb-8 max-sm:tracking-tighter">
+            <h1 className="text-4xl sm:text-4xl md:text-[4.5rem] font-gilroy-bold leading-tight mb-4 sm:mb-8 max-sm:tracking-tighter">
               {loading ? "Don't Postpone Your Happiness!" : heroContent.title}
               {/* <br /> */}
               {/* <span className="text-white"></span> */}
@@ -52,7 +52,7 @@ const Index = () => {
             />
           </div>
           <VisaHeroSection />
-           <Reviews /> 
+          <Reviews />
         </main>
         <CountryCardsSection />
 
@@ -68,7 +68,7 @@ const Index = () => {
               {/* Main Heading */}
               <h2 className="text-[26px] max-md:px-8 lg:text-[38px] font-gilroy-bold text-[#fff] mb-2 leading-tight flex items-center gap-3 justify-center">
                 <Image src="/icons/klarna.png" alt="Klarna" width={40} height={40} className="" />
-                {klarnaLoading ? "Loading..." : klarnaContent.heading }
+                {klarnaLoading ? "Loading..." : klarnaContent.heading}
               </h2>
 
               {/* Subheading with Details */}

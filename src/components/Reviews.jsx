@@ -97,35 +97,35 @@ export default function Reviews() {
     }, [isPaused]);
 
     return (
-        <section className="w-full py-20  text-white flex flex-col items-center justify-center gap-10">
+        <section className="w-full py-10 text-white flex flex-col items-center justify-center gap-8">
             <div
                 ref={galleryRef}
-                className="flex overflow-x-hidden w-full justify-center items-center gap-6"
+                className="flex overflow-x-hidden w-full justify-center items-center gap-10"
                 onMouseEnter={() => setIsPaused(true)}
                 onMouseLeave={() => setIsPaused(false)}
             >
                 {[...reviews, ...reviews].map((r, index) => (
                     <div
                         key={index}
-                        className="flex-shrink-0 w-[320px] md:w-[360px] h-[200px] bg-[#1E1E27] rounded-2xl p-6 transition-transform duration-500 group hover:shadow-[0_10px_25px_rgba(255,255,255,0.1)] cursor-pointer"
+                        className="flex-shrink-0 w-[400px] md:w-[400px] h-[150px]  bg-[#1E1E27]  cursor-pointer gap-5 font-bold"
                     >
-                        
-                        <div className="review-header flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                    <Image
-                        src={r.img}
-                        alt={r.name}
-                        width={57}
-                        height={57}
-                        className="rounded-full object-cover"
-                    />
-                    <div>
-                        <h3 className="font-semibold text-white text-base">{r.name}</h3>
-                        <p className="text-sm text-gray-400">{r.role}</p>
-                    </div>
-                </div>
 
-                {/* Stars */}
+                        <div className="review-header flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-3">
+                                <Image
+                                    src={r.img}
+                                    alt={r.name}
+                                    width={40}
+                                    height={40}
+                                    className="rounded-full object-cover"
+                                />
+                                <div>
+                                    <h3 className="font-semibold text-white text-sm">{r.name}</h3>
+                                    <p className="text-xs text-gray-400">{r.role}</p>
+                                </div>
+                            </div>
+
+                            {/* Stars */}
                             <div className="flex items-center text-yellow-400 text-lg rating inline-block bg-yellow-200/15 px-3 py-1 rounded-md text-lg font-medium ml-auto">
                                 <span>★</span>
                                 <span>★</span>
@@ -133,15 +133,10 @@ export default function Reviews() {
                                 <span>★</span>
                                 <span>★</span>
                             </div>
-
-
-            </div>
-
-                        <p className="text-gray-300 text-sm leading-relaxed italic">
-                            “{r.comment}”
+                        </div>
+                        <p className="text-gray-400 text-xs ml-10 pl-4">
+                            {r.comment}
                         </p>
-                      
-
                     </div>
                 ))}
             </div>
