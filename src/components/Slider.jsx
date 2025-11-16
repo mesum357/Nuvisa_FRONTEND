@@ -3298,14 +3298,19 @@ const CountrySlider = () => {
             </div>
 
             {/* Get Help Button */}
-            <button className="mt-4 w-fit rounded-full border border-white text-white py-1.5 hover:border-purple-500 transition-colors text-sm px-4 cursor-pointer max-sm:mt-3 max-sm:py-1 max-sm:px-3 max-sm:text-xs">
+            <a
+              href="https://wa.me/447387667534"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 w-fit rounded-full border border-white text-white py-1.5 hover:border-purple-500 transition-colors text-sm px-4 cursor-pointer max-sm:mt-3 max-sm:py-1 max-sm:px-3 max-sm:text-xs flex items-center"
+            >
               <img
                 src="/icons/whatsapp.svg"
                 alt="Get Help"
                 className="inline-block mr-1 size-5 text-white max-sm:w-4 max-sm:h-4"
               />
               Get Help
-            </button>
+            </a>
           </div>
         </section>
       </div>
