@@ -68,7 +68,7 @@ const AppDownloadPopup = () => {
             
             
             <p className="text-gray-300 mb-2 text-center text-[14px] mt-2">
-              Limited time Offer for everyone (ends soon) - Until Jan 2026
+             Limited time offer for everyone - Until Jan 2026
             </p>
 
             {/* Free Services List */}

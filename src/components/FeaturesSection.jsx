@@ -18,7 +18,7 @@ const FeaturesSection = () => {
             (windowHeight - sectionTop) / (windowHeight + rect.height);
 
           // Make it move from right to left - start from right, move to left as user scrolls
-          const maxOffset = window.innerWidth / 1;
+          const maxOffset = window.innerWidth / 2;
           // Start from positive (right) and move to negative (left)
           setScrollOffset(maxOffset - scrollProgress * maxOffset * 2);
         }
@@ -39,14 +39,14 @@ const FeaturesSection = () => {
         {/* Animated Heading */}
         <div className="mb-10 md:mb-16">
           <h1
-            className="text-[30px] md:text-[50px] lg:text-[70px] font-extrabold leading-tight transition-transform duration-300 ease-out max-md:tracking-tight max-sm:hidden"
+            className="text-[50px] md:text-[80px] whitespace-nowrap lg:text-[100px] font-extrabold leading-tight transition-transform duration-300 ease-out max-md:tracking-tight max-sm:hidden"
             style={{
               transform: `translateX(${scrollOffset}px)`,
             }}
           >
             More cash in your pocket
           </h1>
-          <h1 className="text-[25px] sm:text-[39px] md:text-[55px] lg:text-[60px] font-extrabold leading-tight transition-transform duration-300 ease-out max-md:tracking-tight sm:hidden block text-center px-4">
+          <h1 className="text-[32px] sm:text-[50px] md:text-[80px] lg:text-[100px] font-extrabold leading-tight transition-transform duration-300 ease-out max-md:tracking-tight sm:hidden block text-center px-4">
             More cash in your pocket
           </h1>
         </div>
