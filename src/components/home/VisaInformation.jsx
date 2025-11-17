@@ -197,7 +197,7 @@ const VisaInformation = () => {
           <OurMission className="bg-[#F3E6FF] py-10" />
           <Footer />
         </div>
-        
+
         {/* Sticky Bottom Bar */}
         <StickyBottomBar />
       </div>
