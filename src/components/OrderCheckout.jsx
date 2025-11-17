@@ -8,7 +8,7 @@ import { setAuthId, setAuthState } from "@/store/authSlice";
 import Cookies from "js-cookie";
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { FaUser, FaShieldAlt, FaApple, FaGoogle } from "react-icons/fa";
 import { HiOutlineDeviceMobile } from "react-icons/hi";
 import { SiKlarna } from "react-icons/si";
@@ -92,8 +92,6 @@ const VisaCheckout = () => {
   const [emailError, setEmailError] = useState("");
   const [phone, setPhone] = useState("");
   const [phoneError, setPhoneError] = useState("");
-  const [postcode, setPostcode] = useState("");
-  const [postcodeError, setPostcodeError] = useState("");
   const [emailNewsOffers, setEmailNewsOffers] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(
     visaState.selectedPaymentMethod &&
@@ -126,6 +124,14 @@ const VisaCheckout = () => {
   const [isSendingVerification, setIsSendingVerification] = useState(false);
   const verificationPollRef = useRef(null);
   const [pendingCheckoutQuery, setPendingCheckoutQuery] = useState(null);
+  
+  // Embedded Stripe Checkout
+  const [showEmbeddedCheckout, setShowEmbeddedCheckout] = useState(false);
+  const [embeddedCheckoutClientSecret, setEmbeddedCheckoutClientSecret] = useState(null);
+  const [isLoadingEmbeddedCheckout, setIsLoadingEmbeddedCheckout] = useState(false);
+  const checkoutRef = useRef(null);
+  const embeddedCheckoutRef = useRef(null);
+  const isInitializingRef = useRef(false); // Prevent multiple simultaneous initializations
 
   const sendStudentVerification = async (
     emailToVerify,
@@ -359,31 +365,11 @@ const VisaCheckout = () => {
     }
   }, [travelers]);
 
-  const [cardNumber, setCardNumber] = useState("");
-  const [expirationDate, setExpirationDate] = useState("");
-  const [securityCode, setSecurityCode] = useState("");
-  const [nameOnCard, setNameOnCard] = useState("");
-  const [useShippingAddress, setUseShippingAddress] = useState(false);
-
-  // Billing address state
-  const [billingCountry, setBillingCountry] = useState("United Kingdom");
-  const [billingFirstName, setBillingFirstName] = useState("");
-  const [billingLastName, setBillingLastName] = useState("");
-  const [billingAddress, setBillingAddress] = useState("");
-  const [billingApartment, setBillingApartment] = useState("");
-  const [billingCity, setBillingCity] = useState("");
-  const [billingPostcode, setBillingPostcode] = useState("");
-  const [billingPhone, setBillingPhone] = useState("");
-  const [billingPhoneError, setBillingPhoneError] = useState("");
-
   const [groupAutoApplied, setGroupAutoApplied] = useState(false);
   const [_showStudentModal, _setShowStudentModal] = useState(false);
   const [_studentEmail, _setStudentEmail] = useState("");
   const [_studentOtp, _setStudentOtp] = useState("");
   const [_isVerifyingOtp, _setIsVerifyingOtp] = useState(false);
-
-  // Card validation errors
-  const [cardErrors, setCardErrors] = useState({});
 
   // Function to apply coupon code
   const applyCouponCode = () => {
@@ -501,33 +487,6 @@ const VisaCheckout = () => {
     }
   };
 
-  // Card validation and formatting functions
-  const formatCardNumber = (value) => {
-    // Remove all non-digit characters
-    const v = value.replace(/\s+/g, "").replace(/[^0-9]/gi, "");
-    // Add spaces every 4 digits
-    const matches = v.match(/\d{4,16}/g);
-    const match = (matches && matches[0]) || "";
-    const parts = [];
-    for (let i = 0, len = match.length; i < len; i += 4) {
-      parts.push(match.substring(i, i + 4));
-    }
-    if (parts.length) {
-      return parts.join(" ");
-    } else {
-      return v;
-    }
-  };
-
-  const formatExpirationDate = (value) => {
-    // Remove all non-digit characters
-    const v = value.replace(/\D/g, "");
-    // Add slash after 2 digits
-    if (v.length >= 2) {
-      return v.substring(0, 2) + " / " + v.substring(2, 4);
-    }
-    return v;
-  };
 
   const isValidPhone = (value) => {
     if (!value) return false;
@@ -554,58 +513,6 @@ const VisaCheckout = () => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
 
-  const validateCardDetails = () => {
-    const errors = {};
-
-    if (!cardNumber.replace(/\s/g, "")) {
-      errors.cardNumber = "Card number is required";
-    } else if (cardNumber.replace(/\s/g, "").length < 13) {
-      errors.cardNumber = "Card number is invalid";
-    }
-
-    if (!expirationDate.replace(/\s|\//g, "")) {
-      errors.expirationDate = "Expiration date is required";
-    } else if (expirationDate.replace(/\s|\//g, "").length !== 4) {
-      errors.expirationDate = "Expiration date is invalid";
-    }
-
-    if (!securityCode) {
-      errors.securityCode = "Security code is required";
-    } else if (securityCode.length < 3) {
-      errors.securityCode = "Security code is invalid";
-    }
-
-    if (!nameOnCard.trim()) {
-      errors.nameOnCard = "Name on card is required";
-    }
-
-    // Billing address validation (only if not using shipping address)
-    if (!useShippingAddress) {
-      if (!billingFirstName.trim()) {
-        errors.billingFirstName = "First name is required";
-      }
-      if (!billingLastName.trim()) {
-        errors.billingLastName = "Last name is required";
-      }
-      if (!billingAddress.trim()) {
-        errors.billingAddress = "Address is required";
-      }
-      if (!billingCity.trim()) {
-        errors.billingCity = "City is required";
-      }
-      if (billingCountry === "United Kingdom") {
-        if (!billingPostcode.trim()) {
-          errors.billingPostcode = "Postcode is required";
-        } else if (!isValidUKPostcode(billingPostcode)) {
-          errors.billingPostcode =
-            "Please enter a valid UK postcode (e.g. SW1A 1AA)";
-        }
-      }
-    }
-
-    setCardErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
 
   const handleEmailBlur = () => {
     if (!email) {
@@ -633,25 +540,6 @@ const VisaCheckout = () => {
     }
   };
 
-  const handlePostcodeBlur = () => {
-    if (!postcode) {
-      setPostcodeError("Postcode is required for checkout");
-      return;
-    }
-    if (!isValidUKPostcode(postcode)) {
-      setPostcodeError("Please enter a valid UK postcode (e.g. SW1A 1AA)");
-      return;
-    }
-    setPostcodeError("");
-  };
-
-  const handleCardFieldBlur = () => {
-    validateCardDetails();
-  };
-
-  const handleBillingFieldBlur = () => {
-    validateCardDetails();
-  };
 
   // SUBTOTAL: Original prices (no discounts applied)
   const originalVisaFees = 200 * travelers; // £200 per traveler
@@ -830,6 +718,17 @@ const VisaCheckout = () => {
 
     if (cretingDynamicCheckout) return;
 
+    // Route Apple Pay / Google Pay selections to their dedicated handlers
+    if (selectedPaymentMethod === "apple" || selectedPaymentMethod === "apple-pay") {
+      await handleApplePayClick();
+      return;
+    }
+
+    if (selectedPaymentMethod === "google") {
+      await handleGooglePayClick();
+      return;
+    }
+
     // Skip email validation for Apple Pay since it provides user info
     if (selectedPaymentMethod !== "apple" && selectedPaymentMethod !== "apple-pay") {
       if (!email) {
@@ -842,32 +741,15 @@ const VisaCheckout = () => {
       }
     }
 
-    // Skip postcode validation for Apple Pay since it provides billing address
-    if (selectedPaymentMethod !== "apple" && selectedPaymentMethod !== "apple-pay") {
-      if (!postcode) {
-        setPostcodeError("Postcode is required for checkout");
-        return;
-      }
-
-      if (postcode && !isValidUKPostcode(postcode)) {
-        setPostcodeError("Please enter a valid UK postcode (e.g. SW1A 1AA)");
-        return;
-      }
+    // Validate country is set
+    const countryToUse = selectedCountry || visaState.selectedCountry || "";
+    if (!countryToUse || countryToUse.trim() === "") {
+      alert("Please select a destination country to continue with checkout");
+      return;
     }
 
     if (phone && String(phone).trim() && !isValidPhone(phone)) {
       setPhoneError(
-        "Please enter a valid phone number (10 digits or 11 digits starting with 0)"
-      );
-      return;
-    }
-
-    if (
-      billingPhone &&
-      String(billingPhone).trim() &&
-      !isValidPhone(billingPhone)
-    ) {
-      setBillingPhoneError(
         "Please enter a valid phone number (10 digits or 11 digits starting with 0)"
       );
       return;
@@ -880,16 +762,9 @@ const VisaCheckout = () => {
       return;
     }
 
-    // Validate card details if stripe payment is selected
-    if (selectedPaymentMethod === "stripe") {
-      const isCardValid = validateCardDetails();
-      if (!isCardValid) {
-        return;
-      }
-    }
+    // Stripe handles card validation on their hosted checkout page
 
     setEmailError("");
-    setPostcodeError("");
 
     if (
       appliedDiscount &&
@@ -903,59 +778,448 @@ const VisaCheckout = () => {
       }
     }
 
+    // For Stripe, try embedded checkout first, fallback to hosted if needed
+    if (selectedPaymentMethod === "stripe") {
+      // If embedded checkout is already showing, do nothing
+      if (showEmbeddedCheckout) {
+        console.log("Embedded checkout already showing, skipping");
+        return;
+      }
+      // If it's loading, wait for it
+      if (isLoadingEmbeddedCheckout) {
+        console.log("Embedded checkout is loading, skipping");
+        return;
+      }
+      // Check if user wants to skip embedded and use hosted
+      const skipEmbedded = new URLSearchParams(window.location.search).get('use_hosted') === 'true';
+      if (skipEmbedded) {
+        console.log("Skipping embedded checkout, using hosted instead");
+        // Fall through to hosted checkout logic below
+      } else {
+        // Otherwise, initialize embedded checkout
+        console.log("Initializing embedded checkout from handleProceedToCheckout");
+        await initializeEmbeddedCheckout();
+        // Return - don't proceed to redirect logic unless embedded fails
+        return;
+      }
+    }
+
+    try {
+    // For non-Stripe payment methods, use hosted checkout (redirect)
     const statusResult = await handleCreateDynamicCheckoutSession({
       email: email,
       amount: String(totalAmountEUR),
       travellers: String(travelers),
-      country: String(selectedCountry || ""),
+      country: countryToUse, // Use validated country
       insurance: includeInsurance ? true : false, // Simple boolean conversion
       phone: phone,
-      postcode: postcode,
       paymentMethod: selectedPaymentMethod,
       visaTypeId: visaTypeId || visaState.visaTypeId || "",
       currency: "EUR",
       noOfInsurance: insuranceCount,
       insurancePaymentAmount: discountedInsuranceFeesEUR,
+      uiMode: "hosted", // Always hosted for non-Stripe methods
     });
 
-    const results = statusResult.data;
+      const results = statusResult?.data;
 
-    if (/^2\d{2}$/.test(statusResult?.status)) {
-      const returnedToken = results?.data?.results?.token;
-      const returnedUser = results?.data?.results?.user;
+      if (/^2\d{2}$/.test(statusResult?.status)) {
+        const returnedToken = results?.data?.results?.token;
+        const returnedUser = results?.data?.results?.user;
 
-      if (returnedToken) {
-        await localStorageGateway(
-          "token",
-          localStorageEnums.SET,
-          returnedToken
-        );
-        await Cookies.set("token", returnedToken);
-        dispatch(setAuthState(true));
-      }
-
-      if (returnedUser) {
-        await Cookies.set("user", JSON.stringify(returnedUser));
-        await localStorageGateway(
-          "user",
-          localStorageEnums.SET,
-          JSON.stringify(returnedUser)
-        );
-
-        if (returnedUser.id) {
-          dispatch(setAuthId(returnedUser.id));
+        if (returnedToken) {
+          await localStorageGateway(
+            "token",
+            localStorageEnums.SET,
+            returnedToken
+          );
+          await Cookies.set("token", returnedToken);
+          dispatch(setAuthState(true));
         }
+
+        if (returnedUser) {
+          await Cookies.set("user", JSON.stringify(returnedUser));
+          await localStorageGateway(
+            "user",
+            localStorageEnums.SET,
+            JSON.stringify(returnedUser)
+          );
+
+          if (returnedUser.id) {
+            dispatch(setAuthId(returnedUser.id));
+          }
+        }
+        dispatch(setAmountWithoutDiscount(Number(visaFeesEUR)));
+
+        await localStorageGateway("userEmail", localStorageEnums.SET, email);
       }
-      dispatch(setAmountWithoutDiscount(Number(visaFeesEUR)));
 
-      await localStorageGateway("userEmail", localStorageEnums.SET, email);
-    }
+      // For non-Stripe methods, always redirect to hosted checkout
+      const redirectUrl =
+        results?.data?.results?.url ||
+        results?.results?.url ||
+        results?.url;
 
-    const redirectUrl = results.data.results.url;
-    if (redirectUrl) {
-      window.location.href = redirectUrl; // Redirect user to stripe checkout
+      if (redirectUrl) {
+        window.location.href = redirectUrl;
+      } else {
+        console.error("No redirect URL returned from checkout session");
+        alert("Failed to initialize payment. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error creating checkout session:", error);
+      alert("Failed to process payment. Please try again.");
     }
   };
+
+  // Create hosted checkout session (fallback when embedded fails)
+  const createHostedCheckoutSession = async () => {
+    const countryToUse = selectedCountry || visaState.selectedCountry || "";
+    
+    try {
+      const statusResult = await handleCreateDynamicCheckoutSession({
+        email: email,
+        amount: String(totalAmountEUR),
+        travellers: String(travelers),
+        country: countryToUse,
+        insurance: includeInsurance ? true : false,
+        phone: phone,
+        paymentMethod: "stripe",
+        visaTypeId: visaTypeId || visaState.visaTypeId || "",
+        currency: "EUR",
+        noOfInsurance: insuranceCount,
+        insurancePaymentAmount: discountedInsuranceFeesEUR,
+        uiMode: "hosted", // Use hosted mode
+      });
+
+      const results = statusResult?.data;
+      const redirectUrl = results?.data?.results?.url || results?.results?.url || results?.url;
+
+      if (redirectUrl) {
+        window.location.href = redirectUrl;
+      } else {
+        alert("Failed to create checkout session. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error creating hosted checkout session:", error);
+      alert("Failed to process payment. Please try again.");
+    }
+  };
+
+  // Initialize embedded Stripe checkout
+  const initializeEmbeddedCheckout = useCallback(async () => {
+    // Basic validation - only email is required (Stripe will collect country in billing address)
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setEmailError("Please enter a valid email to continue");
+      return;
+    }
+
+    // Country is optional - Stripe embedded checkout will collect it in billing address
+    const countryToUse = selectedCountry || visaState.selectedCountry || "";
+
+    // Don't initialize if already loading, showing, or if checkout instance already exists
+    if (isLoadingEmbeddedCheckout || showEmbeddedCheckout || embeddedCheckoutRef.current || isInitializingRef.current) {
+      return;
+    }
+
+    isInitializingRef.current = true;
+    setIsLoadingEmbeddedCheckout(true);
+
+    try {
+      const statusResult = await handleCreateDynamicCheckoutSession({
+        email: email,
+        amount: String(totalAmountEUR),
+        travellers: String(travelers),
+        country: countryToUse,
+        insurance: includeInsurance ? true : false,
+        phone: phone,
+        paymentMethod: "stripe",
+        visaTypeId: visaTypeId || visaState.visaTypeId || "",
+        currency: "EUR",
+        noOfInsurance: insuranceCount,
+        insurancePaymentAmount: discountedInsuranceFeesEUR,
+        uiMode: "embedded",
+      });
+      const results = statusResult?.data;
+
+      if (/^2\d{2}$/.test(statusResult?.status)) {
+        const returnedToken = results?.data?.results?.token;
+        const returnedUser = results?.data?.results?.user;
+
+        if (returnedToken) {
+          await localStorageGateway(
+            "token",
+            localStorageEnums.SET,
+            returnedToken
+          );
+          await Cookies.set("token", returnedToken);
+          dispatch(setAuthState(true));
+        }
+
+        if (returnedUser) {
+          await Cookies.set("user", JSON.stringify(returnedUser));
+          await localStorageGateway(
+            "user",
+            localStorageEnums.SET,
+            JSON.stringify(returnedUser)
+          );
+
+          if (returnedUser.id) {
+            dispatch(setAuthId(returnedUser.id));
+          }
+        }
+        dispatch(setAmountWithoutDiscount(Number(visaFeesEUR)));
+        await localStorageGateway("userEmail", localStorageEnums.SET, email);
+      }
+
+      // Try multiple paths to get clientSecret
+      const clientSecret =
+        results?.data?.results?.clientSecret ||
+        results?.data?.clientSecret ||
+        results?.results?.clientSecret ||
+        results?.clientSecret;
+
+      // Check if Stripe is initialized, if not wait a bit and try again
+      if (!window.stripeInstance) {
+        // Wait for Stripe to initialize
+        let attempts = 0;
+        const maxAttempts = 10;
+        while (!window.stripeInstance && attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          attempts++;
+        }
+      }
+
+      if (!window.stripeInstance) {
+        console.error("Stripe instance not available after waiting");
+        console.error("Stripe available:", !!window.Stripe);
+        console.error("Publishable key set:", !!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
+        alert("Stripe is not initialized. Please refresh the page and try again.");
+        return;
+      }
+
+      if (!clientSecret) {
+        console.error("No client secret returned from backend");
+        console.error("Full response:", results);
+        // Check if a URL was returned instead (fallback from backend)
+        const fallbackUrl = results?.data?.results?.url || results?.data?.url || results?.url;
+        if (fallbackUrl) {
+          console.warn("Backend returned URL instead of clientSecret. This should not happen for embedded mode.");
+          console.warn("URL:", fallbackUrl);
+        }
+        alert("Failed to get payment session. Please check the console for details and try again.");
+        // NEVER redirect for Stripe - always return
+        return;
+      }
+
+      // Destroy existing checkout if any (shouldn't happen due to guard above, but just in case)
+      if (embeddedCheckoutRef.current) {
+        try {
+          console.log("Destroying existing checkout instance before creating new one");
+          embeddedCheckoutRef.current.destroy();
+          embeddedCheckoutRef.current = null;
+          // Wait a bit for cleanup
+          await new Promise(resolve => setTimeout(resolve, 100));
+        } catch (error) {
+          console.error("Error destroying existing checkout:", error);
+          embeddedCheckoutRef.current = null;
+        }
+      }
+
+      try {
+        // Initialize embedded checkout - only create if we don't have an instance
+        if (embeddedCheckoutRef.current) {
+          console.log("Checkout instance already exists, skipping creation");
+          return;
+        }
+        
+        console.log("Creating new embedded checkout instance");
+        const checkout = await window.stripeInstance.initEmbeddedCheckout({
+          clientSecret: clientSecret,
+        });
+
+        // Store checkout instance and client secret
+        embeddedCheckoutRef.current = checkout;
+        setEmbeddedCheckoutClientSecret(clientSecret);
+        
+        // Set showEmbeddedCheckout to true - useEffect will handle mounting
+        setShowEmbeddedCheckout(true);
+      } catch (stripeError) {
+        console.error("Stripe embedded checkout error:", stripeError);
+        alert(`Payment initialization error: ${stripeError.message || "Please try again"}`);
+        setShowEmbeddedCheckout(false);
+        embeddedCheckoutRef.current = null;
+        setEmbeddedCheckoutClientSecret(null);
+      }
+    } catch (error) {
+      console.error("Error initializing embedded checkout:", error);
+      alert("Failed to initialize payment. Please try again.");
+    } finally {
+      setIsLoadingEmbeddedCheckout(false);
+      isInitializingRef.current = false;
+    }
+  }, [email, selectedCountry, visaState.selectedCountry, totalAmountEUR, travelers, includeInsurance, insuranceCount, visaTypeId, phone, handleCreateDynamicCheckoutSession, dispatch]);
+
+  // Mount embedded checkout when container is ready
+  useEffect(() => {
+    if (showEmbeddedCheckout && embeddedCheckoutClientSecret && embeddedCheckoutRef.current && checkoutRef.current) {
+      // Check if already mounted
+      if (checkoutRef.current.hasChildNodes()) {
+        console.log("Checkout already mounted, skipping");
+        return;
+      }
+
+      const mountCheckout = () => {
+        try {
+          console.log("Mounting embedded checkout to container");
+          embeddedCheckoutRef.current.mount(checkoutRef.current);
+          
+          // Verify it mounted successfully after a short delay
+          let checkCount = 0;
+          const maxChecks = 10; // Check for up to 5 seconds
+          const checkInterval = setInterval(() => {
+            checkCount++;
+            if (checkoutRef.current && checkoutRef.current.hasChildNodes()) {
+              console.log("Checkout mounted successfully");
+              clearInterval(checkInterval);
+              // Scroll to checkout after mounting
+              checkoutRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+            } else if (checkCount >= maxChecks) {
+              console.warn("Checkout container still empty after multiple checks - CORS errors may be blocking");
+              clearInterval(checkInterval);
+              // Offer fallback to hosted checkout
+              const useHosted = confirm(
+                "Embedded checkout is having trouble loading (likely due to browser extensions blocking requests). " +
+                "Would you like to use Stripe's hosted checkout page instead?"
+              );
+              if (useHosted) {
+                // Switch to hosted checkout - destroy embedded first
+                if (embeddedCheckoutRef.current) {
+                  try {
+                    embeddedCheckoutRef.current.destroy();
+                  } catch (e) {
+                    console.error("Error destroying embedded checkout:", e);
+                  }
+                }
+                setShowEmbeddedCheckout(false);
+                embeddedCheckoutRef.current = null;
+                setEmbeddedCheckoutClientSecret(null);
+                // Create hosted checkout session
+                createHostedCheckoutSession();
+              }
+            }
+          }, 500);
+        } catch (error) {
+          console.error("Error mounting embedded checkout:", error);
+          // Try fallback by ID
+          const containerById = document.getElementById("embedded-checkout");
+          if (containerById && !containerById.hasChildNodes()) {
+            try {
+              console.log("Trying fallback mount by ID");
+              embeddedCheckoutRef.current.mount(containerById);
+            } catch (fallbackError) {
+              console.error("Error mounting to fallback container:", fallbackError);
+              // Offer fallback to hosted checkout
+              const useHosted = confirm(
+                "Failed to load embedded checkout. This may be due to browser extensions blocking requests. " +
+                "Would you like to use Stripe's hosted checkout page instead?"
+              );
+              if (useHosted) {
+                // Switch to hosted checkout - destroy embedded first
+                if (embeddedCheckoutRef.current) {
+                  try {
+                    embeddedCheckoutRef.current.destroy();
+                  } catch (e) {
+                    console.error("Error destroying embedded checkout:", e);
+                  }
+                }
+                setShowEmbeddedCheckout(false);
+                embeddedCheckoutRef.current = null;
+                setEmbeddedCheckoutClientSecret(null);
+                // Create hosted checkout session
+                createHostedCheckoutSession();
+              } else {
+                alert("Please try disabling browser extensions (ad blockers) and refresh the page.");
+              }
+            }
+          }
+        }
+      };
+
+      // Small delay to ensure container is fully rendered
+      const timeoutId = setTimeout(mountCheckout, 100);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [showEmbeddedCheckout, embeddedCheckoutClientSecret]);
+
+  // Cleanup embedded checkout on unmount
+  useEffect(() => {
+    return () => {
+      if (embeddedCheckoutRef.current) {
+        try {
+          embeddedCheckoutRef.current.destroy();
+        } catch (error) {
+          console.error("Error destroying embedded checkout:", error);
+        }
+      }
+    };
+  }, []);
+
+  // Auto-initialize embedded checkout when email is provided (if Stripe is selected)
+  // Country is optional - Stripe will collect it in the billing address
+  useEffect(() => {
+    // Only run if Stripe is selected and we haven't initialized yet
+    if (selectedPaymentMethod !== "stripe") return;
+    if (showEmbeddedCheckout || isLoadingEmbeddedCheckout || embeddedCheckoutRef.current || isInitializingRef.current) return;
+    
+    const emailValid = email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    if (!emailValid) return;
+    
+    // Small delay to avoid rapid initialization
+    const timeoutId = setTimeout(() => {
+      // Double-check conditions before initializing
+      if (!embeddedCheckoutRef.current && !showEmbeddedCheckout && !isLoadingEmbeddedCheckout && !isInitializingRef.current) {
+        initializeEmbeddedCheckout();
+      }
+    }, 300);
+    
+    return () => clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [email, selectedPaymentMethod]); // Only depend on email and payment method, not the function
+
+  // Re-initialize embedded checkout when key values change (if Stripe is selected and checkout is showing)
+  // Only re-initialize if amount or travelers change significantly
+  useEffect(() => {
+    if (selectedPaymentMethod !== "stripe" || !showEmbeddedCheckout || isLoadingEmbeddedCheckout || isInitializingRef.current) {
+      return;
+    }
+    
+    // Only re-initialize if amount or travelers change (not on every render)
+    // This prevents infinite loops
+    const timeoutId = setTimeout(() => {
+      if (embeddedCheckoutRef.current && email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        // Destroy and re-initialize only if really needed
+        try {
+          embeddedCheckoutRef.current.destroy();
+        } catch (error) {
+          console.error("Error destroying embedded checkout:", error);
+        }
+        embeddedCheckoutRef.current = null;
+        setShowEmbeddedCheckout(false);
+        setEmbeddedCheckoutClientSecret(null);
+        
+        // Re-initialize after a delay
+        setTimeout(() => {
+          if (!isInitializingRef.current) {
+            initializeEmbeddedCheckout();
+          }
+        }, 200);
+      }
+    }, 1000); // Debounce to prevent rapid re-initialization
+    
+    return () => clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalAmountEUR, travelers]); // Only re-initialize when amount or travelers change
 
   const handleInsuranceChange = (increment) => {
     const newValue = insuranceCount + increment;
@@ -1619,33 +1883,6 @@ const VisaCheckout = () => {
                   )}
                 </div>
 
-                {/* <div>
-                  <label
-                    htmlFor="postcode"
-                    className="block text-sm font-medium mb-1"
-                  >
-                    Postcode *
-                  </label>
-                  <input
-                    type="text"
-                    id="postcode"
-                    value={postcode}
-                    onChange={(e) => setPostcode(e.target.value)}
-                    onBlur={handlePostcodeBlur}
-                    placeholder="SW1A 1AA"
-                    className={`w-full border ${postcodeError ? "border-red-400" : "border-gray-300"
-                      } rounded-md p-2 text-sm  ${postcodeError
-                        ? "outline-none ring-2 ring-red-400"
-                        : "focus:outline-none focus:ring-2 focus:ring-black"
-                      }`}
-                  />
-                  {postcodeError && (
-                    <span className="text-sm text-red-400 mt-1">
-                      {postcodeError}
-                    </span>
-                  )}
-                </div> */}
-
                 <div className="flex items-center space-x-2">
                   <input
                     type="checkbox"
@@ -1685,7 +1922,24 @@ const VisaCheckout = () => {
                       ? "border-black bg-gray-50"
                       : "border-gray-300"
                   }`}
-                  onClick={() => setSelectedPaymentMethod("stripe")}
+                  onClick={async () => {
+                    setSelectedPaymentMethod("stripe");
+                    // Reset embedded checkout if switching payment methods
+                    if (showEmbeddedCheckout) {
+                      if (embeddedCheckoutRef.current) {
+                        try {
+                          embeddedCheckoutRef.current.destroy();
+                        } catch (error) {
+                          console.error("Error destroying embedded checkout:", error);
+                        }
+                      }
+                      setShowEmbeddedCheckout(false);
+                      setEmbeddedCheckoutClientSecret(null);
+                      embeddedCheckoutRef.current = null;
+                    }
+                    // Initialize embedded checkout when Stripe is selected
+                    await initializeEmbeddedCheckout();
+                  }}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
@@ -1694,9 +1948,27 @@ const VisaCheckout = () => {
                         name="payment"
                         value="stripe"
                         checked={selectedPaymentMethod === "stripe"}
-                        onChange={(e) =>
-                          setSelectedPaymentMethod(e.target.value)
-                        }
+                        onChange={async (e) => {
+                          setSelectedPaymentMethod(e.target.value);
+                          // Initialize embedded checkout when Stripe is selected via radio
+                          if (e.target.value === "stripe") {
+                            await initializeEmbeddedCheckout();
+                          } else {
+                            // Destroy embedded checkout if switching away from Stripe
+                            if (showEmbeddedCheckout) {
+                              if (embeddedCheckoutRef.current) {
+                                try {
+                                  embeddedCheckoutRef.current.destroy();
+                                } catch (error) {
+                                  console.error("Error destroying embedded checkout:", error);
+                                }
+                              }
+                              setShowEmbeddedCheckout(false);
+                              setEmbeddedCheckoutClientSecret(null);
+                              embeddedCheckoutRef.current = null;
+                            }
+                          }
+                        }}
                         className="h-4 w-4"
                       />
                       <span className="text-sm font-medium">Credit card</span>
@@ -1734,495 +2006,57 @@ const VisaCheckout = () => {
                   </div>
 
                   {selectedPaymentMethod === "stripe" && (
-                    <div className="mt-6 space-y-4 border-t pt-4">
-                      <h3 className="font-medium text-lg">Card Details</h3>
-
-                      {/* Card Number */}
-                      <div>
-                        <label
-                          htmlFor="cardNumber"
-                          className="block text-sm font-medium mb-1"
-                        >
-                          Card number
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            id="cardNumber"
-                            value={cardNumber}
-                            onChange={(e) =>
-                              setCardNumber(formatCardNumber(e.target.value))
-                            }
-                            onBlur={handleCardFieldBlur}
-                            placeholder="1234 5678 9012 3456"
-                            maxLength={19}
-                            className={`w-full border ${
-                              cardErrors.cardNumber
-                                ? "border-red-400"
-                                : "border-gray-300"
-                            } rounded-md p-3 text-sm pr-10 ${
-                              cardErrors.cardNumber
-                                ? "outline-none ring-2 ring-red-400"
-                                : "focus:outline-none focus:ring-2 focus:ring-black"
-                            }`}
-                          />
-                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                            <svg
-                              width="20"
-                              height="20"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              className="text-gray-400"
-                            >
-                              <rect
-                                x="2"
-                                y="6"
-                                width="20"
-                                height="12"
-                                rx="2"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                              />
-                              <path
-                                d="M6 10h12"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                              />
-                            </svg>
+                    <>
+                      {isLoadingEmbeddedCheckout && (
+                        <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-md">
+                          <div className="flex items-center space-x-2">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+                            <p className="text-sm text-gray-600">
+                              Loading secure checkout...
+                            </p>
                           </div>
                         </div>
-                        {cardErrors.cardNumber && (
-                          <span className="text-sm text-red-400 mt-1">
-                            {cardErrors.cardNumber}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Expiration Date and Security Code Row */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label
-                            htmlFor="expirationDate"
-                            className="block text-sm font-medium mb-1"
-                          >
-                            Expiration date (MM / YY)
-                          </label>
-                          <input
-                            type="text"
-                            id="expirationDate"
-                            value={expirationDate}
-                            onChange={(e) =>
-                              setExpirationDate(
-                                formatExpirationDate(e.target.value)
-                              )
-                            }
-                            onBlur={handleCardFieldBlur}
-                            placeholder="MM / YY"
-                            maxLength={7}
-                            className={`w-full border ${
-                              cardErrors.expirationDate
-                                ? "border-red-400"
-                                : "border-gray-300"
-                            } rounded-md p-3 text-sm ${
-                              cardErrors.expirationDate
-                                ? "outline-none ring-2 ring-red-400"
-                                : "focus:outline-none focus:ring-2 focus:ring-black"
-                            }`}
-                          />
-                          {cardErrors.expirationDate && (
-                            <span className="text-sm text-red-400 mt-1">
-                              {cardErrors.expirationDate}
-                            </span>
+                      )}
+                      
+                      {!isLoadingEmbeddedCheckout && !showEmbeddedCheckout && (
+                        <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
+                          {(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) ? (
+                            <p className="text-sm text-blue-800">
+                              ⚠️ Please enter a valid email address above to see the payment form.
+                            </p>
+                          ) : (
+                            <p className="text-sm text-blue-800">
+                              Payment form will appear automatically. Stripe will collect your billing address including country.
+                            </p>
                           )}
                         </div>
+                      )}
 
-                        <div>
-                          <label
-                            htmlFor="securityCode"
-                            className="block text-sm font-medium mb-1"
-                          >
-                            Security code
-                            <svg
-                              className="inline ml-1 w-4 h-4 text-gray-400"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                          </label>
-                          <input
-                            type="text"
-                            id="securityCode"
-                            value={securityCode}
-                            onChange={(e) =>
-                              setSecurityCode(
-                                e.target.value.replace(/\D/g, "").slice(0, 4)
-                              )
-                            }
-                            onBlur={handleCardFieldBlur}
-                            placeholder="123"
-                            maxLength={4}
-                            className={`w-full border ${
-                              cardErrors.securityCode
-                                ? "border-red-400"
-                                : "border-gray-300"
-                            } rounded-md p-3 text-sm ${
-                              cardErrors.securityCode
-                                ? "outline-none ring-2 ring-red-400"
-                                : "focus:outline-none focus:ring-2 focus:ring-black"
-                            }`}
+                      {/* Embedded Stripe Checkout Container */}
+                      {showEmbeddedCheckout && (
+                        <div className="mt-6">
+                          <div 
+                            ref={checkoutRef} 
+                            id="embedded-checkout"
+                            className="w-full"
+                            style={{ minHeight: '400px' }}
                           />
-                          {cardErrors.securityCode && (
-                            <span className="text-sm text-red-400 mt-1">
-                              {cardErrors.securityCode}
-                            </span>
+                          {embeddedCheckoutClientSecret && (
+                            <div className="mt-4 space-y-2">
+                              <div className="text-xs text-gray-500">
+                                Note: CORS errors in console are usually from browser extensions and don't affect payment processing.
+                              </div>
+                              <button
+                                onClick={createHostedCheckoutSession}
+                                className="text-sm text-blue-600 hover:text-blue-800 underline"
+                              >
+                                Having trouble? Use Stripe's hosted checkout page instead →
+                              </button>
+                            </div>
                           )}
                         </div>
-                      </div>
-
-                      {/* Name on Card */}
-                      <div>
-                        <label
-                          htmlFor="nameOnCard"
-                          className="block text-sm font-medium mb-1"
-                        >
-                          Name on card
-                        </label>
-                        <input
-                          type="text"
-                          id="nameOnCard"
-                          value={nameOnCard}
-                          onChange={(e) => setNameOnCard(e.target.value)}
-                          onBlur={handleCardFieldBlur}
-                          placeholder="John Doe"
-                          className={`w-full border ${
-                            cardErrors.nameOnCard
-                              ? "border-red-400"
-                              : "border-gray-300"
-                          } rounded-md p-3 text-sm ${
-                            cardErrors.nameOnCard
-                              ? "outline-none ring-2 ring-red-400"
-                              : "focus:outline-none focus:ring-2 focus:ring-black"
-                          }`}
-                        />
-                        {cardErrors.nameOnCard && (
-                          <span className="text-sm text-red-400 mt-1">
-                            {cardErrors.nameOnCard}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Use Shipping Address Checkbox */}
-                      {/* <div className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          id="useShippingAddress"
-                          checked={useShippingAddress}
-                          onChange={(e) =>
-                            setUseShippingAddress(e.target.checked)
-                          }
-                          className="h-4 w-4 border-gray-300 rounded"
-                        />
-                       <label htmlFor="useShippingAddress" className="text-sm">
-                          Use shipping address as billing address
-                        </label>
-                      </div> */}
-                      {/* Billing Address Section */}
-                      {/* {!useShippingAddress && (
-                        <div className="space-y-4"> */}
-                          {/* <h4 className="font-medium text-lg">
-                            Billing address
-                          </h4> */}
-                          {/* Country/Region */}
-                          {/* <div>
-                            <label
-                              htmlFor="billingCountry"
-                              className="block text-sm font-medium mb-1"
-                            >
-                              Country/Region
-                            </label>
-                            <select
-                              id="billingCountry"
-                              value={billingCountry}
-                              onChange={(e) =>
-                                setBillingCountry(e.target.value)
-                              }
-                              className="w-full border border-gray-300 rounded-md p-3 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                            >
-                              <option value="United Kingdom">
-                                United Kingdom
-                              </option>
-                              <option value="United States">
-                                United States
-                              </option>
-                              <option value="Canada">Canada</option>
-                              <option value="Australia">Australia</option>
-                              <option value="Germany">Germany</option>
-                              <option value="France">France</option>
-                              <option value="Spain">Spain</option>
-                              <option value="Italy">Italy</option>
-                            </select>
-                          </div> */}
-                          {/* First Name and Last Name Row */}
-                          {/* <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <label
-                                htmlFor="billingFirstName"
-                                className="block text-sm font-medium mb-1"
-                              >
-                                First name
-                              </label>
-                              <input
-                                type="text"
-                                id="billingFirstName"
-                                value={billingFirstName}
-                                onChange={(e) =>
-                                  setBillingFirstName(e.target.value)
-                                }
-                                onBlur={handleBillingFieldBlur}
-                                className={`w-full border ${
-                                  cardErrors.billingFirstName
-                                    ? "border-red-400"
-                                    : "border-gray-300"
-                                } rounded-md p-3 text-sm ${
-                                  cardErrors.billingFirstName
-                                    ? "outline-none ring-2 ring-red-400"
-                                    : "focus:outline-none focus:ring-2 focus:ring-black"
-                                }`}
-                              />
-                              {cardErrors.billingFirstName && (
-                                <span className="text-sm text-red-400 mt-1">
-                                  {cardErrors.billingFirstName}
-                                </span>
-                              )}
-                            </div>
-
-                            <div>
-                              <label
-                                htmlFor="billingLastName"
-                                className="block text-sm font-medium mb-1"
-                              >
-                                Last name
-                              </label>
-                              <input
-                                type="text"
-                                id="billingLastName"
-                                value={billingLastName}
-                                onChange={(e) =>
-                                  setBillingLastName(e.target.value)
-                                }
-                                onBlur={handleBillingFieldBlur}
-                                className={`w-full border ${
-                                  cardErrors.billingLastName
-                                    ? "border-red-400"
-                                    : "border-gray-300"
-                                } rounded-md p-3 text-sm ${
-                                  cardErrors.billingLastName
-                                    ? "outline-none ring-2 ring-red-400"
-                                    : "focus:outline-none focus:ring-2 focus:ring-black"
-                                }`}
-                              />
-                              {cardErrors.billingLastName && (
-                                <span className="text-sm text-red-400 mt-1">
-                                  {cardErrors.billingLastName}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          onChange={(e) => setBillingAddress(e.target.value)}
-                          onBlur={handleBillingFieldBlur} */}
-                          {/* Address */}
-                          {/* <div>
-                            <label
-                              htmlFor="billingAddress"
-                              className="block text-sm font-medium mb-1"
-                            >
-                              Address
-                              <svg
-                                className="inline ml-1 w-4 h-4 text-gray-400"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth="2"
-                                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                                />
-                              </svg>
-                            </label>
-                            <input
-                              type="text"
-                              id="billingAddress"
-                              value={billingAddress}
-                              onChange={(e) =>
-                                setBillingAddress(e.target.value)
-                              }
-                              className={`w-full border ${
-                                cardErrors.billingAddress
-                                  ? "border-red-400"
-                                  : "border-gray-300"
-                              } rounded-md p-3 text-sm ${
-                                cardErrors.billingAddress
-                                  ? "outline-none ring-2 ring-red-400"
-                                  : "focus:outline-none focus:ring-2 focus:ring-black"
-                              }`}
-                            />
-                            {cardErrors.billingAddress && (
-                              <span className="text-sm text-red-400 mt-1">
-                                {cardErrors.billingAddress}
-                              </span>
-                            )}
-                          </div> */}
-                          {/* Apartment */}
-                          {/* <div>
-                            <label
-                              htmlFor="billingApartment"
-                              className="block text-sm font-medium mb-1"
-                            >
-                              Apartment, suite, etc. (optional)
-                            </label>
-                            <input
-                              type="text"
-                              id="billingApartment"
-                              value={billingApartment}
-                              onChange={(e) =>
-                                setBillingApartment(e.target.value)
-                              }
-                              className="w-full border border-gray-300 rounded-md p-3 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                            />
-                          </div> */}
-                          {/* City and Postcode Row */}
-                          {/* <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <label
-                                htmlFor="billingCity"
-                                className="block text-sm font-medium mb-1"
-                              >
-                                City
-                              </label>
-                              <input
-                                type="text"
-                                id="billingCity"
-                                value={billingCity}
-                                onChange={(e) => setBillingCity(e.target.value)}
-                                onBlur={handleBillingFieldBlur}
-                                className={`w-full border ${
-                                  cardErrors.billingCity
-                                    ? "border-red-400"
-                                    : "border-gray-300"
-                                } rounded-md p-3 text-sm ${
-                                  cardErrors.billingCity
-                                    ? "outline-none ring-2 ring-red-400"
-                                    : "focus:outline-none focus:ring-2 focus:ring-black"
-                                }`}
-                              />
-                              {cardErrors.billingCity && (
-                                <span className="text-sm text-red-400 mt-1">
-                                  {cardErrors.billingCity}
-                                </span>
-                              )}
-                            </div>
-
-                            <div>
-                              <label
-                                htmlFor="billingPostcode"
-                                className="block text-sm font-medium mb-1"
-                              >
-                                Postcode
-                              </label>
-                              <input
-                                type="text"
-                                id="billingPostcode"
-                                value={billingPostcode}
-                                onChange={(e) =>
-                                  setBillingPostcode(e.target.value)
-                                }
-                                onBlur={(e) => {
-                                  const v = String(e.target.value || "").trim();
-                                  if (billingCountry === "United Kingdom") {
-                                    if (!v) {
-                                      setCardErrors((prev) => ({
-                                        ...prev,
-                                        billingPostcode: "Postcode is required",
-                                      }));
-                                    } else if (!isValidUKPostcode(v)) {
-                                      setCardErrors((prev) => ({
-                                        ...prev,
-                                        billingPostcode:
-                                          "Please enter a valid UK postcode (e.g. SW1A 1AA)",
-                                      }));
-                                    } else {
-                                      setCardErrors((prev) => {
-                                        const nxt = { ...prev };
-                                        delete nxt.billingPostcode;
-                                        return nxt;
-                                      });
-                                    }
-                                  }
-                                }}
-                                className={`w-full border ${
-                                  cardErrors.billingPostcode
-                                    ? "border-red-400"
-                                    : "border-gray-300"
-                                } rounded-md p-3 text-sm ${
-                                  cardErrors.billingPostcode
-                                    ? "outline-none ring-2 ring-red-400"
-                                    : "focus:outline-none focus:ring-2 focus:ring-black"
-                                }`}
-                              />
-                              {cardErrors.billingPostcode && (
-                                <span className="text-sm text-red-400 mt-1">
-                                  {cardErrors.billingPostcode}
-                                </span>
-                              )}
-                            </div>
-                          </div> */}
-                          {/* Phone */}
-                          {/* <div>
-                            <label
-                              htmlFor="billingPhone"
-                              className="block text-sm font-medium mb-1"
-                            >
-                              Phone (optional)
-                              <svg
-                                className="inline ml-1 w-4 h-4 text-gray-400"
-                                fill="currentColor"
-                                viewBox="0 0 20 20"
-                              >
-                                <path
-                                  fillRule="evenodd"
-                                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                                  clipRule="evenodd"
-                                />
-                              </svg>
-                            </label>
-                            <input
-                              type="tel"
-                              id="billingPhone"
-                              value={billingPhone}
-                              onChange={(e) => setBillingPhone(e.target.value)}
-                              placeholder="e.g. 0123456789"
-                              className={`w-full border ${
-                                billingPhoneError
-                                  ? "border-red-400"
-                                  : "border-gray-300"
-                              } rounded-md p-3 text-sm focus:outline-none focus:ring-2 focus:ring-black`}
-                            />
-                            {billingPhoneError && (
-                              <span className="text-sm text-red-400 mt-1">
-                                {billingPhoneError}
-                              </span>
-                            )}
-                          </div> */}
-                        {/* </div>
-                      )} */}
-                    </div>
+                      )}
+                    </>
                   )}
                 </div>
 
@@ -2323,7 +2157,8 @@ const VisaCheckout = () => {
                     appliedDiscount.description
                       .toLowerCase()
                       .includes("student") &&
-                    !studentVerified)
+                    !studentVerified) ||
+                  (selectedPaymentMethod === "stripe" && (showEmbeddedCheckout || isLoadingEmbeddedCheckout))
                 }
                 onClick={handleProceedToCheckout}
                 className={`w-full bg-black text-white py-3 rounded-md font-semibold hover:bg-gray-900 transition-colors ${
@@ -2333,7 +2168,8 @@ const VisaCheckout = () => {
                     appliedDiscount.description
                       .toLowerCase()
                       .includes("student") &&
-                    !studentVerified)
+                    !studentVerified) ||
+                  (selectedPaymentMethod === "stripe" && (showEmbeddedCheckout || isLoadingEmbeddedCheckout))
                     ? "cursor-not-allowed opacity-50"
                     : "cursor-pointer"
                 }`}
@@ -2369,6 +2205,8 @@ const VisaCheckout = () => {
                       Pay {formatCurrency(totalAmountEUR, "EUR")} with Klarna
                     </span>
                   </div>
+                ) : selectedPaymentMethod === "stripe" && showEmbeddedCheckout ? (
+                  "Complete payment in the form above"
                 ) : (
                   `Complete Order`
                 )}

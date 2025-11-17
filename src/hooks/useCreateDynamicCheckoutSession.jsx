@@ -18,6 +18,7 @@ const useCreateDynamicCheckoutSession = () => {
     travelData,
     noOfInsurance,
     insurancePaymentAmount,
+    uiMode = "hosted", // 'hosted' or 'embedded'
   }) => {
     setCreatingDynamicCheckout(true);
     const successCallbackFunction = () => { };
@@ -117,6 +118,8 @@ const useCreateDynamicCheckoutSession = () => {
       visaTypeId: visaTypeId ? String(visaTypeId) : undefined,
       // Ensure currency is passed to backend (default to EUR)
       currency: (currency || "EUR").toString(),
+      // UI mode for checkout (embedded or hosted)
+      uiMode: uiMode || "hosted",
       // ensure an orderId exists for server-side bookkeeping
       orderId:
         (typeof window !== "undefined" &&
