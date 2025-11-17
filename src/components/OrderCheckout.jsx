@@ -718,6 +718,17 @@ const VisaCheckout = () => {
 
     if (cretingDynamicCheckout) return;
 
+    // Route Apple Pay / Google Pay selections to their dedicated handlers
+    if (selectedPaymentMethod === "apple" || selectedPaymentMethod === "apple-pay") {
+      await handleApplePayClick();
+      return;
+    }
+
+    if (selectedPaymentMethod === "google") {
+      await handleGooglePayClick();
+      return;
+    }
+
     // Skip email validation for Apple Pay since it provides user info
     if (selectedPaymentMethod !== "apple" && selectedPaymentMethod !== "apple-pay") {
       if (!email) {
@@ -754,7 +765,6 @@ const VisaCheckout = () => {
     // Stripe handles card validation on their hosted checkout page
 
     setEmailError("");
-    setPostcodeError("");
 
     if (
       appliedDiscount &&
