@@ -54,7 +54,7 @@ const ComparisonSection = () => {
     ],
   };
 
-  const data = comparisonData || defaultData;
+  const data = defaultData;
   const leftItems = data.leftSideItems || [];
   const rightItems = data.rightSideItems || [];
 
@@ -96,16 +96,17 @@ const ComparisonSection = () => {
         <div className="grid grid-cols-2 gap-2 max-sm:gap-1 relative overflow-x-hidden mb-6">
           {/* Travel Agency Side */}
           <div className="rounded-3xl max-sm:rounded-2xl flex flex-col items-center gap-3">
-            <div className="aspect-square w-full max-sm:h-[140px] md:h-[346px] mb-4 max-sm:mb-2 rounded-[30px] max-sm:rounded-[20px] overflow-hidden bg-gray-100">
-              <Image
+            <div className="aspect-square w-full md:h-[335px] mb-4 max-sm:mb-2 rounded-[30px] max-sm:rounded-[20px] overflow-hidden bg-gray-100">
+              <img
+                src="/image/visa-agency.png"
                 width={384}
-                height={346}
-                src={data.leftSideImage || "/image/visa-agency.png"}
+                height={335}
                 alt={data.leftSideTitle || "Travel Agency Representative"}
-                className="w-full h-full md:object-center object-top  object-cover"
+                className="w-full h-full object-cover"
               />
             </div>
           </div>
+
           <div className="flex justify-center bg-white p-0.5 md:p-[8px] top-1/2 -translate-y-1/2 rounded-full absolute left-1/2 -translate-x-1/2 z-10">
             <img
               src="/image/vs.svg"
