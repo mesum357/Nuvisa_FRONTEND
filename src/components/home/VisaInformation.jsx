@@ -17,6 +17,47 @@ const VisaInformation = () => {
   const { klarnaContent, loading: klarnaLoading } = useKlarnaContent();
   const { processContent, loading: processLoading } = useProcessContent();
 
+  // Handle hash fragment scrolling
+  useEffect(() => {
+    const scrollToHash = (retryCount = 0) => {
+      if (typeof window === "undefined") return;
+
+      const hash = window.location.hash;
+      if (hash) {
+        // Remove the # symbol
+        const id = hash.substring(1);
+        const element = document.getElementById(id);
+
+        if (element) {
+          // Small delay to ensure DOM is fully rendered
+          setTimeout(() => {
+            element.scrollIntoView({
+              behavior: "smooth",
+              block: "start",
+            });
+          }, 100);
+        } else if (retryCount < 10) {
+          // Retry if element not found (for async content)
+          setTimeout(() => scrollToHash(retryCount + 1), 200);
+        }
+      }
+    };
+
+    // Scroll on initial load with retry mechanism
+    scrollToHash();
+
+    // Also handle hash changes (e.g., when user clicks a link with hash)
+    const handleHashChange = () => {
+      scrollToHash();
+    };
+
+    window.addEventListener("hashchange", handleHashChange);
+
+    return () => {
+      window.removeEventListener("hashchange", handleHashChange);
+    };
+  }, []);
+
   return (
     <ClientOnly>
       <div className="bg-[#1E1E27] text-white w-full overflow-x-hidden">
