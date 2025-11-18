@@ -1242,7 +1242,7 @@ const CountrySlider = () => {
     insuranceDays, // Added to dependency array
   ]);
 
-  const handleGetVisa = async () => {
+  const handleGetVisa = async (preferredPaymentMethod = null) => {
     const requiredFields = [
       "passport",
       "ukVisa",
@@ -1335,7 +1335,8 @@ const CountrySlider = () => {
 
     dispatch(setCouponCode(couponCode || ""));
     dispatch(setUserEmail(userEmail || ""));
-    dispatch(setSelectedPaymentMethod(selectedPaymentMethod || ""));
+    const methodToPersist = preferredPaymentMethod || selectedPaymentMethod || "";
+    dispatch(setSelectedPaymentMethod(methodToPersist));
     dispatch(setGiftCardFees(giftCardFees || 0));
     dispatch(setTotalAmount(totalAmount || 0));
     dispatch(setInsuranceOnly(hasOnlyInsurance || false));
@@ -1618,7 +1619,8 @@ const CountrySlider = () => {
     return true;
   };
 
-  // Apple Pay click handler
+  // Apple Pay click handler – run directly on this page when supported,
+  // otherwise fall back to the normal checkout flow with Apple Pay selected.
   const handleApplePayClick = async () => {
     // Validate required documents for express payment
     if (!validateRequiredDocuments()) return;
@@ -1674,41 +1676,33 @@ const CountrySlider = () => {
 
     const totalAmount = Math.round(visaFees + insuranceFees + giftCardFees);
 
-    // Check if Apple Pay is supported at all
+    // If Apple Pay API is not available (e.g. non-Safari browser),
+    // fall back to the main checkout flow with Apple Pay selected.
     if (!window.ApplePaySession) {
-      showAlert(
-        "Apple Pay",
-        "Apple Pay is not supported on this browser. Please use Safari on a supported Apple device."
-      );
+      await handleGetVisa("apple");
       return;
     }
 
     // Check device capability first
     const canMakePayments = ApplePaySession.canMakePayments();
     if (!canMakePayments) {
-      showAlert(
-        "Apple Pay",
-        "Apple Pay is not available on this device. Please ensure you have Apple Pay set up with a valid payment method."
-      );
+      await handleGetVisa("apple");
       return;
     }
 
-    // For development/testing on localhost or non-HTTPS
+    // For development/testing on localhost or non-HTTPS, simulate and then
+    // continue via main checkout instead of trying a real Apple Pay session.
     if (
       window.location.hostname === "localhost" ||
       window.location.protocol !== "https:"
     ) {
-      // Simulate successful Apple Pay flow using system confirm
       setConfirmState({
         isOpen: true,
         title: "Confirm Apple Pay",
-        message: `Process Apple Pay payment of £${totalAmount}?\n\nThis will process payment on this page.`,
+        message: `Process Apple Pay payment of £${totalAmount}?\n\nThis will continue to checkout on the next page.`,
         onConfirm: () => {
           setConfirmState((s) => ({ ...s, isOpen: false }));
-          setSelectedLocalPaymentMethod("apple");
-          dispatch(setSelectedPaymentMethod("apple"));
-          // Process payment on the same page instead of redirecting
-          // The payment will be handled through the checkout flow
+          handleGetVisa("apple");
         },
       });
       return;
@@ -1785,8 +1779,7 @@ const CountrySlider = () => {
         try {
           dispatch(setSelectedPaymentMethod("apple-pay"));
 
-          // Try to validate merchant through backend API
-          // If backend endpoint doesn't exist, this will fail gracefully
+          // Try to validate merchant through backend API.
           try {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
             const response = await fetch(
@@ -1811,7 +1804,6 @@ const CountrySlider = () => {
           }
 
           // If backend validation fails, abort gracefully without redirecting
-          // This keeps the user on the /get-the-visa page
           suppressCancel = true;
           session.abort();
           showAlert(
@@ -1868,10 +1860,8 @@ const CountrySlider = () => {
       session.begin();
     } catch (error) {
       console.error("Apple Pay initialization error:", error);
-      showAlert(
-        "Apple Pay",
-        "Apple Pay is not available. Please try a different payment method."
-      );
+      // If we hit an Apple Pay API error, fall back to normal checkout
+      await handleGetVisa("apple");
     }
   };
 
@@ -3270,7 +3260,7 @@ const CountrySlider = () => {
 
             {/* Checkout Button */}
             <button
-              onClick={handleGetVisa}
+              onClick={() => handleGetVisa()}
               className="group flex w-full justify-between items-center bg-[#6B4EFF] text-white gap-[16px] font-medium px-[20px] py-3.5 rounded-full cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb] max-sm:py-3 max-sm:px-4"
             >
               <span className="mr-3 text-xl font-semibold max-sm:text-lg max-sm:mr-2">
