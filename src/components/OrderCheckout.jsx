@@ -815,7 +815,7 @@ const VisaCheckout = () => {
       phone: phone,
       paymentMethod: selectedPaymentMethod,
       visaTypeId: visaTypeId || visaState.visaTypeId || "",
-      currency: "EUR",
+      currency: "GBP",
       noOfInsurance: insuranceCount,
       insurancePaymentAmount: discountedInsuranceFeesEUR,
       uiMode: "hosted", // Always hosted for non-Stripe methods
@@ -886,7 +886,8 @@ const VisaCheckout = () => {
         phone: phone,
         paymentMethod: "stripe",
         visaTypeId: visaTypeId || visaState.visaTypeId || "",
-        currency: "EUR",
+        // Use GBP for Stripe so Checkout displays GBP
+        currency: "GBP",
         noOfInsurance: insuranceCount,
         insurancePaymentAmount: discountedInsuranceFeesEUR,
         uiMode: "hosted", // Use hosted mode
@@ -935,7 +936,8 @@ const VisaCheckout = () => {
         phone: phone,
         paymentMethod: "stripe",
         visaTypeId: visaTypeId || visaState.visaTypeId || "",
-        currency: "EUR",
+        // Use GBP for Stripe so embedded Checkout displays GBP
+        currency: "GBP",
         noOfInsurance: insuranceCount,
         insurancePaymentAmount: discountedInsuranceFeesEUR,
         uiMode: "embedded",
@@ -1308,29 +1310,6 @@ const VisaCheckout = () => {
       }
     }
 
-    // Calculate payment amount with all components
-    const currentBaseFee =
-      selectedVisaType && selectedVisaType.priceGBP
-        ? Number(selectedVisaType.priceGBP)
-        : selectedVisaType && selectedVisaType.price
-        ? Math.round(Number(selectedVisaType.price) / 100)
-        : baseVisaFee;
-
-    let visaFees = currentBaseFee * travelers;
-
-    // Apply discount if available
-    if (appliedDiscount) {
-      const discountAmount = (visaFees * appliedDiscount.percentage) / 100;
-      visaFees = visaFees - discountAmount;
-    }
-
-    const insuranceFees = includeInsurance
-      ? perDayInsurancePrice * travelDays * insuranceCount
-      : 0;
-    const giftCardFees = includeGiftCard ? 159 * giftCardCount : 0;
-
-    const totalAmount = Math.round(visaFees + insuranceFees + giftCardFees);
-
     // Check if Apple Pay is supported at all
     if (!window.ApplePaySession) {
       showAlert(
@@ -1367,7 +1346,8 @@ const VisaCheckout = () => {
     }
 
     try {
-      // Build line items for detailed breakdown
+      // Build line items for detailed breakdown using the same
+      // final amounts used in the main checkout (all discounts applied)
       const lineItems = [
         {
           label: `Visa Processing Fee (${travelers} traveller${
@@ -1378,12 +1358,12 @@ const VisaCheckout = () => {
         },
       ];
 
-      if (includeInsurance) {
+      if (includeInsurance && insuranceFees > 0) {
         lineItems.push({
           label: `Insurance Certificate (${insuranceCount} traveller${
             insuranceCount > 1 ? "s" : ""
           })`,
-          amount: insuranceFees.toString(),
+          amount: Math.round(insuranceFees).toString(),
           type: "final",
         });
       }
@@ -1391,17 +1371,7 @@ const VisaCheckout = () => {
       if (giftCardFees > 0) {
         lineItems.push({
           label: `Gift Card`,
-          amount: giftCardFees.toString(),
-          type: "final",
-        });
-      }
-
-      if (appliedDiscount) {
-        lineItems.push({
-          label: `Discount (${appliedDiscount.percentage}% off)`,
-          amount: `-${Math.round(
-            (currentBaseFee * travelers * appliedDiscount.percentage) / 100
-          )}`,
+          amount: Math.round(giftCardFees).toString(),
           type: "final",
         });
       }

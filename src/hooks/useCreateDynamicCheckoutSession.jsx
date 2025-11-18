@@ -14,7 +14,8 @@ const useCreateDynamicCheckoutSession = () => {
     travelerIndex = "",
     paymentType = "application_creation",
     visaTypeId = "",
-    currency = "EUR",
+    // Default logical currency for visa checkout is GBP
+    currency = "GBP",
     travelData,
     noOfInsurance,
     insurancePaymentAmount,
@@ -116,8 +117,8 @@ const useCreateDynamicCheckoutSession = () => {
       // use normalized payment type
       paymentType: normalizedPaymentType,
       visaTypeId: visaTypeId ? String(visaTypeId) : undefined,
-      // Ensure currency is passed to backend (default to EUR)
-      currency: (currency || "EUR").toString(),
+      // Ensure currency is passed to backend (default to GBP)
+      currency: (currency || "GBP").toString(),
       // UI mode for checkout (embedded or hosted)
       uiMode: uiMode || "hosted",
       // ensure an orderId exists for server-side bookkeeping
