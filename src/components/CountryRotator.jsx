@@ -14,49 +14,85 @@ const VisaHeroSection = () => {
     "Greece",
   ];
 
-  const [currentCountryIndex, setCurrentCountryIndex] = useState(0);
-  const [isAnimating, setIsAnimating] = useState(false);
+  const [currentWordIndex, setCurrentWordIndex] = useState(0);
+  const [letters, setLetters] = useState(
+    countries[0].split("").map(() => "in")
+  );
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setIsAnimating(true);
+    const animateWord = () => {
+      // Animate current word out
+      countries[currentWordIndex].split("").forEach((_, i) => {
+        setTimeout(() => {
+          setLetters(prev => {
+            const copy = [...prev];
+            copy[i] = "out";
+            return copy;
+          });
+        }, i * 80);
+      });
 
+      // After out animation, switch word
       setTimeout(() => {
-        setCurrentCountryIndex((prevIndex) =>
-          prevIndex === countries.length - 1 ? 0 : prevIndex + 1
-        );
-        setIsAnimating(false);
-      }, 1000);
-    }, 2000);
+        const nextWordIndex =
+          currentWordIndex === countries.length - 1 ? 0 : currentWordIndex + 1;
+        setCurrentWordIndex(nextWordIndex);
+
+        // Prepare next word letters
+        const newWordLetters = countries[nextWordIndex]
+          .split("")
+          .map(() => "behind");
+
+        setLetters(newWordLetters);
+
+        // Animate next word letters down to in
+        countries[nextWordIndex].split("").forEach((_, i) => {
+          setTimeout(() => {
+            setLetters(prev => {
+              const copy = [...prev];
+              copy[i] = "in";
+              return copy;
+            });
+          }, i * 80);
+        });
+      }, countries[currentWordIndex].length * 80 + 100);
+    };
+
+    const interval = setInterval(
+      animateWord,
+      200 + countries[currentWordIndex].length * 100
+    );
 
     return () => clearInterval(interval);
-  }, [countries.length]);
+  }, [currentWordIndex, letters, countries]);
+
   return (
-    <div className=" flex-col flex gap-1 mt-[13px] md:mt-0 items-center justify-center">
-      <h2 className="text-[40px] whitespace-nowrap uppercase md:text-[60px] font-gilroy-bold">
-        {countries[currentCountryIndex].split("").map((letter, letterIndex) => (
-          <span
-            key={`${currentCountryIndex}-${letterIndex}`}
-            className={`inline-block transition-all duration-300 ease-out ${
-              isAnimating
-                ? "transform translate-y-[27px] opacity-0"
-                : "transform translate-y-0 opacity-100"
-            }`}
-            style={{
-              transitionDelay: isAnimating
-                ? `${letterIndex * 100}ms`
-                : `${
-                    (countries[currentCountryIndex].length - letterIndex) * 120
-                  }ms`,
-            }}
-          >
+    <div className="flex flex-col gap-1 mt-[13px] md:mt-0 items-center justify-center relative">
+      <style>
+        {`
+          .letter {
+            display: inline-block;
+            transition: all 0.3s ease;
+          }
+          .letter.behind {
+            opacity: 0;
+            transform: translateY(-10px); /* start slightly above */
+          }
+          .letter.out {
+            opacity: 0;
+            transform: translateY(10px); /* move down when leaving */
+          }
+       
+        `}
+      </style>
+
+      <h2 className="text-[40px] md:text-[60px] font-gilroy-bold uppercase whitespace-nowrap">
+        {countries[currentWordIndex].split("").map((letter, i) => (
+          <span key={i} className={`letter ${letters[i]}`}>
             {letter}
           </span>
         ))}
       </h2>
-      {/* <p className="text-[21px] md:text-2xl mt-3 text-[#c5c6dd] font-gilroy-bold">
-        We are as picky as you are
-      </p> */}
     </div>
   );
 };
