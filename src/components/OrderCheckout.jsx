@@ -778,30 +778,22 @@ const VisaCheckout = () => {
       }
     }
 
-    // For Stripe, try embedded checkout first, fallback to hosted if needed
+    // For Stripe, use Stripe Elements (custom form)
     if (selectedPaymentMethod === "stripe") {
-      // If embedded checkout is already showing, do nothing
-      if (showEmbeddedCheckout) {
-        console.log("Embedded checkout already showing, skipping");
-        return;
-      }
-      // If it's loading, wait for it
-      if (isLoadingEmbeddedCheckout) {
-        console.log("Embedded checkout is loading, skipping");
-        return;
-      }
-      // Check if user wants to skip embedded and use hosted
-      const skipEmbedded = new URLSearchParams(window.location.search).get('use_hosted') === 'true';
-      if (skipEmbedded) {
-        console.log("Skipping embedded checkout, using hosted instead");
-        // Fall through to hosted checkout logic below
-      } else {
-        // Otherwise, initialize embedded checkout
-        console.log("Initializing embedded checkout from handleProceedToCheckout");
-        await initializeEmbeddedCheckout();
-        // Return - don't proceed to redirect logic unless embedded fails
-        return;
-      }
+      // Redirect to Stripe Elements checkout page
+      const checkoutParams = new URLSearchParams({
+        email: email,
+        amount: String(totalAmountEUR),
+        travelers: String(travelers),
+        country: countryToUse,
+        insurance: includeInsurance ? "true" : "false",
+        visaTypeId: visaTypeId || visaState.visaTypeId || "",
+        noOfInsurance: String(insuranceCount),
+        insurancePaymentAmount: String(discountedInsuranceFeesEUR),
+      });
+
+      window.location.href = `/stripe-elements-checkout?${checkoutParams.toString()}`;
+      return;
     }
 
     try {

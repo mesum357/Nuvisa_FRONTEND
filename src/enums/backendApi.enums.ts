@@ -39,6 +39,8 @@ export const backendApiEnums = {
 
     PAYMENT: {
       CREATE_DYNAMIC_CHECKOUT_SESSION: "/stripe_payment/session",
+      CREATE_PAYMENT_INTENT: "/stripe_payment/payment-intent",
+      CONFIRM_PAYMENT: "/stripe_payment/confirm",
     },
 
     COUPON: {
