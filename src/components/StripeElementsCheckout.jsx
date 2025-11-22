@@ -211,7 +211,7 @@ const StripeElementsCheckout = ({
         <StripePaymentForm
           clientSecret={clientSecret}
           email={email}
-          amount={Math.round(Number(amount) * 100)}
+          amount={amount && !isNaN(amount) ? Math.round(Number(amount) * 100) : 0}
           onSuccess={handlePaymentSuccess}
           onError={handlePaymentError}
           isProcessing={processing}

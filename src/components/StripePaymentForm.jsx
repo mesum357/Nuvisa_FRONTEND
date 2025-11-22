@@ -113,14 +113,16 @@ const StripePaymentForm = ({
           </div>
         )}
 
-        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-sm text-gray-700">
-            <span className="font-semibold">Amount:</span> £{(amount / 100).toFixed(2)}
-          </p>
-          <p className="text-sm text-gray-700">
-            <span className="font-semibold">Email:</span> {email}
-          </p>
-        </div>
+        {amount && !isNaN(amount) && amount > 0 && (
+          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-gray-700">
+              <span className="font-semibold">Amount:</span> £{(Number(amount) / 100).toFixed(2)}
+            </p>
+            <p className="text-sm text-gray-700">
+              <span className="font-semibold">Email:</span> {email}
+            </p>
+          </div>
+        )}
 
         <button
           type="submit"
@@ -136,8 +138,10 @@ const StripePaymentForm = ({
               <Loader className="animate-spin mr-2" size={20} />
               Processing Payment...
             </span>
+          ) : amount && !isNaN(amount) ? (
+            `Pay £${(Number(amount) / 100).toFixed(2)}`
           ) : (
-            `Pay £${(amount / 100).toFixed(2)}`
+            `Complete Payment`
           )}
         </button>
       </div>

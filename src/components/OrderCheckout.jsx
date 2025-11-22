@@ -27,6 +27,9 @@ import {
   setTotalAmount,
   setTravelers,
 } from "@/store/visaSlice";
+import StripeProvider from "./StripeProvider";
+import StripeElementsCheckout from "./StripeElementsCheckout";
+import { useRouter } from "next/router";
 
 const VisaCheckout = () => {
   const dispatch = useAppDispatch();
@@ -125,13 +128,9 @@ const VisaCheckout = () => {
   const verificationPollRef = useRef(null);
   const [pendingCheckoutQuery, setPendingCheckoutQuery] = useState(null);
   
-  // Embedded Stripe Checkout
-  const [showEmbeddedCheckout, setShowEmbeddedCheckout] = useState(false);
-  const [embeddedCheckoutClientSecret, setEmbeddedCheckoutClientSecret] = useState(null);
-  const [isLoadingEmbeddedCheckout, setIsLoadingEmbeddedCheckout] = useState(false);
-  const checkoutRef = useRef(null);
-  const embeddedCheckoutRef = useRef(null);
-  const isInitializingRef = useRef(false); // Prevent multiple simultaneous initializations
+  // Inline Stripe Payment Form
+  const [showInlineStripeForm, setShowInlineStripeForm] = useState(false);
+  const router = useRouter();
 
   const sendStudentVerification = async (
     emailToVerify,
@@ -778,21 +777,16 @@ const VisaCheckout = () => {
       }
     }
 
-    // For Stripe, use Stripe Elements (custom form)
+    // For Stripe, show inline payment form
     if (selectedPaymentMethod === "stripe") {
-      // Redirect to Stripe Elements checkout page
-      const checkoutParams = new URLSearchParams({
-        email: email,
-        amount: String(totalAmountEUR),
-        travelers: String(travelers),
-        country: countryToUse,
-        insurance: includeInsurance ? "true" : "false",
-        visaTypeId: visaTypeId || visaState.visaTypeId || "",
-        noOfInsurance: String(insuranceCount),
-        insurancePaymentAmount: String(discountedInsuranceFeesEUR),
-      });
-
-      window.location.href = `/stripe-elements-checkout?${checkoutParams.toString()}`;
+      setShowInlineStripeForm(true);
+      // Scroll to the payment form
+      setTimeout(() => {
+        const formElement = document.getElementById('inline-stripe-form');
+        if (formElement) {
+          formElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
       return;
     }
 
@@ -864,368 +858,9 @@ const VisaCheckout = () => {
     }
   };
 
-  // Create hosted checkout session (fallback when embedded fails)
-  const createHostedCheckoutSession = async () => {
-    const countryToUse = selectedCountry || visaState.selectedCountry || "";
-    
-    try {
-      const statusResult = await handleCreateDynamicCheckoutSession({
-        email: email,
-        amount: String(totalAmountEUR),
-        travellers: String(travelers),
-        country: countryToUse,
-        insurance: includeInsurance ? true : false,
-        phone: phone,
-        paymentMethod: "stripe",
-        visaTypeId: visaTypeId || visaState.visaTypeId || "",
-        // Use GBP for Stripe so Checkout displays GBP
-        currency: "GBP",
-        noOfInsurance: insuranceCount,
-        insurancePaymentAmount: discountedInsuranceFeesEUR,
-        uiMode: "hosted", // Use hosted mode
-      });
 
-      const results = statusResult?.data;
-      const redirectUrl = results?.data?.results?.url || results?.results?.url || results?.url;
-
-      if (redirectUrl) {
-        window.location.href = redirectUrl;
-      } else {
-        alert("Failed to create checkout session. Please try again.");
-      }
-    } catch (error) {
-      console.error("Error creating hosted checkout session:", error);
-      alert("Failed to process payment. Please try again.");
-    }
-  };
 
   // Initialize embedded Stripe checkout
-  const initializeEmbeddedCheckout = useCallback(async () => {
-    // Basic validation - only email is required (Stripe will collect country in billing address)
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setEmailError("Please enter a valid email to continue");
-      return;
-    }
-
-    // Country is optional - Stripe embedded checkout will collect it in billing address
-    const countryToUse = selectedCountry || visaState.selectedCountry || "";
-
-    // Don't initialize if already loading, showing, or if checkout instance already exists
-    if (isLoadingEmbeddedCheckout || showEmbeddedCheckout || embeddedCheckoutRef.current || isInitializingRef.current) {
-      return;
-    }
-
-    isInitializingRef.current = true;
-    setIsLoadingEmbeddedCheckout(true);
-
-    try {
-      const statusResult = await handleCreateDynamicCheckoutSession({
-        email: email,
-        amount: String(totalAmountEUR),
-        travellers: String(travelers),
-        country: countryToUse,
-        insurance: includeInsurance ? true : false,
-        phone: phone,
-        paymentMethod: "stripe",
-        visaTypeId: visaTypeId || visaState.visaTypeId || "",
-        // Use GBP for Stripe so embedded Checkout displays GBP
-        currency: "GBP",
-        noOfInsurance: insuranceCount,
-        insurancePaymentAmount: discountedInsuranceFeesEUR,
-        uiMode: "embedded",
-      });
-      const results = statusResult?.data;
-
-      if (/^2\d{2}$/.test(statusResult?.status)) {
-        const returnedToken = results?.data?.results?.token;
-        const returnedUser = results?.data?.results?.user;
-
-        if (returnedToken) {
-          await localStorageGateway(
-            "token",
-            localStorageEnums.SET,
-            returnedToken
-          );
-          await Cookies.set("token", returnedToken);
-          dispatch(setAuthState(true));
-        }
-
-        if (returnedUser) {
-          await Cookies.set("user", JSON.stringify(returnedUser));
-          await localStorageGateway(
-            "user",
-            localStorageEnums.SET,
-            JSON.stringify(returnedUser)
-          );
-
-          if (returnedUser.id) {
-            dispatch(setAuthId(returnedUser.id));
-          }
-        }
-        dispatch(setAmountWithoutDiscount(Number(visaFeesEUR)));
-        await localStorageGateway("userEmail", localStorageEnums.SET, email);
-      }
-
-      // Try multiple paths to get clientSecret
-      const clientSecret =
-        results?.data?.results?.clientSecret ||
-        results?.data?.clientSecret ||
-        results?.results?.clientSecret ||
-        results?.clientSecret;
-
-      // Check if Stripe is initialized, if not wait a bit and try again
-      if (!window.stripeInstance) {
-        // Wait for Stripe to initialize
-        let attempts = 0;
-        const maxAttempts = 10;
-        while (!window.stripeInstance && attempts < maxAttempts) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-          attempts++;
-        }
-      }
-
-      if (!window.stripeInstance) {
-        console.error("Stripe instance not available after waiting");
-        console.error("Stripe available:", !!window.Stripe);
-        console.error("Publishable key set:", !!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
-        alert("Stripe is not initialized. Please refresh the page and try again.");
-        return;
-      }
-
-      if (!clientSecret) {
-        console.error("No client secret returned from backend");
-        console.error("Full response:", results);
-        // Check if a URL was returned instead (fallback from backend)
-        const fallbackUrl = results?.data?.results?.url || results?.data?.url || results?.url;
-        if (fallbackUrl) {
-          console.warn("Backend returned URL instead of clientSecret. This should not happen for embedded mode.");
-          console.warn("URL:", fallbackUrl);
-        }
-        alert("Failed to get payment session. Please check the console for details and try again.");
-        // NEVER redirect for Stripe - always return
-        return;
-      }
-
-      // Destroy existing checkout if any (shouldn't happen due to guard above, but just in case)
-      if (embeddedCheckoutRef.current) {
-        try {
-          console.log("Destroying existing checkout instance before creating new one");
-          embeddedCheckoutRef.current.destroy();
-          embeddedCheckoutRef.current = null;
-          // Wait a bit for cleanup
-          await new Promise(resolve => setTimeout(resolve, 100));
-        } catch (error) {
-          console.error("Error destroying existing checkout:", error);
-          embeddedCheckoutRef.current = null;
-        }
-      }
-
-      try {
-        // Initialize embedded checkout - only create if we don't have an instance
-        if (embeddedCheckoutRef.current) {
-          console.log("Checkout instance already exists, skipping creation");
-          return;
-        }
-        
-        console.log("Creating new embedded checkout instance");
-        const checkout = await window.stripeInstance.initEmbeddedCheckout({
-          clientSecret: clientSecret,
-        });
-
-        // Store checkout instance and client secret
-        embeddedCheckoutRef.current = checkout;
-        setEmbeddedCheckoutClientSecret(clientSecret);
-        
-        // Set showEmbeddedCheckout to true - useEffect will handle mounting
-        setShowEmbeddedCheckout(true);
-      } catch (stripeError) {
-        console.error("Stripe embedded checkout error:", stripeError);
-        alert(`Payment initialization error: ${stripeError.message || "Please try again"}`);
-        setShowEmbeddedCheckout(false);
-        embeddedCheckoutRef.current = null;
-        setEmbeddedCheckoutClientSecret(null);
-      }
-    } catch (error) {
-      console.error("Error initializing embedded checkout:", error);
-      alert("Failed to initialize payment. Please try again.");
-    } finally {
-      setIsLoadingEmbeddedCheckout(false);
-      isInitializingRef.current = false;
-    }
-  }, [email, selectedCountry, visaState.selectedCountry, totalAmountEUR, travelers, includeInsurance, insuranceCount, visaTypeId, phone, handleCreateDynamicCheckoutSession, dispatch]);
-
-  // Mount embedded checkout when container is ready
-  useEffect(() => {
-    if (showEmbeddedCheckout && embeddedCheckoutClientSecret && embeddedCheckoutRef.current && checkoutRef.current) {
-      // Check if already mounted
-      if (checkoutRef.current.hasChildNodes()) {
-        console.log("Checkout already mounted, skipping");
-        return;
-      }
-
-      const mountCheckout = () => {
-        try {
-          console.log("Mounting embedded checkout to container");
-          embeddedCheckoutRef.current.mount(checkoutRef.current);
-          
-          // Verify it mounted successfully after a short delay
-          let checkCount = 0;
-          const maxChecks = 10; // Check for up to 5 seconds
-          const checkInterval = setInterval(() => {
-            checkCount++;
-            if (checkoutRef.current && checkoutRef.current.hasChildNodes()) {
-              console.log("Checkout mounted successfully");
-              clearInterval(checkInterval);
-              // Scroll to checkout after mounting
-              checkoutRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-            } else if (checkCount >= maxChecks) {
-              console.warn("Checkout container still empty after multiple checks - CORS errors may be blocking");
-              clearInterval(checkInterval);
-              // Offer fallback to hosted checkout
-              const useHosted = confirm(
-                "Embedded checkout is having trouble loading (likely due to browser extensions blocking requests). " +
-                "Would you like to use Stripe's hosted checkout page instead?"
-              );
-              if (useHosted) {
-                // Switch to hosted checkout - destroy embedded first
-                if (embeddedCheckoutRef.current) {
-                  try {
-                    embeddedCheckoutRef.current.destroy();
-                  } catch (e) {
-                    console.error("Error destroying embedded checkout:", e);
-                  }
-                }
-                setShowEmbeddedCheckout(false);
-                embeddedCheckoutRef.current = null;
-                setEmbeddedCheckoutClientSecret(null);
-                // Create hosted checkout session
-                createHostedCheckoutSession();
-              }
-            }
-          }, 500);
-        } catch (error) {
-          console.error("Error mounting embedded checkout:", error);
-          // Try fallback by ID
-          const containerById = document.getElementById("embedded-checkout");
-          if (containerById && !containerById.hasChildNodes()) {
-            try {
-              console.log("Trying fallback mount by ID");
-              embeddedCheckoutRef.current.mount(containerById);
-            } catch (fallbackError) {
-              console.error("Error mounting to fallback container:", fallbackError);
-              // Offer fallback to hosted checkout
-              const useHosted = confirm(
-                "Failed to load embedded checkout. This may be due to browser extensions blocking requests. " +
-                "Would you like to use Stripe's hosted checkout page instead?"
-              );
-              if (useHosted) {
-                // Switch to hosted checkout - destroy embedded first
-                if (embeddedCheckoutRef.current) {
-                  try {
-                    embeddedCheckoutRef.current.destroy();
-                  } catch (e) {
-                    console.error("Error destroying embedded checkout:", e);
-                  }
-                }
-                setShowEmbeddedCheckout(false);
-                embeddedCheckoutRef.current = null;
-                setEmbeddedCheckoutClientSecret(null);
-                // Create hosted checkout session
-                createHostedCheckoutSession();
-              } else {
-                alert("Please try disabling browser extensions (ad blockers) and refresh the page.");
-              }
-            }
-          }
-        }
-      };
-
-      // Small delay to ensure container is fully rendered
-      const timeoutId = setTimeout(mountCheckout, 100);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [showEmbeddedCheckout, embeddedCheckoutClientSecret]);
-
-  // Cleanup embedded checkout on unmount
-  useEffect(() => {
-    return () => {
-      if (embeddedCheckoutRef.current) {
-        try {
-          embeddedCheckoutRef.current.destroy();
-        } catch (error) {
-          console.error("Error destroying embedded checkout:", error);
-        }
-      }
-    };
-  }, []);
-
-  // Auto-initialize embedded checkout when email is provided (if Stripe is selected)
-  // Country is optional - Stripe will collect it in the billing address
-  useEffect(() => {
-    // Only run if Stripe is selected and we haven't initialized yet
-    if (selectedPaymentMethod !== "stripe") return;
-    if (showEmbeddedCheckout || isLoadingEmbeddedCheckout || embeddedCheckoutRef.current || isInitializingRef.current) return;
-    
-    const emailValid = email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    if (!emailValid) return;
-    
-    // Small delay to avoid rapid initialization
-    const timeoutId = setTimeout(() => {
-      // Double-check conditions before initializing
-      if (!embeddedCheckoutRef.current && !showEmbeddedCheckout && !isLoadingEmbeddedCheckout && !isInitializingRef.current) {
-        initializeEmbeddedCheckout();
-      }
-    }, 300);
-    
-    return () => clearTimeout(timeoutId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [email, selectedPaymentMethod]); // Only depend on email and payment method, not the function
-
-  // Re-initialize embedded checkout when key values change (if Stripe is selected and checkout is showing)
-  // Only re-initialize if amount or travelers change significantly
-  useEffect(() => {
-    if (selectedPaymentMethod !== "stripe" || !showEmbeddedCheckout || isLoadingEmbeddedCheckout || isInitializingRef.current) {
-      return;
-    }
-    
-    // Only re-initialize if amount or travelers change (not on every render)
-    // This prevents infinite loops
-    const timeoutId = setTimeout(() => {
-      if (embeddedCheckoutRef.current && email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        // Destroy and re-initialize only if really needed
-        try {
-          embeddedCheckoutRef.current.destroy();
-        } catch (error) {
-          console.error("Error destroying embedded checkout:", error);
-        }
-        embeddedCheckoutRef.current = null;
-        setShowEmbeddedCheckout(false);
-        setEmbeddedCheckoutClientSecret(null);
-        
-        // Re-initialize after a delay
-        setTimeout(() => {
-          if (!isInitializingRef.current) {
-            initializeEmbeddedCheckout();
-          }
-        }, 200);
-      }
-    }, 1000); // Debounce to prevent rapid re-initialization
-    
-    return () => clearTimeout(timeoutId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [totalAmountEUR, travelers]); // Only re-initialize when amount or travelers change
-
-  const handleInsuranceChange = (increment) => {
-    const newValue = insuranceCount + increment;
-    if (newValue >= 1 && newValue <= travelers) {
-      setInsuranceCount(newValue);
-      dispatch(setReduxInsuranceCount(Number(newValue)));
-
-      if (newValue > 0 && !includeInsurance) {
-        setIncludeInsurance(true);
-      }
-    }
-  };
 
   useEffect(() => {
     try {
@@ -1884,24 +1519,7 @@ const VisaCheckout = () => {
                       ? "border-black bg-gray-50"
                       : "border-gray-300"
                   }`}
-                  onClick={async () => {
-                    setSelectedPaymentMethod("stripe");
-                    // Reset embedded checkout if switching payment methods
-                    if (showEmbeddedCheckout) {
-                      if (embeddedCheckoutRef.current) {
-                        try {
-                          embeddedCheckoutRef.current.destroy();
-                        } catch (error) {
-                          console.error("Error destroying embedded checkout:", error);
-                        }
-                      }
-                      setShowEmbeddedCheckout(false);
-                      setEmbeddedCheckoutClientSecret(null);
-                      embeddedCheckoutRef.current = null;
-                    }
-                    // Initialize embedded checkout when Stripe is selected
-                    await initializeEmbeddedCheckout();
-                  }}
+                  onClick={() => setSelectedPaymentMethod("stripe")}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
@@ -1910,27 +1528,7 @@ const VisaCheckout = () => {
                         name="payment"
                         value="stripe"
                         checked={selectedPaymentMethod === "stripe"}
-                        onChange={async (e) => {
-                          setSelectedPaymentMethod(e.target.value);
-                          // Initialize embedded checkout when Stripe is selected via radio
-                          if (e.target.value === "stripe") {
-                            await initializeEmbeddedCheckout();
-                          } else {
-                            // Destroy embedded checkout if switching away from Stripe
-                            if (showEmbeddedCheckout) {
-                              if (embeddedCheckoutRef.current) {
-                                try {
-                                  embeddedCheckoutRef.current.destroy();
-                                } catch (error) {
-                                  console.error("Error destroying embedded checkout:", error);
-                                }
-                              }
-                              setShowEmbeddedCheckout(false);
-                              setEmbeddedCheckoutClientSecret(null);
-                              embeddedCheckoutRef.current = null;
-                            }
-                          }
-                        }}
+                        onChange={(e) => setSelectedPaymentMethod(e.target.value)}
                         className="h-4 w-4"
                       />
                       <span className="text-sm font-medium">Credit card</span>
@@ -1967,58 +1565,50 @@ const VisaCheckout = () => {
                     </div>
                   </div>
 
-                  {selectedPaymentMethod === "stripe" && (
-                    <>
-                      {isLoadingEmbeddedCheckout && (
-                        <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-md">
-                          <div className="flex items-center space-x-2">
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
-                            <p className="text-sm text-gray-600">
-                              Loading secure checkout...
-                            </p>
-                          </div>
-                        </div>
-                      )}
+                  {selectedPaymentMethod === "stripe" && !showInlineStripeForm && (
+                    <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-md">
+                      <p className="text-sm text-gray-600 mb-3">
+                        Click "Continue to Payment" below to enter your card details
+                      </p>
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                        <span>Secure payment powered by Stripe</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Inline Stripe Payment Form */}
+                  {selectedPaymentMethod === "stripe" && showInlineStripeForm && (
+                    <div id="inline-stripe-form" className="mt-6 p-6 bg-white border-2 border-[#7350FF] rounded-lg">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold text-gray-900">Enter Card Details</h3>
+                        <button
+                          onClick={() => setShowInlineStripeForm(false)}
+                          className="text-gray-400 hover:text-gray-600"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
                       
-                      {!isLoadingEmbeddedCheckout && !showEmbeddedCheckout && (
-                        <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
-                          {(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) ? (
-                            <p className="text-sm text-blue-800">
-                              ⚠️ Please enter a valid email address above to see the payment form.
-                            </p>
-                          ) : (
-                            <p className="text-sm text-blue-800">
-                              Payment form will appear automatically. Stripe will collect your billing address including country.
-                            </p>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Embedded Stripe Checkout Container */}
-                      {showEmbeddedCheckout && (
-                        <div className="mt-6">
-                          <div 
-                            ref={checkoutRef} 
-                            id="embedded-checkout"
-                            className="w-full"
-                            style={{ minHeight: '400px' }}
-                          />
-                          {embeddedCheckoutClientSecret && (
-                            <div className="mt-4 space-y-2">
-                              <div className="text-xs text-gray-500">
-                                Note: CORS errors in console are usually from browser extensions and don't affect payment processing.
-                              </div>
-                              <button
-                                onClick={createHostedCheckoutSession}
-                                className="text-sm text-blue-600 hover:text-blue-800 underline"
-                              >
-                                Having trouble? Use Stripe's hosted checkout page instead →
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </>
+                      <StripeProvider>
+                        <StripeElementsCheckout
+                          email={email}
+                          amount={totalAmountEUR}
+                          travelers={travelers}
+                          country={selectedCountry || visaState.selectedCountry || ""}
+                          insurance={includeInsurance}
+                          visaTypeId={visaTypeId || visaState.visaTypeId || ""}
+                          currency="GBP"
+                          paymentType="application_creation"
+                          noOfInsurance={insuranceCount}
+                          insurancePaymentAmount={discountedInsuranceFeesEUR}
+                        />
+                      </StripeProvider>
+                    </div>
                   )}
                 </div>
 
@@ -2120,7 +1710,7 @@ const VisaCheckout = () => {
                       .toLowerCase()
                       .includes("student") &&
                     !studentVerified) ||
-                  (selectedPaymentMethod === "stripe" && (showEmbeddedCheckout || isLoadingEmbeddedCheckout))
+                  (selectedPaymentMethod === "stripe" && showInlineStripeForm)
                 }
                 onClick={handleProceedToCheckout}
                 className={`w-full bg-black text-white py-3 rounded-md font-semibold hover:bg-gray-900 transition-colors ${
@@ -2131,7 +1721,7 @@ const VisaCheckout = () => {
                       .toLowerCase()
                       .includes("student") &&
                     !studentVerified) ||
-                  (selectedPaymentMethod === "stripe" && (showEmbeddedCheckout || isLoadingEmbeddedCheckout))
+                  (selectedPaymentMethod === "stripe" && showInlineStripeForm)
                     ? "cursor-not-allowed opacity-50"
                     : "cursor-pointer"
                 }`}
@@ -2167,8 +1757,10 @@ const VisaCheckout = () => {
                       Pay {formatCurrency(totalAmountEUR, "EUR")} with Klarna
                     </span>
                   </div>
-                ) : selectedPaymentMethod === "stripe" && showEmbeddedCheckout ? (
-                  "Complete payment in the form above"
+                ) : selectedPaymentMethod === "stripe" && !showInlineStripeForm ? (
+                  `Continue to Payment`
+                ) : selectedPaymentMethod === "stripe" && showInlineStripeForm ? (
+                  `Payment form shown above`
                 ) : (
                   `Complete Order`
                 )}
