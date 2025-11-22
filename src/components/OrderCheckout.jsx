@@ -904,6 +904,11 @@ const VisaCheckout = () => {
     }
   }, []);
 
+  // Helper function for alerts
+  const showAlert = (title, message) => {
+    alert(`${title}\n\n${message}`);
+  };
+
   // Apple Pay click handler
   const handleApplePayClick = async () => {
     // Validate required documents for express payment
