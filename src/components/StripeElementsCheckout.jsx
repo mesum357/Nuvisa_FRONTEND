@@ -51,6 +51,8 @@ const StripeElementsCheckout = ({
           travelerIndex: travelerIndex || undefined,
           noOfInsurance: noOfInsurance || 0,
           insurancePaymentAmount: insurancePaymentAmount || 0,
+          successUrl: `${window.location.origin}/payment-success`,
+          cancelUrl: `${window.location.origin}/visa-checkout`,
         };
 
         const response = await createPaymentIntent(payload, () => {});
