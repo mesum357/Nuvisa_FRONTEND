@@ -33,11 +33,12 @@ const StripeProvider = ({ children, options = {} }) => {
     );
   }
 
-  const defaultOptions = {
+  // Only pass options if they include amount, otherwise use minimal config
+  const defaultOptions = options.amount ? {
     mode: "payment",
     currency: "gbp",
     ...options,
-  };
+  } : {};
 
   return (
     <Elements stripe={stripe} options={defaultOptions}>
