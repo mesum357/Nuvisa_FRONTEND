@@ -132,6 +132,30 @@ const VisaCheckout = () => {
   const [showInlineStripeForm, setShowInlineStripeForm] = useState(false);
   const router = useRouter();
 
+  // Auto-show payment form when payment method is selected and email is valid
+  useEffect(() => {
+    const shouldShowForm = 
+      (selectedPaymentMethod === "stripe" || 
+       selectedPaymentMethod === "apple" || 
+       selectedPaymentMethod === "apple-pay" || 
+       selectedPaymentMethod === "google") &&
+      email && 
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+    if (shouldShowForm && !showInlineStripeForm) {
+      setShowInlineStripeForm(true);
+      // Scroll to the payment form after a short delay
+      setTimeout(() => {
+        const formElement = document.getElementById('inline-stripe-form');
+        if (formElement) {
+          formElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 300);
+    } else if (!shouldShowForm && showInlineStripeForm) {
+      setShowInlineStripeForm(false);
+    }
+  }, [selectedPaymentMethod, email, showInlineStripeForm]);
+
   const sendStudentVerification = async (
     emailToVerify,
     returnTo = "/visa-checkout"
