@@ -1,8 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
-  CardElement,
+  CardNumberElement,
+  CardExpiryElement,
+  CardCvcElement,
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
@@ -20,34 +22,40 @@ const StripePaymentForm = ({
   const elements = useElements();
   const [error, setError] = useState(null);
   const [processing, setProcessing] = useState(false);
-  const [cardComplete, setCardComplete] = useState(false);
+  const [cardComplete, setCardComplete] = useState({
+    cardNumber: false,
+    cardExpiry: false,
+    cardCvc: false,
+  });
+  const [cardholderName, setCardholderName] = useState("");
 
-  const cardElementOptions = {
+  const elementOptions = {
     style: {
       base: {
         fontSize: "16px",
-        color: "#424770",
+        color: "#1f2937",
         "::placeholder": {
-          color: "#aab7c4",
+          color: "#9ca3af",
         },
         fontFamily: "system-ui, -apple-system, sans-serif",
       },
       invalid: {
-        color: "#fa755a",
-        iconColor: "#fa755a",
+        color: "#ef4444",
+        iconColor: "#ef4444",
       },
     },
-    hidePostalCode: false,
   };
 
-  const handleCardChange = (event) => {
-    setCardComplete(event.complete);
+  const handleCardChange = (field) => (event) => {
+    setCardComplete(prev => ({ ...prev, [field]: event.complete }));
     if (event.error) {
       setError(event.error.message);
     } else {
       setError(null);
     }
   };
+
+  const isFormComplete = cardComplete.cardNumber && cardComplete.cardExpiry && cardComplete.cardCvc && cardholderName.trim();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -57,7 +65,7 @@ const StripePaymentForm = ({
       return;
     }
 
-    if (!cardComplete) {
+    if (!isFormComplete) {
       setError("Please enter complete card details");
       return;
     }
@@ -69,8 +77,9 @@ const StripePaymentForm = ({
       const { error: confirmError, paymentIntent } =
         await stripe.confirmCardPayment(clientSecret, {
           payment_method: {
-            card: elements.getElement(CardElement),
+            card: elements.getElement(CardNumberElement),
             billing_details: {
+              name: cardholderName,
               email: email,
             },
           },
@@ -96,58 +105,80 @@ const StripePaymentForm = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="w-full">
-      <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200 mb-6">
-        <h3 className="text-lg font-semibold mb-4">Card Details</h3>
-
-        <div className="mb-4 p-4 border border-gray-300 rounded-lg bg-gray-50">
-          <CardElement
-            options={cardElementOptions}
-            onChange={handleCardChange}
-          />
+    <form onSubmit={handleSubmit} className="w-full space-y-4">
+      {/* Card Number */}
+      <div>
+        <div className="relative">
+          <div className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus-within:border-black focus-within:ring-1 focus-within:ring-black">
+            <CardNumberElement
+              options={elementOptions}
+              onChange={handleCardChange('cardNumber')}
+              className="w-full"
+            />
+          </div>
         </div>
-
-        {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-700 text-sm">{error}</p>
-          </div>
-        )}
-
-        {amount && !isNaN(amount) && amount > 0 && (
-          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm text-gray-700">
-              <span className="font-semibold">Amount:</span> £{(Number(amount) / 100).toFixed(2)}
-            </p>
-            <p className="text-sm text-gray-700">
-              <span className="font-semibold">Email:</span> {email}
-            </p>
-          </div>
-        )}
-
-        <button
-          type="submit"
-          disabled={processing || isProcessing || !stripe || !elements || !cardComplete}
-          className={`w-full py-3 px-4 rounded-lg font-semibold text-white transition-colors ${
-            processing || isProcessing || !cardComplete
-              ? "bg-gray-400 cursor-not-allowed"
-              : "bg-[#7350FF] hover:bg-[#6247D3]"
-          }`}
-        >
-          {processing || isProcessing ? (
-            <span className="flex items-center justify-center">
-              <Loader className="animate-spin mr-2" size={20} />
-              Processing Payment...
-            </span>
-          ) : amount && !isNaN(amount) ? (
-            `Pay £${(Number(amount) / 100).toFixed(2)}`
-          ) : (
-            `Complete Payment`
-          )}
-        </button>
       </div>
 
+      {/* Expiry and CVC */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="relative">
+          <div className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus-within:border-black focus-within:ring-1 focus-within:ring-black">
+            <CardExpiryElement
+              options={elementOptions}
+              onChange={handleCardChange('cardExpiry')}
+            />
+          </div>
+        </div>
+        <div className="relative">
+          <div className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus-within:border-black focus-within:ring-1 focus-within:ring-black">
+            <CardCvcElement
+              options={elementOptions}
+              onChange={handleCardChange('cardCvc')}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Cardholder Name */}
+      <div>
+        <input
+          type="text"
+          placeholder="Name on card"
+          value={cardholderName}
+          onChange={(e) => setCardholderName(e.target.value)}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:border-black focus:ring-1 focus:ring-black outline-none"
+        />
+      </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-700 text-sm">{error}</p>
+        </div>
+      )}
+
+      {/* Submit Button */}
+      <button
+        type="submit"
+        disabled={processing || isProcessing || !stripe || !elements || !isFormComplete}
+        className={`w-full py-4 px-4 rounded-lg font-semibold text-white transition-colors ${
+          processing || isProcessing || !isFormComplete
+            ? "bg-gray-400 cursor-not-allowed"
+            : "bg-black hover:bg-gray-900"
+        }`}
+      >
+        {processing || isProcessing ? (
+          <span className="flex items-center justify-center">
+            <Loader className="animate-spin mr-2" size={20} />
+            Processing...
+          </span>
+        ) : (
+          `Pay now`
+        )}
+      </button>
+
       <p className="text-center text-xs text-gray-500">
-        Your payment is secure and encrypted by Stripe
+        All transactions are secure and encrypted.
       </p>
     </form>
   );
