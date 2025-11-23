@@ -89,7 +89,7 @@ const Navbar = () => {
         </div>
 
         {/* Navigation */}
-        <nav className="relative flex items-center justify-between mt-5 md:mt-[36px] border-[#423577] sec_bg rounded-[70px] border px-6 lg:px-4 py-3 md:py-4 mx-[20px]">
+        <nav className="relative flex items-center justify-between mt-5 md:mt-[36px] border-[#423577] sec_bg rounded-[70px] border px-6 lg:px-4 py-3 md:py-4 mx-[0px]">
           {/* Left Logo */}
           <div className="flex items-center">
             <Link href="/" className="">

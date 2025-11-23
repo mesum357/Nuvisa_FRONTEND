@@ -42,7 +42,7 @@ const PrivacyPolicy = () => {
                 </p>
                 
                 <div>
-                  <h3 className="text-xl font-medium mb-2 text-green-300">a. Personal Information</h3>
+                  <h3 className="text-xl font-medium mb-2 text-blue-300">a. Personal Information</h3>
                   <ul className="list-disc list-inside space-y-2 text-gray-300 ml-4">
                     <li>Full name, date of birth, nationality</li>
                     <li>Passport details</li>
@@ -54,7 +54,7 @@ const PrivacyPolicy = () => {
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-medium mb-2 text-green-300">b. Automatically Collected Information</h3>
+                  <h3 className="text-xl font-medium mb-2 text-blue-300">b. Automatically Collected Information</h3>
                   <p className="text-gray-300 leading-relaxed mb-2">
                     When you use our website or app, we may collect:
                   </p>
