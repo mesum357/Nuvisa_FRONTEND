@@ -30,7 +30,7 @@ const RefundPolicy = () => {
               <h2 className="text-2xl font-semibold mb-4 text-blue-300">2. Refund Eligibility</h2>
               <div className="space-y-4">
                 <div>
-                  <h3 className="text-xl font-medium mb-2 text-green-300">Refunds may be considered under the following circumstances:</h3>
+                  <h3 className="text-xl font-medium mb-2 text-blue-300">Refunds may be considered under the following circumstances:</h3>
                   <ul className="list-disc list-inside space-y-2 text-gray-300 ml-4">
                     <li>Duplicate payment due to a technical issue.</li>
                     <li>Payment charged but service not initiated (e.g., no documentation review or appointment processed).</li>
@@ -39,7 +39,7 @@ const RefundPolicy = () => {
                 </div>
                 
                 <div>
-                  <h3 className="text-xl font-medium mb-2 text-red-300">Refunds are not available in the following cases:</h3>
+                  <h3 className="text-xl font-medium mb-2 text-blue-300">Refunds are not available in the following cases:</h3>
                   <ul className="list-disc list-inside space-y-2 text-gray-300 ml-4">
                     <li>The visa application has already been under review.</li>
                     <li>The application was rejected by the embassy or consulate.</li>

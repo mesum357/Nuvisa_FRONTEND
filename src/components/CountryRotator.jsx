@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 
 const VisaHeroSection = () => {
-  const countries = [
+  const words = [
     "Germany",
     "France",
     "Italy",
@@ -14,87 +14,116 @@ const VisaHeroSection = () => {
     "Greece",
   ];
 
-  const [currentWordIndex, setCurrentWordIndex] = useState(0);
-  const [letters, setLetters] = useState(
-    countries[0].split("").map(() => "in")
-  );
+  const wordRefs = useRef([]);
+  const lettersRef = useRef([]);
+  const currentWord = useRef(0);
 
   useEffect(() => {
-    const animateWord = () => {
-      // Animate current word out
-      countries[currentWordIndex].split("").forEach((_, i) => {
-        setTimeout(() => {
-          setLetters(prev => {
-            const copy = [...prev];
-            copy[i] = "out";
-            return copy;
-          });
-        }, i * 80);
-      });
+    // Split letters exactly like your original code
+    words.forEach((word, wordIndex) => {
+      const spans = wordRefs.current[wordIndex].querySelectorAll("span");
+      lettersRef.current[wordIndex] = Array.from(spans);
+    });
 
-      // After out animation, switch word
-      setTimeout(() => {
-        const nextWordIndex =
-          currentWordIndex === countries.length - 1 ? 0 : currentWordIndex + 1;
-        setCurrentWordIndex(nextWordIndex);
-
-        // Prepare next word letters
-        const newWordLetters = countries[nextWordIndex]
-          .split("")
-          .map(() => "behind");
-
-        setLetters(newWordLetters);
-
-        // Animate next word letters down to in
-        countries[nextWordIndex].split("").forEach((_, i) => {
-          setTimeout(() => {
-            setLetters(prev => {
-              const copy = [...prev];
-              copy[i] = "in";
-              return copy;
-            });
-          }, i * 80);
-        });
-      }, countries[currentWordIndex].length * 80 + 100);
+    const animateLetterOut = (cw, i) => {
+      setTimeout(() => (cw[i].className = "letter out"), i * 80);
     };
 
-    const interval = setInterval(
-      animateWord,
-      200 + countries[currentWordIndex].length * 100
-    );
+    const animateLetterIn = (nw, i) => {
+      setTimeout(() => (nw[i].className = "letter in"), 340 + i * 80);
+    };
 
+    const changeWord = () => {
+      let cw = lettersRef.current[currentWord.current];
+      let nextIndex =
+        currentWord.current === words.length - 1 ? 0 : currentWord.current + 1;
+      let nw = lettersRef.current[nextIndex];
+
+      // OLD letters out
+      for (let i = 0; i < cw.length; i++) {
+        animateLetterOut(cw, i);
+      }
+
+      // NEW letters behind → in
+      for (let i = 0; i < nw.length; i++) {
+        nw[i].className = "letter behind";
+        nw[0].parentElement.style.opacity = 1;
+        animateLetterIn(nw, i);
+      }
+
+      currentWord.current = nextIndex;
+    };
+
+    changeWord();
+    const interval = setInterval(changeWord, 2000);
     return () => clearInterval(interval);
-  }, [currentWordIndex, letters, countries]);
+  }, [words]);
 
   return (
-    <div className="flex flex-col gap-1 mt-[13px] md:mt-0 items-center justify-center relative">
-      <style>
-        {`
-          .letter {
-            display: inline-block;
-            transition: all 0.3s ease;
-          }
-          .letter.behind {
-            opacity: 0;
-            transform: translateY(-10px); /* start slightly above */
-          }
-          .letter.out {
-            opacity: 0;
-            transform: translateY(10px); /* move down when leaving */
-          }
-       
-        `}
-      </style>
+    <div className="flex-col flex gap-1 mt-[13px] md:mt-0 items-center justify-center">
+      <style>{`
+        .highlight-animation-top {
+    position: relative;
+    height: 1em;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
 
-      <h2 className="text-[40px] md:text-[60px] font-gilroy-bold uppercase whitespace-nowrap">
-        {countries[currentWordIndex].split("").map((letter, i) => (
-          <span key={i} className={`letter ${letters[i]}`}>
-            {letter}
-          </span>
-        ))}
-      </h2>
+  .highlight-animation-word {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    white-space: nowrap;
+  }
+
+  .letter {
+    display: inline-block;
+    position: relative;
+    opacity: 0;
+    transform: translateY(0);
+    transition: transform 0.5s ease, opacity 0.5s ease;
+  }
+
+  .letter.behind {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+
+  .letter.out {
+    opacity: 0;
+    transform: translateY(27px);
+  }
+
+  .letter.in {
+    opacity: 1;
+    transform: translateY(0);
+  }
+      `}</style>
+
+      <h1 className="text-[40px] whitespace-nowrap uppercase md:text-[60px] font-gilroy-bold">
+        <div className="highlight-animation-top">
+          {words.map((word, index) => (
+            <div
+              key={index}
+              className="highlight-animation-word"
+              ref={(el) => (wordRefs.current[index] = el)}
+              style={{ opacity: index === 0 ? 1 : 0 }}
+            >
+              {word.split("").map((letter, i) => (
+                <span key={i} className="letter">
+                  {letter}
+                </span>
+              ))}
+            </div>
+          ))}
+        </div>
+      </h1>
     </div>
   );
 };
+
 
 export default VisaHeroSection;

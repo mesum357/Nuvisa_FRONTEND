@@ -134,14 +134,14 @@ const ComparisonSection = () => {
           <div className="flex flex-col gap-2 max-sm:gap-1 pr-1">
             {leftItems.map((item, i) => (
               <div key={i} className="flex items-start gap-[4px] max-sm:gap-[2px]">
-                <div className="size-4 max-sm:size-3 md:size-6 flex-shrink-0 mt-0.5">
+                <div className="size-3 max-sm:size-3 md:size-6 flex-shrink-0">
                   <CircleX
-                    size={26}
+                    size={20}
                     strokeWidth={2}
-                    className="text-gray-500 size-4 max-sm:size-3 md:size-6"
+                    className="text-gray-500 size-3 max-sm:size-3 md:size-5 mt-0.5"
                   />
                 </div>
-                <p className="text-black text-[10px] max-sm:text-[8px] md:text-[18px] font-gilroy-bold !font-gilroy-bold leading-tight">
+                <p className="text-black text-[10px] max-sm:text-[10px] md:text-[18.5px] font-gilroy-bold !font-gilroy-bold leading-tigh">
                   {item}
                 </p>
               </div>
@@ -152,14 +152,14 @@ const ComparisonSection = () => {
           <div className="flex flex-col gap-2 max-sm:gap-1 pl-1 md:ml-6">
             {rightItems.map((item, i) => (
               <div key={i} className="flex items-start gap-[4px] max-sm:gap-[2px]">
-                <div className="p-0.5 w-4 h-4 max-sm:w-3 max-sm:h-3 md:w-6 md:h-6 flex items-center justify-center rounded-full bg-[#6F48FF] text-white flex-shrink-0 mt-0.5">
+                <div className="p-0.5 w-4 h-4 max-sm:w-3 max-sm:h-3 md:w-5 md:h-5 flex items-center justify-center rounded-full bg-[#6F48FF] text-white flex-shrink-0 mt-1">
                   <Check
-                    size={16}
+                    size={10}
                     strokeWidth={3}
-                    className="size-2 max-sm:size-1.5 md:size-3 stroke-[4px]"
+                    className="size-2 max-sm:size-1.5 md:size-2 stroke-[4px]"
                   />
                 </div>
-                <p className="text-black text-[10px] max-sm:text-[8px] md:text-[18px] font-gilroy-bold !font-gilroy-bold leading-tight">
+                <p className="text-black text-[10px] max-sm:text-[8px] md:text-[19px] font-gilroy-bold !font-gilroy-bold leading-tight mt-1 ml-1">
                   {item}
                 </p>
               </div>
