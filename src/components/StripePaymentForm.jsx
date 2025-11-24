@@ -74,6 +74,13 @@ const StripePaymentForm = ({
     setError(null);
 
     try {
+      // Extract payment intent ID from clientSecret for logging
+      const paymentIntentId = clientSecret?.split('_secret_')[0];
+      console.log("Confirming payment with clientSecret:", {
+        paymentIntentId: paymentIntentId,
+        clientSecretPrefix: clientSecret?.substring(0, 30) + "..."
+      });
+
       const { error: confirmError, paymentIntent } =
         await stripe.confirmCardPayment(clientSecret, {
           payment_method: {
@@ -84,6 +91,12 @@ const StripePaymentForm = ({
             },
           },
         });
+
+      console.log("Payment confirmation result:", {
+        error: confirmError?.message,
+        paymentIntentId: paymentIntent?.id,
+        status: paymentIntent?.status
+      });
 
       if (confirmError) {
         setError(confirmError.message);

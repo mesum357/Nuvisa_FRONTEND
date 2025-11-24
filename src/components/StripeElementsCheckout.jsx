@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/router";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { setAuthId, setAuthState } from "@/store/authSlice";
@@ -31,10 +31,23 @@ const StripeElementsCheckout = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [processing, setProcessing] = useState(false);
+  const isInitializingRef = useRef(false);
+  const initializedRef = useRef(false);
 
   useEffect(() => {
+    // Prevent multiple simultaneous initializations
+    if (isInitializingRef.current || initializedRef.current) {
+      return;
+    }
+
     const initializePayment = async () => {
+      if (!email || !amount) {
+        setLoading(false);
+        return;
+      }
+
       try {
+        isInitializingRef.current = true;
         setLoading(true);
         setError(null);
 
@@ -55,17 +68,45 @@ const StripeElementsCheckout = ({
           cancelUrl: `${window.location.origin}/visa-checkout`,
         };
 
+        console.log("Creating payment intent with payload:", payload);
         const response = await createPaymentIntent(payload, () => {});
 
+        console.log("Payment intent response:", {
+          status: response?.status,
+          hasData: !!response?.data,
+          responseStructure: response?.data
+        });
+
         if (response?.status === 200 || response?.status === 201) {
-          const data = response?.data?.data?.results;
+          // Handle different possible response structures
+          // Structure 1: { data: { data: { results: { clientSecret } } } }
+          // Structure 2: { data: { results: { clientSecret } } }
+          // Structure 3: { status: "success", data: { results: { clientSecret } } }
+          const data = 
+            response?.data?.data?.results || 
+            response?.data?.results || 
+            (response?.data?.status === "success" ? response?.data?.data?.results : null);
+          
           const clientSecret = data?.clientSecret;
 
+          console.log("Extracted clientSecret:", {
+            found: !!clientSecret,
+            prefix: clientSecret ? `${clientSecret.substring(0, 30)}...` : "NOT FOUND",
+            paymentIntentId: clientSecret ? clientSecret.split('_secret_')[0] : null,
+            responseStructure: {
+              hasData: !!response?.data,
+              hasNestedData: !!response?.data?.data,
+              hasResults: !!response?.data?.data?.results || !!response?.data?.results
+            }
+          });
+
           if (!clientSecret) {
+            console.error("No client secret in response. Full response:", response);
             throw new Error("No client secret received from server");
           }
 
           setClientSecret(clientSecret);
+          initializedRef.current = true;
 
           // Store auth token if provided
           if (data?.token) {
@@ -108,13 +149,12 @@ const StripeElementsCheckout = ({
         setError(err.message || "Failed to initialize payment");
       } finally {
         setLoading(false);
+        isInitializingRef.current = false;
       }
     };
 
-    if (email && amount) {
-      initializePayment();
-    }
-  }, [email, amount, dispatch]);
+    initializePayment();
+  }, [email, amount, travelers, country, insurance, visaTypeId, currency, paymentType, applicationId, travelerIndex, noOfInsurance, insurancePaymentAmount, dispatch]);
 
   const handlePaymentSuccess = async (paymentIntent) => {
     try {
