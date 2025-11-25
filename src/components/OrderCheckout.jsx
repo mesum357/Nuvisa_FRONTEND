@@ -9,7 +9,7 @@ import Cookies from "js-cookie";
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useRef, useEffect, useCallback } from "react";
-import { FaUser, FaShieldAlt, FaApple, FaGoogle } from "react-icons/fa";
+import { FaUser, FaShieldAlt } from "react-icons/fa";
 import { HiOutlineDeviceMobile } from "react-icons/hi";
 import { SiKlarna } from "react-icons/si";
 import { calculatePaymentFees, formatCurrency } from "@/utils/currency";
@@ -29,6 +29,7 @@ import {
 } from "@/store/visaSlice";
 import StripeProvider from "./StripeProvider";
 import StripeElementsCheckout from "./StripeElementsCheckout";
+import ExpressPaymentRequestButton from "./ExpressPaymentRequestButton";
 import { useRouter } from "next/router";
 
 const VisaCheckout = () => {
@@ -100,7 +101,7 @@ const VisaCheckout = () => {
     visaState.selectedPaymentMethod &&
       visaState.selectedPaymentMethod.trim() !== ""
       ? visaState.selectedPaymentMethod
-      : null
+      : "stripe"
   );
   const [couponCode, setCouponCodeLocal] = useState(visaState.couponCode || "");
   const [insuranceCouponCode, setInsuranceCouponCode] = useState();
@@ -127,28 +128,28 @@ const VisaCheckout = () => {
   const [isSendingVerification, setIsSendingVerification] = useState(false);
   const verificationPollRef = useRef(null);
   const [pendingCheckoutQuery, setPendingCheckoutQuery] = useState(null);
-  
+
   // Inline Stripe Payment Form
   const [showInlineStripeForm, setShowInlineStripeForm] = useState(false);
   const router = useRouter();
 
   // Auto-show payment form when payment method is selected and email is valid
   useEffect(() => {
-    const shouldShowForm = 
-      (selectedPaymentMethod === "stripe" || 
-       selectedPaymentMethod === "apple" || 
-       selectedPaymentMethod === "apple-pay" || 
-       selectedPaymentMethod === "google") &&
-      email && 
+    const shouldShowForm =
+      selectedPaymentMethod === "stripe" &&
+      email &&
       /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
     if (shouldShowForm && !showInlineStripeForm) {
       setShowInlineStripeForm(true);
       // Scroll to the payment form after a short delay
       setTimeout(() => {
-        const formElement = document.getElementById('inline-stripe-form');
+        const formElement = document.getElementById("inline-stripe-form");
         if (formElement) {
-          formElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          formElement.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
         }
       }, 300);
     } else if (!shouldShowForm && showInlineStripeForm) {
@@ -245,13 +246,7 @@ const VisaCheckout = () => {
             }
           } catch {}
 
-          if (
-            pendingCheckoutQuery &&
-            (selectedPaymentMethod === "apple" ||
-              selectedPaymentMethod === "google")
-          ) {
-            window.location.href = `/payment/${selectedPaymentMethod}`;
-          } else if (pendingCheckoutQuery) {
+          if (pendingCheckoutQuery) {
             window.location.href = `/visa-checkout`;
           }
         }
@@ -287,13 +282,7 @@ const VisaCheckout = () => {
             }
           } catch {}
 
-          if (
-            pendingCheckoutQuery &&
-            (selectedPaymentMethod === "apple" ||
-              selectedPaymentMethod === "google")
-          ) {
-            window.location.href = `/payment/${selectedPaymentMethod}`;
-          } else if (pendingCheckoutQuery) {
+          if (pendingCheckoutQuery) {
             window.location.href = `/visa-checkout`;
           }
         }
@@ -326,11 +315,13 @@ const VisaCheckout = () => {
             !appliedDiscount ||
             (appliedDiscount && appliedDiscount.code !== "STUDENT10")
           ) {
-            dispatch(setAppliedDiscount({
-              code: "STUDENT10",
-              percentage: 10,
-              description: "Student discount",
-            }));
+            dispatch(
+              setAppliedDiscount({
+                code: "STUDENT10",
+                percentage: 10,
+                description: "Student discount",
+              })
+            );
             setCouponCodeLocal("STUDENT10");
           }
         }
@@ -378,11 +369,13 @@ const VisaCheckout = () => {
           (appliedDiscount && appliedDiscount.code !== "GROUP20")) &&
         !groupAutoApplied
       ) {
-        dispatch(setAppliedDiscount({
-          code: "GROUP20",
-          percentage: 20,
-          description: "Group discount (3+ travellers)",
-        }));
+        dispatch(
+          setAppliedDiscount({
+            code: "GROUP20",
+            percentage: 20,
+            description: "Group discount (3+ travellers)",
+          })
+        );
         setCouponCodeLocal("GROUP20");
       }
     }
@@ -495,7 +488,9 @@ const VisaCheckout = () => {
   const [includeGiftCard, setIncludeGiftCard] = useState(
     visaState.recommendedItems?.giftCard || false
   );
-  const [giftCardCount, setGiftCardCount] = useState(visaState.giftCardCount || 1);
+  const [giftCardCount, setGiftCardCount] = useState(
+    visaState.giftCardCount || 1
+  );
 
   const handleGiftCardChange = (increment) => {
     const newValue = giftCardCount + increment;
@@ -509,7 +504,6 @@ const VisaCheckout = () => {
       }
     }
   };
-
 
   const isValidPhone = (value) => {
     if (!value) return false;
@@ -535,7 +529,6 @@ const VisaCheckout = () => {
   const validateEmail = (email) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
-
 
   const handleEmailBlur = () => {
     if (!email) {
@@ -563,17 +556,19 @@ const VisaCheckout = () => {
     }
   };
 
-
   // SUBTOTAL: Original prices (no discounts applied)
   const originalVisaFees = 200 * travelers; // £200 per traveler
   const originalInsuranceFees = includeInsurance ? 45 * insuranceCount : 0; // £45 per insurance
   const originalGiftCardFees = includeGiftCard ? 245 * giftCardCount : 0; // £245 per gift card
   const eVisaFees = 0; // Currently free
-  const subtotal = originalVisaFees + originalInsuranceFees + originalGiftCardFees + eVisaFees;
+  const subtotal =
+    originalVisaFees + originalInsuranceFees + originalGiftCardFees + eVisaFees;
 
   // TOTAL: Start with discounted base prices
   const baseDiscountedVisaFees = 129 * travelers; // £129 per traveler
-  const baseDiscountedInsuranceFees = includeInsurance ? 30 * insuranceCount : 0; // £30 per insurance
+  const baseDiscountedInsuranceFees = includeInsurance
+    ? 30 * insuranceCount
+    : 0; // £30 per insurance
   const baseDiscountedGiftCardFees = includeGiftCard ? 159 * giftCardCount : 0; // £159 per gift card
 
   // Calculate individual component discounts
@@ -584,7 +579,7 @@ const VisaCheckout = () => {
   // Check if any component qualifies for quantity discount (3+)
   // Note: Insurance count cannot exceed traveler count (insurance certificates are for travelers)
   const effectiveInsuranceCount = Math.min(insuranceCount, travelers);
-  
+
   const travelersQualify = travelers >= 3;
   const insuranceQualify = effectiveInsuranceCount >= 3;
   const giftCardQualify = giftCardCount >= 3;
@@ -601,9 +596,15 @@ const VisaCheckout = () => {
       // GROUP20: Only applies if travelers >= 3 AND at least one other component >= 3
       if (travelersQualify && (insuranceQualify || giftCardQualify)) {
         // Apply 20% to all components that have 3+ items
-        if (travelersQualify) visaDiscountPercentage = Math.max(visaDiscountPercentage, 20);
-        if (insuranceQualify) insuranceDiscountPercentage = Math.max(insuranceDiscountPercentage, 20);
-        if (giftCardQualify) giftCardDiscountPercentage = Math.max(giftCardDiscountPercentage, 20);
+        if (travelersQualify)
+          visaDiscountPercentage = Math.max(visaDiscountPercentage, 20);
+        if (insuranceQualify)
+          insuranceDiscountPercentage = Math.max(
+            insuranceDiscountPercentage,
+            20
+          );
+        if (giftCardQualify)
+          giftCardDiscountPercentage = Math.max(giftCardDiscountPercentage, 20);
       }
     } else if (appliedDiscount.code === "STUDENT10") {
       console.log("Applying STUDENT10 discount"); // Debug log
@@ -613,28 +614,32 @@ const VisaCheckout = () => {
       if (includeGiftCard) giftCardDiscountPercentage += 10;
     }
   }
-  
-  console.log("Final discount percentages:", { // Debug log
+
+  console.log("Final discount percentages:", {
+    // Debug log
     visa: visaDiscountPercentage,
     insurance: insuranceDiscountPercentage,
-    giftCard: giftCardDiscountPercentage
+    giftCard: giftCardDiscountPercentage,
   });
 
   // Calculate discount amounts
-  const visaDiscountAmount = (baseDiscountedVisaFees * visaDiscountPercentage) / 100;
-  const insuranceDiscountAmount = includeInsurance 
-    ? (baseDiscountedInsuranceFees * insuranceDiscountPercentage) / 100 
+  const visaDiscountAmount =
+    (baseDiscountedVisaFees * visaDiscountPercentage) / 100;
+  const insuranceDiscountAmount = includeInsurance
+    ? (baseDiscountedInsuranceFees * insuranceDiscountPercentage) / 100
     : 0;
-  const giftCardDiscountAmount = includeGiftCard 
-    ? (baseDiscountedGiftCardFees * giftCardDiscountPercentage) / 100 
+  const giftCardDiscountAmount = includeGiftCard
+    ? (baseDiscountedGiftCardFees * giftCardDiscountPercentage) / 100
     : 0;
 
   // Calculate final amounts after discounts
   const finalVisaFees = baseDiscountedVisaFees - visaDiscountAmount;
-  const finalInsuranceFees = baseDiscountedInsuranceFees - insuranceDiscountAmount;
+  const finalInsuranceFees =
+    baseDiscountedInsuranceFees - insuranceDiscountAmount;
   const finalGiftCardFees = baseDiscountedGiftCardFees - giftCardDiscountAmount;
 
-  const total = finalVisaFees + finalInsuranceFees + finalGiftCardFees + eVisaFees;
+  const total =
+    finalVisaFees + finalInsuranceFees + finalGiftCardFees + eVisaFees;
 
   // YOU SAVE: Subtotal minus Total
   const totalSavingsAmount = subtotal - total;
@@ -643,42 +648,43 @@ const VisaCheckout = () => {
   const subtotalEUR = calculatePaymentFees(subtotal, "EUR");
   const totalEUR = calculatePaymentFees(total, "EUR");
   const totalSavingsEUR = calculatePaymentFees(totalSavingsAmount, "EUR");
-  
+
   // Individual component EUR values (final amounts after discounts)
   const visaFeesEUR = calculatePaymentFees(finalVisaFees, "EUR");
   const discountedVisaFeesEUR = visaFeesEUR;
-  
+
   const baseInsuranceFeesEUR = calculatePaymentFees(finalInsuranceFees, "EUR");
   const discountedInsuranceFeesEUR = baseInsuranceFeesEUR;
-  
+
   const giftCardFeesEUR = calculatePaymentFees(finalGiftCardFees, "EUR");
-  
+
   // Strike-through prices (original prices)
   const travellerStrikeTotal = originalVisaFees;
   const insuranceStrikeTotal = originalInsuranceFees;
   const giftCardStrikeTotal = originalGiftCardFees;
-  
+
   const travellerStrikeEUR = calculatePaymentFees(travellerStrikeTotal, "EUR");
   const insuranceStrikeEUR = calculatePaymentFees(insuranceStrikeTotal, "EUR");
   const giftCardStrikeEUR = calculatePaymentFees(giftCardStrikeTotal, "EUR");
-  
+
   const eVisaFeesEUR = 0; // Currently free
   const totalAmountEUR = totalEUR;
 
   // GBP display values for the UI
   const travellerStrikeGBP = travellerStrikeTotal; // already in GBP units
   const visaFeesGBPDisplay = Math.round(finalVisaFees);
-  
+
   // Insurance display value in EUR (after discounts)
   const displayInsuranceEUR = discountedInsuranceFeesEUR;
-  
+
   // Gift card display value in EUR
   const _giftCardFeesEUR = giftCardFeesEUR;
-  
+
   // Discount amount in EUR (for display purposes)
-  const totalCouponDiscount = visaDiscountAmount + insuranceDiscountAmount + giftCardDiscountAmount;
+  const totalCouponDiscount =
+    visaDiscountAmount + insuranceDiscountAmount + giftCardDiscountAmount;
   const discountAmountEUR = calculatePaymentFees(totalCouponDiscount, "EUR");
-  
+
   // Variables for Apple Pay and other payment methods
   const visaFees = finalVisaFees;
   const insuranceFees = finalInsuranceFees;
@@ -742,26 +748,13 @@ const VisaCheckout = () => {
     if (cretingDynamicCheckout) return;
 
     // Route Apple Pay / Google Pay selections to their dedicated handlers
-    if (selectedPaymentMethod === "apple" || selectedPaymentMethod === "apple-pay") {
-      await handleApplePayClick();
+    if (!email) {
+      setEmailError("Email is required for checkout");
       return;
     }
-
-    if (selectedPaymentMethod === "google") {
-      await handleGooglePayClick();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setEmailError("Please enter a valid email for checkout");
       return;
-    }
-
-    // Skip email validation for Apple Pay since it provides user info
-    if (selectedPaymentMethod !== "apple" && selectedPaymentMethod !== "apple-pay") {
-      if (!email) {
-        setEmailError("Email is required for checkout");
-        return;
-      }
-      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        setEmailError("Please enter a valid email for checkout");
-        return;
-      }
     }
 
     // Validate country is set
@@ -806,30 +799,30 @@ const VisaCheckout = () => {
       setShowInlineStripeForm(true);
       // Scroll to the payment form
       setTimeout(() => {
-        const formElement = document.getElementById('inline-stripe-form');
+        const formElement = document.getElementById("inline-stripe-form");
         if (formElement) {
-          formElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          formElement.scrollIntoView({ behavior: "smooth", block: "center" });
         }
       }, 100);
       return;
     }
 
     try {
-    // For non-Stripe payment methods, use hosted checkout (redirect)
-    const statusResult = await handleCreateDynamicCheckoutSession({
-      email: email,
-      amount: String(totalAmountEUR),
-      travellers: String(travelers),
-      country: countryToUse, // Use validated country
-      insurance: includeInsurance ? true : false, // Simple boolean conversion
-      phone: phone,
-      paymentMethod: selectedPaymentMethod,
-      visaTypeId: visaTypeId || visaState.visaTypeId || "",
-      currency: "GBP",
-      noOfInsurance: insuranceCount,
-      insurancePaymentAmount: discountedInsuranceFeesEUR,
-      uiMode: "hosted", // Always hosted for non-Stripe methods
-    });
+      // For non-Stripe payment methods, use hosted checkout (redirect)
+      const statusResult = await handleCreateDynamicCheckoutSession({
+        email: email,
+        amount: String(totalAmountEUR),
+        travellers: String(travelers),
+        country: countryToUse, // Use validated country
+        insurance: includeInsurance ? true : false, // Simple boolean conversion
+        phone: phone,
+        paymentMethod: selectedPaymentMethod,
+        visaTypeId: visaTypeId || visaState.visaTypeId || "",
+        currency: "GBP",
+        noOfInsurance: insuranceCount,
+        insurancePaymentAmount: discountedInsuranceFeesEUR,
+        uiMode: "hosted", // Always hosted for non-Stripe methods
+      });
 
       const results = statusResult?.data;
 
@@ -866,9 +859,7 @@ const VisaCheckout = () => {
 
       // For non-Stripe methods, always redirect to hosted checkout
       const redirectUrl =
-        results?.data?.results?.url ||
-        results?.results?.url ||
-        results?.url;
+        results?.data?.results?.url || results?.results?.url || results?.url;
 
       if (redirectUrl) {
         window.location.href = redirectUrl;
@@ -881,8 +872,6 @@ const VisaCheckout = () => {
       alert("Failed to process payment. Please try again.");
     }
   };
-
-
 
   // Initialize embedded Stripe checkout
 
@@ -914,11 +903,13 @@ const VisaCheckout = () => {
             !appliedDiscount ||
             (appliedDiscount && appliedDiscount.code !== "STUDENT10")
           ) {
-            dispatch(setAppliedDiscount({
-              code: "STUDENT10",
-              percentage: 10,
-              description: "Student discount",
-            }));
+            dispatch(
+              setAppliedDiscount({
+                code: "STUDENT10",
+                percentage: 10,
+                description: "Student discount",
+              })
+            );
             setCouponCodeLocal("STUDENT10");
           }
         }
@@ -933,421 +924,7 @@ const VisaCheckout = () => {
     alert(`${title}\n\n${message}`);
   };
 
-  // Apple Pay click handler
-  const handleApplePayClick = async () => {
-    // Validate required documents for express payment
-    // if (!validateRequiredDocuments()) return;
-
-    // Check if student discount requires verification
-    if (
-      appliedDiscount &&
-      appliedDiscount.description.toLowerCase().includes("student") &&
-      !studentVerified
-    ) {
-      if (!userEmail || !validateEmail(userEmail)) {
-        setEmailError(
-          "Please enter a valid student email before using Apple Pay"
-        );
-        return;
-      }
-
-      const verificationSent = await sendStudentVerification(
-        userEmail,
-        "/visa-checkout"
-      );
-      if (verificationSent) {
-        // Store pending payment data to process after verification
-        setPendingCheckoutQuery("proceed"); // Simple flag
-        setSelectedPaymentMethod("apple");
-        // The polling will handle redirecting to payment once verified
-        return;
-      } else {
-        return; // Error already set by sendStudentVerification
-      }
-    }
-
-    // Check if Apple Pay is supported at all
-    if (!window.ApplePaySession) {
-      showAlert(
-        "Apple Pay",
-        "Apple Pay is not supported on this browser. Please use Safari on a supported Apple device."
-      );
-      return;
-    }
-
-    // Check device capability first
-    const canMakePayments = ApplePaySession.canMakePayments();
-    if (!canMakePayments) {
-      showAlert(
-        "Apple Pay",
-        "Apple Pay is not available on this device. Please ensure you have Apple Pay set up with a valid payment method."
-      );
-      return;
-    }
-
-    // For development/testing on localhost or non-HTTPS
-    if (
-      window.location.hostname === "localhost" ||
-      window.location.protocol !== "https:"
-    ) {
-      // Simulate successful Apple Pay flow using system confirm
-      const confirmed = confirm(
-        `Process Apple Pay payment of £${totalAmount}?\n\nThis will redirect to payment processing page.`
-      );
-      if (confirmed) {
-        setSelectedPaymentMethod("apple");
-        await handleProceedToCheckout();
-      }
-      return;
-    }
-
-    try {
-      // Build line items for detailed breakdown using the same
-      // final amounts used in the main checkout (all discounts applied)
-      const lineItems = [
-        {
-          label: `Visa Processing Fee (${travelers} traveller${
-            travelers > 1 ? "s" : ""
-          })`,
-          amount: Math.round(visaFees).toString(),
-          type: "final",
-        },
-      ];
-
-      if (includeInsurance && insuranceFees > 0) {
-        lineItems.push({
-          label: `Insurance Certificate (${insuranceCount} traveller${
-            insuranceCount > 1 ? "s" : ""
-          })`,
-          amount: Math.round(insuranceFees).toString(),
-          type: "final",
-        });
-      }
-
-      if (giftCardFees > 0) {
-        lineItems.push({
-          label: `Gift Card`,
-          amount: Math.round(giftCardFees).toString(),
-          type: "final",
-        });
-      }
-
-      const request = {
-        countryCode: "GB",
-        currencyCode: "GBP",
-        supportedNetworks: ["visa", "masterCard", "amex", "discover"],
-        merchantCapabilities: ["supports3DS"],
-        total: {
-          label: "NUvisa - Visa Application",
-          amount: totalAmount.toString(),
-          type: "final",
-        },
-        lineItems: lineItems,
-      };
-
-      const session = new ApplePaySession(3, request);
-
-      // Flag used to avoid logging a cancellation when we are intentionally redirecting
-      let suppressCancel = false;
-      let redirecting = false;
-
-      // Override oncancel immediately to prevent any spurious logs
-      session.oncancel = () => {
-        if (!suppressCancel && !redirecting) {
-        }
-      };
-
-      session.onvalidatemerchant = async (event) => {
-        try {
-          // Mark that we're redirecting to prevent cancel logs
-          suppressCancel = true;
-          redirecting = true;
-
-          setSelectedPaymentMethod("apple-pay");
-          await handleProceedToCheckout();
-        } catch (error) {
-          console.error("Apple Pay merchant validation failed:", error);
-          suppressCancel = true;
-          redirecting = true;
-          try {
-            showAlert(
-              "Apple Pay",
-              "Apple Pay setup required. Redirecting to standard checkout..."
-            );
-          } catch {}
-
-          setSelectedPaymentMethod("stripe");
-          await handleProceedToCheckout();
-        }
-      };
-
-      session.onpaymentauthorized = (event) => {
-        session.completePayment(ApplePaySession.STATUS_SUCCESS);
-        try {
-          const stored = localStorage.getItem("paymentMetadata");
-          const pm = stored ? JSON.parse(stored) : null;
-          const appId = pm?.applicationId || null;
-          if (appId) {
-            window.location.href = `/application-step?application_id=${encodeURIComponent(
-              appId
-            )}`;
-          } else {
-            window.location.href = "/payment-success";
-          }
-        } catch {
-          console.error("Error parsing paymentMetadata for redirect:");
-          window.location.href = "/payment-success";
-        }
-      };
-
-      session.oncancel = () => {
-        if (!suppressCancel) {
-        } else {
-          // quietly ignore cancellation caused by our intentional redirect fallback
-        }
-      };
-
-      session.onerror = (error) => {
-        console.error("Apple Pay session error:", error);
-        showAlert(
-          "Apple Pay",
-          "Apple Pay error occurred. Please try a different payment method."
-        );
-      };
-
-      session.begin();
-    } catch (error) {
-      console.error("Apple Pay initialization error:", error);
-      showAlert(
-        "Apple Pay",
-        "Apple Pay is not available. Please try a different payment method."
-      );
-    }
-  };
-
-  // Google Pay click handler
-  const handleGooglePayClick = async () => {
-    // Validate required documents for express payment
-    // if (!validateRequiredDocuments()) return;
-
-    // Check if student discount requires verification
-    if (
-      appliedDiscount &&
-      appliedDiscount.description.toLowerCase().includes("student") &&
-      !studentVerified
-    ) {
-      if (!userEmail || !validateEmail(userEmail)) {
-        setEmailError(
-          "Please enter a valid student email before using Google Pay"
-        );
-        return;
-      }
-
-      const verificationSent = await sendStudentVerification(
-        userEmail,
-        `/payment/${selectedPaymentMethod}`
-      );
-      if (verificationSent) {
-        // Store pending payment data to process after verification
-        setPendingCheckoutQuery("proceed"); // Simple flag
-        setSelectedPaymentMethod("google");
-        // The polling will handle redirecting to payment once verified
-        return;
-      } else {
-        return; // Error already set by sendStudentVerification
-      }
-    }
-
-    // Calculate payment amount with all components
-    const currentBaseFee =
-      selectedVisaType && selectedVisaType.priceGBP
-        ? Number(selectedVisaType.priceGBP)
-        : selectedVisaType && selectedVisaType.price
-        ? Math.round(Number(selectedVisaType.price) / 100)
-        : baseVisaFee;
-
-    let visaFees = currentBaseFee * travelers;
-
-    // Apply discount if available
-    if (appliedDiscount) {
-      const discountAmount = (visaFees * appliedDiscount.percentage) / 100;
-      visaFees = visaFees - discountAmount;
-    }
-
-    const insuranceFees = includeInsurance
-      ? perDayInsurancePrice * travelDays * insuranceCount
-      : 0;
-    const giftCardFees = includeGiftCard ? 159 * giftCardCount : 0;
-
-    const totalAmount = Math.round(visaFees + insuranceFees + giftCardFees);
-
-    // Check if Google Pay is available
-    if (!window.google || !window.google.payments) {
-      showAlert(
-        "Google Pay",
-        "Google Pay is not available. Please refresh the page and try again."
-      );
-      return;
-    }
-
-    try {
-      const paymentsClient = new google.payments.api.PaymentsClient({
-        environment: "TEST", // Change to 'PRODUCTION' for live
-        paymentDataCallbacks: {
-          onPaymentAuthorized: (paymentData) => {
-            return new Promise((resolve) => {
-              // Process payment data
-
-              // Here you would normally send the payment data to your server
-              // For now, we'll simulate success
-              resolve({ transactionState: "SUCCESS" });
-
-              // Redirect to success page or back to existing application if present
-              setTimeout(() => {
-                try {
-                  const stored = localStorage.getItem("paymentMetadata");
-                  const pm = stored ? JSON.parse(stored) : null;
-                  const appId = pm?.applicationId || null;
-                  if (appId) {
-                    window.location.href = `/application-step?application_id=${encodeURIComponent(
-                      appId
-                    )}`;
-                  } else {
-                    window.location.href = "/payment-success";
-                  }
-                } catch {
-                  console.error("Error parsing paymentMetadata for redirect:");
-                  window.location.href = "/payment-success";
-                }
-              }, 1000);
-            });
-          },
-        },
-      });
-
-      // Check if Google Pay is ready
-      const isReadyToPayRequest = {
-        apiVersion: 2,
-        apiVersionMinor: 0,
-        allowedPaymentMethods: [
-          {
-            type: "CARD",
-            parameters: {
-              allowedAuthMethods: ["PAN_ONLY", "CRYPTOGRAM_3DS"],
-              allowedCardNetworks: ["MASTERCARD", "VISA", "AMEX"],
-            },
-          },
-        ],
-      };
-
-      const isReadyToPay = await paymentsClient.isReadyToPay(
-        isReadyToPayRequest
-      );
-
-      if (!isReadyToPay.result) {
-        showAlert(
-          "Google Pay",
-          "Google Pay is not available on this device or no payment methods are set up."
-        );
-        return;
-      }
-
-      // Build display items for detailed breakdown
-      const displayItems = [
-        {
-          label: `Visa Processing Fee (${travelers} traveller${
-            travelers > 1 ? "s" : ""
-          })`,
-          type: "LINE_ITEM",
-          price: Math.round(visaFees).toString(),
-        },
-      ];
-
-      if (includeInsurance) {
-        displayItems.push({
-          label: `Insurance Certificate (${insuranceCount} traveller${
-            insuranceCount > 1 ? "s" : ""
-          })`,
-          type: "LINE_ITEM",
-          price: insuranceFees.toString(),
-        });
-      }
-
-      if (giftCardFees > 0) {
-        displayItems.push({
-          label: `Gift Card`,
-          type: "LINE_ITEM",
-          price: giftCardFees.toString(),
-        });
-      }
-
-      if (appliedDiscount) {
-        displayItems.push({
-          label: `Discount (${appliedDiscount.percentage}% off)`,
-          type: "LINE_ITEM",
-          price: `-${Math.round(
-            (currentBaseFee * travelers * appliedDiscount.percentage) / 100
-          )}`,
-        });
-      }
-
-      const paymentDataRequest = {
-        apiVersion: 2,
-        apiVersionMinor: 0,
-        allowedPaymentMethods: [
-          {
-            type: "CARD",
-            parameters: {
-              allowedAuthMethods: ["PAN_ONLY", "CRYPTOGRAM_3DS"],
-              allowedCardNetworks: ["MASTERCARD", "VISA", "AMEX"],
-              billingAddressRequired: true,
-              billingAddressParameters: {
-                format: "FULL",
-                phoneNumberRequired: true,
-              },
-            },
-            tokenizationSpecification: {
-              type: "PAYMENT_GATEWAY",
-              parameters: {
-                gateway: "stripe", // Use your actual payment gateway
-                "stripe:version": "2020-08-27",
-                "stripe:publishableKey": "pk_test_...", // Use your actual publishable key
-              },
-            },
-          },
-        ],
-        merchantInfo: {
-          merchantId: "BCR2DN4TXZQJHQBF", // Use your actual Google Pay merchant ID
-          merchantName: "NUvisa",
-        },
-        transactionInfo: {
-          totalPriceStatus: "FINAL",
-          totalPriceLabel: "Total",
-          totalPrice: totalAmount.toString(),
-          currencyCode: "GBP",
-          countryCode: "GB",
-          displayItems: displayItems,
-        },
-        callbackIntents: ["PAYMENT_AUTHORIZATION"],
-        shippingAddressRequired: false,
-        shippingOptionRequired: false,
-      };
-
-      // This will show the Google Pay interface, not credit card selection
-      const paymentData = await paymentsClient.loadPaymentData(
-        paymentDataRequest
-      );
-    } catch (error) {
-      console.error("Google Pay error:", error);
-      if (error.statusCode === "CANCELED") {
-        return;
-      }
-      showAlert(
-        "Google Pay",
-        "Google Pay payment failed. Please try a different payment method."
-      );
-    }
-  };
+  // Apple Pay / Google Pay handled by Stripe Payment Request button
 
   return (
     <ClientOnly>
@@ -1386,67 +963,35 @@ const VisaCheckout = () => {
             {/* Apple Pay & Google Pay Buttons */}
             <div className="space-y-2">
               <h2 className="font-medium text-lg">Express Checkout</h2>
-              {/* Apple Pay & Google Pay - Official Branded Buttons */}
-              <div className="grid grid-cols-2 gap-3">
-                {/* Apple Pay Button - Official Style */}
-                <button
-                  onClick={handleApplePayClick}
-                  className="group relative flex items-center justify-center bg-black text-white! rounded-full px-6 py-3 text-sm font-medium hover:opacity-90 transition-all duration-200 shadow-sm"
-                  style={{
-                    backgroundColor: "#000",
-                    minHeight: "44px",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                  }}
-                >
-                  <div className="flex items-center gap-2">
-                    <FaApple className="text-lg" />
-                    <span className="font-medium tracking-wide">Pay</span>
-                  </div>
-                  <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-5 rounded-lg transition-opacity duration-200"></div>
-                </button>
-
-                {/* Google Pay Button - Official Style */}
-                <button
-                  onClick={handleGooglePayClick}
-                  className="group relative flex items-center justify-center bg-white text-gray-800 rounded-full px-6 py-3 text-sm font-medium hover:shadow-md transition-all duration-200 shadow-sm border border-gray-200"
-                  style={{
-                    minHeight: "44px",
-                    background:
-                      "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)",
-                  }}
-                >
-                  <div className="flex items-center gap-2">
-                    <svg
-                      width="18"
-                      height="18"
-                      viewBox="0 0 18 18"
-                      className="flex-shrink-0"
-                    >
-                      <g fill="none" fillRule="evenodd">
-                        <path
-                          fill="#4285F4"
-                          d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
-                        />
-                        <path
-                          fill="#34A853"
-                          d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"
-                        />
-                        <path
-                          fill="#FBBC05"
-                          d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"
-                        />
-                        <path
-                          fill="#EA4335"
-                          d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"
-                        />
-                      </g>
-                    </svg>
-                    <span className="font-medium tracking-wide text-gray-700">
-                      Pay
-                    </span>
-                  </div>
-                  <div className="absolute inset-0 bg-gray-50 opacity-0 group-hover:opacity-30 rounded-lg transition-opacity duration-200"></div>
-                </button>
+              <div className="p-4 border border-gray-200 rounded-2xl bg-white shadow-sm">
+                <StripeProvider>
+                  <ExpressPaymentRequestButton
+                    amount={totalAmount}
+                    currency="GBP"
+                    email={email}
+                    travellers={travelers}
+                    country={selectedCountry || visaState.selectedCountry || ""}
+                    includeInsurance={includeInsurance}
+                    insuranceCount={insuranceCount}
+                    insurancePaymentAmount={discountedInsuranceFeesEUR}
+                    visaTypeId={visaTypeId || visaState.visaTypeId || ""}
+                    paymentType="application_creation"
+                    disabled={
+                      appliedDiscount &&
+                      appliedDiscount.description &&
+                      appliedDiscount.description
+                        .toLowerCase()
+                        .includes("student") &&
+                      !studentVerified
+                        ? "Verify your student email to unlock Apple Pay / Google Pay."
+                        : null
+                    }
+                  />
+                </StripeProvider>
+                <p className="text-xs text-gray-500 mt-3">
+                  Apple Pay / Google Pay buttons appear automatically when your
+                  browser and device support them.
+                </p>
               </div>
             </div>
 
@@ -1557,7 +1102,9 @@ const VisaCheckout = () => {
                         name="payment"
                         value="stripe"
                         checked={selectedPaymentMethod === "stripe"}
-                        onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+                        onChange={(e) =>
+                          setSelectedPaymentMethod(e.target.value)
+                        }
                         className="h-4 w-4"
                       />
                       <span className="text-sm font-medium">Credit card</span>
@@ -1566,10 +1113,30 @@ const VisaCheckout = () => {
                     {/* Payment Method Icons */}
                     <div className="flex items-center space-x-1">
                       {/* Visa */}
-                      <Image src="/image/visa.sxIq5Dot.svg" width={45} height={45} alt="Visa" />
-                      <Image src="/image/mastercard.1c4_lyMp (1).svg" width={45} height={45} alt="Visa" />
-                      <Image src="/image/Amex Card.svg" width={55} height={55} alt="Visa" />
-                      <Image src="/image/DGN_AcceptanceMark_FC_Hrz_RGB (1).jpg" width={40} height={40} alt="Visa" />
+                      <Image
+                        src="/image/visa.sxIq5Dot.svg"
+                        width={45}
+                        height={45}
+                        alt="Visa"
+                      />
+                      <Image
+                        src="/image/mastercard.1c4_lyMp (1).svg"
+                        width={45}
+                        height={45}
+                        alt="Visa"
+                      />
+                      <Image
+                        src="/image/Amex Card.svg"
+                        width={55}
+                        height={55}
+                        alt="Visa"
+                      />
+                      <Image
+                        src="/image/DGN_AcceptanceMark_FC_Hrz_RGB (1).jpg"
+                        width={40}
+                        height={40}
+                        alt="Visa"
+                      />
 
                       {/* <div className="bg-[#7350FF] text-white px-2 py-1 rounded text-xs font-bold">
                         VISA
@@ -1594,51 +1161,83 @@ const VisaCheckout = () => {
                     </div>
                   </div>
 
-                  {selectedPaymentMethod === "stripe" && !showInlineStripeForm && (
-                    <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-md">
-                      <p className="text-sm text-gray-600 mb-3">
-                        Click "Continue to Payment" below to enter your card details
-                      </p>
-                      <div className="flex items-center gap-2 text-xs text-gray-500">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                        </svg>
-                        <span>Secure payment powered by Stripe</span>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Inline Stripe Payment Form */}
-                  {selectedPaymentMethod === "stripe" && showInlineStripeForm && (
-                    <div id="inline-stripe-form" className="mt-6 p-6 bg-white border-2 border-[#7350FF] rounded-lg">
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-semibold text-gray-900">Enter Card Details</h3>
-                        <button
-                          onClick={() => setShowInlineStripeForm(false)}
-                          className="text-gray-400 hover:text-gray-600"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  {selectedPaymentMethod === "stripe" &&
+                    !showInlineStripeForm && (
+                      <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-md">
+                        <p className="text-sm text-gray-600 mb-3">
+                          Click "Continue to Payment" below to enter your card
+                          details
+                        </p>
+                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                            />
                           </svg>
-                        </button>
+                          <span>Secure payment powered by Stripe</span>
+                        </div>
                       </div>
-                      
-                      <StripeProvider>
-                        <StripeElementsCheckout
-                          email={email}
-                          amount={totalAmountEUR}
-                          travelers={travelers}
-                          country={selectedCountry || visaState.selectedCountry || ""}
-                          insurance={includeInsurance}
-                          visaTypeId={visaTypeId || visaState.visaTypeId || ""}
-                          currency="GBP"
-                          paymentType="application_creation"
-                          noOfInsurance={insuranceCount}
-                          insurancePaymentAmount={discountedInsuranceFeesEUR}
-                        />
-                      </StripeProvider>
-                    </div>
-                  )}
+                    )}
+
+                  {/* Inline Stripe Payment Form */}
+                  {selectedPaymentMethod === "stripe" &&
+                    showInlineStripeForm && (
+                      <div
+                        id="inline-stripe-form"
+                        className="mt-6 p-6 bg-white border-2 border-[#7350FF] rounded-lg"
+                      >
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            Enter Card Details
+                          </h3>
+                          <button
+                            onClick={() => setShowInlineStripeForm(false)}
+                            className="text-gray-400 hover:text-gray-600"
+                          >
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M6 18L18 6M6 6l12 12"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+
+                        <StripeProvider>
+                          <StripeElementsCheckout
+                            email={email}
+                            amount={totalAmountEUR}
+                            travelers={travelers}
+                            country={
+                              selectedCountry || visaState.selectedCountry || ""
+                            }
+                            insurance={includeInsurance}
+                            visaTypeId={
+                              visaTypeId || visaState.visaTypeId || ""
+                            }
+                            currency="GBP"
+                            paymentType="application_creation"
+                            noOfInsurance={insuranceCount}
+                            insurancePaymentAmount={discountedInsuranceFeesEUR}
+                          />
+                        </StripeProvider>
+                      </div>
+                    )}
                 </div>
 
                 <div
@@ -1667,66 +1266,6 @@ const VisaCheckout = () => {
                       months
                     </p>
                   )}
-                </div>
-
-                <div className="space-y-2">
-                  <div
-                    className={`border rounded-md p-3 cursor-pointer transition-all ${
-                      selectedPaymentMethod === "apple"
-                        ? "border-black bg-gray-50"
-                        : "border-gray-300"
-                    }`}
-                    onClick={() => setSelectedPaymentMethod("apple")}
-                  >
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="radio"
-                        name="payment"
-                        value="apple"
-                        checked={selectedPaymentMethod === "apple"}
-                        onChange={(e) =>
-                          setSelectedPaymentMethod(e.target.value)
-                        }
-                        className="h-4 w-4"
-                      />
-                      <FaApple className="text-lg" />
-                      <span className="text-sm font-medium">Apple Pay</span>
-                      {selectedPaymentMethod === "apple" && (
-                        <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full ml-auto">
-                          Selected
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div
-                    className={`border rounded-md p-3 cursor-pointer ${
-                      selectedPaymentMethod === "google"
-                        ? "border-black bg-gray-50"
-                        : "border-gray-300"
-                    }`}
-                    onClick={() => setSelectedPaymentMethod("google")}
-                  >
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="radio"
-                        name="payment"
-                        value="google"
-                        checked={selectedPaymentMethod === "google"}
-                        onChange={(e) =>
-                          setSelectedPaymentMethod(e.target.value)
-                        }
-                        className="h-4 w-4"
-                      />
-                      <FaGoogle className="text-lg" />
-                      <span className="text-sm font-medium">Google Pay</span>
-                      {selectedPaymentMethod === "google" && (
-                        <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full ml-auto">
-                          Selected
-                        </span>
-                      )}
-                    </div>
-                  </div>
                 </div>
               </div>
 
@@ -1764,21 +1303,6 @@ const VisaCheckout = () => {
                     .includes("student") &&
                   !studentVerified ? (
                   "Verify your email to continue"
-                ) : selectedPaymentMethod === "apple" ? (
-                  <div className="flex items-center justify-center space-x-2">
-                    <FaApple />
-                    <span>
-                      Pay {formatCurrency(totalAmountEUR, "EUR")} with Apple Pay
-                    </span>
-                  </div>
-                ) : selectedPaymentMethod === "google" ? (
-                  <div className="flex items-center justify-center space-x-2">
-                    <FaGoogle />
-                    <span>
-                      Pay {formatCurrency(totalAmountEUR, "EUR")} with Google
-                      Pay
-                    </span>
-                  </div>
                 ) : selectedPaymentMethod === "klarna" ? (
                   <div className="flex items-center justify-center space-x-2">
                     <SiKlarna />
@@ -1786,9 +1310,11 @@ const VisaCheckout = () => {
                       Pay {formatCurrency(totalAmountEUR, "EUR")} with Klarna
                     </span>
                   </div>
-                ) : selectedPaymentMethod === "stripe" && !showInlineStripeForm ? (
+                ) : selectedPaymentMethod === "stripe" &&
+                  !showInlineStripeForm ? (
                   `Continue to Payment`
-                ) : selectedPaymentMethod === "stripe" && showInlineStripeForm ? (
+                ) : selectedPaymentMethod === "stripe" &&
+                  showInlineStripeForm ? (
                   `Payment form shown above`
                 ) : (
                   `Complete Order`
@@ -1796,12 +1322,14 @@ const VisaCheckout = () => {
               </button>
               <p className="text-xs text-gray-600 mt-2 text-center">
                 {" "}
-                All transactions are secure and encrypted. Powered by  
-                <a rel="stylesheet" href="https://stripe.com" className="ml-[3px] text-blue-400 underline">
+                All transactions are secure and encrypted. Powered by
+                <a
+                  rel="stylesheet"
+                  href="https://stripe.com"
+                  className="ml-[3px] text-blue-400 underline"
+                >
                   Stripe
                 </a>
-                
-                
               </p>
             </div>
           </div>
@@ -1909,7 +1437,7 @@ const VisaCheckout = () => {
             </div>
             {includeInsurance && (
               <p className="text-xs text-gray-400">
-                 (Included for {insuranceCount} traveler
+                (Included for {insuranceCount} traveler
                 {travelers > 1 ? "s" : ""})
               </p>
             )}
@@ -1964,7 +1492,7 @@ const VisaCheckout = () => {
             </div>
             {includeGiftCard && (
               <p className="text-xs text-gray-400">
-                Digital gift card for {giftCardCount} 
+                Digital gift card for {giftCardCount}
                 {giftCardCount > 1 ? "s" : ""}
               </p>
             )}
@@ -2026,7 +1554,8 @@ const VisaCheckout = () => {
                   <div className="h-4 w-4 rounded-full bg-purple-500 min-w-4 animate-pulse max-sm:h-3 max-sm:w-3"></div>
                   <div>
                     <span className="text-sm font-medium text-white max-sm:text-xs">
-                      {sliderContent["free_offer_banner_text"] || "Free Auto-booking appointment and concierge assistance ends soon - Until Jan 2026."}
+                      {sliderContent["free_offer_banner_text"] ||
+                        "Free Auto-booking appointment and concierge assistance ends soon - Until Jan 2026."}
                     </span>
                   </div>
                 </div>

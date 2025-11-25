@@ -844,13 +844,17 @@ const CountrySlider = () => {
       insuranceCount,
       giftCardCount,
       recommendedItems,
-      appliedDiscount
+      appliedDiscount,
     });
-    
+
     // Base discounted prices (not original prices)
     const baseDiscountedVisaFees = 129 * travelers; // £129 per traveler
-    const baseDiscountedInsuranceFees = recommendedItems.insuranceCertificate ? 30 * insuranceCount : 0; // £30 per insurance
-    const baseDiscountedGiftCardFees = recommendedItems.giftCard ? 159 * giftCardCount : 0; // £159 per gift card
+    const baseDiscountedInsuranceFees = recommendedItems.insuranceCertificate
+      ? 30 * insuranceCount
+      : 0; // £30 per insurance
+    const baseDiscountedGiftCardFees = recommendedItems.giftCard
+      ? 159 * giftCardCount
+      : 0; // £159 per gift card
 
     // Calculate individual component discounts
     let visaDiscountPercentage = 0;
@@ -860,7 +864,7 @@ const CountrySlider = () => {
     // Check if any component qualifies for quantity discount (3+)
     // Note: Insurance count cannot exceed traveler count (insurance certificates are for travelers)
     const effectiveInsuranceCount = Math.min(insuranceCount, travelers);
-    
+
     const travelersQualify = travelers >= 3;
     const insuranceQualify = effectiveInsuranceCount >= 3;
     const giftCardQualify = giftCardCount >= 3;
@@ -877,44 +881,58 @@ const CountrySlider = () => {
         // GROUP20: Only applies if travelers >= 3 AND at least one other component >= 3
         if (travelersQualify && (insuranceQualify || giftCardQualify)) {
           // Apply 20% to all components that have 3+ items
-          if (travelersQualify) visaDiscountPercentage = Math.max(visaDiscountPercentage, 20);
-          if (insuranceQualify) insuranceDiscountPercentage = Math.max(insuranceDiscountPercentage, 20);
-          if (giftCardQualify) giftCardDiscountPercentage = Math.max(giftCardDiscountPercentage, 20);
+          if (travelersQualify)
+            visaDiscountPercentage = Math.max(visaDiscountPercentage, 20);
+          if (insuranceQualify)
+            insuranceDiscountPercentage = Math.max(
+              insuranceDiscountPercentage,
+              20
+            );
+          if (giftCardQualify)
+            giftCardDiscountPercentage = Math.max(
+              giftCardDiscountPercentage,
+              20
+            );
         }
       } else if (appliedDiscount.code === "STUDENT10") {
         console.log("Slider Applying STUDENT10 discount"); // Debug log
         // STUDENT10: Adds 10% to ALL components (stacks with quantity discounts)
         visaDiscountPercentage += 10;
-        if (recommendedItems.insuranceCertificate) insuranceDiscountPercentage += 10;
+        if (recommendedItems.insuranceCertificate)
+          insuranceDiscountPercentage += 10;
         if (recommendedItems.giftCard) giftCardDiscountPercentage += 10;
       }
     }
-    
-    console.log("Slider Final discount percentages:", { // Debug log
+
+    console.log("Slider Final discount percentages:", {
+      // Debug log
       visa: visaDiscountPercentage,
       insurance: insuranceDiscountPercentage,
-      giftCard: giftCardDiscountPercentage
+      giftCard: giftCardDiscountPercentage,
     });
 
     // Calculate discount amounts
-    const visaDiscountAmount = (baseDiscountedVisaFees * visaDiscountPercentage) / 100;
-    const insuranceDiscountAmount = recommendedItems.insuranceCertificate 
-      ? (baseDiscountedInsuranceFees * insuranceDiscountPercentage) / 100 
+    const visaDiscountAmount =
+      (baseDiscountedVisaFees * visaDiscountPercentage) / 100;
+    const insuranceDiscountAmount = recommendedItems.insuranceCertificate
+      ? (baseDiscountedInsuranceFees * insuranceDiscountPercentage) / 100
       : 0;
-    const giftCardDiscountAmount = recommendedItems.giftCard 
-      ? (baseDiscountedGiftCardFees * giftCardDiscountPercentage) / 100 
+    const giftCardDiscountAmount = recommendedItems.giftCard
+      ? (baseDiscountedGiftCardFees * giftCardDiscountPercentage) / 100
       : 0;
 
     // Calculate final prices after discounts
     const finalVisaPrice = baseDiscountedVisaFees - visaDiscountAmount;
-    const finalInsurancePrice = baseDiscountedInsuranceFees - insuranceDiscountAmount;
-    const finalGiftCardPrice = baseDiscountedGiftCardFees - giftCardDiscountAmount;
+    const finalInsurancePrice =
+      baseDiscountedInsuranceFees - insuranceDiscountAmount;
+    const finalGiftCardPrice =
+      baseDiscountedGiftCardFees - giftCardDiscountAmount;
 
     console.log("Slider calculateFinalPrice - Final results:", {
       finalVisaPrice,
       finalInsurancePrice,
       finalGiftCardPrice,
-      totalPrice: finalVisaPrice + finalInsurancePrice + finalGiftCardPrice
+      totalPrice: finalVisaPrice + finalInsurancePrice + finalGiftCardPrice,
     });
 
     // Return only visa fees for main display (matching original behavior)
@@ -923,13 +941,15 @@ const CountrySlider = () => {
 
   const calculateDiscountedInsurancePrice = () => {
     // Use same logic as calculateFinalPrice for insurance
-    const baseDiscountedInsuranceFees = recommendedItems.insuranceCertificate ? 30 * insuranceCount : 0;
+    const baseDiscountedInsuranceFees = recommendedItems.insuranceCertificate
+      ? 30 * insuranceCount
+      : 0;
     let insuranceDiscountPercentage = 0;
 
     // Check if insurance qualifies for quantity discount (3+)
     const effectiveInsuranceCount = Math.min(insuranceCount, travelers);
     const insuranceQualify = effectiveInsuranceCount >= 3;
-    
+
     // Apply quantity-based discount (20% for 3+ items)
     if (insuranceQualify) insuranceDiscountPercentage += 20;
 
@@ -939,25 +959,33 @@ const CountrySlider = () => {
         const travelersQualify = travelers >= 3;
         const giftCardQualify = giftCardCount >= 3;
         if (travelersQualify && (insuranceQualify || giftCardQualify)) {
-          if (insuranceQualify) insuranceDiscountPercentage = Math.max(insuranceDiscountPercentage, 20);
+          if (insuranceQualify)
+            insuranceDiscountPercentage = Math.max(
+              insuranceDiscountPercentage,
+              20
+            );
         }
       } else if (appliedDiscount.code === "STUDENT10") {
-        if (recommendedItems.insuranceCertificate) insuranceDiscountPercentage += 10;
+        if (recommendedItems.insuranceCertificate)
+          insuranceDiscountPercentage += 10;
       }
     }
 
-    const insuranceDiscountAmount = (baseDiscountedInsuranceFees * insuranceDiscountPercentage) / 100;
+    const insuranceDiscountAmount =
+      (baseDiscountedInsuranceFees * insuranceDiscountPercentage) / 100;
     return baseDiscountedInsuranceFees - insuranceDiscountAmount;
   };
 
   const calculateDiscountedGiftCardPrice = () => {
     // Use same logic as calculateFinalPrice for gift cards
-    const baseDiscountedGiftCardFees = recommendedItems.giftCard ? 159 * giftCardCount : 0;
+    const baseDiscountedGiftCardFees = recommendedItems.giftCard
+      ? 159 * giftCardCount
+      : 0;
     let giftCardDiscountPercentage = 0;
 
     // Check if gift cards qualify for quantity discount (3+)
     const giftCardQualify = giftCardCount >= 3;
-    
+
     // Apply quantity-based discount (20% for 3+ items)
     if (giftCardQualify) giftCardDiscountPercentage += 20;
 
@@ -968,14 +996,19 @@ const CountrySlider = () => {
         const effectiveInsuranceCount = Math.min(insuranceCount, travelers);
         const insuranceQualify = effectiveInsuranceCount >= 3;
         if (travelersQualify && (insuranceQualify || giftCardQualify)) {
-          if (giftCardQualify) giftCardDiscountPercentage = Math.max(giftCardDiscountPercentage, 20);
+          if (giftCardQualify)
+            giftCardDiscountPercentage = Math.max(
+              giftCardDiscountPercentage,
+              20
+            );
         }
       } else if (appliedDiscount.code === "STUDENT10") {
         if (recommendedItems.giftCard) giftCardDiscountPercentage += 10;
       }
     }
 
-    const giftCardDiscountAmount = (baseDiscountedGiftCardFees * giftCardDiscountPercentage) / 100;
+    const giftCardDiscountAmount =
+      (baseDiscountedGiftCardFees * giftCardDiscountPercentage) / 100;
     return baseDiscountedGiftCardFees - giftCardDiscountAmount;
   };
 
@@ -1335,7 +1368,13 @@ const CountrySlider = () => {
 
     dispatch(setCouponCode(couponCode || ""));
     dispatch(setUserEmail(userEmail || ""));
-    const methodToPersist = preferredPaymentMethod || selectedPaymentMethod || "";
+    const allowedPaymentMethods = ["stripe", "klarna"];
+    const sanitizeMethod = (method) =>
+      method && allowedPaymentMethods.includes(method) ? method : null;
+    const methodToPersist =
+      sanitizeMethod(preferredPaymentMethod) ||
+      sanitizeMethod(selectedPaymentMethod) ||
+      "stripe";
     dispatch(setSelectedPaymentMethod(methodToPersist));
     dispatch(setGiftCardFees(giftCardFees || 0));
     dispatch(setTotalAmount(totalAmount || 0));
@@ -1565,11 +1604,13 @@ const CountrySlider = () => {
             !appliedDiscount ||
             (appliedDiscount && appliedDiscount.code !== "STUDENT10")
           ) {
-            dispatch(setAppliedDiscount({
-              code: "STUDENT10",
-              percentage: 10,
-              description: "Student discount",
-            }));
+            dispatch(
+              setAppliedDiscount({
+                code: "STUDENT10",
+                percentage: 10,
+                description: "Student discount",
+              })
+            );
             setCouponCodeLocal("STUDENT10");
           }
         }
@@ -1619,21 +1660,18 @@ const CountrySlider = () => {
     return true;
   };
 
-  // Apple Pay click handler – run directly on this page when supported,
-  // otherwise fall back to the normal checkout flow with Apple Pay selected.
-  const handleApplePayClick = async () => {
-    // Validate required documents for express payment
+  const redirectToCheckoutForExpressWallets = async () => {
     if (!validateRequiredDocuments()) return;
 
-    // Check if student discount requires verification
     if (
       appliedDiscount &&
+      appliedDiscount.description &&
       appliedDiscount.description.toLowerCase().includes("student") &&
       !studentVerified
     ) {
       if (!userEmail || !validateEmail(userEmail)) {
         setEmailError(
-          "Please enter a valid student email before using Apple Pay"
+          "Please enter a valid student email before using express checkout"
         );
         return;
       }
@@ -1643,454 +1681,33 @@ const CountrySlider = () => {
         "/get-the-visa"
       );
       if (verificationSent) {
-        // Store pending payment data to process after verification
-        setPendingCheckoutQuery("proceed"); // Simple flag
-        setSelectedLocalPaymentMethod("apple");
-        // The polling will handle redirecting to payment once verified
+        setPendingCheckoutQuery("proceed");
         return;
       } else {
-        return; // Error already set by sendStudentVerification
+        return;
       }
-    }
-
-    // Calculate payment amount with all components
-    const currentBaseFee =
-      selectedVisaType && selectedVisaType.priceGBP
-        ? Number(selectedVisaType.priceGBP)
-        : selectedVisaType && selectedVisaType.price
-        ? Math.round(Number(selectedVisaType.price) / 100)
-        : baseFee;
-
-    let visaFees = currentBaseFee * travelers;
-
-    // Apply discount if available
-    if (appliedDiscount) {
-      const discountAmount = (visaFees * appliedDiscount.percentage) / 100;
-      visaFees = visaFees - discountAmount;
-    }
-
-    const insuranceFees = recommendedItems.insuranceCertificate
-      ? perDayInsurancePrice * insuranceDays * travelers
-      : 0;
-    const giftCardFees = recommendedItems.giftCard ? 159 * giftCardCount : 0;
-
-    const totalAmount = Math.round(visaFees + insuranceFees + giftCardFees);
-
-    // If Apple Pay API is not available (e.g. non-Safari browser),
-    // fall back to the main checkout flow with Apple Pay selected.
-    if (!window.ApplePaySession) {
-      await handleGetVisa("apple");
-      return;
-    }
-
-    // Check device capability first
-    const canMakePayments = ApplePaySession.canMakePayments();
-    if (!canMakePayments) {
-      await handleGetVisa("apple");
-      return;
-    }
-
-    // For development/testing on localhost or non-HTTPS, simulate and then
-    // continue via main checkout instead of trying a real Apple Pay session.
-    if (
-      window.location.hostname === "localhost" ||
-      window.location.protocol !== "https:"
-    ) {
-      setConfirmState({
-        isOpen: true,
-        title: "Confirm Apple Pay",
-        message: `Process Apple Pay payment of £${totalAmount}?\n\nThis will continue to checkout on the next page.`,
-        onConfirm: () => {
-          setConfirmState((s) => ({ ...s, isOpen: false }));
-          handleGetVisa("apple");
-        },
-      });
-      return;
     }
 
     try {
-      // Build line items for detailed breakdown
-      const lineItems = [
-        {
-          label: `Visa Processing Fee (${travelers} traveller${
-            travelers > 1 ? "s" : ""
-          })`,
-          amount: Math.round(visaFees).toString(),
-          type: "final",
-        },
-      ];
-
-      if (recommendedItems.insuranceCertificate) {
-        lineItems.push({
-          label: `Insurance Certificate (${travelers} traveller${
-            travelers > 1 ? "s" : ""
-          })`,
-          amount: insuranceFees.toString(),
-          type: "final",
-        });
-      }
-
-      if (recommendedItems.giftCard) {
-        lineItems.push({
-          label: `Gift Card (${giftCardCount} card${
-            giftCardCount > 1 ? "s" : ""
-          })`,
-          amount: giftCardFees.toString(),
-          type: "final",
-        });
-      }
-
-      if (appliedDiscount) {
-        lineItems.push({
-          label: `Discount (${appliedDiscount.percentage}% off)`,
-          amount: `-${Math.round(
-            (currentBaseFee * travelers * appliedDiscount.percentage) / 100
-          )}`,
-          type: "final",
-        });
-      }
-
-      const request = {
-        countryCode: "GB",
-        currencyCode: "GBP",
-        supportedNetworks: ["visa", "masterCard", "amex", "discover"],
-        merchantCapabilities: ["supports3DS"],
-        total: {
-          label: "NUvisa - Visa Application",
-          amount: totalAmount.toString(),
-          type: "final",
-        },
-        lineItems: lineItems,
-      };
-
-      const session = new ApplePaySession(3, request);
-
-      // Flag used to avoid logging a cancellation when we are intentionally redirecting
-      let suppressCancel = false;
-      let redirecting = false;
-
-      // Override oncancel immediately to prevent any spurious logs
-      session.oncancel = () => {
-        if (!suppressCancel && !redirecting) {
-        }
-      };
-
-      session.onvalidatemerchant = async (event) => {
-        try {
-          dispatch(setSelectedPaymentMethod("apple-pay"));
-
-          // Try to validate merchant through backend API.
-          try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-            const response = await fetch(
-              `${apiUrl}/stripe_payment/apple-pay/validate-merchant`,
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ validationURL: event.validationURL }),
-              }
-            );
-
-            if (response.ok) {
-              const merchantSession = await response.json();
-              session.completeMerchantValidation(merchantSession);
-              return;
-            }
-          } catch (apiError) {
-            // Backend endpoint doesn't exist or failed - handle gracefully
-            // Don't redirect, just abort the session
-          }
-
-          // If backend validation fails, abort gracefully without redirecting
-          suppressCancel = true;
-          session.abort();
-          showAlert(
-            "Apple Pay",
-            "Apple Pay merchant validation is not yet configured. Please use a different payment method or contact support."
-          );
-        } catch (error) {
-          console.error("Apple Pay merchant validation failed:", error);
-          suppressCancel = true;
-          try {
-            showAlert(
-              "Apple Pay",
-              "Apple Pay validation failed. Please try a different payment method."
-            );
-          } catch {}
-          session.abort();
-        }
-      };
-
-      session.onpaymentauthorized = (event) => {
-        session.completePayment(ApplePaySession.STATUS_SUCCESS);
-        try {
-          const stored = localStorage.getItem("paymentMetadata");
-          const pm = stored ? JSON.parse(stored) : null;
-          const appId = pm?.applicationId || null;
-          if (appId) {
-            router.push(
-              `/application-step?application_id=${encodeURIComponent(appId)}`
-            );
-          } else {
-            router.push("/payment-success");
-          }
-        } catch {
-          console.error("Error parsing paymentMetadata for redirect:");
-          router.push("/payment-success");
-        }
-      };
-
-      session.oncancel = () => {
-        if (!suppressCancel) {
-        } else {
-          // quietly ignore cancellation caused by our intentional redirect fallback
-        }
-      };
-
-      session.onerror = (error) => {
-        console.error("Apple Pay session error:", error);
-        showAlert(
-          "Apple Pay",
-          "Apple Pay error occurred. Please try a different payment method."
+      if (typeof showSuccess === "function") {
+        showSuccess(
+          "Redirecting to checkout — Apple Pay / Google Pay available there."
         );
-      };
+      }
+    } catch {}
 
-      session.begin();
-    } catch (error) {
-      console.error("Apple Pay initialization error:", error);
-      // If we hit an Apple Pay API error, fall back to normal checkout
-      await handleGetVisa("apple");
-    }
+    await handleGetVisa("stripe");
+  };
+
+  // Apple Pay click handler – run directly on this page when supported,
+  // otherwise fall back to the normal checkout flow with Apple Pay selected.
+  const handleApplePayClick = async () => {
+    await redirectToCheckoutForExpressWallets();
   };
 
   // Google Pay click handler
   const handleGooglePayClick = async () => {
-    // Validate required documents for express payment
-    if (!validateRequiredDocuments()) return;
-
-    // Check if student discount requires verification
-    if (
-      appliedDiscount &&
-      appliedDiscount.description.toLowerCase().includes("student") &&
-      !studentVerified
-    ) {
-      if (!userEmail || !validateEmail(userEmail)) {
-        setEmailError(
-          "Please enter a valid student email before using Google Pay"
-        );
-        return;
-      }
-
-      const verificationSent = await sendStudentVerification(
-        userEmail,
-        `/payment/${selectedPaymentMethod}`
-      );
-      if (verificationSent) {
-        // Store pending payment data to process after verification
-        setPendingCheckoutQuery("proceed"); // Simple flag
-        setSelectedLocalPaymentMethod("google");
-        // The polling will handle redirecting to payment once verified
-        return;
-      } else {
-        return; // Error already set by sendStudentVerification
-      }
-    }
-
-    // Calculate payment amount with all components
-    const currentBaseFee =
-      selectedVisaType && selectedVisaType.priceGBP
-        ? Number(selectedVisaType.priceGBP)
-        : selectedVisaType && selectedVisaType.price
-        ? Math.round(Number(selectedVisaType.price) / 100)
-        : baseFee;
-
-    let visaFees = currentBaseFee * travelers;
-
-    // Apply discount if available
-    if (appliedDiscount) {
-      const discountAmount = (visaFees * appliedDiscount.percentage) / 100;
-      visaFees = visaFees - discountAmount;
-    }
-
-    const insuranceFees = recommendedItems.insuranceCertificate
-      ? perDayInsurancePrice * insuranceDays * travelers
-      : 0;
-    const giftCardFees = recommendedItems.giftCard ? 159 * giftCardCount : 0;
-
-    const totalAmount = Math.round(visaFees + insuranceFees + giftCardFees);
-
-    // Check if Google Pay is available
-    if (!window.google || !window.google.payments) {
-      showAlert(
-        "Google Pay",
-        "Google Pay is not available. Please refresh the page and try again."
-      );
-      return;
-    }
-
-    try {
-      const paymentsClient = new google.payments.api.PaymentsClient({
-        environment: "TEST", // Change to 'PRODUCTION' for live
-        paymentDataCallbacks: {
-          onPaymentAuthorized: (paymentData) => {
-            return new Promise((resolve) => {
-              // Process payment data
-
-              // Here you would normally send the payment data to your server
-              // For now, we'll simulate success
-              resolve({ transactionState: "SUCCESS" });
-
-              // Redirect to success page or back to existing application if present
-              setTimeout(() => {
-                try {
-                  const stored = localStorage.getItem("paymentMetadata");
-                  const pm = stored ? JSON.parse(stored) : null;
-                  const appId = pm?.applicationId || null;
-                  if (appId) {
-                    router.push(
-                      `/application-step?application_id=${encodeURIComponent(
-                        appId
-                      )}`
-                    );
-                  } else {
-                    router.push("/payment-success");
-                  }
-                } catch {
-                  console.error("Error parsing paymentMetadata for redirect:");
-                  router.push("/payment-success");
-                }
-              }, 1000);
-            });
-          },
-        },
-      });
-
-      // Check if Google Pay is ready
-      const isReadyToPayRequest = {
-        apiVersion: 2,
-        apiVersionMinor: 0,
-        allowedPaymentMethods: [
-          {
-            type: "CARD",
-            parameters: {
-              allowedAuthMethods: ["PAN_ONLY", "CRYPTOGRAM_3DS"],
-              allowedCardNetworks: ["MASTERCARD", "VISA", "AMEX"],
-            },
-          },
-        ],
-      };
-
-      const isReadyToPay = await paymentsClient.isReadyToPay(
-        isReadyToPayRequest
-      );
-
-      if (!isReadyToPay.result) {
-        showAlert(
-          "Google Pay",
-          "Google Pay is not available on this device or no payment methods are set up."
-        );
-        return;
-      }
-
-      // Build display items for detailed breakdown
-      const displayItems = [
-        {
-          label: `Visa Processing Fee (${travelers} traveller${
-            travelers > 1 ? "s" : ""
-          })`,
-          type: "LINE_ITEM",
-          price: Math.round(visaFees).toString(),
-        },
-      ];
-
-      if (recommendedItems.insuranceCertificate) {
-        displayItems.push({
-          label: `Insurance Certificate (${travelers} traveller${
-            travelers > 1 ? "s" : ""
-          })`,
-          type: "LINE_ITEM",
-          price: insuranceFees.toString(),
-        });
-      }
-
-      if (recommendedItems.giftCard) {
-        displayItems.push({
-          label: `Gift Card (${giftCardCount} card${
-            giftCardCount > 1 ? "s" : ""
-          })`,
-          type: "LINE_ITEM",
-          price: giftCardFees.toString(),
-        });
-      }
-
-      if (appliedDiscount) {
-        displayItems.push({
-          label: `Discount (${appliedDiscount.percentage}% off)`,
-          type: "LINE_ITEM",
-          price: `-${Math.round(
-            (currentBaseFee * travelers * appliedDiscount.percentage) / 100
-          )}`,
-        });
-      }
-
-      const paymentDataRequest = {
-        apiVersion: 2,
-        apiVersionMinor: 0,
-        allowedPaymentMethods: [
-          {
-            type: "CARD",
-            parameters: {
-              allowedAuthMethods: ["PAN_ONLY", "CRYPTOGRAM_3DS"],
-              allowedCardNetworks: ["MASTERCARD", "VISA", "AMEX"],
-              billingAddressRequired: true,
-              billingAddressParameters: {
-                format: "FULL",
-                phoneNumberRequired: true,
-              },
-            },
-            tokenizationSpecification: {
-              type: "PAYMENT_GATEWAY",
-              parameters: {
-                gateway: "stripe", // Use your actual payment gateway
-                "stripe:version": "2020-08-27",
-                "stripe:publishableKey": "pk_test_...", // Use your actual publishable key
-              },
-            },
-          },
-        ],
-        merchantInfo: {
-          merchantId: "BCR2DN4TXZQJHQBF", // Use your actual Google Pay merchant ID
-          merchantName: "NUvisa",
-        },
-        transactionInfo: {
-          totalPriceStatus: "FINAL",
-          totalPriceLabel: "Total",
-          totalPrice: totalAmount.toString(),
-          currencyCode: "GBP",
-          countryCode: "GB",
-          displayItems: displayItems,
-        },
-        callbackIntents: ["PAYMENT_AUTHORIZATION"],
-        shippingAddressRequired: false,
-        shippingOptionRequired: false,
-      };
-
-      // This will show the Google Pay interface, not credit card selection
-      const paymentData = await paymentsClient.loadPaymentData(
-        paymentDataRequest
-      );
-    } catch (error) {
-      console.error("Google Pay error:", error);
-      if (error.statusCode === "CANCELED") {
-        return;
-      }
-      showAlert(
-        "Google Pay",
-        "Google Pay payment failed. Please try a different payment method."
-      );
-    }
+    await redirectToCheckoutForExpressWallets();
   };
 
   return (
