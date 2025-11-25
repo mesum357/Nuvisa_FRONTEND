@@ -138,10 +138,10 @@ const ComparisonSection = () => {
                   <CircleX
                     size={20}
                     strokeWidth={2}
-                    className="text-gray-500 size-3 max-sm:size-3 md:size-5 mt-0.5"
+                    className="text-gray-500 size-3 max-sm:size-3 md:size-5 mt-0.5 max-sm:mt-1"
                   />
                 </div>
-                <p className="text-black text-[10px] max-sm:text-[10px] md:text-[18.5px] font-gilroy-bold !font-gilroy-bold leading-tigh">
+                <p className="text-black text-[10px] max-sm:text-[8px] md:text-[18.5px] font-gilroy-bold !font-gilroy-bold leading-tigh max-sm:mt-1">
                   {item}
                 </p>
               </div>
