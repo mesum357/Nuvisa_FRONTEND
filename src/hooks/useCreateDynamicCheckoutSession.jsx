@@ -20,6 +20,9 @@ const useCreateDynamicCheckoutSession = () => {
     noOfInsurance,
     insurancePaymentAmount,
     uiMode = "hosted", // 'hosted' or 'embedded'
+    paymentMethod, // 'klarna', 'stripe', etc.
+    klarnaFormData, // Form data for Klarna
+    ...options // Additional options
   }) => {
     setCreatingDynamicCheckout(true);
     const successCallbackFunction = () => { };
@@ -126,6 +129,13 @@ const useCreateDynamicCheckoutSession = () => {
         (typeof window !== "undefined" &&
           window.sessionStorage?.getItem("lastOrderId")) ||
         undefined,
+      // Payment method (klarna, stripe, etc.)
+      paymentMethod: paymentMethod || undefined,
+      // Additional metadata (like Klarna form data)
+      ...(klarnaFormData ? { klarnaFormData: klarnaFormData } : {}),
+      // Insurance-related fields
+      noOfInsurance: noOfInsurance || undefined,
+      insurancePaymentAmount: insurancePaymentAmount || undefined,
     };
 
     // If no orderId provided by caller, generate one and persist temporarily

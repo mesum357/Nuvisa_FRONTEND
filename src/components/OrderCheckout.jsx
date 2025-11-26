@@ -30,6 +30,7 @@ import {
 import StripeProvider from "./StripeProvider";
 import StripeElementsCheckout from "./StripeElementsCheckout";
 import ExpressPaymentRequestButton from "./ExpressPaymentRequestButton";
+import KlarnaForm from "./KlarnaForm";
 import { useRouter } from "next/router";
 
 const VisaCheckout = () => {
@@ -131,6 +132,9 @@ const VisaCheckout = () => {
 
   // Inline Stripe Payment Form
   const [showInlineStripeForm, setShowInlineStripeForm] = useState(false);
+  // Klarna Form
+  const [showKlarnaForm, setShowKlarnaForm] = useState(false);
+  const [isKlarnaSubmitting, setIsKlarnaSubmitting] = useState(false);
   const router = useRouter();
 
   // Auto-show payment form when payment method is selected and email is valid
@@ -156,6 +160,25 @@ const VisaCheckout = () => {
       setShowInlineStripeForm(false);
     }
   }, [selectedPaymentMethod, email, showInlineStripeForm]);
+
+  // Auto-show Klarna form when Klarna is selected
+  useEffect(() => {
+    if (selectedPaymentMethod === "klarna" && !showKlarnaForm) {
+      setShowKlarnaForm(true);
+      // Scroll to the Klarna form after a short delay
+      setTimeout(() => {
+        const formElement = document.getElementById("klarna-form-container");
+        if (formElement) {
+          formElement.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+        }
+      }, 300);
+    } else if (selectedPaymentMethod !== "klarna" && showKlarnaForm) {
+      setShowKlarnaForm(false);
+    }
+  }, [selectedPaymentMethod, showKlarnaForm]);
 
   const sendStudentVerification = async (
     emailToVerify,
@@ -794,7 +817,7 @@ const VisaCheckout = () => {
       }
     }
 
-    // For Stripe, show inline payment form
+    // For Stripe card, show inline payment form
     if (selectedPaymentMethod === "stripe") {
       setShowInlineStripeForm(true);
       // Scroll to the payment form
@@ -807,8 +830,21 @@ const VisaCheckout = () => {
       return;
     }
 
+    // For Klarna, show Klarna form
+    if (selectedPaymentMethod === "klarna") {
+      setShowKlarnaForm(true);
+      // Scroll to the Klarna form
+      setTimeout(() => {
+        const formElement = document.getElementById("klarna-form-container");
+        if (formElement) {
+          formElement.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 100);
+      return;
+    }
+
     try {
-      // For non-Stripe payment methods, use hosted checkout (redirect)
+      // For other payment methods, use hosted checkout (redirect)
       const statusResult = await handleCreateDynamicCheckoutSession({
         email: email,
         amount: String(totalAmountEUR),
@@ -821,7 +857,7 @@ const VisaCheckout = () => {
         currency: "GBP",
         noOfInsurance: insuranceCount,
         insurancePaymentAmount: discountedInsuranceFeesEUR,
-        uiMode: "hosted", // Always hosted for non-Stripe methods
+        uiMode: "hosted", // Always hosted for other methods
       });
 
       const results = statusResult?.data;
@@ -960,41 +996,6 @@ const VisaCheckout = () => {
 
         <div className="w-full mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6 h-full grow">
           <div className="space-y-6 p-6 md:p-10 md:pl-10 xl:pl-40">
-            {/* Apple Pay & Google Pay Buttons */}
-            <div className="space-y-2">
-              <h2 className="font-medium text-lg">Express Checkout</h2>
-              <div className="p-4 border border-gray-200 rounded-2xl bg-white shadow-sm">
-                <StripeProvider>
-                  <ExpressPaymentRequestButton
-                    amount={totalAmount}
-                    currency="GBP"
-                    email={email}
-                    travellers={travelers}
-                    country={selectedCountry || visaState.selectedCountry || ""}
-                    includeInsurance={includeInsurance}
-                    insuranceCount={insuranceCount}
-                    insurancePaymentAmount={discountedInsuranceFeesEUR}
-                    visaTypeId={visaTypeId || visaState.visaTypeId || ""}
-                    paymentType="application_creation"
-                    disabled={
-                      appliedDiscount &&
-                      appliedDiscount.description &&
-                      appliedDiscount.description
-                        .toLowerCase()
-                        .includes("student") &&
-                      !studentVerified
-                        ? "Verify your student email to unlock Apple Pay / Google Pay."
-                        : null
-                    }
-                  />
-                </StripeProvider>
-                <p className="text-xs text-gray-500 mt-3">
-                  Apple Pay / Google Pay buttons appear automatically when your
-                  browser and device support them.
-                </p>
-              </div>
-            </div>
-
             <div className="space-y-3">
               <h2 className="font-medium text-lg">Contact Information</h2>
               <div className="space-y-4">
@@ -1087,6 +1088,26 @@ const VisaCheckout = () => {
             <div className="space-y-3">
               <h2 className="font-medium text-lg">Payment Method</h2>
               <div className="space-y-2">
+                {/* Apple Pay / Google Pay - Express Checkout */}
+                <StripeProvider>
+                  <div className="p-4 border border-gray-200 rounded-md bg-white">
+                    <ExpressPaymentRequestButton
+                      amount={totalAmount}
+                      currency="GBP"
+                      email={email}
+                      travellers={travelers}
+                      country={
+                        selectedCountry || visaState.selectedCountry || ""
+                      }
+                      includeInsurance={includeInsurance}
+                      insuranceCount={insuranceCount}
+                      insurancePaymentAmount={discountedInsuranceFeesEUR}
+                      visaTypeId={visaTypeId || visaState.visaTypeId || ""}
+                      paymentType="application_creation"
+                    />
+                  </div>
+                </StripeProvider>
+
                 <div
                   className={`border rounded-md p-3 cursor-pointer ${
                     selectedPaymentMethod === "stripe"
@@ -1234,6 +1255,7 @@ const VisaCheckout = () => {
                             paymentType="application_creation"
                             noOfInsurance={insuranceCount}
                             insurancePaymentAmount={discountedInsuranceFeesEUR}
+                            hideSubmitButton={true}
                           />
                         </StripeProvider>
                       </div>
@@ -1260,11 +1282,72 @@ const VisaCheckout = () => {
                     <SiKlarna className="text-lg text-pink-500" />
                     <span className="text-sm font-medium">Klarna Pay</span>
                   </div>
-                  {selectedPaymentMethod === "klarna" && (
+                  {selectedPaymentMethod === "klarna" && !showKlarnaForm && (
                     <p className="text-xs text-gray-600 mt-2 ml-6">
                       Pay in 3 interest-free payments or spread the cost over 24
                       months
                     </p>
+                  )}
+
+                  {/* Klarna Form */}
+                  {selectedPaymentMethod === "klarna" && showKlarnaForm && (
+                    <div
+                      id="klarna-form-container"
+                      className="mt-6 p-6 bg-white border-2 border-pink-500 rounded-lg"
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          Complete Klarna Payment
+                        </h3>
+                        <button
+                          onClick={() => setShowKlarnaForm(false)}
+                          className="text-gray-400 hover:text-gray-600"
+                        >
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+
+                      <KlarnaForm
+                        email={email}
+                        amount={totalAmountEUR}
+                        travelers={travelers}
+                        country={
+                          selectedCountry || visaState.selectedCountry || ""
+                        }
+                        insurance={includeInsurance}
+                        visaTypeId={visaTypeId || visaState.visaTypeId || ""}
+                        insuranceCount={insuranceCount}
+                        insurancePaymentAmount={discountedInsuranceFeesEUR}
+                        paymentType="application_creation"
+                        applicationId={undefined}
+                        travelerIndex={undefined}
+                        onCreateCheckoutSession={
+                          handleCreateDynamicCheckoutSession
+                        }
+                        onSubmittingChange={setIsKlarnaSubmitting}
+                        onSuccess={(data) => {
+                          console.log("Klarna form submitted:", data);
+                        }}
+                        onError={(error) => {
+                          console.error("Klarna form error:", error);
+                          showSuccess(
+                            "Error creating Klarna checkout. Please try again."
+                          );
+                        }}
+                      />
+                    </div>
                   )}
                 </div>
               </div>
@@ -1272,15 +1355,39 @@ const VisaCheckout = () => {
               <button
                 disabled={
                   cretingDynamicCheckout ||
+                  isKlarnaSubmitting ||
                   (appliedDiscount &&
                     appliedDiscount.description &&
                     appliedDiscount.description
                       .toLowerCase()
                       .includes("student") &&
-                    !studentVerified) ||
-                  (selectedPaymentMethod === "stripe" && showInlineStripeForm)
+                    !studentVerified)
                 }
-                onClick={handleProceedToCheckout}
+                onClick={() => {
+                  // If card form is shown, trigger form submission
+                  if (
+                    selectedPaymentMethod === "stripe" &&
+                    showInlineStripeForm
+                  ) {
+                    const form = document.getElementById("stripe-payment-form");
+                    if (form) {
+                      form.requestSubmit();
+                    }
+                  } else if (
+                    selectedPaymentMethod === "klarna" &&
+                    showKlarnaForm
+                  ) {
+                    // Trigger Klarna form submission
+                    const klarnaForm = document.getElementById(
+                      "klarna-payment-form"
+                    );
+                    if (klarnaForm) {
+                      klarnaForm.requestSubmit();
+                    }
+                  } else {
+                    handleProceedToCheckout();
+                  }
+                }}
                 className={`w-full bg-black text-white py-3 rounded-md font-semibold hover:bg-gray-900 transition-colors ${
                   cretingDynamicCheckout ||
                   (appliedDiscount &&
@@ -1288,13 +1395,12 @@ const VisaCheckout = () => {
                     appliedDiscount.description
                       .toLowerCase()
                       .includes("student") &&
-                    !studentVerified) ||
-                  (selectedPaymentMethod === "stripe" && showInlineStripeForm)
+                    !studentVerified)
                     ? "cursor-not-allowed opacity-50"
                     : "cursor-pointer"
                 }`}
               >
-                {cretingDynamicCheckout ? (
+                {cretingDynamicCheckout || isKlarnaSubmitting ? (
                   "Processing..."
                 ) : appliedDiscount &&
                   appliedDiscount.description &&
@@ -1303,7 +1409,12 @@ const VisaCheckout = () => {
                     .includes("student") &&
                   !studentVerified ? (
                   "Verify your email to continue"
-                ) : selectedPaymentMethod === "klarna" ? (
+                ) : selectedPaymentMethod === "klarna" && !showKlarnaForm ? (
+                  <div className="flex items-center justify-center space-x-2">
+                    <SiKlarna />
+                    <span>Continue to Klarna Payment</span>
+                  </div>
+                ) : selectedPaymentMethod === "klarna" && showKlarnaForm ? (
                   <div className="flex items-center justify-center space-x-2">
                     <SiKlarna />
                     <span>
@@ -1315,7 +1426,7 @@ const VisaCheckout = () => {
                   `Continue to Payment`
                 ) : selectedPaymentMethod === "stripe" &&
                   showInlineStripeForm ? (
-                  `Payment form shown above`
+                  `Pay ${formatCurrency(totalAmountEUR, "EUR")}`
                 ) : (
                   `Complete Order`
                 )}

@@ -17,6 +17,7 @@ const StripePaymentForm = ({
   onSuccess,
   onError,
   isProcessing = false,
+  hideSubmitButton = false,
 }) => {
   const stripe = useStripe();
   const elements = useElements();
@@ -118,7 +119,7 @@ const StripePaymentForm = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="w-full space-y-4">
+    <form id="stripe-payment-form" onSubmit={handleSubmit} className="w-full space-y-4">
       {/* Card Number */}
       <div>
         <div className="relative">
@@ -170,29 +171,33 @@ const StripePaymentForm = ({
         </div>
       )}
 
-      {/* Submit Button */}
-      <button
-        type="submit"
-        disabled={processing || isProcessing || !stripe || !elements || !isFormComplete}
-        className={`w-full py-4 px-4 rounded-lg font-semibold text-white transition-colors ${
-          processing || isProcessing || !isFormComplete
-            ? "bg-gray-400 cursor-not-allowed"
-            : "bg-black hover:bg-gray-900"
-        }`}
-      >
-        {processing || isProcessing ? (
-          <span className="flex items-center justify-center">
-            <Loader className="animate-spin mr-2" size={20} />
-            Processing...
-          </span>
-        ) : (
-          `Pay now`
-        )}
-      </button>
+      {/* Submit Button - Hidden when used inline */}
+      {!hideSubmitButton && (
+        <button
+          type="submit"
+          disabled={processing || isProcessing || !stripe || !elements || !isFormComplete}
+          className={`w-full py-4 px-4 rounded-lg font-semibold text-white transition-colors ${
+            processing || isProcessing || !isFormComplete
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-black hover:bg-gray-900"
+          }`}
+        >
+          {processing || isProcessing ? (
+            <span className="flex items-center justify-center">
+              <Loader className="animate-spin mr-2" size={20} />
+              Processing...
+            </span>
+          ) : (
+            `Pay now`
+          )}
+        </button>
+      )}
 
-      <p className="text-center text-xs text-gray-500">
-        All transactions are secure and encrypted.
-      </p>
+      {!hideSubmitButton && (
+        <p className="text-center text-xs text-gray-500">
+          All transactions are secure and encrypted.
+        </p>
+      )}
     </form>
   );
 };

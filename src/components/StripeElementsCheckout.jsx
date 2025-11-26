@@ -24,6 +24,7 @@ const StripeElementsCheckout = ({
   travelerIndex,
   noOfInsurance,
   insurancePaymentAmount,
+  hideSubmitButton = false,
 }) => {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -257,6 +258,7 @@ const StripeElementsCheckout = ({
           onSuccess={handlePaymentSuccess}
           onError={handlePaymentError}
           isProcessing={processing}
+          hideSubmitButton={hideSubmitButton}
         />
       )}
     </div>

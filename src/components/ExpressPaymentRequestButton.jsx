@@ -48,7 +48,8 @@ const ExpressPaymentRequestButton = ({
   }, [amount]);
 
   useEffect(() => {
-    if (!stripe || !elements || !normalizedAmount || !validateEmail(email)) {
+    // Apple Pay and Google Pay provide email, so we don't require it upfront
+    if (!stripe || !elements || !normalizedAmount) {
       setPaymentRequest(null);
       setIsSupported(false);
       return;
@@ -94,7 +95,7 @@ const ExpressPaymentRequestButton = ({
         request.off("paymentmethod");
       }
     };
-  }, [stripe, elements, normalizedAmount, currency, email]);
+  }, [stripe, elements, normalizedAmount, currency, travellers]);
 
   useEffect(() => {
     if (!paymentRequest) return;
@@ -290,13 +291,7 @@ const ExpressPaymentRequestButton = ({
     );
   }
 
-  if (!validateEmail(email || "")) {
-    return (
-      <div className="p-4 border border-blue-200 bg-blue-50 rounded-lg text-sm text-blue-800">
-        Enter a valid email above to unlock Apple Pay / Google Pay.
-      </div>
-    );
-  }
+  // Email is optional - Apple Pay and Google Pay provide it automatically
 
   if (!normalizedAmount) {
     return (
