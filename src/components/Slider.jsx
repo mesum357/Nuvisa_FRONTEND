@@ -37,7 +37,7 @@ import {
   UserIcon,
 } from "lucide-react";
 import { useRouter } from "next/router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import QtyInput from "./QtyInput";
 import "react-datepicker/dist/react-datepicker.css";
 import { FaApple } from "react-icons/fa";
@@ -46,6 +46,8 @@ import { CommonDatePicker } from "@/ui/date-picker";
 import { useSliderContent } from "@/hooks/useSliderContent";
 import SimpleAlert from "./SimpleAlert";
 import ConfirmationModal from "./ConfirmationModal";
+import StripeProvider from "./StripeProvider";
+import ExpressPaymentRequestButton from "./ExpressPaymentRequestButton";
 
 const CountrySlider = () => {
   const router = useRouter();
@@ -1620,8 +1622,8 @@ const CountrySlider = () => {
     }
   }, []);
 
-  // Validate required documents before allowing express payment
-  const validateRequiredDocuments = () => {
+  // Validate required documents before allowing express payment - memoized to prevent infinite loops
+  const isDocumentsValid = useMemo(() => {
     const requiredFields = [
       "passport",
       "ukVisa",
@@ -1640,75 +1642,100 @@ const CountrySlider = () => {
       !recommendedItems.giftCard &&
       missingDocs.length === requiredFields.length;
 
-    if (missingDocs.length > 0 && !hasOnlyInsurance) {
-      // Mark validation errors and inform the user
-      setValidationErrors(new Set(missingDocs));
-      try {
-        if (typeof showError === "function") {
-          const pretty = missingDocs
-            .map((d) =>
-              d === "ukVisa" ? "UK visa" : d.replace(/([A-Z])/g, " $1")
-            )
-            .join(", ");
-        }
-      } catch {
-        // ignore
-      }
-      return false;
+    return missingDocs.length === 0 || hasOnlyInsurance;
+  }, [requiredDocuments, recommendedItems]);
+
+  // Memoized disabled state for express payment button
+  const expressPaymentDisabled = useMemo(() => {
+    if (!isDocumentsValid) {
+      return "Please complete all required documents";
     }
-
-    return true;
-  };
-
-  const redirectToCheckoutForExpressWallets = async () => {
-    if (!validateRequiredDocuments()) return;
-
     if (
       appliedDiscount &&
       appliedDiscount.description &&
       appliedDiscount.description.toLowerCase().includes("student") &&
-      !studentVerified
+      !studentVerified &&
+      (!userEmail || !validateEmail(userEmail))
     ) {
-      if (!userEmail || !validateEmail(userEmail)) {
-        setEmailError(
-          "Please enter a valid student email before using express checkout"
-        );
-        return;
-      }
+      return "Please verify your student email";
+    }
+    return null;
+  }, [
+    isDocumentsValid,
+    appliedDiscount,
+    studentVerified,
+    userEmail,
+  ]);
 
-      const verificationSent = await sendStudentVerification(
-        userEmail,
-        "/get-the-visa"
-      );
-      if (verificationSent) {
-        setPendingCheckoutQuery("proceed");
-        return;
-      } else {
-        return;
-      }
+  // Calculate total amount for express payments (Apple Pay/Google Pay) - memoized to prevent infinite loops
+  const expressPaymentData = useMemo(() => {
+    const requiredFields = [
+      "passport",
+      "ukVisa",
+      "photos",
+      "bankStatements",
+      "employmentProof",
+    ];
+    const missingDocs = requiredFields.filter(
+      (field) => !requiredDocuments[field]
+    );
+    const hasOnlyInsurance =
+      recommendedItems.insuranceCertificate &&
+      !recommendedItems.giftCard &&
+      missingDocs.length === requiredFields.length;
+
+    // Use selected visa type fees if available, otherwise fallback to baseFee
+    const currentBaseFee =
+      selectedVisaType && selectedVisaType.priceGBP
+        ? Number(selectedVisaType.priceGBP)
+        : selectedVisaType && selectedVisaType.price
+        ? Math.round(Number(selectedVisaType.price) / 100)
+        : getCountryConfig(getCountryParam(selectedCountry) || "Germany")
+            .visaFee;
+
+    let visaFees = hasOnlyInsurance ? 0 : currentBaseFee * travelers;
+
+    // Apply discount if available
+    if (appliedDiscount) {
+      const discountAmount = (visaFees * appliedDiscount.percentage) / 100;
+      visaFees = visaFees - discountAmount;
     }
 
-    try {
-      if (typeof showSuccess === "function") {
-        showSuccess(
-          "Redirecting to checkout — Apple Pay / Google Pay available there."
-        );
-      }
-    } catch {}
+    const insuranceDays = tripDaysInclusive(arrivalDate, departureDate);
+    const perDayInsurancePrice = 2;
+    let insuranceFees = recommendedItems.insuranceCertificate
+      ? perDayInsurancePrice * insuranceDays * insuranceCount
+      : 0;
+    if (appliedInsuranceDiscount && insuranceFees > 0) {
+      const insDisc =
+        (insuranceFees * appliedInsuranceDiscount.percentage) / 100;
+      insuranceFees = Math.max(0, Math.round(insuranceFees - insDisc));
+    }
+    const giftCardFees = recommendedItems.giftCard ? 159 * giftCardCount : 0;
+    const totalAmount = Math.round(visaFees + insuranceFees + giftCardFees);
 
-    await handleGetVisa("stripe");
-  };
-
-  // Apple Pay click handler – run directly on this page when supported,
-  // otherwise fall back to the normal checkout flow with Apple Pay selected.
-  const handleApplePayClick = async () => {
-    await redirectToCheckoutForExpressWallets();
-  };
-
-  // Google Pay click handler
-  const handleGooglePayClick = async () => {
-    await redirectToCheckoutForExpressWallets();
-  };
+    return {
+      totalAmount: totalAmount / 100, // Convert to decimal
+      currency: selectedVisaType?.currency === "GBP" ? "GBP" : 
+                selectedVisaType?.currency === "EUR" ? "EUR" : 
+                selectedVisaType?.currency === "PLN" ? "PLN" : "GBP",
+      visaTypeId: selectedVisaType?.id || "",
+      includeInsurance: recommendedItems.insuranceCertificate || false,
+      insurancePaymentAmount: insuranceFees / 100,
+    };
+  }, [
+    requiredDocuments,
+    recommendedItems,
+    selectedVisaType,
+    selectedCountry,
+    travelers,
+    appliedDiscount,
+    arrivalDate,
+    departureDate,
+    insuranceCount,
+    appliedInsuranceDiscount,
+    giftCardCount,
+  ]);
 
   return (
     <div className="w-full max-w-[1300px] gap-20 max-lg:flex-col max-lg:gap-10 flex items-start justify-center mt-5 px-5 max-sm:px-3">
@@ -2808,71 +2835,21 @@ const CountrySlider = () => {
               </h2>
 
               {/* Apple Pay & Google Pay */}
-              <div className="space-y-2">
-                <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1 max-sm:gap-2">
-                  {/* Apple Pay Button */}
-                  <button
-                    onClick={handleApplePayClick}
-                    className="group relative flex items-center justify-center bg-black text-white rounded-full px-6 py-3 text-sm font-medium hover:opacity-90 transition-all duration-200 shadow-sm max-sm:py-2.5"
-                    style={{
-                      backgroundColor: "#000",
-                      minHeight: "44px",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                    }}
-                  >
-                    <div className="flex items-center gap-2">
-                      <FaApple className="text-lg max-sm:text-base" />
-                      <span className="font-medium tracking-wide max-sm:text-sm">
-                        Pay
-                      </span>
-                    </div>
-                    <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-5 rounded-lg transition-opacity duration-200"></div>
-                  </button>
-
-                  {/* Google Pay Button */}
-                  <button
-                    onClick={handleGooglePayClick}
-                    className="group relative flex items-center justify-center bg-white text-gray-800 rounded-full px-6 py-3 text-sm font-medium hover:shadow-md transition-all duration-200 shadow-sm border border-gray-200 max-sm:py-2.5"
-                    style={{
-                      minHeight: "44px",
-                      background:
-                        "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)",
-                    }}
-                  >
-                    <div className="flex items-center gap-2">
-                      <svg
-                        width="18"
-                        height="18"
-                        viewBox="0 0 18 18"
-                        className="flex-shrink-0 max-sm:w-4 max-sm:h-4"
-                      >
-                        <g fill="none" fillRule="evenodd">
-                          <path
-                            fill="#4285F4"
-                            d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
-                          />
-                          <path
-                            fill="#34A853"
-                            d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"
-                          />
-                          <path
-                            fill="#FBBC05"
-                            d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"
-                          />
-                          <path
-                            fill="#EA4335"
-                            d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"
-                          />
-                        </g>
-                      </svg>
-                      <span className="font-medium tracking-wide text-gray-700 max-sm:text-sm">
-                        Pay
-                      </span>
-                    </div>
-                    <div className="absolute inset-0 bg-gray-50 opacity-0 group-hover:opacity-30 rounded-lg transition-opacity duration-200"></div>
-                  </button>
-                </div>
-              </div>
+              <StripeProvider>
+                <ExpressPaymentRequestButton
+                  amount={expressPaymentData.totalAmount}
+                  currency={expressPaymentData.currency}
+                  email={userEmail}
+                  travellers={travelers}
+                  country={getCountryParam(selectedCountry) || "Germany"}
+                  includeInsurance={expressPaymentData.includeInsurance}
+                  insuranceCount={insuranceCount}
+                  insurancePaymentAmount={expressPaymentData.insurancePaymentAmount}
+                  visaTypeId={expressPaymentData.visaTypeId}
+                  paymentType="application_creation"
+                  disabled={expressPaymentDisabled}
+                />
+              </StripeProvider>
             </div>
 
             {/* Checkout Button */}
