@@ -53,6 +53,10 @@ const ExpressPaymentRequestButton = forwardRef(
     const [buttonError, setButtonError] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSupported, setIsSupported] = useState(false);
+    const [availableMethods, setAvailableMethods] = useState({
+      applePay: false,
+      googlePay: false,
+    });
     const shouldValidateOnPaymentMethodRef = useRef(true);
 
     const normalizedAmount = useMemo(() => {
@@ -96,9 +100,59 @@ const ExpressPaymentRequestButton = forwardRef(
         if (result) {
           setPaymentRequest(request);
           setIsSupported(true);
+          // Check which specific payment methods are available
+          // Stripe's canMakePayment() returns an object with payment method identifiers
+          // The result object may have properties like 'applePay' and 'googlePay'
+          let applePayAvailable = false;
+          let googlePayAvailable = false;
+
+          if (result && typeof result === "object") {
+            // Check for explicit properties
+            applePayAvailable = !!result.applePay;
+            googlePayAvailable = !!result.googlePay || !!result.google;
+
+            // If not found, check all keys for hints
+            if (!applePayAvailable && !googlePayAvailable) {
+              const keys = Object.keys(result);
+              applePayAvailable = keys.some((key) =>
+                key.toLowerCase().includes("apple")
+              );
+              googlePayAvailable = keys.some((key) =>
+                key.toLowerCase().includes("google")
+              );
+            }
+
+            // Fallback: use user agent as heuristic (not perfect, but helps)
+            if (!applePayAvailable && !googlePayAvailable) {
+              const userAgent =
+                typeof window !== "undefined" ? window.navigator.userAgent : "";
+              const isAppleDevice = /iPhone|iPad|iPod|Macintosh/i.test(
+                userAgent
+              );
+              const isAndroidOrChrome =
+                /Android/i.test(userAgent) ||
+                (/Chrome/i.test(userAgent) && !/Edg/i.test(userAgent));
+
+              // Only use user agent if we're confident
+              if (isAppleDevice && !isAndroidOrChrome) {
+                applePayAvailable = true;
+              } else if (isAndroidOrChrome && !isAppleDevice) {
+                googlePayAvailable = true;
+              }
+            }
+          }
+
+          setAvailableMethods({
+            applePay: applePayAvailable,
+            googlePay: googlePayAvailable,
+          });
         } else {
           setPaymentRequest(null);
           setIsSupported(false);
+          setAvailableMethods({
+            applePay: false,
+            googlePay: false,
+          });
         }
       });
 
@@ -356,8 +410,9 @@ const ExpressPaymentRequestButton = forwardRef(
             return { success: false, message };
           }
         },
+        getAvailableMethods: () => availableMethods,
       }),
-      [paymentRequest, isSupported, onBeforePayment]
+      [paymentRequest, isSupported, onBeforePayment, availableMethods]
     );
 
     if (disabled) {
