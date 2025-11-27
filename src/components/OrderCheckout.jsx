@@ -947,6 +947,16 @@ const VisaCheckout = () => {
       selectedPaymentMethod === "apple" ||
       selectedPaymentMethod === "google"
     ) {
+      const expressButtonContainer = document.querySelector(
+        '[data-express-payment="true"]'
+      );
+      const paymentButton =
+        expressButtonContainer?.querySelector("button") || null;
+      if (paymentButton) {
+        paymentButton.click();
+        return;
+      }
+
       const triggerResult =
         expressPaymentButtonRef.current?.triggerPaymentRequest?.();
       if (!triggerResult?.success) {
@@ -1079,7 +1089,7 @@ const VisaCheckout = () => {
 
   return (
     <ClientOnly>
-      <div className="min-h-screen bg-gradient-to-br  from-purple-100 to-[#f3e6ff] flex flex-col h-full">
+      <div className="min-h-screen bg-linear-to-br  from-purple-100 to-[#f3e6ff] flex flex-col h-full">
         <div className="p-6 border-b border-neutral-200">
           <div className="flex items-center justify-between w-full max-w-6xl mx-auto">
             <div className="space-y-1">
@@ -1575,7 +1585,7 @@ const VisaCheckout = () => {
                       width="20"
                       height="20"
                       viewBox="0 0 18 18"
-                      className="flex-shrink-0"
+                      className="shrink-0"
                     >
                       <g fill="none" fillRule="evenodd">
                         <path
