@@ -461,16 +461,22 @@ function ApplicationCard({
       className="border border-[#423577] rounded-xl overflow-hidden bg-[#23232B] hover:bg-[#2c2c3a] transition-colors duration-200"
     >
       <div
-        className="flex items-center justify-between p-4 cursor-pointer"
-        onClick={() => {
-          if (type === "draft") {
-            handleViewApplication(app.id);
-          } else {
-            setIsExpanded(!isExpanded);
-          }
-        }}
-      >
-        <div className="flex items-center gap-3 w-1/4">
+  className="
+    flex flex-col md:flex-row
+    items-start md:items-center
+    justify-between gap-4 md:gap-0
+    p-4 cursor-pointer
+  "
+  onClick={() => {
+    if (type === "draft") {
+      handleViewApplication(app.id);
+    } else {
+      setIsExpanded(!isExpanded);
+    }
+  }}
+>
+
+<div className="flex items-center gap-3 w-full md:w-1/4">
           <div className="flex items-center justify-center w-10 h-7 rounded-sm border border-[#454553] overflow-hidden bg-gray-800">
             {countryCodeMap[app?.country] ? (
               <img
@@ -498,7 +504,8 @@ function ApplicationCard({
           </div>
         </div>
 
-        <div className="flex items-center gap-3 w-1/2 justify-center">
+        <div className="flex items-center gap-3 w-full md:w-1/2 md:justify-center">
+
           {(() => {
             const allTravelers = getAllTravelersData();
             const displayTravelers = allTravelers.slice(0, 3); // Show max 3 travelers in compact view
@@ -564,7 +571,7 @@ function ApplicationCard({
           </p>
         </div>
 
-        <div className="flex items-center gap-4 w-1/4 justify-end">
+        <div className="flex items-center gap-4 w-full md:w-1/4 md:justify-end justify-between">
           <div className="text-right">
             <div
               className={`text-xs font-semibold px-2 py-1 rounded-full ${statusInfo.color}`}
