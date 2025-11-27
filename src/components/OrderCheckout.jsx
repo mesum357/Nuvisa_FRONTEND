@@ -148,6 +148,8 @@ const VisaCheckout = () => {
     applePay: false,
     googlePay: false,
   });
+  const hasCheckedAvailabilityRef = useRef(false);
+  const selectedPaymentMethodRef = useRef(selectedPaymentMethod);
 
   // Inline Stripe Payment Form
   const [showInlineStripeForm, setShowInlineStripeForm] = useState(false);
@@ -180,6 +182,11 @@ const VisaCheckout = () => {
     }
   }, [selectedPaymentMethod, email, showInlineStripeForm]);
 
+  // Update ref when selection changes
+  useEffect(() => {
+    selectedPaymentMethodRef.current = selectedPaymentMethod;
+  }, [selectedPaymentMethod]);
+
   // Auto-show Klarna form when Klarna is selected
   useEffect(() => {
     if (selectedPaymentMethod === "klarna" && !showKlarnaForm) {
@@ -198,32 +205,6 @@ const VisaCheckout = () => {
       setShowKlarnaForm(false);
     }
   }, [selectedPaymentMethod, showKlarnaForm]);
-
-  // Check available payment methods from ExpressPaymentRequestButton
-  useEffect(() => {
-    const checkAvailableMethods = () => {
-      if (expressPaymentButtonRef.current?.getAvailableMethods) {
-        const methods = expressPaymentButtonRef.current.getAvailableMethods();
-        setAvailablePaymentMethods(
-          methods || { applePay: false, googlePay: false }
-        );
-
-        // Clear selection if the selected method is no longer available
-        if (selectedPaymentMethod === "apple" && !methods?.applePay) {
-          setSelectedPaymentMethod("");
-        }
-        if (selectedPaymentMethod === "google" && !methods?.googlePay) {
-          setSelectedPaymentMethod("");
-        }
-      }
-    };
-
-    // Check immediately and then periodically (in case Stripe initializes later)
-    checkAvailableMethods();
-    const interval = setInterval(checkAvailableMethods, 1000);
-
-    return () => clearInterval(interval);
-  }, [totalAmount, travelers, includeInsurance, selectedPaymentMethod]); // Re-check when relevant props change
 
   const sendStudentVerification = async (
     emailToVerify,
@@ -825,6 +806,54 @@ const VisaCheckout = () => {
   const currentBaseFee = 129; // Current base fee per traveler
   const totalAmount = total;
 
+  // Check available payment methods from ExpressPaymentRequestButton
+  useEffect(() => {
+    const checkAvailableMethods = () => {
+      if (expressPaymentButtonRef.current?.getAvailableMethods) {
+        const methods = expressPaymentButtonRef.current.getAvailableMethods();
+        if (methods) {
+          setAvailablePaymentMethods(methods);
+          hasCheckedAvailabilityRef.current = true;
+        }
+      }
+    };
+
+    // Check immediately and then periodically (in case Stripe initializes later)
+    checkAvailableMethods();
+    const interval = setInterval(checkAvailableMethods, 1000);
+
+    return () => clearInterval(interval);
+  }, [totalAmount, travelers, includeInsurance]); // Re-check when relevant props change
+
+  // Validate selected payment method - only clear if method is confirmed unavailable
+  // Only validate when availability changes, not when user selects (to avoid immediate deselection)
+  useEffect(() => {
+    if (!hasCheckedAvailabilityRef.current) return; // Don't validate until Stripe has initialized
+
+    // Add a small delay to ensure availability state is stable
+    const timeoutId = setTimeout(() => {
+      const currentSelection = selectedPaymentMethodRef.current;
+      if (!currentSelection) return;
+
+      if (expressPaymentButtonRef.current?.getAvailableMethods) {
+        const methods = expressPaymentButtonRef.current.getAvailableMethods();
+        if (methods) {
+          // Only clear if explicitly false (confirmed unavailable)
+          if (currentSelection === "apple" && methods.applePay === false) {
+            setSelectedPaymentMethod("");
+          } else if (
+            currentSelection === "google" &&
+            methods.googlePay === false
+          ) {
+            setSelectedPaymentMethod("");
+          }
+        }
+      }
+    }, 500); // Short delay to ensure state is stable
+
+    return () => clearTimeout(timeoutId);
+  }, [availablePaymentMethods]); // Only validate when availability changes, NOT on selection
+
   const handleProceedToCheckout = async () => {
     localStorageGateway(
       "paymentAmount",
@@ -1193,16 +1222,6 @@ const VisaCheckout = () => {
                 </div>
               </div>
               <div className="rounded-2xl border border-gray-200 p-4 bg-transparent">
-                <div className="text-sm text-gray-600 mb-3">
-                  Pay {formatCurrency(totalAmount, "GBP")} for {travelers}{" "}
-                  traveller
-                  {travelers > 1 ? "s" : ""}
-                  {includeInsurance
-                    ? ` + ${insuranceCount} insurance${
-                        insuranceCount > 1 ? "s" : ""
-                      }`
-                    : ""}
-                </div>
                 <StripeProvider>
                   <ExpressPaymentRequestButton
                     ref={expressPaymentButtonRef}
@@ -1590,12 +1609,6 @@ const VisaCheckout = () => {
                       </svg>
                       <span className="text-sm font-medium">Apple Pay</span>
                     </div>
-                    {selectedPaymentMethod === "apple" && (
-                      <p className="text-xs text-gray-600 mt-2 ml-6">
-                        Click "Continue to Payment" below to proceed with Apple
-                        Pay
-                      </p>
-                    )}
                   </div>
                 )}
 
@@ -1649,12 +1662,6 @@ const VisaCheckout = () => {
                       </svg>
                       <span className="text-sm font-medium">Google Pay</span>
                     </div>
-                    {selectedPaymentMethod === "google" && (
-                      <p className="text-xs text-gray-600 mt-2 ml-6">
-                        Click "Continue to Payment" below to proceed with Google
-                        Pay
-                      </p>
-                    )}
                   </div>
                 )}
               </div>

@@ -413,13 +413,6 @@ const KlarnaForm = ({
           <option value="PL">Poland</option>
         </select>
       </div>
-
-      <div className="pt-4 border-t border-gray-200">
-        <p className="text-xs text-gray-500">
-          By continuing, you will be redirected to Klarna to complete your
-          payment. All transactions are secure and encrypted.
-        </p>
-      </div>
     </form>
   );
 };
