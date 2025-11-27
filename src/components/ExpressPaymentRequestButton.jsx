@@ -1,6 +1,13 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useState,
+  useRef,
+  useImperativeHandle,
+  forwardRef,
+} from "react";
 import {
   PaymentRequestButtonElement,
   useStripe,
@@ -19,20 +26,24 @@ import { setAuthId, setAuthState } from "@/store/authSlice";
 const validateEmail = (value) =>
   !!value && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
-const ExpressPaymentRequestButton = ({
-  amount, // decimal amount in major currency units (e.g. £129.5)
-  currency = "GBP",
-  email,
-  travellers,
-  country,
-  includeInsurance,
-  insuranceCount,
-  insurancePaymentAmount,
-  visaTypeId,
-  paymentType = "application_creation",
-  disabled,
-  onBeforePayment, // Callback to validate before payment (returns error message or null)
-}) => {
+const ExpressPaymentRequestButton = forwardRef(
+  (
+    {
+      amount, // decimal amount in major currency units (e.g. £129.5)
+      currency = "GBP",
+      email,
+      travellers,
+      country,
+      includeInsurance,
+      insuranceCount,
+      insurancePaymentAmount,
+      visaTypeId,
+      paymentType = "application_creation",
+      disabled,
+      onBeforePayment, // Callback to validate before payment (returns error message or null)
+    },
+    ref
+  ) => {
   const stripe = useStripe();
   const elements = useElements();
   const router = useRouter();
@@ -42,6 +53,7 @@ const ExpressPaymentRequestButton = ({
   const [buttonError, setButtonError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSupported, setIsSupported] = useState(false);
+  const shouldValidateOnPaymentMethodRef = useRef(true);
 
   const normalizedAmount = useMemo(() => {
     if (!amount || Number(amount) <= 0) return null;
@@ -106,7 +118,8 @@ const ExpressPaymentRequestButton = ({
       setButtonError(null);
 
       // Validate before proceeding with payment
-      if (onBeforePayment) {
+      const shouldValidate = shouldValidateOnPaymentMethodRef.current;
+      if (shouldValidate && onBeforePayment) {
         const validationError = onBeforePayment();
         if (validationError) {
           event.complete("fail");
@@ -115,6 +128,7 @@ const ExpressPaymentRequestButton = ({
           return;
         }
       }
+      shouldValidateOnPaymentMethodRef.current = true;
 
       try {
         const checkoutPayload = {
@@ -287,6 +301,59 @@ const ExpressPaymentRequestButton = ({
     stripe,
   ]);
 
+  useImperativeHandle(
+    ref,
+    () => ({
+      triggerPaymentRequest: () => {
+        if (!paymentRequest || !isSupported) {
+          const message =
+            "Apple Pay / Google Pay is not available on this device. Please select another payment method.";
+          setButtonError(message);
+          return { success: false, message };
+        }
+
+        if (onBeforePayment) {
+          const validationError = onBeforePayment();
+          if (validationError) {
+            shouldValidateOnPaymentMethodRef.current = true;
+            setButtonError(validationError);
+            return { success: false, message: validationError };
+          }
+        }
+
+        if (typeof paymentRequest.show !== "function") {
+          const message =
+            "Apple Pay / Google Pay is not available on this device. Please select another payment method.";
+          setButtonError(message);
+          return { success: false, message };
+        }
+
+        try {
+          shouldValidateOnPaymentMethodRef.current = false;
+          const result = paymentRequest.show();
+          if (result && typeof result.catch === "function") {
+            result.catch((err) => {
+              shouldValidateOnPaymentMethodRef.current = true;
+              const message =
+                err?.message ||
+                "Unable to open Apple Pay / Google Pay on this device.";
+              setButtonError(message);
+            });
+          }
+          return { success: true };
+        } catch (err) {
+          shouldValidateOnPaymentMethodRef.current = true;
+          const message =
+            err?.message ||
+            "Unable to open Apple Pay / Google Pay on this device.";
+          setButtonError(message);
+          return { success: false, message };
+        }
+      },
+    }),
+    [paymentRequest, isSupported, onBeforePayment]
+  );
+
   if (disabled) {
     return (
       <div className="p-4 border border-yellow-200 bg-yellow-50 rounded-lg text-sm text-yellow-800">
@@ -447,6 +514,6 @@ const ExpressPaymentRequestButton = ({
       )}
     </div>
   );
-};
+});
 
 export default ExpressPaymentRequestButton;

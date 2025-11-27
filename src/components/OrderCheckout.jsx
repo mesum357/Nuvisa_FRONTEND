@@ -8,7 +8,7 @@ import { setAuthId, setAuthState } from "@/store/authSlice";
 import Cookies from "js-cookie";
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { FaUser, FaShieldAlt } from "react-icons/fa";
 import { HiOutlineDeviceMobile } from "react-icons/hi";
 import { SiKlarna } from "react-icons/si";
@@ -33,6 +33,18 @@ import ExpressPaymentRequestButton from "./ExpressPaymentRequestButton";
 import KlarnaForm from "./KlarnaForm";
 import { useRouter } from "next/router";
 
+const DEFAULT_REQUIRED_DOCUMENTS = {
+  passport: false,
+  ukVisa: false,
+  photos: false,
+  bankStatements: false,
+  employmentProof: false,
+};
+
+const REQUIRED_DOCUMENT_FIELDS = Object.keys(DEFAULT_REQUIRED_DOCUMENTS);
+const DOCUMENTS_ERROR_MESSAGE =
+  "Please confirm all required documents before continuing.";
+
 const VisaCheckout = () => {
   const dispatch = useAppDispatch();
   const { handleCreateDynamicCheckoutSession, cretingDynamicCheckout } =
@@ -41,6 +53,7 @@ const VisaCheckout = () => {
 
   // Get data from Redux store first, fallback to URL params if not available
   const visaState = useAppSelector((state) => state.visa);
+  const recommendedItems = visaState.recommendedItems || {};
 
   const [insuranceCount, setInsuranceCount] = useState(
     visaState.insuranceCount
@@ -87,6 +100,14 @@ const VisaCheckout = () => {
   }
   const userEmail = localStorageGateway("userEmail", localStorageEnums.GET);
 
+  const requiredDocuments = useMemo(
+    () => ({
+      ...DEFAULT_REQUIRED_DOCUMENTS,
+      ...(visaState.requiredDocuments || {}),
+    }),
+    [visaState.requiredDocuments]
+  );
+
   const perDayInsurancePrice = 2; // EUR per day per traveller
   const insuranceFeesPerTraveller = perDayInsurancePrice * travelDays; // EUR per traveller
   const insuranceFeesTotal = insuranceFeesPerTraveller * insuranceCount; // total EUR
@@ -98,12 +119,14 @@ const VisaCheckout = () => {
   const [phone, setPhone] = useState("");
   const [phoneError, setPhoneError] = useState("");
   const [emailNewsOffers, setEmailNewsOffers] = useState(false);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(
+  const initialPaymentMethod =
     visaState.selectedPaymentMethod &&
-      visaState.selectedPaymentMethod.trim() !== ""
+    visaState.selectedPaymentMethod.trim() !== "" &&
+    visaState.selectedPaymentMethod !== "stripe"
       ? visaState.selectedPaymentMethod
-      : "" // No default selection - user must choose
-  );
+      : "";
+  const [selectedPaymentMethod, setSelectedPaymentMethod] =
+    useState(initialPaymentMethod);
   const [couponCode, setCouponCodeLocal] = useState(visaState.couponCode || "");
   const [insuranceCouponCode, setInsuranceCouponCode] = useState();
   // Read appliedDiscount from Redux instead of local state
@@ -113,21 +136,13 @@ const VisaCheckout = () => {
   const [insuranceCouponError, setInsuranceCouponError] = useState("");
   const [couponError, setCouponError] = useState("");
 
-  const { showSuccess } = useToast();
-
-  const [requiredDocuments, setRequiredDocuments] = useState({
-    passport: false,
-    ukVisa: false,
-    photos: false,
-    bankStatements: false,
-    employmentProof: false,
-  });
-  const [validationErrors, setValidationErrors] = useState(new Set());
+  const { showSuccess, showError } = useToast();
 
   const [studentVerificationSent, setStudentVerificationSent] = useState(false);
   const [studentVerified, setStudentVerified] = useState(false);
   const [isSendingVerification, setIsSendingVerification] = useState(false);
   const verificationPollRef = useRef(null);
+  const expressPaymentButtonRef = useRef(null);
   const [pendingCheckoutQuery, setPendingCheckoutQuery] = useState(null);
 
   // Inline Stripe Payment Form
@@ -515,6 +530,50 @@ const VisaCheckout = () => {
     visaState.giftCardCount || 1
   );
 
+  const isDocumentsValid = useMemo(() => {
+    const missingDocs = REQUIRED_DOCUMENT_FIELDS.filter(
+      (field) => !requiredDocuments[field]
+    );
+
+    if (missingDocs.length === 0) {
+      return true;
+    }
+
+    const insuranceOnlyCheckout =
+      (recommendedItems.insuranceCertificate || includeInsurance) &&
+      !(recommendedItems.giftCard || includeGiftCard) &&
+      missingDocs.length === REQUIRED_DOCUMENT_FIELDS.length;
+
+    return insuranceOnlyCheckout;
+  }, [requiredDocuments, recommendedItems, includeInsurance, includeGiftCard]);
+
+  const ensureDocumentsAreConfirmed = useCallback(() => {
+    if (!isDocumentsValid) {
+      showError(DOCUMENTS_ERROR_MESSAGE);
+      return false;
+    }
+    return true;
+  }, [isDocumentsValid, showError]);
+
+  const validateBeforeExpressPayment = useCallback(() => {
+    if (!isDocumentsValid) {
+      showError(DOCUMENTS_ERROR_MESSAGE);
+      return DOCUMENTS_ERROR_MESSAGE;
+    }
+    if (
+      appliedDiscount &&
+      appliedDiscount.description &&
+      appliedDiscount.description.toLowerCase().includes("student") &&
+      !studentVerified
+    ) {
+      const message =
+        "Please verify your student email before proceeding with payment.";
+      showError(message);
+      return message;
+    }
+    return null;
+  }, [isDocumentsValid, appliedDiscount, studentVerified, showError]);
+
   const handleGiftCardChange = (increment) => {
     const newValue = giftCardCount + increment;
     if (newValue >= 1) {
@@ -524,6 +583,19 @@ const VisaCheckout = () => {
         setIncludeGiftCard(true);
       } else if (newValue === 0 && includeGiftCard) {
         setIncludeGiftCard(false);
+      }
+    }
+  };
+
+  const handleInsuranceChange = (increment) => {
+    const proposed = insuranceCount + increment;
+    if (proposed < 1) return;
+    const cappedValue = Math.min(proposed, travelers);
+    if (cappedValue !== insuranceCount) {
+      setInsuranceCount(cappedValue);
+      dispatch(setReduxInsuranceCount(Number(cappedValue)));
+      if (cappedValue > 0 && !includeInsurance) {
+        setIncludeInsurance(true);
       }
     }
   };
@@ -724,13 +796,13 @@ const VisaCheckout = () => {
   const totalAmount = total;
 
   const handleProceedToCheckout = async () => {
-    await localStorageGateway(
+    localStorageGateway(
       "paymentAmount",
       localStorageEnums.SET,
       String(totalAmountEUR)
     );
 
-    await localStorageGateway(
+    localStorageGateway(
       "insurancePaymentMetadata",
       localStorageEnums.SET,
       String(
@@ -741,21 +813,17 @@ const VisaCheckout = () => {
       )
     );
 
-    await localStorageGateway(
+    localStorageGateway(
       "insurancePayment",
       localStorageEnums.SET,
       String(discountedInsuranceFeesEUR)
     );
-    await localStorageGateway(
+    localStorageGateway(
       "insuranceSelected",
       localStorageEnums.SET,
       includeInsurance ? true : false
     );
-    await localStorageGateway(
-      "travelers",
-      localStorageEnums.SET,
-      String(travelers)
-    );
+    localStorageGateway("travelers", localStorageEnums.SET, String(travelers));
 
     dispatch(setAmountWithoutDiscount(Number(subtotalEUR)));
     dispatch(setTotalAmount(Number(totalAmountEUR)));
@@ -764,19 +832,23 @@ const VisaCheckout = () => {
     dispatch(setCouponCode(couponCode.trim().toUpperCase()));
     dispatch(setTravelers(Number(travelers)));
 
-    await localStorageGateway(
+    localStorageGateway(
       "paymentWithoutInsurance",
       localStorageEnums.SET,
       String(visaFeesEUR)
     );
 
-    await localStorageGateway(
+    localStorageGateway(
       "paymentWithDiscount",
       localStorageEnums.SET,
       String(totalEUR - discountedInsuranceFeesEUR)
     );
 
     if (cretingDynamicCheckout) return;
+
+    if (!ensureDocumentsAreConfirmed()) {
+      return;
+    }
 
     // Email is only required for credit card payment
     // For other payment methods (Apple Pay, Google Pay, Klarna), email is optional
@@ -785,13 +857,13 @@ const VisaCheckout = () => {
         setEmailError("Email is required for credit card payment");
         return;
       }
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      if (!validateEmail(email)) {
         setEmailError("Please enter a valid email for checkout");
         return;
       }
     } else {
       // For other payment methods, validate format if email is provided
-      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      if (email && !validateEmail(email)) {
         setEmailError("Please enter a valid email");
         return;
       }
@@ -871,21 +943,18 @@ const VisaCheckout = () => {
     }
 
     // For Apple Pay or Google Pay, trigger express payment
-    if (selectedPaymentMethod === "apple" || selectedPaymentMethod === "google") {
-      // Find and click the express payment button
-      setTimeout(() => {
-        const expressButtonContainer = document.querySelector('[data-express-payment="true"]');
-        if (expressButtonContainer) {
-          const paymentButton = expressButtonContainer.querySelector('button');
-          if (paymentButton) {
-            paymentButton.click();
-          } else {
-            alert("Apple Pay / Google Pay is not available on this device. Please select another payment method.");
-          }
-        } else {
-          alert("Apple Pay / Google Pay is not available on this device. Please select another payment method.");
-        }
-      }, 100);
+    if (
+      selectedPaymentMethod === "apple" ||
+      selectedPaymentMethod === "google"
+    ) {
+      const triggerResult =
+        expressPaymentButtonRef.current?.triggerPaymentRequest?.();
+      if (!triggerResult?.success) {
+        const fallbackMessage =
+          triggerResult?.message ||
+          "Apple Pay / Google Pay is not available on this device. Please select another payment method.";
+        showError(fallbackMessage);
+      }
       return;
     }
 
@@ -1044,24 +1113,73 @@ const VisaCheckout = () => {
           <div className="space-y-6 p-6 md:p-10 md:pl-10 xl:pl-40">
             {/* Apple Pay / Google Pay - Express Checkout (Above Contact Information) */}
             <div className="space-y-3">
-              <StripeProvider>
-                <div className="p-4 border border-gray-200 rounded-md bg-white">
+              <div className="flex items-center justify-between">
+                <h2 className="font-medium text-lg">Express checkout</h2>
+                <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <span className="flex items-center gap-1">
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
+                    </svg>
+                    Apple Pay
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <svg width="14" height="14" viewBox="0 0 18 18">
+                      <g fill="none" fillRule="evenodd">
+                        <path
+                          fill="#4285F4"
+                          d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
+                        />
+                        <path
+                          fill="#34A853"
+                          d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"
+                        />
+                        <path
+                          fill="#FBBC05"
+                          d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"
+                        />
+                        <path
+                          fill="#EA4335"
+                          d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"
+                        />
+                      </g>
+                    </svg>
+                    Google Pay
+                  </span>
+                </div>
+              </div>
+              <div className="rounded-2xl border border-gray-200 p-4 bg-transparent">
+                <div className="text-sm text-gray-600 mb-3">
+                  Pay {formatCurrency(totalAmount, "GBP")} for {travelers}{" "}
+                  traveller
+                  {travelers > 1 ? "s" : ""}
+                  {includeInsurance
+                    ? ` + ${insuranceCount} insurance${
+                        insuranceCount > 1 ? "s" : ""
+                      }`
+                    : ""}
+                </div>
+                <StripeProvider>
                   <ExpressPaymentRequestButton
+                    ref={expressPaymentButtonRef}
                     amount={totalAmount}
                     currency="GBP"
                     email={email}
                     travellers={travelers}
-                    country={
-                      selectedCountry || visaState.selectedCountry || ""
-                    }
+                    country={selectedCountry || visaState.selectedCountry || ""}
                     includeInsurance={includeInsurance}
                     insuranceCount={insuranceCount}
                     insurancePaymentAmount={discountedInsuranceFeesEUR}
                     visaTypeId={visaTypeId || visaState.visaTypeId || ""}
                     paymentType="application_creation"
+                    onBeforePayment={validateBeforeExpressPayment}
                   />
-                </div>
-              </StripeProvider>
+                </StripeProvider>
+              </div>
             </div>
 
             <div className="space-y-3">
@@ -1153,7 +1271,6 @@ const VisaCheckout = () => {
             <div className="space-y-3">
               <h2 className="font-medium text-lg">Payment Method</h2>
               <div className="space-y-2">
-
                 <div
                   className={`border rounded-md p-3 cursor-pointer ${
                     selectedPaymentMethod === "stripe"
@@ -1229,7 +1346,9 @@ const VisaCheckout = () => {
                   </div>
 
                   {selectedPaymentMethod === "stripe" &&
-                    !showInlineStripeForm && (
+                    !showInlineStripeForm &&
+                    email &&
+                    validateEmail(email) && (
                       <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-md">
                         <p className="text-sm text-gray-600 mb-3">
                           Click "Continue to Payment" below to enter your card
@@ -1415,14 +1534,21 @@ const VisaCheckout = () => {
                       onChange={(e) => setSelectedPaymentMethod(e.target.value)}
                       className="h-4 w-4"
                     />
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-black">
-                      <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      className="text-black"
+                    >
+                      <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
                     </svg>
                     <span className="text-sm font-medium">Apple Pay</span>
                   </div>
                   {selectedPaymentMethod === "apple" && (
                     <p className="text-xs text-gray-600 mt-2 ml-6">
-                      Click "Continue to Payment" below to proceed with Apple Pay
+                      Click "Continue to Payment" below to proceed with Apple
+                      Pay
                     </p>
                   )}
                 </div>
@@ -1474,7 +1600,8 @@ const VisaCheckout = () => {
                   </div>
                   {selectedPaymentMethod === "google" && (
                     <p className="text-xs text-gray-600 mt-2 ml-6">
-                      Click "Continue to Payment" below to proceed with Google Pay
+                      Click "Continue to Payment" below to proceed with Google
+                      Pay
                     </p>
                   )}
                 </div>
@@ -1551,8 +1678,13 @@ const VisaCheckout = () => {
                   </div>
                 ) : selectedPaymentMethod === "apple" ? (
                   <div className="flex items-center justify-center space-x-2">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
                     </svg>
                     <span>Continue with Apple Pay</span>
                   </div>
@@ -1560,10 +1692,22 @@ const VisaCheckout = () => {
                   <div className="flex items-center justify-center space-x-2">
                     <svg width="18" height="18" viewBox="0 0 18 18">
                       <g fill="none" fillRule="evenodd">
-                        <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/>
-                        <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/>
-                        <path fill="#FBBC05" d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"/>
-                        <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/>
+                        <path
+                          fill="#4285F4"
+                          d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
+                        />
+                        <path
+                          fill="#34A853"
+                          d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"
+                        />
+                        <path
+                          fill="#FBBC05"
+                          d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"
+                        />
+                        <path
+                          fill="#EA4335"
+                          d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"
+                        />
                       </g>
                     </svg>
                     <span>Continue with Google Pay</span>
