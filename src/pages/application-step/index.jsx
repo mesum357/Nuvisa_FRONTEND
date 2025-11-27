@@ -4291,7 +4291,7 @@ const FullPaymentStep = ({
         applicationId: parentVisaApplication?.id,
         travelerIndex: travelerIndex,
         paymentType: "full_payment",
-        currency: "EUR",
+        currency: "GBP",
         travelData: parentVisaApplication?.travelersData?.map((item) => ({
           ...item,
           fullPayment: {

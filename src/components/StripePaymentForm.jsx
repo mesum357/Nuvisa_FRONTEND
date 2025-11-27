@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useImperativeHandle, forwardRef } from "react";
 import {
   CardNumberElement,
   CardExpiryElement,
@@ -10,7 +10,7 @@ import {
 } from "@stripe/react-stripe-js";
 import { Loader } from "lucide-react";
 
-const StripePaymentForm = ({
+const StripePaymentForm = forwardRef(({
   clientSecret,
   email,
   amount,
@@ -18,7 +18,7 @@ const StripePaymentForm = ({
   onError,
   isProcessing = false,
   hideSubmitButton = false,
-}) => {
+}, ref) => {
   const stripe = useStripe();
   const elements = useElements();
   const [error, setError] = useState(null);
@@ -59,10 +59,17 @@ const StripePaymentForm = ({
   const isFormComplete = cardComplete.cardNumber && cardComplete.cardExpiry && cardComplete.cardCvc && cardholderName.trim();
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e) {
+      e.preventDefault();
+    }
 
     if (!stripe || !elements) {
       setError("Stripe is not loaded");
+      return;
+    }
+
+    if (!clientSecret) {
+      setError("Payment intent not created yet. Please wait...");
       return;
     }
 
@@ -117,6 +124,13 @@ const StripePaymentForm = ({
       setProcessing(false);
     }
   };
+
+  // Expose submitForm method for parent component
+  useImperativeHandle(ref, () => ({
+    submitForm: () => {
+      handleSubmit(null);
+    }
+  }));
 
   return (
     <form id="stripe-payment-form" onSubmit={handleSubmit} className="w-full space-y-4">
@@ -175,9 +189,9 @@ const StripePaymentForm = ({
       {!hideSubmitButton && (
         <button
           type="submit"
-          disabled={processing || isProcessing || !stripe || !elements || !isFormComplete}
+          disabled={processing || isProcessing || !stripe || !elements || !isFormComplete || !clientSecret}
           className={`w-full py-4 px-4 rounded-lg font-semibold text-white transition-colors ${
-            processing || isProcessing || !isFormComplete
+            processing || isProcessing || !isFormComplete || !clientSecret
               ? "bg-gray-400 cursor-not-allowed"
               : "bg-black hover:bg-gray-900"
           }`}
@@ -200,6 +214,8 @@ const StripePaymentForm = ({
       )}
     </form>
   );
-};
+});
+
+StripePaymentForm.displayName = "StripePaymentForm";
 
 export default StripePaymentForm;

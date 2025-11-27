@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import React, {
   useEffect,
@@ -7,21 +7,21 @@ import React, {
   useRef,
   useImperativeHandle,
   forwardRef,
-} from 'react';
+} from "react";
 import {
   PaymentRequestButtonElement,
   useStripe,
   useElements,
-} from '@stripe/react-stripe-js';
-import { useRouter } from 'next/router';
-import Cookies from 'js-cookie';
-import { Loader } from 'lucide-react';
+} from "@stripe/react-stripe-js";
+import { useRouter } from "next/router";
+import Cookies from "js-cookie";
+import { Loader } from "lucide-react";
 
-import { createPaymentIntent } from '@/api/stripePayment';
-import { localStorageEnums } from '@/enums/localstorage.enums';
-import { localStorageGateway } from '@/gateways/localStoragegateway';
-import { useAppDispatch } from '@/store';
-import { setAuthId, setAuthState } from '@/store/authSlice';
+import { createPaymentIntent } from "@/api/stripePayment";
+import { localStorageEnums } from "@/enums/localstorage.enums";
+import { localStorageGateway } from "@/gateways/localStoragegateway";
+import { useAppDispatch } from "@/store";
+import { setAuthId, setAuthState } from "@/store/authSlice";
 
 const validateEmail = (value) =>
   !!value && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -29,18 +29,27 @@ const validateEmail = (value) =>
 const ExpressPaymentRequestButton = forwardRef(
   (
     {
-      amount, // decimal amount in major currency units (e.g. £129.5)
-      currency = 'GBP',
+      amount,
+      currency,
       email,
       travellers,
       country,
+
       includeInsurance,
       insuranceCount,
       insurancePaymentAmount,
+
       visaTypeId,
-      paymentType = 'application_creation',
+      paymentType,
       disabled,
-      onBeforePayment, // Callback to validate before payment (returns error message or null)
+      onBeforePayment,
+
+      // NEW:
+      visaFees,
+      insuranceFees,
+      giftCardFees,
+      includeGiftCard,
+      giftCardCount,
     },
     ref
   ) => {
@@ -73,10 +82,10 @@ const ExpressPaymentRequestButton = forwardRef(
       }
 
       const request = stripe.paymentRequest({
-        country: 'GB',
+        country: "GB",
         currency: currency.toLowerCase(),
         total: {
-          label: 'NUvisa - Visa Application',
+          label: "NUvisa - Visa Application",
           amount: normalizedAmount,
         },
         requestPayerName: true,
@@ -85,12 +94,18 @@ const ExpressPaymentRequestButton = forwardRef(
         // Display items for better breakdown (works for both Apple Pay and Google Pay)
         displayItems: [
           {
-            label: `Visa Processing (${travellers || 1} traveller${
-              (travellers || 1) > 1 ? 's' : ''
-            })`,
-            amount: normalizedAmount,
+            label: "Visa Fees",
+            amount: Math.round((visaFees || 0) * 100),
           },
-        ],
+          includeInsurance && {
+            label: `Insurance (${insuranceCount || 0})`,
+            amount: Math.round((insuranceFees || 0) * 100),
+          },
+          includeGiftCard && {
+            label: `Gift Cards (${giftCardCount || 0})`,
+            amount: Math.round((giftCardFees || 0) * 100),
+          },
+        ].filter(Boolean)        
       });
 
       let isMounted = true;
@@ -106,7 +121,7 @@ const ExpressPaymentRequestButton = forwardRef(
           let applePayAvailable = false;
           let googlePayAvailable = false;
 
-          if (result && typeof result === 'object') {
+          if (result && typeof result === "object") {
             // Check for explicit properties
             applePayAvailable = !!result.applePay;
             googlePayAvailable = !!result.googlePay || !!result.google;
@@ -115,17 +130,17 @@ const ExpressPaymentRequestButton = forwardRef(
             if (!applePayAvailable && !googlePayAvailable) {
               const keys = Object.keys(result);
               applePayAvailable = keys.some((key) =>
-                key.toLowerCase().includes('apple')
+                key.toLowerCase().includes("apple")
               );
               googlePayAvailable = keys.some((key) =>
-                key.toLowerCase().includes('google')
+                key.toLowerCase().includes("google")
               );
             }
 
             // Fallback: use user agent as heuristic (not perfect, but helps)
             if (!applePayAvailable && !googlePayAvailable) {
               const userAgent =
-                typeof window !== 'undefined' ? window.navigator.userAgent : '';
+                typeof window !== "undefined" ? window.navigator.userAgent : "";
               const isAppleDevice = /iPhone|iPad|iPod|Macintosh/i.test(
                 userAgent
               );
@@ -148,7 +163,7 @@ const ExpressPaymentRequestButton = forwardRef(
           });
 
           // Log for debugging (can be removed in production)
-          console.log('[ExpressPayment] Detected payment methods:', {
+          console.log("[ExpressPayment] Detected payment methods:", {
             applePay: applePayAvailable,
             googlePay: googlePayAvailable,
             rawResult: result,
@@ -166,7 +181,7 @@ const ExpressPaymentRequestButton = forwardRef(
       return () => {
         isMounted = false;
         if (request && request.off) {
-          request.off('paymentmethod');
+          request.off("paymentmethod");
         }
       };
     }, [stripe, elements, normalizedAmount, currency, travellers]);
@@ -183,7 +198,7 @@ const ExpressPaymentRequestButton = forwardRef(
         if (shouldValidate && onBeforePayment) {
           const validationError = onBeforePayment();
           if (validationError) {
-            event.complete('fail');
+            event.complete("fail");
             setButtonError(validationError);
             setIsSubmitting(false);
             return;
@@ -196,10 +211,10 @@ const ExpressPaymentRequestButton = forwardRef(
             email: event.payerEmail || email,
             amount: String(Number(amount).toFixed(2)),
             travellers: String(travellers || 1),
-            country: country || '',
-            insurance: includeInsurance ? 'true' : 'false',
+            country: country || "",
+            insurance: includeInsurance ? "true" : "false",
             paymentType,
-            visaTypeId: visaTypeId || '',
+            visaTypeId: visaTypeId || "",
             currency: currency.toUpperCase(),
             noOfInsurance: insuranceCount || 0,
             insurancePaymentAmount: insurancePaymentAmount || 0,
@@ -211,37 +226,37 @@ const ExpressPaymentRequestButton = forwardRef(
 
           if (response?.status !== 200 && response?.status !== 201) {
             throw new Error(
-              response?.data?.message || 'Unable to initialize payment'
+              response?.data?.message || "Unable to initialize payment"
             );
           }
 
           const data =
             response?.data?.data?.results ||
             response?.data?.results ||
-            (response?.data?.status === 'success'
+            (response?.data?.status === "success"
               ? response?.data?.data?.results
               : null);
 
           const clientSecret = data?.clientSecret;
 
           if (!clientSecret) {
-            throw new Error('Missing client secret from payment intent');
+            throw new Error("Missing client secret from payment intent");
           }
 
           if (data?.token) {
             await localStorageGateway(
-              'token',
+              "token",
               localStorageEnums.SET,
               data.token
             );
-            await Cookies.set('token', data.token);
+            await Cookies.set("token", data.token);
             dispatch(setAuthState(true));
           }
 
           if (data?.user) {
-            await Cookies.set('user', JSON.stringify(data.user));
+            await Cookies.set("user", JSON.stringify(data.user));
             await localStorageGateway(
-              'user',
+              "user",
               localStorageEnums.SET,
               JSON.stringify(data.user)
             );
@@ -260,31 +275,31 @@ const ExpressPaymentRequestButton = forwardRef(
             );
 
           if (confirmError) {
-            event.complete('fail');
+            event.complete("fail");
             // Provide user-friendly error messages based on error type
             const errorMessage = confirmError.decline_code
               ? `Payment declined: ${confirmError.message}`
               : confirmError.message ||
-                'Payment failed. Please try another payment method.';
+                "Payment failed. Please try another payment method.";
             throw new Error(errorMessage);
           }
 
           let finalIntent = paymentIntent;
 
           // Handle 3D Secure or other required actions
-          if (paymentIntent.status === 'requires_action') {
+          if (paymentIntent.status === "requires_action") {
             const { error: actionError, paymentIntent: resolvedIntent } =
               await stripe.confirmCardPayment(clientSecret, {
                 payment_method: event.paymentMethod.id,
               });
 
             if (actionError) {
-              event.complete('fail');
+              event.complete("fail");
               // Provide specific error messages for 3D Secure failures
               const errorMessage =
-                actionError.code === 'payment_intent_authentication_failure'
-                  ? 'Card authentication failed. Please try again or use another payment method.'
-                  : actionError.message || 'Payment authentication failed.';
+                actionError.code === "payment_intent_authentication_failure"
+                  ? "Card authentication failed. Please try again or use another payment method."
+                  : actionError.message || "Payment authentication failed.";
               throw new Error(errorMessage);
             }
 
@@ -292,8 +307,8 @@ const ExpressPaymentRequestButton = forwardRef(
           }
 
           // Only complete with success after payment is fully confirmed
-          if (finalIntent.status === 'succeeded') {
-            event.complete('success');
+          if (finalIntent.status === "succeeded") {
+            event.complete("success");
 
             const paymentMetadata = {
               paymentIntentId: finalIntent.id,
@@ -308,24 +323,24 @@ const ExpressPaymentRequestButton = forwardRef(
             };
 
             await localStorageGateway(
-              'paymentMetadata',
+              "paymentMetadata",
               localStorageEnums.SET,
               JSON.stringify(paymentMetadata)
             );
             await localStorageGateway(
-              'paymentAmount',
+              "paymentAmount",
               localStorageEnums.SET,
               String(checkoutPayload.amount)
             );
             await localStorageGateway(
-              'userEmail',
+              "userEmail",
               localStorageEnums.SET,
               checkoutPayload.email
             );
 
             // Check if there's an applicationId to redirect to application step
             try {
-              const stored = localStorage.getItem('paymentMetadata');
+              const stored = localStorage.getItem("paymentMetadata");
               const pm = stored ? JSON.parse(stored) : null;
               const appId = pm?.applicationId || null;
               if (appId) {
@@ -335,32 +350,32 @@ const ExpressPaymentRequestButton = forwardRef(
                   )}`
                 );
               } else {
-                router.push('/payment-success');
+                router.push("/payment-success");
               }
             } catch {
-              router.push('/payment-success');
+              router.push("/payment-success");
             }
           } else {
-            event.complete('fail');
+            event.complete("fail");
             throw new Error(`Payment status: ${finalIntent.status}`);
           }
         } catch (err) {
-          console.error('Express payment error:', err);
-          event.complete('fail');
+          console.error("Express payment error:", err);
+          event.complete("fail");
           setButtonError(
             err?.message ||
-              'Express checkout failed. Please use another payment method.'
+              "Express checkout failed. Please use another payment method."
           );
         } finally {
           setIsSubmitting(false);
         }
       };
 
-      paymentRequest.on('paymentmethod', handlePaymentMethod);
+      paymentRequest.on("paymentmethod", handlePaymentMethod);
 
       return () => {
         if (paymentRequest && paymentRequest.off) {
-          paymentRequest.off('paymentmethod', handlePaymentMethod);
+          paymentRequest.off("paymentmethod", handlePaymentMethod);
         }
       };
     }, [
@@ -384,7 +399,7 @@ const ExpressPaymentRequestButton = forwardRef(
         triggerPaymentRequest: () => {
           if (!paymentRequest || !isSupported) {
             const message =
-              'Apple Pay / Google Pay is not available on this device. Please select another payment method.';
+              "Apple Pay / Google Pay is not available on this device. Please select another payment method.";
             setButtonError(message);
             return { success: false, message };
           }
@@ -398,9 +413,9 @@ const ExpressPaymentRequestButton = forwardRef(
             }
           }
 
-          if (typeof paymentRequest.show !== 'function') {
+          if (typeof paymentRequest.show !== "function") {
             const message =
-              'Apple Pay / Google Pay is not available on this device. Please select another payment method.';
+              "Apple Pay / Google Pay is not available on this device. Please select another payment method.";
             setButtonError(message);
             return { success: false, message };
           }
@@ -408,12 +423,12 @@ const ExpressPaymentRequestButton = forwardRef(
           try {
             shouldValidateOnPaymentMethodRef.current = false;
             const result = paymentRequest.show();
-            if (result && typeof result.catch === 'function') {
+            if (result && typeof result.catch === "function") {
               result.catch((err) => {
                 shouldValidateOnPaymentMethodRef.current = true;
                 const message =
                   err?.message ||
-                  'Unable to open Apple Pay / Google Pay on this device.';
+                  "Unable to open Apple Pay / Google Pay on this device.";
                 setButtonError(message);
               });
             }
@@ -422,7 +437,7 @@ const ExpressPaymentRequestButton = forwardRef(
             shouldValidateOnPaymentMethodRef.current = true;
             const message =
               err?.message ||
-              'Unable to open Apple Pay / Google Pay on this device.';
+              "Unable to open Apple Pay / Google Pay on this device.";
             setButtonError(message);
             return { success: false, message };
           }
@@ -434,7 +449,7 @@ const ExpressPaymentRequestButton = forwardRef(
 
     if (disabled) {
       return (
-        <div className='p-4 border border-yellow-200 bg-yellow-50 rounded-lg text-sm text-yellow-800'>
+        <div className="p-4 border border-yellow-200 bg-yellow-50 rounded-lg text-sm text-yellow-800">
           {disabled}
         </div>
       );
@@ -442,7 +457,7 @@ const ExpressPaymentRequestButton = forwardRef(
 
     if (!stripe || !elements) {
       return (
-        <div className='p-4 border rounded-lg text-sm text-red-700 bg-red-50 border-red-200'>
+        <div className="p-4 border rounded-lg text-sm text-red-700 bg-red-50 border-red-200">
           Stripe is not initialized. Please refresh and try again.
         </div>
       );
@@ -452,7 +467,7 @@ const ExpressPaymentRequestButton = forwardRef(
 
     if (!normalizedAmount) {
       return (
-        <div className='p-4 border border-yellow-200 bg-yellow-50 rounded-lg text-sm text-yellow-800'>
+        <div className="p-4 border border-yellow-200 bg-yellow-50 rounded-lg text-sm text-yellow-800">
           Add at least one traveller to enable express checkout.
         </div>
       );
@@ -460,50 +475,50 @@ const ExpressPaymentRequestButton = forwardRef(
 
     // In development mode, show buttons even if not supported (for testing)
     const isDevelopment =
-      process.env.NODE_ENV === 'development' ||
-      process.env.NEXT_PUBLIC_NODE_ENV === 'development';
+      process.env.NODE_ENV === "development" ||
+      process.env.NEXT_PUBLIC_NODE_ENV === "development";
 
     if (!isSupported && !isDevelopment) {
       return (
-        <div className='p-4 border border-gray-200 bg-gray-50 rounded-lg text-sm text-gray-700'>
+        <div className="p-4 border border-gray-200 bg-gray-50 rounded-lg text-sm text-gray-700">
           Apple Pay / Google Pay is not available on this device or browser.
         </div>
       );
     }
 
     return (
-      <div className='w-full'>
+      <div className="w-full">
         {buttonError && (
-          <div className='mb-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700'>
+          <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
             {buttonError}
           </div>
         )}
 
         {isSubmitting && (
-          <div className='mb-3 flex items-center gap-2 text-sm text-gray-600'>
-            <Loader className='animate-spin' size={18} />
+          <div className="mb-3 flex items-center gap-2 text-sm text-gray-600">
+            <Loader className="animate-spin" size={18} />
             Processing express payment...
           </div>
         )}
 
         {isDevelopment && !isSupported && (
-          <div className='mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800'>
+          <div className="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
             ⚠️ Development Mode: Apple Pay / Google Pay buttons shown for
             testing (not actually supported on this device/browser).
           </div>
         )}
 
         {paymentRequest && (
-          <div data-express-payment='true'>
+          <div data-express-payment="true">
             <PaymentRequestButtonElement
               options={{
                 paymentRequest,
                 style: {
                   paymentRequestButton: {
-                    type: 'default',
-                    theme: 'dark',
-                    height: '48px',
-                    borderRadius: '999px',
+                    type: "default",
+                    theme: "dark",
+                    height: "48px",
+                    borderRadius: "999px",
                   },
                 },
               }}
@@ -513,8 +528,8 @@ const ExpressPaymentRequestButton = forwardRef(
 
         {isDevelopment && !paymentRequest && (
           <div
-            className='grid grid-cols-2 gap-3 max-sm:grid-cols-1 max-sm:gap-2'
-            data-express-payment='true'
+            className="grid grid-cols-2 gap-3 max-sm:grid-cols-1 max-sm:gap-2"
+            data-express-payment="true"
           >
             {/* Mock Apple Pay Button for Development */}
             <button
@@ -529,26 +544,26 @@ const ExpressPaymentRequestButton = forwardRef(
                   }
                 }
                 setButtonError(
-                  'Development Mode: Apple Pay is not actually supported on this device. Please test on a device with Apple Pay enabled.'
+                  "Development Mode: Apple Pay is not actually supported on this device. Please test on a device with Apple Pay enabled."
                 );
               }}
-              className='group relative flex items-center justify-center bg-black text-white rounded-full px-6 py-3 text-sm font-medium hover:opacity-90 transition-all duration-200 shadow-sm max-sm:py-2.5'
+              className="group relative flex items-center justify-center bg-black text-white rounded-full px-6 py-3 text-sm font-medium hover:opacity-90 transition-all duration-200 shadow-sm max-sm:py-2.5"
               style={{
-                backgroundColor: '#000',
-                minHeight: '44px',
-                border: '1px solid rgba(255,255,255,0.1)',
+                backgroundColor: "#000",
+                minHeight: "44px",
+                border: "1px solid rgba(255,255,255,0.1)",
               }}
             >
-              <div className='flex items-center gap-2'>
+              <div className="flex items-center gap-2">
                 <svg
-                  width='18'
-                  height='18'
-                  viewBox='0 0 24 24'
-                  fill='currentColor'
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
                 >
-                  <path d='M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z' />
+                  <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
                 </svg>
-                <span className='font-medium tracking-wide max-sm:text-sm'>
+                <span className="font-medium tracking-wide max-sm:text-sm">
                   Pay
                 </span>
               </div>
@@ -567,42 +582,42 @@ const ExpressPaymentRequestButton = forwardRef(
                   }
                 }
                 setButtonError(
-                  'Development Mode: Google Pay is not actually supported on this device. Please test on a device with Google Pay enabled.'
+                  "Development Mode: Google Pay is not actually supported on this device. Please test on a device with Google Pay enabled."
                 );
               }}
-              className='group relative flex items-center justify-center bg-white text-gray-800 rounded-full px-6 py-3 text-sm font-medium hover:shadow-md transition-all duration-200 shadow-sm border border-gray-200 max-sm:py-2.5'
+              className="group relative flex items-center justify-center bg-white text-gray-800 rounded-full px-6 py-3 text-sm font-medium hover:shadow-md transition-all duration-200 shadow-sm border border-gray-200 max-sm:py-2.5"
               style={{
-                minHeight: '44px',
-                background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+                minHeight: "44px",
+                background: "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)",
               }}
             >
-              <div className='flex items-center gap-2'>
+              <div className="flex items-center gap-2">
                 <svg
-                  width='18'
-                  height='18'
-                  viewBox='0 0 18 18'
-                  className='shrink-0 max-sm:w-4 max-sm:h-4'
+                  width="18"
+                  height="18"
+                  viewBox="0 0 18 18"
+                  className="shrink-0 max-sm:w-4 max-sm:h-4"
                 >
-                  <g fill='none' fillRule='evenodd'>
+                  <g fill="none" fillRule="evenodd">
                     <path
-                      fill='#4285F4'
-                      d='M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z'
+                      fill="#4285F4"
+                      d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
                     />
                     <path
-                      fill='#34A853'
-                      d='M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z'
+                      fill="#34A853"
+                      d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"
                     />
                     <path
-                      fill='#FBBC05'
-                      d='M3.964 10.71c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z'
+                      fill="#FBBC05"
+                      d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"
                     />
                     <path
-                      fill='#EA4335'
-                      d='M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z'
+                      fill="#EA4335"
+                      d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"
                     />
                   </g>
                 </svg>
-                <span className='font-medium tracking-wide text-gray-700 max-sm:text-sm'>
+                <span className="font-medium tracking-wide text-gray-700 max-sm:text-sm">
                   Pay
                 </span>
               </div>

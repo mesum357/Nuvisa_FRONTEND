@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef, useImperativeHandle, forwardRef } from "react";
 import { useRouter } from "next/router";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { setAuthId, setAuthState } from "@/store/authSlice";
@@ -11,7 +11,7 @@ import StripePaymentForm from "./StripePaymentForm";
 import Cookies from "js-cookie";
 import { Loader } from "lucide-react";
 
-const StripeElementsCheckout = ({
+const StripeElementsCheckout = forwardRef(({
   email,
   amount,
   travelers,
@@ -25,26 +25,25 @@ const StripeElementsCheckout = ({
   noOfInsurance,
   insurancePaymentAmount,
   hideSubmitButton = false,
-}) => {
+}, ref) => {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const [clientSecret, setClientSecret] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [processing, setProcessing] = useState(false);
   const isInitializingRef = useRef(false);
-  const initializedRef = useRef(false);
+  const paymentFormRef = useRef(null);
 
-  useEffect(() => {
-    // Prevent multiple simultaneous initializations
-    if (isInitializingRef.current || initializedRef.current) {
-      return;
-    }
+  // Expose method to create PaymentIntent on demand
+  useImperativeHandle(ref, () => ({
+    createPaymentIntent: async () => {
+      if (isInitializingRef.current || clientSecret) {
+        return { success: false, message: "Payment intent already exists or is being created" };
+      }
 
-    const initializePayment = async () => {
       if (!email || !amount) {
-        setLoading(false);
-        return;
+        return { success: false, message: "Email and amount are required" };
       }
 
       try {
@@ -80,34 +79,25 @@ const StripeElementsCheckout = ({
 
         if (response?.status === 200 || response?.status === 201) {
           // Handle different possible response structures
-          // Structure 1: { data: { data: { results: { clientSecret } } } }
-          // Structure 2: { data: { results: { clientSecret } } }
-          // Structure 3: { status: "success", data: { results: { clientSecret } } }
           const data = 
             response?.data?.data?.results || 
             response?.data?.results || 
             (response?.data?.status === "success" ? response?.data?.data?.results : null);
           
-          const clientSecret = data?.clientSecret;
+          const newClientSecret = data?.clientSecret;
 
           console.log("Extracted clientSecret:", {
-            found: !!clientSecret,
-            prefix: clientSecret ? `${clientSecret.substring(0, 30)}...` : "NOT FOUND",
-            paymentIntentId: clientSecret ? clientSecret.split('_secret_')[0] : null,
-            responseStructure: {
-              hasData: !!response?.data,
-              hasNestedData: !!response?.data?.data,
-              hasResults: !!response?.data?.data?.results || !!response?.data?.results
-            }
+            found: !!newClientSecret,
+            prefix: newClientSecret ? `${newClientSecret.substring(0, 30)}...` : "NOT FOUND",
+            paymentIntentId: newClientSecret ? newClientSecret.split('_secret_')[0] : null,
           });
 
-          if (!clientSecret) {
+          if (!newClientSecret) {
             console.error("No client secret in response. Full response:", response);
             throw new Error("No client secret received from server");
           }
 
-          setClientSecret(clientSecret);
-          initializedRef.current = true;
+          setClientSecret(newClientSecret);
 
           // Store auth token if provided
           if (data?.token) {
@@ -140,22 +130,39 @@ const StripeElementsCheckout = ({
             localStorageEnums.SET,
             String(amount)
           );
+
+          // Trigger form submission after state update completes
+          // Use requestAnimationFrame to ensure React has re-rendered
+          requestAnimationFrame(() => {
+            setTimeout(() => {
+              if (paymentFormRef.current?.submitForm) {
+                paymentFormRef.current.submitForm();
+              }
+            }, 50);
+          });
+
+          return { success: true, clientSecret: newClientSecret };
         } else {
           throw new Error(
             response?.data?.message || "Failed to create payment intent"
           );
         }
       } catch (err) {
-        console.error("Error initializing payment:", err);
-        setError(err.message || "Failed to initialize payment");
+        console.error("Error creating payment intent:", err);
+        const errorMessage = err.message || "Failed to create payment intent";
+        setError(errorMessage);
+        return { success: false, message: errorMessage };
       } finally {
         setLoading(false);
         isInitializingRef.current = false;
       }
-    };
-
-    initializePayment();
-  }, [email, amount, travelers, country, insurance, visaTypeId, currency, paymentType, applicationId, travelerIndex, noOfInsurance, insurancePaymentAmount, dispatch]);
+    },
+    submitForm: () => {
+      if (paymentFormRef.current?.submitForm) {
+        paymentFormRef.current.submitForm();
+      }
+    }
+  }));
 
   const handlePaymentSuccess = async (paymentIntent) => {
     try {
@@ -216,53 +223,38 @@ const StripeElementsCheckout = ({
     setError(err.message || "Payment failed");
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-center">
-          <Loader className="animate-spin mx-auto mb-4" size={32} />
-          <p className="text-gray-600">Initializing payment...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error && !clientSecret) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-        <h3 className="text-red-800 font-semibold mb-2">Payment Error</h3>
-        <p className="text-red-700 mb-4">{error}</p>
-        <button
-          onClick={() => router.back()}
-          className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg"
-        >
-          Go Back
-        </button>
-      </div>
-    );
-  }
-
   return (
     <div className="w-full">
+      {loading && (
+        <div className="flex items-center justify-center py-4">
+          <div className="text-center">
+            <Loader className="animate-spin mx-auto mb-2" size={24} />
+            <p className="text-gray-600 text-sm">Creating payment...</p>
+          </div>
+        </div>
+      )}
+
       {error && (
         <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
           <p className="text-yellow-700 text-sm">{error}</p>
         </div>
       )}
 
-      {clientSecret && (
-        <StripePaymentForm
-          clientSecret={clientSecret}
-          email={email}
-          amount={amount && !isNaN(amount) ? Math.round(Number(amount) * 100) : 0}
-          onSuccess={handlePaymentSuccess}
-          onError={handlePaymentError}
-          isProcessing={processing}
-          hideSubmitButton={hideSubmitButton}
-        />
-      )}
+      {/* Render form immediately - it will work without clientSecret until payment */}
+      <StripePaymentForm
+        ref={paymentFormRef}
+        clientSecret={clientSecret}
+        email={email}
+        amount={amount && !isNaN(amount) ? Math.round(Number(amount) * 100) : 0}
+        onSuccess={handlePaymentSuccess}
+        onError={handlePaymentError}
+        isProcessing={processing || loading}
+        hideSubmitButton={hideSubmitButton}
+      />
     </div>
   );
-};
+});
+
+StripeElementsCheckout.displayName = "StripeElementsCheckout";
 
 export default StripeElementsCheckout;
