@@ -448,82 +448,106 @@ const DocumentUploadSection = ({
                 </div>
               </div>
 
-              {isUploaded && (
-                <div className="pl-12 mt-4 space-y-2">
-                  {uploadedFiles.map((file, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between bg-gray-800 p-3 rounded-lg"
-                    >
-                      <div className="flex-1">
-                        <p className="text-sm text-gray-300 font-medium">
-                          {file.name}
-                          {isPassportPhoto && (
-                            <span className="ml-2 text-xs text-gray-500">
-                              Photo {index + 1}
-                            </span>
-                          )}
-                        </p>
-                        <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
-                          <span>{(file.size / 1024 / 1024).toFixed(2)} MB</span>
-                          <span>Uploaded {new Date(file.uploadedAt).toLocaleDateString('en-US', { 
-                            month: 'short', 
-                            day: 'numeric', 
-                            year: 'numeric',
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            hour12: true 
-                          })}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleViewDocument(docType?.field, index)}
-                          className="p-2 text-blue-400 hover:text-blue-300 hover:bg-gray-700 rounded-md transition-colors"
-                          title="View document"
-                        >
-                          View
-                        </button>
-                        <button
-                          onClick={() => handleDownloadDocument(file)}
-                          className="p-2 text-green-400 hover:text-green-300 hover:bg-gray-700 rounded-md transition-colors"
-                          title="Download document"
-                        >
-                          Download
-                        </button>
-                        {isOwner && (
-                          <button
-                            onClick={() =>
-                              !disabled && handleRemoveDocument(
-                                docType.field,
-                                isPassportPhoto ? index : null
-                              )
-                            }
-                            className={`p-2 transition-colors ${disabled || deletingFiles.has(`${docType.id}-${isPassportPhoto ? index : null}`)
-                              ? ":text-gray-500 cursor-not-allowed"
-                              : "text-gray-400 hover:text-red-400 hover:bg-gray-700 cursor-pointer"
-                              } rounded-md`}
-                            title={
-                              disabled
-                                ? "Cannot remove document"
-                                : deletingFiles.has(`${docType.id}-${isPassportPhoto ? index : null}`)
-                                  ? "Deleting..."
-                                  : "Remove document"
-                            }
-                            disabled={disabled || deletingFiles.has(`${docType.id}-${isPassportPhoto ? index : null}`)}
-                          >
-                            {deletingFiles.has(`${docType.id}-${isPassportPhoto ? index : null}`) ? (
-                              <div className="w-5 h-5 border-2 border-gray-300 border-t-red-500 rounded-full animate-spin"></div>
-                            ) : (
-                              <Trash2 className="w-5 h-5" />
-                            )}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                  {isUploaded && (
+  <div className="pl-12 mt-4 space-y-2 max-sm:pl-0">
+    {uploadedFiles.map((file, index) => (
+      <div
+        key={index}
+        className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-gray-800 p-3 rounded-lg gap-3 sm:gap-0"
+      >
+        {/* LEFT SIDE — FILE INFO */}
+        <div className="flex-1 min-w-0">
+          <p className="text-sm text-gray-300 font-medium truncate">
+            {file.name}
+            {isPassportPhoto && (
+              <span className="ml-2 text-xs text-gray-500">
+                Photo {index + 1}
+              </span>
+            )}
+          </p>
+
+          <div className="flex flex-wrap items-center gap-4 mt-1 text-xs text-gray-500">
+            <span>{(file.size / 1024 / 1024).toFixed(2)} MB</span>
+            <span>
+              Uploaded{" "}
+              {new Date(file.uploadedAt).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+                hour: "numeric",
+                minute: "2-digit",
+                hour12: true,
+              })}
+            </span>
+          </div>
+        </div>
+
+        {/* RIGHT SIDE — ACTION BUTTONS */}
+        <div className="flex gap-2 flex-wrap sm:flex-nowrap">
+          <button
+            onClick={() => handleViewDocument(docType?.field, index)}
+            className="p-2 text-blue-400 hover:text-blue-300 hover:bg-gray-700 rounded-md transition-colors"
+            title="View document"
+          >
+            View
+          </button>
+
+          <button
+            onClick={() => handleDownloadDocument(file)}
+            className="p-2 text-green-400 hover:text-green-300 hover:bg-gray-700 rounded-md transition-colors"
+            title="Download document"
+          >
+            Download
+          </button>
+
+          {isOwner && (
+            <button
+              onClick={() =>
+                !disabled &&
+                handleRemoveDocument(
+                  docType.field,
+                  isPassportPhoto ? index : null
+                )
+              }
+              className={`p-2 rounded-md transition-colors ${
+                disabled ||
+                deletingFiles.has(
+                  `${docType.id}-${isPassportPhoto ? index : null}`
+                )
+                  ? "text-gray-500 cursor-not-allowed"
+                  : "text-gray-400 hover:text-red-400 hover:bg-gray-700 cursor-pointer"
+              }`}
+              title={
+                disabled
+                  ? "Cannot remove document"
+                  : deletingFiles.has(
+                      `${docType.id}-${isPassportPhoto ? index : null}`
+                    )
+                  ? "Deleting..."
+                  : "Remove document"
+              }
+              disabled={
+                disabled ||
+                deletingFiles.has(
+                  `${docType.id}-${isPassportPhoto ? index : null}`
+                )
+              }
+            >
+              {deletingFiles.has(
+                `${docType.id}-${isPassportPhoto ? index : null}`
+              ) ? (
+                <div className="w-5 h-5 border-2 border-gray-300 border-t-red-500 rounded-full animate-spin"></div>
+              ) : (
+                <Trash2 className="w-5 h-5" />
               )}
+            </button>
+          )}
+        </div>
+      </div>
+    ))}
+  </div>
+)}
+
             </div>
           );
         })}
