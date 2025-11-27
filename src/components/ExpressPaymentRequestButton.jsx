@@ -346,19 +346,21 @@ const ExpressPaymentRequestButton = ({
       )}
       
       {paymentRequest && (
-        <PaymentRequestButtonElement
-          options={{
-            paymentRequest,
-            style: {
-              paymentRequestButton: {
-                type: "default",
-                theme: "dark",
-                height: "48px",
-                borderRadius: "999px",
+        <div data-express-payment="true">
+          <PaymentRequestButtonElement
+            options={{
+              paymentRequest,
+              style: {
+                paymentRequestButton: {
+                  type: "default",
+                  theme: "dark",
+                  height: "48px",
+                  borderRadius: "999px",
+                },
               },
-            },
-          }}
-        />
+            }}
+          />
+        </div>
       )}
       
       {isDevelopment && !paymentRequest && (

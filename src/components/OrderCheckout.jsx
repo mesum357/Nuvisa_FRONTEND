@@ -102,7 +102,7 @@ const VisaCheckout = () => {
     visaState.selectedPaymentMethod &&
       visaState.selectedPaymentMethod.trim() !== ""
       ? visaState.selectedPaymentMethod
-      : "stripe"
+      : "" // No default selection - user must choose
   );
   const [couponCode, setCouponCodeLocal] = useState(visaState.couponCode || "");
   const [insuranceCouponCode, setInsuranceCouponCode] = useState();
@@ -554,12 +554,20 @@ const VisaCheckout = () => {
   };
 
   const handleEmailBlur = () => {
-    if (!email) {
-      setEmailError("Email is required for checkout");
-      return;
+    // Email is only required for credit card payment
+    if (selectedPaymentMethod === "stripe") {
+      if (!email) {
+        setEmailError("Email is required for credit card payment");
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        setEmailError("Please enter a valid email for checkout");
+        return;
+      }
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setEmailError("Please enter a valid email for checkout");
+    // For other payment methods, validate format if email is provided
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setEmailError("Please enter a valid email");
       return;
     }
     setEmailError("");
@@ -770,14 +778,23 @@ const VisaCheckout = () => {
 
     if (cretingDynamicCheckout) return;
 
-    // Route Apple Pay / Google Pay selections to their dedicated handlers
-    if (!email) {
-      setEmailError("Email is required for checkout");
-      return;
-    }
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setEmailError("Please enter a valid email for checkout");
-      return;
+    // Email is only required for credit card payment
+    // For other payment methods (Apple Pay, Google Pay, Klarna), email is optional
+    if (selectedPaymentMethod === "stripe") {
+      if (!email) {
+        setEmailError("Email is required for credit card payment");
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        setEmailError("Please enter a valid email for checkout");
+        return;
+      }
+    } else {
+      // For other payment methods, validate format if email is provided
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        setEmailError("Please enter a valid email");
+        return;
+      }
     }
 
     // Validate country is set
@@ -817,8 +834,18 @@ const VisaCheckout = () => {
       }
     }
 
-    // For Stripe card, show inline payment form
+    // For Stripe card, validate email first, then show inline payment form
     if (selectedPaymentMethod === "stripe") {
+      // Email is required for credit card
+      if (!email) {
+        setEmailError("Email is required for credit card payment");
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        setEmailError("Please enter a valid email for checkout");
+        return;
+      }
+      setEmailError("");
       setShowInlineStripeForm(true);
       // Scroll to the payment form
       setTimeout(() => {
@@ -838,6 +865,25 @@ const VisaCheckout = () => {
         const formElement = document.getElementById("klarna-form-container");
         if (formElement) {
           formElement.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 100);
+      return;
+    }
+
+    // For Apple Pay or Google Pay, trigger express payment
+    if (selectedPaymentMethod === "apple" || selectedPaymentMethod === "google") {
+      // Find and click the express payment button
+      setTimeout(() => {
+        const expressButtonContainer = document.querySelector('[data-express-payment="true"]');
+        if (expressButtonContainer) {
+          const paymentButton = expressButtonContainer.querySelector('button');
+          if (paymentButton) {
+            paymentButton.click();
+          } else {
+            alert("Apple Pay / Google Pay is not available on this device. Please select another payment method.");
+          }
+        } else {
+          alert("Apple Pay / Google Pay is not available on this device. Please select another payment method.");
         }
       }, 100);
       return;
@@ -996,6 +1042,28 @@ const VisaCheckout = () => {
 
         <div className="w-full mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6 h-full grow">
           <div className="space-y-6 p-6 md:p-10 md:pl-10 xl:pl-40">
+            {/* Apple Pay / Google Pay - Express Checkout (Above Contact Information) */}
+            <div className="space-y-3">
+              <StripeProvider>
+                <div className="p-4 border border-gray-200 rounded-md bg-white">
+                  <ExpressPaymentRequestButton
+                    amount={totalAmount}
+                    currency="GBP"
+                    email={email}
+                    travellers={travelers}
+                    country={
+                      selectedCountry || visaState.selectedCountry || ""
+                    }
+                    includeInsurance={includeInsurance}
+                    insuranceCount={insuranceCount}
+                    insurancePaymentAmount={discountedInsuranceFeesEUR}
+                    visaTypeId={visaTypeId || visaState.visaTypeId || ""}
+                    paymentType="application_creation"
+                  />
+                </div>
+              </StripeProvider>
+            </div>
+
             <div className="space-y-3">
               <h2 className="font-medium text-lg">Contact Information</h2>
               <div className="space-y-4">
@@ -1004,7 +1072,7 @@ const VisaCheckout = () => {
                     htmlFor="email"
                     className="block text-sm font-medium mb-1"
                   >
-                    Email *
+                    Email {selectedPaymentMethod === "stripe" ? "*" : ""}
                   </label>
                   <input
                     type="email"
@@ -1070,9 +1138,6 @@ const VisaCheckout = () => {
               </div>
             </div>
 
-            {/* Express Checkout Section */}
-            <div className="space-y-3"></div>
-
             {/* Divider */}
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
@@ -1088,25 +1153,6 @@ const VisaCheckout = () => {
             <div className="space-y-3">
               <h2 className="font-medium text-lg">Payment Method</h2>
               <div className="space-y-2">
-                {/* Apple Pay / Google Pay - Express Checkout */}
-                <StripeProvider>
-                  <div className="p-4 border border-gray-200 rounded-md bg-white">
-                    <ExpressPaymentRequestButton
-                      amount={totalAmount}
-                      currency="GBP"
-                      email={email}
-                      travellers={travelers}
-                      country={
-                        selectedCountry || visaState.selectedCountry || ""
-                      }
-                      includeInsurance={includeInsurance}
-                      insuranceCount={insuranceCount}
-                      insurancePaymentAmount={discountedInsuranceFeesEUR}
-                      visaTypeId={visaTypeId || visaState.visaTypeId || ""}
-                      paymentType="application_creation"
-                    />
-                  </div>
-                </StripeProvider>
 
                 <div
                   className={`border rounded-md p-3 cursor-pointer ${
@@ -1350,6 +1396,88 @@ const VisaCheckout = () => {
                     </div>
                   )}
                 </div>
+
+                {/* Apple Pay Option */}
+                <div
+                  className={`border rounded-md p-3 cursor-pointer ${
+                    selectedPaymentMethod === "apple"
+                      ? "border-black bg-gray-50"
+                      : "border-gray-300"
+                  }`}
+                  onClick={() => setSelectedPaymentMethod("apple")}
+                >
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      name="payment"
+                      value="apple"
+                      checked={selectedPaymentMethod === "apple"}
+                      onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+                      className="h-4 w-4"
+                    />
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-black">
+                      <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+                    </svg>
+                    <span className="text-sm font-medium">Apple Pay</span>
+                  </div>
+                  {selectedPaymentMethod === "apple" && (
+                    <p className="text-xs text-gray-600 mt-2 ml-6">
+                      Click "Continue to Payment" below to proceed with Apple Pay
+                    </p>
+                  )}
+                </div>
+
+                {/* Google Pay Option */}
+                <div
+                  className={`border rounded-md p-3 cursor-pointer ${
+                    selectedPaymentMethod === "google"
+                      ? "border-black bg-gray-50"
+                      : "border-gray-300"
+                  }`}
+                  onClick={() => setSelectedPaymentMethod("google")}
+                >
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      name="payment"
+                      value="google"
+                      checked={selectedPaymentMethod === "google"}
+                      onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+                      className="h-4 w-4"
+                    />
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 18 18"
+                      className="flex-shrink-0"
+                    >
+                      <g fill="none" fillRule="evenodd">
+                        <path
+                          fill="#4285F4"
+                          d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
+                        />
+                        <path
+                          fill="#34A853"
+                          d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"
+                        />
+                        <path
+                          fill="#FBBC05"
+                          d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"
+                        />
+                        <path
+                          fill="#EA4335"
+                          d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"
+                        />
+                      </g>
+                    </svg>
+                    <span className="text-sm font-medium">Google Pay</span>
+                  </div>
+                  {selectedPaymentMethod === "google" && (
+                    <p className="text-xs text-gray-600 mt-2 ml-6">
+                      Click "Continue to Payment" below to proceed with Google Pay
+                    </p>
+                  )}
+                </div>
               </div>
 
               <button
@@ -1420,6 +1548,25 @@ const VisaCheckout = () => {
                     <span>
                       Pay {formatCurrency(totalAmountEUR, "EUR")} with Klarna
                     </span>
+                  </div>
+                ) : selectedPaymentMethod === "apple" ? (
+                  <div className="flex items-center justify-center space-x-2">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+                    </svg>
+                    <span>Continue with Apple Pay</span>
+                  </div>
+                ) : selectedPaymentMethod === "google" ? (
+                  <div className="flex items-center justify-center space-x-2">
+                    <svg width="18" height="18" viewBox="0 0 18 18">
+                      <g fill="none" fillRule="evenodd">
+                        <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/>
+                        <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/>
+                        <path fill="#FBBC05" d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"/>
+                        <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/>
+                      </g>
+                    </svg>
+                    <span>Continue with Google Pay</span>
                   </div>
                 ) : selectedPaymentMethod === "stripe" &&
                   !showInlineStripeForm ? (
