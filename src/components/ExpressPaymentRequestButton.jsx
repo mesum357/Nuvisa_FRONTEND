@@ -31,6 +31,7 @@ const ExpressPaymentRequestButton = ({
   visaTypeId,
   paymentType = "application_creation",
   disabled,
+  onBeforePayment, // Callback to validate before payment (returns error message or null)
 }) => {
   const stripe = useStripe();
   const elements = useElements();
@@ -103,6 +104,17 @@ const ExpressPaymentRequestButton = ({
     const handlePaymentMethod = async (event) => {
       setIsSubmitting(true);
       setButtonError(null);
+
+      // Validate before proceeding with payment
+      if (onBeforePayment) {
+        const validationError = onBeforePayment();
+        if (validationError) {
+          event.complete("fail");
+          setButtonError(validationError);
+          setIsSubmitting(false);
+          return;
+        }
+      }
 
       try {
         const checkoutPayload = {
@@ -301,7 +313,10 @@ const ExpressPaymentRequestButton = ({
     );
   }
 
-  if (!isSupported) {
+  // In development mode, show buttons even if not supported (for testing)
+  const isDevelopment = process.env.NODE_ENV === "development" || process.env.NEXT_PUBLIC_NODE_ENV === "development";
+  
+  if (!isSupported && !isDevelopment) {
     return (
       <div className="p-4 border border-gray-200 bg-gray-50 rounded-lg text-sm text-gray-700">
         Apple Pay / Google Pay is not available on this device or browser.
@@ -324,6 +339,12 @@ const ExpressPaymentRequestButton = ({
         </div>
       )}
 
+      {isDevelopment && !isSupported && (
+        <div className="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+          ⚠️ Development Mode: Apple Pay / Google Pay buttons shown for testing (not actually supported on this device/browser).
+        </div>
+      )}
+      
       {paymentRequest && (
         <PaymentRequestButtonElement
           options={{
@@ -338,6 +359,89 @@ const ExpressPaymentRequestButton = ({
             },
           }}
         />
+      )}
+      
+      {isDevelopment && !paymentRequest && (
+        <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1 max-sm:gap-2">
+          {/* Mock Apple Pay Button for Development */}
+          <button
+            onClick={() => {
+              setButtonError(null);
+              // Run validation first
+              if (onBeforePayment) {
+                const validationError = onBeforePayment();
+                if (validationError) {
+                  setButtonError(validationError);
+                  return;
+                }
+              }
+              setButtonError("Development Mode: Apple Pay is not actually supported on this device. Please test on a device with Apple Pay enabled.");
+            }}
+            className="group relative flex items-center justify-center bg-black text-white rounded-full px-6 py-3 text-sm font-medium hover:opacity-90 transition-all duration-200 shadow-sm max-sm:py-2.5"
+            style={{
+              backgroundColor: "#000",
+              minHeight: "44px",
+              border: "1px solid rgba(255,255,255,0.1)",
+            }}
+          >
+            <div className="flex items-center gap-2">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor">
+                <path d="M13.5 0C12.1 0 10.8 0.8 10.2 2.1C9.6 0.8 8.3 0 6.9 0C4.7 0 3 1.7 3 3.9C3 7.2 6.9 10.5 9 13.5C11.1 10.5 15 7.2 15 3.9C15 1.7 13.3 0 11.1 0H13.5Z"/>
+              </svg>
+              <span className="font-medium tracking-wide max-sm:text-sm">Pay</span>
+            </div>
+          </button>
+
+          {/* Mock Google Pay Button for Development */}
+          <button
+            onClick={() => {
+              setButtonError(null);
+              // Run validation first
+              if (onBeforePayment) {
+                const validationError = onBeforePayment();
+                if (validationError) {
+                  setButtonError(validationError);
+                  return;
+                }
+              }
+              setButtonError("Development Mode: Google Pay is not actually supported on this device. Please test on a device with Google Pay enabled.");
+            }}
+            className="group relative flex items-center justify-center bg-white text-gray-800 rounded-full px-6 py-3 text-sm font-medium hover:shadow-md transition-all duration-200 shadow-sm border border-gray-200 max-sm:py-2.5"
+            style={{
+              minHeight: "44px",
+              background: "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)",
+            }}
+          >
+            <div className="flex items-center gap-2">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 18 18"
+                className="flex-shrink-0 max-sm:w-4 max-sm:h-4"
+              >
+                <g fill="none" fillRule="evenodd">
+                  <path
+                    fill="#4285F4"
+                    d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"
+                  />
+                </g>
+              </svg>
+              <span className="font-medium tracking-wide text-gray-700 max-sm:text-sm">Pay</span>
+            </div>
+          </button>
+        </div>
       )}
     </div>
   );

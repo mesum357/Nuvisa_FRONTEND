@@ -1645,10 +1645,10 @@ const CountrySlider = () => {
     return missingDocs.length === 0 || hasOnlyInsurance;
   }, [requiredDocuments, recommendedItems]);
 
-  // Memoized disabled state for express payment button
-  const expressPaymentDisabled = useMemo(() => {
+  // Validation function to check before payment (called when user clicks Apple Pay/Google Pay)
+  const validateBeforeExpressPayment = useCallback(() => {
     if (!isDocumentsValid) {
-      return "Please complete all required documents";
+      return "Please complete all required documents before proceeding with payment.";
     }
     if (
       appliedDiscount &&
@@ -1657,7 +1657,7 @@ const CountrySlider = () => {
       !studentVerified &&
       (!userEmail || !validateEmail(userEmail))
     ) {
-      return "Please verify your student email";
+      return "Please verify your student email before proceeding with payment.";
     }
     return null;
   }, [
@@ -1668,72 +1668,92 @@ const CountrySlider = () => {
   ]);
 
   // Calculate total amount for express payments (Apple Pay/Google Pay) - memoized to prevent infinite loops
+  // Uses the same logic as calculateFinalPrice() to match OrderCheckout.jsx
   const expressPaymentData = useMemo(() => {
-    const requiredFields = [
-      "passport",
-      "ukVisa",
-      "photos",
-      "bankStatements",
-      "employmentProof",
-    ];
-    const missingDocs = requiredFields.filter(
-      (field) => !requiredDocuments[field]
-    );
-    const hasOnlyInsurance =
-      recommendedItems.insuranceCertificate &&
-      !recommendedItems.giftCard &&
-      missingDocs.length === requiredFields.length;
+    // Base discounted prices (matching OrderCheckout.jsx and calculateFinalPrice)
+    const baseDiscountedVisaFees = 129 * travelers; // £129 per traveler
+    const baseDiscountedInsuranceFees = recommendedItems.insuranceCertificate
+      ? 30 * insuranceCount
+      : 0; // £30 per insurance
+    const baseDiscountedGiftCardFees = recommendedItems.giftCard
+      ? 159 * giftCardCount
+      : 0; // £159 per gift card
 
-    // Use selected visa type fees if available, otherwise fallback to baseFee
-    const currentBaseFee =
-      selectedVisaType && selectedVisaType.priceGBP
-        ? Number(selectedVisaType.priceGBP)
-        : selectedVisaType && selectedVisaType.price
-        ? Math.round(Number(selectedVisaType.price) / 100)
-        : getCountryConfig(getCountryParam(selectedCountry) || "Germany")
-            .visaFee;
+    // Calculate individual component discounts (same logic as calculateFinalPrice)
+    let visaDiscountPercentage = 0;
+    let insuranceDiscountPercentage = 0;
+    let giftCardDiscountPercentage = 0;
 
-    let visaFees = hasOnlyInsurance ? 0 : currentBaseFee * travelers;
+    // Check if any component qualifies for quantity discount (3+)
+    const effectiveInsuranceCount = Math.min(insuranceCount, travelers);
+    const travelersQualify = travelers >= 3;
+    const insuranceQualify = effectiveInsuranceCount >= 3;
+    const giftCardQualify = giftCardCount >= 3;
 
-    // Apply discount if available
+    // Apply quantity-based discounts (20% for 3+ items)
+    if (travelersQualify) visaDiscountPercentage += 20;
+    if (insuranceQualify) insuranceDiscountPercentage += 20;
+    if (giftCardQualify) giftCardDiscountPercentage += 20;
+
+    // Apply coupon discounts
     if (appliedDiscount) {
-      const discountAmount = (visaFees * appliedDiscount.percentage) / 100;
-      visaFees = visaFees - discountAmount;
+      if (appliedDiscount.code === "GROUP20") {
+        // GROUP20: Only applies if travelers >= 3 AND at least one other component >= 3
+        if (travelersQualify && (insuranceQualify || giftCardQualify)) {
+          if (travelersQualify)
+            visaDiscountPercentage = Math.max(visaDiscountPercentage, 20);
+          if (insuranceQualify)
+            insuranceDiscountPercentage = Math.max(
+              insuranceDiscountPercentage,
+              20
+            );
+          if (giftCardQualify)
+            giftCardDiscountPercentage = Math.max(giftCardDiscountPercentage, 20);
+        }
+      } else if (appliedDiscount.code === "STUDENT10") {
+        // STUDENT10: Adds 10% to ALL components (stacks with quantity discounts)
+        visaDiscountPercentage += 10;
+        if (recommendedItems.insuranceCertificate)
+          insuranceDiscountPercentage += 10;
+        if (recommendedItems.giftCard) giftCardDiscountPercentage += 10;
+      }
     }
 
-    const insuranceDays = tripDaysInclusive(arrivalDate, departureDate);
-    const perDayInsurancePrice = 2;
-    let insuranceFees = recommendedItems.insuranceCertificate
-      ? perDayInsurancePrice * insuranceDays * insuranceCount
+    // Calculate discount amounts
+    const visaDiscountAmount =
+      (baseDiscountedVisaFees * visaDiscountPercentage) / 100;
+    const insuranceDiscountAmount = recommendedItems.insuranceCertificate
+      ? (baseDiscountedInsuranceFees * insuranceDiscountPercentage) / 100
       : 0;
-    if (appliedInsuranceDiscount && insuranceFees > 0) {
-      const insDisc =
-        (insuranceFees * appliedInsuranceDiscount.percentage) / 100;
-      insuranceFees = Math.max(0, Math.round(insuranceFees - insDisc));
-    }
-    const giftCardFees = recommendedItems.giftCard ? 159 * giftCardCount : 0;
-    const totalAmount = Math.round(visaFees + insuranceFees + giftCardFees);
+    const giftCardDiscountAmount = recommendedItems.giftCard
+      ? (baseDiscountedGiftCardFees * giftCardDiscountPercentage) / 100
+      : 0;
+
+    // Calculate final prices after discounts
+    const finalVisaFees = baseDiscountedVisaFees - visaDiscountAmount;
+    const finalInsuranceFees =
+      baseDiscountedInsuranceFees - insuranceDiscountAmount;
+    const finalGiftCardFees =
+      baseDiscountedGiftCardFees - giftCardDiscountAmount;
+
+    const totalAmount = finalVisaFees + finalInsuranceFees + finalGiftCardFees;
 
     return {
-      totalAmount: totalAmount / 100, // Convert to decimal
+      totalAmount: totalAmount, // Already in GBP, no conversion needed
       currency: selectedVisaType?.currency === "GBP" ? "GBP" : 
                 selectedVisaType?.currency === "EUR" ? "EUR" : 
                 selectedVisaType?.currency === "PLN" ? "PLN" : "GBP",
       visaTypeId: selectedVisaType?.id || "",
       includeInsurance: recommendedItems.insuranceCertificate || false,
-      insurancePaymentAmount: insuranceFees / 100,
+      insurancePaymentAmount: finalInsuranceFees,
     };
   }, [
     requiredDocuments,
     recommendedItems,
     selectedVisaType,
-    selectedCountry,
     travelers,
     appliedDiscount,
-    arrivalDate,
-    departureDate,
     insuranceCount,
-    appliedInsuranceDiscount,
     giftCardCount,
   ]);
 
@@ -2847,7 +2867,7 @@ const CountrySlider = () => {
                   insurancePaymentAmount={expressPaymentData.insurancePaymentAmount}
                   visaTypeId={expressPaymentData.visaTypeId}
                   paymentType="application_creation"
-                  disabled={expressPaymentDisabled}
+                  onBeforePayment={validateBeforeExpressPayment}
                 />
               </StripeProvider>
             </div>
