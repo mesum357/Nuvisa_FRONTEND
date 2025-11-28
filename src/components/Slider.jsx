@@ -764,7 +764,6 @@ const CountrySlider = () => {
     dispatch(setReduxSelectedCountry(String(countryName)));
     dispatch(setVisaFees(Number(countryConfig.visaFee)));
     dispatch(setInsuranceFees(Number(countryConfig.insuranceFee)));
-    dispatch(setReduxTravelers(Number(1)));
   };
 
   const [currentIndex, setCurrentIndex] = useState(0);

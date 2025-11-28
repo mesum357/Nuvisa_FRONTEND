@@ -91,13 +91,13 @@ export const Header = ({ href }) => {
         {/* Right Side Actions */}
         <div className="flex items-center space-x-3">
           {/* Help Center - Hidden on small screens */}
-          <motion.div
-            whileHover={{ scale: 1.05 }}
+          <Link
+            href={"/#faq"}
             className="hidden xl:flex items-center space-x-2 text-gray-300 hover:text-white cursor-pointer"
           >
             <HelpCircle className="size-5" />
             <span className="text-sm font-medium">Help</span>
-          </motion.div>
+          </Link>
 
           {/* WhatsApp */}
           {/* <motion.a
