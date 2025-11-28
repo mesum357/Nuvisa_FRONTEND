@@ -149,6 +149,8 @@ const VisaCheckout = () => {
   });
   const hasCheckedAvailabilityRef = useRef(false);
   const selectedPaymentMethodRef = useRef(selectedPaymentMethod);
+  const userClosedStripeFormRef = useRef(false);
+  const userClosedKlarnaFormRef = useRef(false);
 
   // Inline Stripe Payment Form
   const [showInlineStripeForm, setShowInlineStripeForm] = useState(false);
@@ -161,8 +163,9 @@ const VisaCheckout = () => {
   useEffect(() => {
     const shouldShowForm = selectedPaymentMethod === "stripe";
 
-    if (shouldShowForm && !showInlineStripeForm) {
+    if (shouldShowForm && !showInlineStripeForm && !userClosedStripeFormRef.current) {
       setShowInlineStripeForm(true);
+      userClosedStripeFormRef.current = false; // Reset the flag when showing
       // Scroll to the payment form after a short delay
       setTimeout(() => {
         const formElement = document.getElementById("inline-stripe-form");
@@ -185,8 +188,9 @@ const VisaCheckout = () => {
 
   // Auto-show Klarna form when Klarna is selected
   useEffect(() => {
-    if (selectedPaymentMethod === "klarna" && !showKlarnaForm) {
+    if (selectedPaymentMethod === "klarna" && !showKlarnaForm && !userClosedKlarnaFormRef.current) {
       setShowKlarnaForm(true);
+      userClosedKlarnaFormRef.current = false; // Reset the flag when showing
       // Scroll to the Klarna form after a short delay
       setTimeout(() => {
         const formElement = document.getElementById("klarna-form-container");
@@ -1397,7 +1401,10 @@ const VisaCheckout = () => {
                       ? "border-black bg-gray-50"
                       : "border-gray-300"
                   }`}
-                  onClick={() => setSelectedPaymentMethod("stripe")}
+                  onClick={() => {
+                    userClosedStripeFormRef.current = false;
+                    setSelectedPaymentMethod("stripe");
+                  }}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
@@ -1406,9 +1413,10 @@ const VisaCheckout = () => {
                         name="payment"
                         value="stripe"
                         checked={selectedPaymentMethod === "stripe"}
-                        onChange={(e) =>
-                          setSelectedPaymentMethod(e.target.value)
-                        }
+                        onChange={(e) => {
+                          userClosedStripeFormRef.current = false;
+                          setSelectedPaymentMethod(e.target.value);
+                        }}
                         className="h-4 w-4"
                       />
                       <span className="text-sm font-medium">Credit card</span>
@@ -1476,7 +1484,12 @@ const VisaCheckout = () => {
                           Enter Card Details
                         </h3>
                         <button
-                          onClick={() => setShowInlineStripeForm(false)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            userClosedStripeFormRef.current = true;
+                            setShowInlineStripeForm(false);
+                            setSelectedPaymentMethod("");
+                          }}
                           className="text-gray-400 hover:text-gray-600"
                         >
                           <svg
@@ -1523,7 +1536,10 @@ const VisaCheckout = () => {
                       ? "border-black bg-gray-50"
                       : "border-gray-300"
                   }`}
-                  onClick={() => setSelectedPaymentMethod("klarna")}
+                  onClick={() => {
+                    userClosedKlarnaFormRef.current = false;
+                    setSelectedPaymentMethod("klarna");
+                  }}
                 >
                   <div className="flex items-center space-x-2">
                     <input
@@ -1531,7 +1547,10 @@ const VisaCheckout = () => {
                       name="payment"
                       value="klarna"
                       checked={selectedPaymentMethod === "klarna"}
-                      onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+                      onChange={(e) => {
+                        userClosedKlarnaFormRef.current = false;
+                        setSelectedPaymentMethod(e.target.value);
+                      }}
                       className="h-4 w-4"
                     />
                     <SiKlarna className="text-lg text-pink-500" />
@@ -1555,7 +1574,12 @@ const VisaCheckout = () => {
                           Complete Klarna Payment
                         </h3>
                         <button
-                          onClick={() => setShowKlarnaForm(false)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            userClosedKlarnaFormRef.current = true;
+                            setShowKlarnaForm(false);
+                            setSelectedPaymentMethod("");
+                          }}
                           className="text-gray-400 hover:text-gray-600"
                         >
                           <svg
