@@ -215,6 +215,12 @@ const CountrySlider = () => {
 
   // Keep a ref to the polling interval so we can clear it from other places
   const verificationPollRef = useRef(null);
+  const expressPaymentButtonRef = useRef(null);
+  const [availablePaymentMethods, setAvailablePaymentMethods] = useState({
+    applePay: false,
+    googlePay: false,
+  });
+  const hasCheckedAvailabilityRef = useRef(false);
 
   const [userEmail, setUserEmailLocal] = useState("");
   const [emailError, setEmailError] = useState("");
@@ -1648,6 +1654,7 @@ const CountrySlider = () => {
   // Validation function to check before payment (called when user clicks Apple Pay/Google Pay)
   const validateBeforeExpressPayment = useCallback(() => {
     if (!isDocumentsValid) {
+      dispatch(triggerDocumentValidation());
       return "Please complete all required documents before proceeding with payment.";
     }
     if (
@@ -1670,6 +1677,16 @@ const CountrySlider = () => {
   // Calculate total amount for express payments (Apple Pay/Google Pay) - memoized to prevent infinite loops
   // Uses the same logic as calculateFinalPrice() to match OrderCheckout.jsx
   const expressPaymentData = useMemo(() => {
+    // SUBTOTAL: Original prices (no discounts applied) - matching OrderCheckout
+    const originalVisaFees = 200 * travelers; // £200 per traveler
+    const originalInsuranceFees = recommendedItems.insuranceCertificate
+      ? 45 * insuranceCount
+      : 0; // £45 per insurance
+    const originalGiftCardFees = recommendedItems.giftCard
+      ? 245 * giftCardCount
+      : 0; // £245 per gift card
+    const subtotalGBP = originalVisaFees + originalInsuranceFees + originalGiftCardFees;
+
     // Base discounted prices (matching OrderCheckout.jsx and calculateFinalPrice)
     const baseDiscountedVisaFees = 129 * travelers; // £129 per traveler
     const baseDiscountedInsuranceFees = recommendedItems.insuranceCertificate
@@ -1740,12 +1757,21 @@ const CountrySlider = () => {
 
     return {
       totalAmount: totalAmount, // Already in GBP, no conversion needed
-      currency: selectedVisaType?.currency === "GBP" ? "GBP" : 
-                selectedVisaType?.currency === "EUR" ? "EUR" : 
-                selectedVisaType?.currency === "PLN" ? "PLN" : "GBP",
+      currency: "GBP", // Always use GBP (matching OrderCheckout)
       visaTypeId: selectedVisaType?.id || "",
       includeInsurance: recommendedItems.insuranceCertificate || false,
       insurancePaymentAmount: finalInsuranceFees,
+      // Include individual fees for ExpressPaymentRequestButton
+      visaFees: finalVisaFees,
+      insuranceFees: finalInsuranceFees,
+      giftCardFees: finalGiftCardFees,
+      includeGiftCard: recommendedItems.giftCard || false,
+      giftCardCount: giftCardCount || 0,
+      // Additional props for localStorage/Redux setup (same as OrderCheckout)
+      subtotalGBP: subtotalGBP,
+      discountedInsuranceFeesGBP: finalInsuranceFees,
+      visaFeesGBP: finalVisaFees,
+      couponCode: couponCode || "",
     };
   }, [
     requiredDocuments,
@@ -1756,6 +1782,25 @@ const CountrySlider = () => {
     insuranceCount,
     giftCardCount,
   ]);
+
+  // Check available payment methods from ExpressPaymentRequestButton
+  useEffect(() => {
+    const checkAvailableMethods = () => {
+      if (expressPaymentButtonRef.current?.getAvailableMethods) {
+        const methods = expressPaymentButtonRef.current.getAvailableMethods();
+        if (methods) {
+          setAvailablePaymentMethods(methods);
+          hasCheckedAvailabilityRef.current = true;
+        }
+      }
+    };
+
+    // Check immediately and then periodically (in case Stripe initializes later)
+    checkAvailableMethods();
+    const interval = setInterval(checkAvailableMethods, 1000);
+
+    return () => clearInterval(interval);
+  }, [expressPaymentData.totalAmount, travelers, expressPaymentData.includeInsurance]);
 
   return (
     <div className="w-full max-w-[1300px] gap-20 max-lg:flex-col max-lg:gap-10 flex items-start justify-center mt-5 px-5 max-sm:px-3">
@@ -2850,15 +2895,55 @@ const CountrySlider = () => {
 
             {/* Express Checkout Section */}
             <div className="space-y-3 mb-6 max-sm:mb-4">
+              <div className="flex items-center justify-between">
               <h2 className="font-medium text-lg pt-4 max-sm:text-base max-sm:pt-3">
-                Choose one payment method from the options below
+                  Express checkout
               </h2>
+                <div className="flex items-center gap-2 text-xs text-gray-400">
+                  <span className="flex items-center gap-1">
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
+                    </svg>
+                    Apple Pay
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <svg width="14" height="14" viewBox="0 0 18 18">
+                      <g fill="none" fillRule="evenodd">
+                        <path
+                          fill="#4285F4"
+                          d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
+                        />
+                        <path
+                          fill="#34A853"
+                          d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"
+                        />
+                        <path
+                          fill="#FBBC05"
+                          d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"
+                        />
+                        <path
+                          fill="#EA4335"
+                          d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"
+                        />
+                      </g>
+                    </svg>
+                    Google Pay
+                  </span>
+                </div>
+              </div>
 
-              {/* Apple Pay & Google Pay */}
+              <div className="rounded-2xl p-4 bg-transparent">
               <StripeProvider>
+                  {/* Hidden component that handles payment logic - buttons below trigger it */}
                 <ExpressPaymentRequestButton
+                    ref={expressPaymentButtonRef}
                   amount={expressPaymentData.totalAmount}
-                  currency={expressPaymentData.currency}
+                    currency="GBP"
                   email={userEmail}
                   travellers={travelers}
                   country={getCountryParam(selectedCountry) || "Germany"}
@@ -2868,8 +2953,129 @@ const CountrySlider = () => {
                   visaTypeId={expressPaymentData.visaTypeId}
                   paymentType="application_creation"
                   onBeforePayment={validateBeforeExpressPayment}
-                />
+                    visaFees={expressPaymentData.visaFees}
+                    insuranceFees={expressPaymentData.insuranceFees}
+                    giftCardFees={expressPaymentData.giftCardFees}
+                    includeGiftCard={expressPaymentData.includeGiftCard}
+                    giftCardCount={expressPaymentData.giftCardCount}
+                    hideUI={true} // Hide the Stripe button UI
+                    // Pass all values needed for localStorage/Redux setup (same as handleProceedToCheckout)
+                    subtotalGBP={expressPaymentData.subtotalGBP}
+                    discountedInsuranceFeesGBP={expressPaymentData.discountedInsuranceFeesGBP}
+                    visaFeesGBP={expressPaymentData.visaFeesGBP}
+                    couponCode={expressPaymentData.couponCode}
+                  />
+                  
+                  {/* Simple buttons that use the same trigger method as radio button */}
+                  <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1 max-sm:gap-2">
+                    {/* Apple Pay Button */}
+                    {(availablePaymentMethods.applePay ||
+                      process.env.NODE_ENV === "development" ||
+                      process.env.NEXT_PUBLIC_NODE_ENV === "development") && (
+                      <button
+                        onClick={() => {
+                          if (!expressPaymentButtonRef.current?.triggerPaymentRequest) {
+                            showError(
+                              "Payment system is not initialized. Please refresh and try again."
+                            );
+                            return;
+                          }
+
+                          const triggerResult =
+                            expressPaymentButtonRef.current.triggerPaymentRequest();
+                          if (!triggerResult?.success) {
+                            const fallbackMessage =
+                              triggerResult?.message ||
+                              "Apple Pay is not available on this device. Please select another payment method.";
+                            showError(fallbackMessage);
+                          }
+                        }}
+                        className="group relative flex items-center justify-center bg-black text-white rounded-full px-6 py-3 text-sm font-medium hover:opacity-90 transition-all duration-200 shadow-sm max-sm:py-2.5"
+                        style={{
+                          backgroundColor: "#000",
+                          minHeight: "44px",
+                          border: "1px solid rgba(255,255,255,0.1)",
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                          >
+                            <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
+                          </svg>
+                          <span className="font-medium tracking-wide max-sm:text-sm">
+                            Pay with Apple Pay
+                          </span>
+                        </div>
+                      </button>
+                    )}
+
+                    {/* Google Pay Button */}
+                    {(availablePaymentMethods.googlePay ||
+                      process.env.NODE_ENV === "development" ||
+                      process.env.NEXT_PUBLIC_NODE_ENV === "development") && (
+                      <button
+                        onClick={() => {
+                          if (!expressPaymentButtonRef.current?.triggerPaymentRequest) {
+                            showError(
+                              "Payment system is not initialized. Please refresh and try again."
+                            );
+                            return;
+                          }
+
+                          const triggerResult =
+                            expressPaymentButtonRef.current.triggerPaymentRequest();
+                          if (!triggerResult?.success) {
+                            const fallbackMessage =
+                              triggerResult?.message ||
+                              "Google Pay is not available on this device. Please select another payment method.";
+                            showError(fallbackMessage);
+                          }
+                        }}
+                        className="group relative flex items-center justify-center bg-white text-gray-800 rounded-full px-6 py-3 text-sm font-medium hover:shadow-md transition-all duration-200 shadow-sm border border-gray-200 max-sm:py-2.5"
+                        style={{
+                          minHeight: "44px",
+                          background: "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)",
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 18 18"
+                            className="shrink-0 max-sm:w-4 max-sm:h-4"
+                          >
+                            <g fill="none" fillRule="evenodd">
+                              <path
+                                fill="#4285F4"
+                                d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
+                              />
+                              <path
+                                fill="#34A853"
+                                d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"
+                              />
+                              <path
+                                fill="#FBBC05"
+                                d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"
+                              />
+                              <path
+                                fill="#EA4335"
+                                d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"
+                              />
+                            </g>
+                          </svg>
+                          <span className="font-medium tracking-wide text-gray-700 max-sm:text-sm">
+                            Pay with Google Pay
+                          </span>
+                        </div>
+                      </button>
+                    )}
+                  </div>
               </StripeProvider>
+              </div>
             </div>
 
             {/* Checkout Button */}
