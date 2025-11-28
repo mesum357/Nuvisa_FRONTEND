@@ -58,22 +58,21 @@ const CountrySlider = () => {
   const { content: sliderContent } = useSliderContent();
   const visaState = useAppSelector((state) => state.visa);
 
-  // Sample country data with images and names
   const countries = [
     {
       id: 1,
-      name: "Belgium",
-      image: "/image/country/Belgium.jpg",
+      name: "Germany",
+      image: "/image/country/Germany.jpg",
     },
     {
       id: 2,
-      name: "Bulgaria",
-      image: "/image/country/Bulgaria.jpg",
+      name: "Netherlands",
+      image: "/image/country/Netherlands.jpg",
     },
     {
       id: 3,
-      name: "Estonia",
-      image: "/image/country/Estonia.jpg",
+      name: "Belgium",
+      image: "/image/country/Belgium.jpg",
     },
     {
       id: 4,
@@ -82,33 +81,34 @@ const CountrySlider = () => {
     },
     {
       id: 5,
-      name: "Germany",
-      image: "/image/country/Germany.jpg",
-    },
-    {
-      id: 6,
-      name: "Hungary",
-      image: "/image/country/Hungary.jpg",
-    },
-    {
-      id: 7,
-      name: "Iceland",
-      image: "/image/country/Iceland.jpg",
-    },
-    {
-      id: 8,
       name: "Italy",
       image: "/image/country/Italy.jpg",
     },
     {
+      id: 6,
+      name: "Bulgaria",
+      image: "/image/country/Bulgaria.jpg",
+    },
+    {
+      id: 7,
+      name: "Estonia",
+      image: "/image/country/Estonia.jpg",
+    },
+    {
+      id: 8,
+      name: "Hungary",
+      image: "/image/country/Hungary.jpg",
+    
+    },
+    {
       id: 9,
-      name: "Netherlands",
-      image: "/image/country/Netherlands.jpg",
+      name: "Portugal",
+      image: "/image/country/Portugal.jpg",
     },
     {
       id: 10,
-      name: "Norway",
-      image: "/image/country/Norway.jpg",
+      name: "Iceland",
+      image: "/image/country/Iceland.jpg",
     },
     {
       id: 11,
@@ -117,8 +117,38 @@ const CountrySlider = () => {
     },
     {
       id: 12,
-      name: "Portugal",
-      image: "/image/country/Portugal.jpg",
+      name: "NORWAY",
+      image: "/image/country/Norway.jpg",
+    },
+    {
+      id: 13,
+      name: "Switzerland",
+      image: "/image/country/Switzerland.jpg",
+    },
+    {
+      id: 14,
+      name: "Spain",
+      image: "/image/country/Spain.jpg",
+    },
+    {
+      id: 15,
+      name: "Malta",
+      image: "/image/country/Malta.jpg",
+    },
+    {
+      id: 16,
+      name: "Luxembourg",
+      image: "/image/country/Luxembourg.jpg",
+    },
+    {
+      id: 17,
+      name: "Greece",
+      image: "/image/country/Greece.jpg",
+    },
+    {
+      id: 18,
+      name: "Finland",
+      image: "/image/country/Finland.jpg",
     },
   ];
 
@@ -2051,9 +2081,10 @@ const CountrySlider = () => {
               </h1>
               <div className="flex items-center justify-between gap-3 mb-4 max-sm:flex-col max-sm:items-start max-sm:gap-3">
                 <div className="flex gap-3 max-sm:w-full max-sm:justify-between">
-                  <span className="text-lg font-semibold line-through max-sm:text-base">
+                  <span className="text-lg font-semibold max-sm:text-base line-through decoration-2 decoration-neutral-400">
                     £{calculateOriginalPrice()}
                   </span>
+
                   <div className="flex flex-col items-end">
                     <span className="text-2xl font-gilroy-bold max-sm:text-xl">
                       £{Math.round(calculateFinalPrice())}
