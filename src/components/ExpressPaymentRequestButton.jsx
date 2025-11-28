@@ -22,6 +22,15 @@ import { localStorageEnums } from "@/enums/localstorage.enums";
 import { localStorageGateway } from "@/gateways/localStoragegateway";
 import { useAppDispatch } from "@/store";
 import { setAuthId, setAuthState } from "@/store/authSlice";
+import {
+  setAmountWithoutDiscount,
+  setAppliedDiscount,
+  setCouponCode,
+  setGiftCardFees,
+  setInsuranceFees,
+  setTotalAmount,
+  setTravelers,
+} from "@/store/visaSlice";
 
 const validateEmail = (value) =>
   !!value && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -50,6 +59,12 @@ const ExpressPaymentRequestButton = forwardRef(
       giftCardFees,
       includeGiftCard,
       giftCardCount,
+      // Additional props for localStorage/Redux setup (same as handleProceedToCheckout)
+      subtotalGBP,
+      discountedInsuranceFeesGBP,
+      visaFeesGBP,
+      couponCode,
+      hideUI = false, // If true, hide the Stripe button UI (buttons will be in parent)
     },
     ref
   ) => {
@@ -105,7 +120,7 @@ const ExpressPaymentRequestButton = forwardRef(
             label: `Gift Cards (${giftCardCount || 0})`,
             amount: Math.round((giftCardFees || 0) * 100),
           },
-        ].filter(Boolean)        
+        ].filter(Boolean),
       });
 
       let isMounted = true;
@@ -184,7 +199,21 @@ const ExpressPaymentRequestButton = forwardRef(
           request.off("paymentmethod");
         }
       };
-    }, [stripe, elements, normalizedAmount, currency, travellers]);
+    }, [
+      stripe,
+      elements,
+      normalizedAmount,
+      currency,
+      travellers,
+      includeInsurance,
+      insuranceCount,
+      insuranceFees,
+      includeGiftCard,
+      giftCardCount,
+      giftCardFees,
+      visaFees,
+      amount, // <--- IMPORTANT
+    ]);
 
     useEffect(() => {
       if (!paymentRequest) return;
@@ -207,9 +236,76 @@ const ExpressPaymentRequestButton = forwardRef(
         shouldValidateOnPaymentMethodRef.current = true;
 
         try {
+          // Set up localStorage/Redux state EXACTLY like handleProceedToCheckout does
+          // This ensures both express button and radio-button Google Pay use identical state
+          // Use the amount prop directly (which is already the correct total from OrderCheckout)
+          localStorageGateway(
+            "paymentAmount",
+            localStorageEnums.SET,
+            String(amount)
+          );
+
+          localStorageGateway(
+            "insurancePaymentMetadata",
+            localStorageEnums.SET,
+            String(
+              JSON.stringify({
+                insuranceCount: includeInsurance ? (insuranceCount || 0) : 0,
+                insurancePaymentAmount: discountedInsuranceFeesGBP || insurancePaymentAmount || 0,
+              })
+            )
+          );
+
+          localStorageGateway(
+            "insurancePayment",
+            localStorageEnums.SET,
+            String(discountedInsuranceFeesGBP || insurancePaymentAmount || 0)
+          );
+          localStorageGateway(
+            "insuranceSelected",
+            localStorageEnums.SET,
+            includeInsurance ? true : false
+          );
+          localStorageGateway("travelers", localStorageEnums.SET, String(travellers || 1));
+
+          if (subtotalGBP !== undefined) {
+            dispatch(setAmountWithoutDiscount(Number(subtotalGBP)));
+          }
+          dispatch(setTotalAmount(Number(amount)));
+          if (discountedInsuranceFeesGBP !== undefined) {
+            dispatch(setInsuranceFees(Number(discountedInsuranceFeesGBP)));
+          } else if (insurancePaymentAmount !== undefined) {
+            dispatch(setInsuranceFees(Number(insurancePaymentAmount)));
+          }
+          if (giftCardFees !== undefined) {
+            dispatch(setGiftCardFees(Number(giftCardFees)));
+          }
+          if (couponCode !== undefined && couponCode) {
+            dispatch(setCouponCode(couponCode.trim().toUpperCase()));
+          }
+          dispatch(setTravelers(Number(travellers || 1)));
+
+          if (visaFeesGBP !== undefined) {
+            localStorageGateway(
+              "paymentWithoutInsurance",
+              localStorageEnums.SET,
+              String(visaFeesGBP)
+            );
+          }
+
+          if (amount !== undefined && discountedInsuranceFeesGBP !== undefined) {
+            localStorageGateway(
+              "paymentWithDiscount",
+              localStorageEnums.SET,
+              String(Number(amount) - Number(discountedInsuranceFeesGBP))
+            );
+          }
+
+          // Create PaymentIntent with EXACT same payload structure
+          // Use the amount prop directly (which is already the correct total from OrderCheckout)
           const checkoutPayload = {
             email: event.payerEmail || email,
-            amount: String(Number(amount).toFixed(2)),
+            amount: String(Number(amount).toFixed(2)), // Use the amount prop (same as radio button uses)
             travellers: String(travellers || 1),
             country: country || "",
             insurance: includeInsurance ? "true" : "false",
@@ -217,7 +313,7 @@ const ExpressPaymentRequestButton = forwardRef(
             visaTypeId: visaTypeId || "",
             currency: currency.toUpperCase(),
             noOfInsurance: insuranceCount || 0,
-            insurancePaymentAmount: insurancePaymentAmount || 0,
+            insurancePaymentAmount: discountedInsuranceFeesGBP || insurancePaymentAmount || 0,
             successUrl: `${window.location.origin}/payment-success`,
             cancelUrl: `${window.location.origin}/visa-checkout`,
           };
@@ -391,6 +487,14 @@ const ExpressPaymentRequestButton = forwardRef(
       visaTypeId,
       paymentType,
       stripe,
+      // New props for localStorage/Redux setup
+      subtotalGBP,
+      discountedInsuranceFeesGBP,
+      visaFeesGBP,
+      couponCode,
+      giftCardFees,
+      dispatch,
+      onBeforePayment,
     ]);
 
     useImperativeHandle(
@@ -486,6 +590,11 @@ const ExpressPaymentRequestButton = forwardRef(
       );
     }
 
+    // If hideUI is true, don't render any UI - just provide the payment logic via ref
+    if (hideUI) {
+      return null;
+    }
+
     return (
       <div className="w-full">
         {buttonError && (
@@ -510,19 +619,22 @@ const ExpressPaymentRequestButton = forwardRef(
 
         {paymentRequest && (
           <div data-express-payment="true">
-            <PaymentRequestButtonElement
-              options={{
-                paymentRequest,
-                style: {
-                  paymentRequestButton: {
-                    type: "default",
-                    theme: "dark",
-                    height: "48px",
-                    borderRadius: "999px",
+            <div onClick={() => ref?.current?.triggerPaymentRequest()}>
+              <PaymentRequestButtonElement
+                key={normalizedAmount} // <--- Forces Stripe element to fully reset
+                options={{
+                  paymentRequest,
+                  style: {
+                    paymentRequestButton: {
+                      type: "default",
+                      theme: "dark",
+                      height: "48px",
+                      borderRadius: "999px",
+                    },
                   },
-                },
-              }}
-            />
+                }}
+              />
+            </div>
           </div>
         )}
 

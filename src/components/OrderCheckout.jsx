@@ -12,7 +12,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { FaUser, FaShieldAlt } from "react-icons/fa";
 import { HiOutlineDeviceMobile } from "react-icons/hi";
 import { SiKlarna } from "react-icons/si";
-import { calculatePaymentFees, formatCurrency } from "@/utils/currency";
+import { formatCurrency } from "@/utils/currency";
 import ClientOnly from "./ClientOnly";
 import { useToast } from "@/contexts/ToastContext";
 import QtyInput from "./QtyInput";
@@ -106,9 +106,9 @@ const VisaCheckout = () => {
     [visaState.requiredDocuments]
   );
 
-  const perDayInsurancePrice = 2; // EUR per day per traveller
-  const insuranceFeesPerTraveller = perDayInsurancePrice * travelDays; // EUR per traveller
-  const insuranceFeesTotal = insuranceFeesPerTraveller * insuranceCount; // total EUR
+  const perDayInsurancePrice = 2; // GBP per day per traveller
+  const insuranceFeesPerTraveller = perDayInsurancePrice * travelDays; // GBP per traveller
+  const insuranceFeesTotal = insuranceFeesPerTraveller * insuranceCount; // total GBP
   const [includeInsurance, setIncludeInsurance] = useState(
     visaState.recommendedItems?.insuranceCertificate || false
   );
@@ -730,46 +730,43 @@ const VisaCheckout = () => {
   // YOU SAVE: Subtotal minus Total
   const totalSavingsAmount = subtotal - total;
 
-  // Calculate EUR values for display
-  const subtotalEUR = calculatePaymentFees(subtotal, "EUR");
-  const totalEUR = calculatePaymentFees(total, "EUR");
-  const totalSavingsEUR = calculatePaymentFees(totalSavingsAmount, "EUR");
+  // All values are in GBP (no conversion needed)
+  const subtotalGBP = subtotal;
+  const totalSavingsGBP = totalSavingsAmount;
 
-  // Individual component EUR values (final amounts after discounts)
-  const visaFeesEUR = calculatePaymentFees(finalVisaFees, "EUR");
-  const discountedVisaFeesEUR = visaFeesEUR;
+  // Individual component GBP values (final amounts after discounts)
+  const visaFeesGBP = finalVisaFees;
+  const discountedVisaFeesGBP = visaFeesGBP;
 
-  const baseInsuranceFeesEUR = calculatePaymentFees(finalInsuranceFees, "EUR");
-  const discountedInsuranceFeesEUR = baseInsuranceFeesEUR;
+  const baseInsuranceFeesGBP = finalInsuranceFees;
+  const discountedInsuranceFeesGBP = baseInsuranceFeesGBP;
 
-  const giftCardFeesEUR = calculatePaymentFees(finalGiftCardFees, "EUR");
+  const giftCardFeesGBP = finalGiftCardFees;
 
   // Strike-through prices (original prices)
   const travellerStrikeTotal = originalVisaFees;
   const insuranceStrikeTotal = originalInsuranceFees;
   const giftCardStrikeTotal = originalGiftCardFees;
 
-  const travellerStrikeEUR = calculatePaymentFees(travellerStrikeTotal, "EUR");
-  const insuranceStrikeEUR = calculatePaymentFees(insuranceStrikeTotal, "EUR");
-  const giftCardStrikeEUR = calculatePaymentFees(giftCardStrikeTotal, "EUR");
+  const travellerStrikeGBP = travellerStrikeTotal;
+  const insuranceStrikeGBP = insuranceStrikeTotal;
+  const giftCardStrikeGBP = giftCardStrikeTotal;
 
-  const eVisaFeesEUR = 0; // Currently free
-  const totalAmountEUR = totalEUR;
+  const eVisaFeesGBP = 0; // Currently free
 
   // GBP display values for the UI
-  const travellerStrikeGBP = travellerStrikeTotal; // already in GBP units
   const visaFeesGBPDisplay = Math.round(finalVisaFees);
 
-  // Insurance display value in EUR (after discounts)
-  const displayInsuranceEUR = discountedInsuranceFeesEUR;
+  // Insurance display value in GBP (after discounts)
+  const displayInsuranceGBP = discountedInsuranceFeesGBP;
 
-  // Gift card display value in EUR
-  const _giftCardFeesEUR = giftCardFeesEUR;
+  // Gift card display value in GBP
+  const _giftCardFeesGBP = giftCardFeesGBP;
 
-  // Discount amount in EUR (for display purposes)
+  // Discount amount in GBP (for display purposes)
   const totalCouponDiscount =
     visaDiscountAmount + insuranceDiscountAmount + giftCardDiscountAmount;
-  const discountAmountEUR = calculatePaymentFees(totalCouponDiscount, "EUR");
+  const discountAmountGBP = totalCouponDiscount;
 
   // Variables for Apple Pay and other payment methods
   const visaFees = finalVisaFees;
@@ -804,7 +801,7 @@ const VisaCheckout = () => {
     localStorageGateway(
       "paymentAmount",
       localStorageEnums.SET,
-      String(totalAmountEUR)
+      String(total)
     );
 
     localStorageGateway(
@@ -813,7 +810,7 @@ const VisaCheckout = () => {
       String(
         JSON.stringify({
           insuranceCount: includeInsurance ? insuranceCount : 0,
-          insurancePaymentAmount: discountedInsuranceFeesEUR,
+          insurancePaymentAmount: discountedInsuranceFeesGBP,
         })
       )
     );
@@ -821,7 +818,7 @@ const VisaCheckout = () => {
     localStorageGateway(
       "insurancePayment",
       localStorageEnums.SET,
-      String(discountedInsuranceFeesEUR)
+      String(discountedInsuranceFeesGBP)
     );
     localStorageGateway(
       "insuranceSelected",
@@ -830,9 +827,9 @@ const VisaCheckout = () => {
     );
     localStorageGateway("travelers", localStorageEnums.SET, String(travelers));
 
-    dispatch(setAmountWithoutDiscount(Number(subtotalEUR)));
-    dispatch(setTotalAmount(Number(totalAmountEUR)));
-    dispatch(setInsuranceFees(Number(discountedInsuranceFeesEUR)));
+    dispatch(setAmountWithoutDiscount(Number(subtotalGBP)));
+    dispatch(setTotalAmount(Number(total)));
+    dispatch(setInsuranceFees(Number(discountedInsuranceFeesGBP)));
     dispatch(setGiftCardFees(Number(giftCardFees)));
     dispatch(setCouponCode(couponCode.trim().toUpperCase()));
     dispatch(setTravelers(Number(travelers)));
@@ -840,13 +837,13 @@ const VisaCheckout = () => {
     localStorageGateway(
       "paymentWithoutInsurance",
       localStorageEnums.SET,
-      String(visaFeesEUR)
+      String(visaFeesGBP)
     );
 
     localStorageGateway(
       "paymentWithDiscount",
       localStorageEnums.SET,
-      String(totalEUR - discountedInsuranceFeesEUR)
+      String(total - discountedInsuranceFeesGBP)
     );
 
     if (cretingDynamicCheckout) return;
@@ -963,7 +960,7 @@ const VisaCheckout = () => {
       // For other payment methods, use hosted checkout (redirect)
       const statusResult = await handleCreateDynamicCheckoutSession({
         email: email,
-        amount: String(totalAmountEUR),
+        amount: String(total),
         travellers: String(travelers),
         country: countryToUse, // Use validated country
         insurance: includeInsurance ? true : false, // Simple boolean conversion
@@ -972,7 +969,7 @@ const VisaCheckout = () => {
         visaTypeId: visaTypeId || visaState.visaTypeId || "",
         currency: "GBP",
         noOfInsurance: insuranceCount,
-        insurancePaymentAmount: discountedInsuranceFeesEUR,
+        insurancePaymentAmount: discountedInsuranceFeesGBP,
         uiMode: "hosted", // Always hosted for other methods
       });
 
@@ -1004,7 +1001,7 @@ const VisaCheckout = () => {
             dispatch(setAuthId(returnedUser.id));
           }
         }
-        dispatch(setAmountWithoutDiscount(Number(visaFeesEUR)));
+        dispatch(setAmountWithoutDiscount(Number(visaFeesGBP)));
 
         await localStorageGateway("userEmail", localStorageEnums.SET, email);
       }
@@ -1155,20 +1152,140 @@ const VisaCheckout = () => {
               </div>
               <div className="rounded-2xl border border-gray-200 p-4 bg-transparent">
                 <StripeProvider>
+                  {/* Hidden component that handles payment logic - buttons below trigger it */}
                   <ExpressPaymentRequestButton
                     ref={expressPaymentButtonRef}
-                    amount={total}
+                    amount={total} // Real GBP total - matches UI exactly
                     currency="GBP"
-                    email={email}
+                    visaFees={finalVisaFees}
+                    insuranceFees={finalInsuranceFees}
+                    giftCardFees={finalGiftCardFees}
                     travellers={travelers}
-                    country={selectedCountry || visaState.selectedCountry || ""}
+                    country={selectedCountry}
                     includeInsurance={includeInsurance}
                     insuranceCount={insuranceCount}
-                    insurancePaymentAmount={discountedInsuranceFeesEUR}
-                    visaTypeId={visaTypeId || visaState.visaTypeId || ""}
+                    insurancePaymentAmount={discountedInsuranceFeesGBP}
+                    includeGiftCard={includeGiftCard}
+                    giftCardCount={giftCardCount}
                     paymentType="application_creation"
                     onBeforePayment={validateBeforeExpressPayment}
+                    // Pass all values needed for localStorage/Redux setup (same as handleProceedToCheckout)
+                    subtotalGBP={subtotalGBP}
+                    discountedInsuranceFeesGBP={discountedInsuranceFeesGBP}
+                    visaFeesGBP={visaFeesGBP}
+                    couponCode={couponCode}
+                    visaTypeId={visaTypeId || visaState.visaTypeId || ""}
+                    hideUI={true} // Hide the Stripe button UI
                   />
+                  
+                  {/* Simple buttons that use the same trigger method as radio button */}
+                  <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1 max-sm:gap-2">
+                    {/* Apple Pay Button */}
+                    {(availablePaymentMethods.applePay ||
+                      process.env.NODE_ENV === "development" ||
+                      process.env.NEXT_PUBLIC_NODE_ENV === "development") && (
+                      <button
+                        onClick={() => {
+                          if (!expressPaymentButtonRef.current?.triggerPaymentRequest) {
+                            showError(
+                              "Payment system is not initialized. Please refresh and try again."
+                            );
+                            return;
+                          }
+
+                          const triggerResult =
+                            expressPaymentButtonRef.current.triggerPaymentRequest();
+                          if (!triggerResult?.success) {
+                            const fallbackMessage =
+                              triggerResult?.message ||
+                              "Apple Pay is not available on this device. Please select another payment method.";
+                            showError(fallbackMessage);
+                          }
+                        }}
+                        className="group relative flex items-center justify-center bg-black text-white rounded-full px-6 py-3 text-sm font-medium hover:opacity-90 transition-all duration-200 shadow-sm max-sm:py-2.5"
+                        style={{
+                          backgroundColor: "#000",
+                          minHeight: "44px",
+                          border: "1px solid rgba(255,255,255,0.1)",
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                          >
+                            <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
+                          </svg>
+                          <span className="font-medium tracking-wide max-sm:text-sm">
+                            Pay with Apple Pay
+                          </span>
+                        </div>
+                      </button>
+                    )}
+
+                    {/* Google Pay Button */}
+                    {(availablePaymentMethods.googlePay ||
+                      process.env.NODE_ENV === "development" ||
+                      process.env.NEXT_PUBLIC_NODE_ENV === "development") && (
+                      <button
+                        onClick={() => {
+                          if (!expressPaymentButtonRef.current?.triggerPaymentRequest) {
+                            showError(
+                              "Payment system is not initialized. Please refresh and try again."
+                            );
+                            return;
+                          }
+
+                          const triggerResult =
+                            expressPaymentButtonRef.current.triggerPaymentRequest();
+                          if (!triggerResult?.success) {
+                            const fallbackMessage =
+                              triggerResult?.message ||
+                              "Google Pay is not available on this device. Please select another payment method.";
+                            showError(fallbackMessage);
+                          }
+                        }}
+                        className="group relative flex items-center justify-center bg-white text-gray-800 rounded-full px-6 py-3 text-sm font-medium hover:shadow-md transition-all duration-200 shadow-sm border border-gray-200 max-sm:py-2.5"
+                        style={{
+                          minHeight: "44px",
+                          background: "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)",
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 18 18"
+                            className="shrink-0 max-sm:w-4 max-sm:h-4"
+                          >
+                            <g fill="none" fillRule="evenodd">
+                              <path
+                                fill="#4285F4"
+                                d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
+                              />
+                              <path
+                                fill="#34A853"
+                                d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"
+                              />
+                              <path
+                                fill="#FBBC05"
+                                d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"
+                              />
+                              <path
+                                fill="#EA4335"
+                                d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"
+                              />
+                            </g>
+                          </svg>
+                          <span className="font-medium tracking-wide text-gray-700 max-sm:text-sm">
+                            Pay with Google Pay
+                          </span>
+                        </div>
+                      </button>
+                    )}
+                  </div>
                 </StripeProvider>
               </div>
             </div>
@@ -1370,7 +1487,7 @@ const VisaCheckout = () => {
                         <StripeElementsCheckout
                           ref={stripeElementsCheckoutRef}
                           email={email}
-                          amount={totalAmountEUR}
+                          amount={total}
                           travelers={travelers}
                           country={
                             selectedCountry || visaState.selectedCountry || ""
@@ -1380,7 +1497,7 @@ const VisaCheckout = () => {
                           currency="GBP"
                           paymentType="application_creation"
                           noOfInsurance={insuranceCount}
-                          insurancePaymentAmount={discountedInsuranceFeesEUR}
+                          insurancePaymentAmount={discountedInsuranceFeesGBP}
                           hideSubmitButton={true}
                         />
                       </StripeProvider>
@@ -1447,7 +1564,7 @@ const VisaCheckout = () => {
 
                       <KlarnaForm
                         email={email}
-                        amount={totalAmountEUR}
+                        amount={total}
                         travelers={travelers}
                         country={
                           selectedCountry || visaState.selectedCountry || ""
@@ -1455,7 +1572,7 @@ const VisaCheckout = () => {
                         insurance={includeInsurance}
                         visaTypeId={visaTypeId || visaState.visaTypeId || ""}
                         insuranceCount={insuranceCount}
-                        insurancePaymentAmount={discountedInsuranceFeesEUR}
+                        insurancePaymentAmount={discountedInsuranceFeesGBP}
                         paymentType="application_creation"
                         applicationId={undefined}
                         travelerIndex={undefined}
@@ -1689,7 +1806,7 @@ const VisaCheckout = () => {
                   <div className="flex items-center justify-center space-x-2">
                     <SiKlarna />
                     <span>
-                      Pay {formatCurrency(totalAmountEUR, "EUR")} with Klarna
+                      Pay {formatCurrency(total, "GBP")} with Klarna
                     </span>
                   </div>
                 ) : selectedPaymentMethod === "apple" ? (
@@ -1733,7 +1850,7 @@ const VisaCheckout = () => {
                   `Continue to Payment`
                 ) : selectedPaymentMethod === "stripe" &&
                   showInlineStripeForm ? (
-                  `Pay ${formatCurrency(totalAmountEUR, "EUR")}`
+                  `Pay ${formatCurrency(total, "GBP")}`
                 ) : (
                   `Complete Order`
                 )}
@@ -1843,12 +1960,12 @@ const VisaCheckout = () => {
                 />
                 <div className="flex item-center gap-2">
                   <span className="line-through">
-                    {formatCurrency(insuranceStrikeEUR, "EUR")}
+                    {formatCurrency(insuranceStrikeGBP, "GBP")}
                   </span>
                   <span className={`text-sm `}>
                     {includeInsurance
-                      ? formatCurrency(displayInsuranceEUR, "EUR")
-                      : formatCurrency(0, "EUR")}
+                      ? formatCurrency(displayInsuranceGBP, "GBP")
+                      : formatCurrency(0, "GBP")}
                   </span>
                 </div>
               </div>
@@ -1897,13 +2014,13 @@ const VisaCheckout = () => {
                 <div className="flex items-center gap-2">
                   {includeGiftCard && (
                     <span className="line-through">
-                      {formatCurrency(giftCardStrikeEUR, "EUR")}
+                      {formatCurrency(giftCardStrikeGBP, "GBP")}
                     </span>
                   )}
                   <span className="text-sm">
                     {includeGiftCard
-                      ? formatCurrency(_giftCardFeesEUR, "EUR")
-                      : formatCurrency(0, "EUR")}
+                      ? formatCurrency(_giftCardFeesGBP, "GBP")
+                      : formatCurrency(0, "GBP")}
                   </span>
                 </div>
               </div>
@@ -1918,7 +2035,7 @@ const VisaCheckout = () => {
             {/* Subtotal */}
             <div className="flex justify-between text-sm pt-2 border-t border-gray-700">
               <span>Subtotal</span>
-              <span>{formatCurrency(subtotalEUR, "EUR")}</span>
+              <span>{formatCurrency(subtotalGBP, "GBP")}</span>
             </div>
 
             {/* Discount */}
@@ -1927,20 +2044,20 @@ const VisaCheckout = () => {
                 <span>
                   {appliedDiscount.description} (-{appliedDiscount.percentage}%)
                 </span>
-                <span>-{formatCurrency(discountAmountEUR, "EUR")}</span>
+                <span>-{formatCurrency(discountAmountGBP, "GBP")}</span>
               </div>
             )} */}
 
             {/* You Save */}
             <div className="flex justify-between text-sm text-green-400">
               <span>You save</span>
-              <span>{formatCurrency(totalSavingsEUR, "EUR")}</span>
+              <span>{formatCurrency(totalSavingsGBP, "GBP")}</span>
             </div>
 
             {/* Total */}
             <div className="flex justify-between font-gilroy-bold text-xl pt-2 border-t border-gray-700">
               <span>Total</span>
-              <span>{formatCurrency(totalEUR, "EUR")}</span>
+              <span>{formatCurrency(total, "GBP")}</span>
             </div>
 
             {/* Free Offer Banner */}
