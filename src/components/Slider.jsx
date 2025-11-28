@@ -2967,7 +2967,7 @@ const CountrySlider = () => {
                 </div>
               </div>
 
-              <div className="rounded-2xl p-4 bg-transparent">
+             
               <StripeProvider>
                   {/* Hidden component that handles payment logic - buttons below trigger it */}
                 <ExpressPaymentRequestButton
@@ -3003,9 +3003,9 @@ const CountrySlider = () => {
                       process.env.NODE_ENV === "development" ||
                       process.env.NEXT_PUBLIC_NODE_ENV === "development";
                     const isGooglePayAvailable =
-                      availablePaymentMethods.googlePay ||
-                      process.env.NODE_ENV === "development" ||
-                      process.env.NEXT_PUBLIC_NODE_ENV === "development";
+                    availablePaymentMethods.googlePay ||
+                    process.env.NODE_ENV === "development" ||
+                    process.env.NEXT_PUBLIC_NODE_ENV === "development";
                     const availableCount = (isApplePayAvailable ? 1 : 0) + (isGooglePayAvailable ? 1 : 0);
                     const gridCols = availableCount === 1 ? "grid-cols-1" : "grid-cols-2";
                     
@@ -3031,7 +3031,7 @@ const CountrySlider = () => {
                                 showError(fallbackMessage);
                               }
                             }}
-                            className="group relative flex items-center justify-center bg-black text-white rounded-full px-6 py-3 text-sm font-medium hover:opacity-90 transition-all duration-200 shadow-sm w-full max-sm:py-2.5"
+                            className="group relative flex items-center justify-center bg-black text-white rounded-full px-[20px] py-3.5 text-sm font-medium hover:opacity-90 transition-all duration-200 shadow-sm w-full max-sm:py-2.5"
                             style={{
                               backgroundColor: "#000",
                               minHeight: "44px",
@@ -3075,7 +3075,7 @@ const CountrySlider = () => {
                                 showError(fallbackMessage);
                               }
                             }}
-                            className="group relative flex items-center justify-center bg-white text-gray-800 rounded-full px-6 py-3 text-sm font-medium hover:shadow-md transition-all duration-200 shadow-sm border border-gray-200 w-full max-sm:py-2.5"
+                            className="group relative flex items-center justify-center bg-white text-gray-800 rounded-full px-[20px] py-3.5 text-sm font-medium hover:shadow-md transition-all duration-200 shadow-sm border border-gray-200 w-full max-sm:py-2.5"
                             style={{
                               minHeight: "44px",
                               maxHeight: "44px",
@@ -3119,7 +3119,6 @@ const CountrySlider = () => {
                     );
                   })()}
               </StripeProvider>
-              </div>
             </div>
 
             {/* Checkout Button */}
