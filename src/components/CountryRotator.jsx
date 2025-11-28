@@ -126,7 +126,7 @@ const VisaHeroSection = () => {
         }
       `}</style>
 
-      <h1 className="text-[40px] whitespace-nowrap uppercase md:text-[60px] font-gilroy-bold">
+      <h1 className="text-[40px] whitespace-nowrap uppercase md:text-[60px] font-gilroy-bold mt-5">
         <div className="highlight-animation-top">
           {words.map((word, index) => (
             <div

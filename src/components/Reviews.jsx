@@ -97,7 +97,7 @@ export default function Reviews() {
     }, [isPaused]);
 
     return (
-        <section className="w-full py-10 text-white flex flex-col items-center justify-center gap-8">
+        <section className="w-full py-10 text-white flex flex-col items-center justify-center gap-8 mt-10">
             <div
                 ref={galleryRef}
                 className="flex overflow-x-hidden w-full justify-center items-center gap-10"
