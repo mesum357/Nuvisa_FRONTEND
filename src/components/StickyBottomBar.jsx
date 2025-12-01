@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import { Gift, Shield, Plus, Minus, ShoppingCart, ArrowUpRight, ChevronUp, ChevronDown  ,  UserIcon} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAppSelector, useAppDispatch } from "@/store";
@@ -486,10 +487,13 @@ const StickyBottomBar = () => {
                 {/* Background Container for Insurance Certificate and Gift Card */}
                 <div className="bg-[#24242D] rounded-2xl px-6 py-3 flex items-center gap-3 min-w-[280px]">
                   {/* Item Image */}
-                  <img 
+                  <Image 
                     src={item.id === 'insurance' ? '/image/certificatee.jpg' : '/image/gitftnewcard.png'}
                     alt={item.title}
+                    width={64}
+                    height={48}
                     className="w-16 h-12 rounded-lg object-contain flex-shrink-0 bg-white/10"
+                    priority
                   />
                   {/* Item Info */}
                   <div className="flex flex-col">
@@ -702,10 +706,13 @@ const StickyBottomBar = () => {
           <div key={item.id} className="bg-[#24242D] rounded-2xl px-4 py-4">
             <div className="flex items-center justify-between mb-3">
               {/* Item Image */}
-              <img 
+              <Image 
                 src={item.id === 'insurance' ? '/image/certificatee.jpg' : '/image/gitftnewcard.png'}
                 alt={item.title}
+                width={80}
+                height={64}
                 className="w-20 h-16 rounded-lg object-contain flex-shrink-0 mr-3 bg-white/10"
+                priority
               />
               <div className="flex-1">
                 <h3 className="text-base font-medium text-white mb-2">{item.title}</h3>

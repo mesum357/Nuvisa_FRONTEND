@@ -26,6 +26,7 @@ const PremiumServiceSection = () => {
                 width={200}
                 height={200}
                 className="object-contain"
+                priority
               />{" "}
             </div>
 
@@ -36,6 +37,7 @@ const PremiumServiceSection = () => {
                 width={200}
                 height={200}
                 className="object-contain"
+                priority
               />{" "}
             </div>
             {/* ICO Badge */}
@@ -46,6 +48,7 @@ const PremiumServiceSection = () => {
                 width={200}
                 height={200}
                 className="object-contain"
+                priority
               />{" "}
             </div>
             {/* PCI-DSS Compliance Badge */}
@@ -64,6 +67,7 @@ const PremiumServiceSection = () => {
                 width={500}
                 height={500}
                 className="w-full h-full object-contain"
+                priority
               />
             </div>
 
@@ -88,6 +92,7 @@ const PremiumServiceSection = () => {
                 width={500}
                 height={500}
                 className="w-full h-full object-contain"
+                priority
               />
             </div>
 
@@ -112,6 +117,7 @@ const PremiumServiceSection = () => {
                 width={500}
                 height={500}
                 className="w-full h-full object-contain"
+                priority
               />
             </div>
 

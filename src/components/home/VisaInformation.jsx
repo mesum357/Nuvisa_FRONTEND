@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import Image from "next/image";
 import ClientOnly from "../ClientOnly";
 import ComparisonSection from "../ComparisonSection";
 import FAQSection from "../Faqs";
@@ -71,7 +72,7 @@ const VisaInformation = () => {
             <div className="max-w-[88rem] bg-[#F3E5FF] text-[#FFF] w-full rounded-3xl py-12 px-10 text-center shadow-2xl">
               {/* Main Heading */}
               <h2 className="text-[26px] max-md:px-8 lg:text-[38px] font-gilroy-bold text-[#212529] mb-2 leading-tight flex items-center gap-3 justify-center lg:flex-row flex-col">
-                <img src="/icons/klarna.png" alt="Klarna" className="" />
+                <Image src="/icons/klarna.png" alt="Klarna" width={100} height={40} className="" priority />
                 {klarnaLoading ? "Loading..." : klarnaContent.heading}
               </h2>
 
@@ -149,10 +150,13 @@ const VisaInformation = () => {
                     <div className="grid md:grid-cols-4 gap-8 text-center md:text-left">
                       {/* Step 1 */}
                       <div className="">
-                        <img
+                        <Image
                           src="/icons/submit.png"
                           alt="Confirm documents"
+                          width={80}
+                          height={80}
                           className="w-20 h-20 mb-3"
+                          priority
                         />
                         <h1 className="text-1xl md:text-3xl my-6">
                           {processLoading
@@ -168,10 +172,13 @@ const VisaInformation = () => {
 
                       {/* Step 2 */}
                       <div className="">
-                        <img
+                        <Image
                           src="/icons/build.png"
                           alt="Upload & Prep"
+                          width={80}
+                          height={80}
                           className="w-20 h-20 mb-3"
+                          priority
                         />
                         <h1 className="text-1xl md:text-3xl my-6">
                           {processLoading
@@ -187,10 +194,13 @@ const VisaInformation = () => {
 
                       {/* Step 3 */}
                       <div className="">
-                        <img
+                        <Image
                           src="/icons/checkout.png"
                           alt="Visit Appointment"
+                          width={80}
+                          height={80}
                           className="w-20 h-20 mb-3"
+                          priority
                         />
                         <h1 className="text-1xl md:text-3xl my-6">
                           {processLoading
@@ -206,10 +216,13 @@ const VisaInformation = () => {
 
                       {/* Step 4 */}
                       <div className="">
-                        <img
+                        <Image
                           src="/icons/approved.png"
                           alt="Approved"
+                          width={80}
+                          height={80}
                           className="w-20 h-20 mb-3"
+                          priority
                         />
                         <h1 className="text-1xl md:text-3xl my-6">
                           {processLoading

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Mail, KeyRound } from "lucide-react";
-import Link from "next/link";
 
 import { localStorageGateway } from "@/gateways/localStoragegateway";
 import { localStorageEnums } from "@/enums/localstorage.enums";
@@ -15,6 +14,7 @@ const Index = () => {
   const dispatch = useAppDispatch();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
 
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
@@ -64,6 +64,17 @@ const Index = () => {
     return raw || "Verification failed. Please try again.";
   };
 
+  const processLoginAttempt = (results) => {
+    if (/^2\d{2}$/.test(results?.status)) {
+      setIsVerificationSent(true);
+      return true;
+    } else {
+      const message = friendlyLoginMessage(results);
+      setAlertState({ isOpen: true, title: "Sign in", message });
+      return false;
+    }
+  };
+
   const handleSendVerification = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -71,12 +82,14 @@ const Index = () => {
 
     const results = await login(payload, () => {});
     setLoading(false);
-    if (/^2\d{2}$/.test(results?.status)) {
-      setIsVerificationSent(true);
-    } else {
-      const message = friendlyLoginMessage(results);
-      setAlertState({ isOpen: true, title: "Sign in", message });
-    }
+    processLoginAttempt(results);
+  };
+
+  const handleResendCode = async () => {
+    setResendLoading(true);
+    const results = await login({ email }, () => {});
+    setResendLoading(false);
+    processLoginAttempt(results);
   };
 
   const handleVerifyOtp = async (e) => {
@@ -233,13 +246,15 @@ const Index = () => {
 
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-300">
-                No NuVisa account?{" "}
-                <Link
-                  href="/get-the-visa"
-                  className="font-medium text-purple-500 hover:text-purple-500"
+                Didn't receive code?{" "}
+                <button
+                  type="button"
+                  onClick={handleResendCode}
+                  disabled={resendLoading}
+                  className="font-medium text-purple-500 hover:text-purple-500 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  Proceed to checkout 
-                </Link>
+                  {resendLoading ? "Sending..." : "Resend Code"}
+                </button>
               </p>
             </div>
           </div>

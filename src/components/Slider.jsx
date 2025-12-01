@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import { getCountryConfig } from "@/constants/countryConfig";
 import { useAppDispatch, useAppSelector } from "@/store";
 import {
@@ -1079,6 +1080,63 @@ const CountrySlider = () => {
     return finalVisaPrice + finalInsurancePrice + finalGiftCardPrice;
   };
 
+  const calculateVisaAndInsurancePrice = () => {
+    // Calculate only visa + insurance (excluding gift cards) for main price display
+    const baseDiscountedVisaFees =
+      getCurrentVisaFeePerTraveler() * travelers;
+    const baseDiscountedInsuranceFees = getDiscountedInsuranceBase();
+
+    // Calculate individual component discounts
+    let visaDiscountPercentage = 0;
+    let insuranceDiscountPercentage = 0;
+
+    // Check if any component qualifies for quantity discount (3+)
+    const effectiveInsuranceCount = Math.min(insuranceCount, travelers);
+
+    const travelersQualify = travelers >= 3;
+    const insuranceQualify = effectiveInsuranceCount >= 3;
+
+    // Apply quantity-based discounts (20% for 3+ items)
+    if (travelersQualify) visaDiscountPercentage += 20;
+    if (insuranceQualify) insuranceDiscountPercentage += 20;
+
+    // Apply coupon discounts
+    if (appliedDiscount) {
+      if (appliedDiscount.code === "GROUP20") {
+        // GROUP20: Only applies if travelers >= 3 AND at least one other component >= 3
+        const giftCardQualify = giftCardCount >= 3;
+        if (travelersQualify && (insuranceQualify || giftCardQualify)) {
+          if (travelersQualify)
+            visaDiscountPercentage = Math.max(visaDiscountPercentage, 20);
+          if (insuranceQualify)
+            insuranceDiscountPercentage = Math.max(
+              insuranceDiscountPercentage,
+              20
+            );
+        }
+      } else if (appliedDiscount.code === "STUDENT10") {
+        // STUDENT10: Adds 10% to visa and insurance (stacks with quantity discounts)
+        visaDiscountPercentage += 10;
+        if (recommendedItems.insuranceCertificate)
+          insuranceDiscountPercentage += 10;
+      }
+    }
+
+    // Calculate discount amounts
+    const visaDiscountAmount =
+      (baseDiscountedVisaFees * visaDiscountPercentage) / 100;
+    const insuranceDiscountAmount = recommendedItems.insuranceCertificate
+      ? (baseDiscountedInsuranceFees * insuranceDiscountPercentage) / 100
+      : 0;
+
+    // Calculate final prices after discounts
+    const finalVisaPrice = baseDiscountedVisaFees - visaDiscountAmount;
+    const finalInsurancePrice =
+      baseDiscountedInsuranceFees - insuranceDiscountAmount;
+
+    return finalVisaPrice + finalInsurancePrice;
+  };
+
   const calculateDiscountedInsurancePrice = () => {
     // Use same logic as calculateFinalPrice for insurance
     const baseDiscountedInsuranceFees = getDiscountedInsuranceBase();
@@ -1174,13 +1232,12 @@ const CountrySlider = () => {
     const baseOriginalPrice = Math.round(currentStrikeOutPrice) * travelers;
     const insuranceOriginalPrice =
       recommendedItems.insuranceCertificate && insuranceDays > 0
-        ? Math.round(perDayInsurancePrice * insuranceDays * travelers * 1.25)
+        ? Math.round(originalPerDayInsurancePrice * insuranceDays * insuranceCount)
         : 0;
-    const giftCardOriginalPrice = recommendedItems.giftCard
-      ? 245 * giftCardCount
-      : 0;
+    // Note: giftCardOriginalPrice is calculated but not included in return
+    // to keep strike-through price separate from gift card pricing
 
-    return baseOriginalPrice;
+    return baseOriginalPrice + insuranceOriginalPrice;
   };
 
   // Apply coupon immediately (no verification at apply time)
@@ -2131,10 +2188,13 @@ const CountrySlider = () => {
 
               <div className="text-left my-4 max-sm:my-3">
                 <p className="flex gap-2 max-sm:gap-1 max-sm:text-sm">
-                  <img
+                  <Image
                     src="/icons/megaphone.png"
+                    width={24}
+                    height={20}
                     className="w-6 h-5 max-sm:w-5 max-sm:h-4"
                     alt="Notice"
+                    priority
                   />
                   <span>{sliderContent["embassy_notice_text"]}</span>
                 </p>
@@ -2148,10 +2208,13 @@ const CountrySlider = () => {
               {/* Slider container */}
               <div className="overflow-hidden rounded-3xl shadow-lg max-sm:rounded-2xl">
                 <div className="relative h-full w-full">
-                  <img
+                  <Image
                     src={countries[currentIndex].image}
                     alt={countries[currentIndex].name}
+                    width={800}
+                    height={800}
                     className="w-full aspect-square object-cover"
+                    priority
                   />
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6 max-sm:p-4">
                     <h3 className="text-2xl font-gilroy-bold text-white max-sm:text-xl">
@@ -2199,10 +2262,12 @@ const CountrySlider = () => {
             {/* Thumbnails for slider navigation */}
             <div className="flex justify-center gap-2 max-lg:hidden mt-8 overflow-auto w-full max-sm:mt-4">
               {countries.map((country, index) => (
-                <img
+                <Image
                   key={country.id}
                   src={country.image}
                   alt={country.name}
+                  width={80}
+                  height={80}
                   onClick={() => {
                     setCurrentIndex(index);
                     resetTimer();
@@ -2212,6 +2277,7 @@ const CountrySlider = () => {
                       ? "border-none"
                       : "opacity-70 hover:opacity-100"
                   }`}
+                  priority
                   style={{ boxSizing: "border-box" }}
                 />
               ))}
@@ -2256,7 +2322,7 @@ const CountrySlider = () => {
 
                   <div className="flex flex-col items-end">
                     <span className="text-2xl font-gilroy-bold max-sm:text-xl">
-                      £{Math.round(calculateFinalPrice())}
+                      £{Math.round(calculateVisaAndInsurancePrice())}
                     </span>
                   </div>
                 </div>
@@ -2673,10 +2739,13 @@ const CountrySlider = () => {
                       )}
                     </div>
 
-                    <img
+                    <Image
                       src="/image/certificatee.jpg"
                       alt="Insurance Certificate"
+                      width={120}
+                      height={120}
                       className="w-[120px] rounded-lg ml-2 max-sm:w-[60px] max-sm:ml-0.5"
+                      priority
                     />
                     <div className="flex items-center space-x-4 max-sm:space-x-1">
                       <span className="mx-2 text-[12px] max-sm:text-[10px] max-sm:mx-1">
@@ -2752,10 +2821,13 @@ const CountrySlider = () => {
                         )}
                       </div>
                       <div className="max-sm:flex-1 max-sm:flex max-sm:justify-center">
-                        <img
+                        <Image
                           src="/image/gitftnewcard.png"
                           alt="Gift Card"
+                          width={120}
+                          height={120}
                           className="w-[120px] rounded-lg ml-2 max-sm:w-[60px] max-sm:ml-0"
+                          priority
                         />
                       </div>
                     </div>
@@ -2804,10 +2876,13 @@ const CountrySlider = () => {
                   <div className="flex items-center justify-between max-sm:items-start max-sm:gap-2">
                     <div className="flex items-center space-x-3 max-sm:space-x-2">
                       <div className="w-10 aspect-square rounded-full flex items-center justify-center max-sm:w-8">
-                        <img
+                        <Image
                           src="/image/calendar.jpg"
                           alt="Calendar"
+                          width={40}
+                          height={40}
                           className="max-sm:w-6 max-sm:h-6"
+                          priority
                         />
                       </div>
                       <div>
@@ -2828,10 +2903,13 @@ const CountrySlider = () => {
                   <div className="flex items-center justify-between max-sm:items-start max-sm:gap-2">
                     <div className="flex items-center space-x-3 max-sm:space-x-2">
                       <div className="w-10 aspect-square rounded-full flex items-center justify-center max-sm:w-8">
-                        <img
+                        <Image
                           src="/image/flights.jpg"
                           alt="Flights"
+                          width={40}
+                          height={40}
                           className="w-10 aspect-square max-sm:w-6 max-sm:h-6"
+                          priority
                         />
                       </div>
                       <div>
@@ -3282,10 +3360,13 @@ const CountrySlider = () => {
               rel="noopener noreferrer"
               className="mt-4 w-fit rounded-full border border-white text-white py-1.5 hover:border-purple-500 transition-colors text-sm px-4 cursor-pointer max-sm:mt-3 max-sm:py-1 max-sm:px-3 max-sm:text-xs flex items-center"
             >
-              <img
+              <Image
                 src="/icons/whatsapp.svg"
                 alt="Get Help"
+                width={20}
+                height={20}
                 className="inline-block mr-1 size-5 text-white max-sm:w-4 max-sm:h-4"
+                priority
               />
               Get Help
             </a>

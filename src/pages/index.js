@@ -66,7 +66,7 @@ const Index = () => {
           <div className="max-[1200px] mx-auto">
             <div className="bg-[#1E1E27] rounded-3xl py-12 px-10 text-center shadow-2xl">
               {/* Main Heading */}
-              <h2 className="text-[26px] max-md:px-8 lg:text-[38px] font-gilroy-bold text-[#fff] mb-2 leading-tight flex items-center gap-3 justify-center">
+              <h2 className="text-[26px] flex-wrap max-md:px-8 lg:text-[38px] font-gilroy-bold text-[#fff] mb-2 leading-tight flex items-center gap-3 justify-center">
                 <img src="/icons/klarna.png" alt="Klarna" className="" />
                 {klarnaLoading ? "Loading..." : klarnaContent.heading}
               </h2>

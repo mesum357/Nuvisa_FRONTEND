@@ -77,6 +77,7 @@ export const Header = ({ href }) => {
               width={130}
               height={20}
               className="object-contain"
+              priority
             />
           </Link>
         </div>

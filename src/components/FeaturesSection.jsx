@@ -7,26 +7,35 @@ const FeaturesSection = () => {
   const sectionRef = useRef(null);
 
   useEffect(() => {
-    const handleScroll = () => {
-      if (sectionRef.current) {
-        const rect = sectionRef.current.getBoundingClientRect();
-        const sectionTop = rect.top;
-        const windowHeight = window.innerHeight;
+    let ticking = false;
 
-        if (sectionTop < windowHeight && sectionTop > -rect.height) {
-          const scrollProgress =
-            (windowHeight - sectionTop) / (windowHeight + rect.height);
+    const updateOffset = () => {
+      ticking = false;
+      if (!sectionRef.current) return;
 
-          // Make it move from right to left - start from right, move to left as user scrolls
-          const maxOffset = window.innerWidth / 1;
-          // Start from positive (right) and move to negative (left)
-          setScrollOffset(maxOffset - scrollProgress * maxOffset * 2);
-        }
+      const rect = sectionRef.current.getBoundingClientRect();
+      const sectionTop = rect.top;
+      const windowHeight = window.innerHeight;
+
+      if (sectionTop < windowHeight && sectionTop > -rect.height) {
+        const scrollProgress =
+          (windowHeight - sectionTop) / (windowHeight + rect.height);
+
+        // Reduce the distance travelled to slow down the perceived motion.
+        const maxOffset = (window.innerWidth / 1) * 0.35;
+        setScrollOffset(maxOffset - scrollProgress * maxOffset * 2);
       }
     };
 
-    window.addEventListener("scroll", handleScroll);
-    handleScroll();
+    const handleScroll = () => {
+      if (!ticking) {
+        ticking = true;
+        window.requestAnimationFrame(updateOffset);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    updateOffset();
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
@@ -63,6 +72,7 @@ const FeaturesSection = () => {
                   width={75}
                   height={75}
                   alt="Check Rectangle Icon"
+                  priority
                 />
               </div>
               <div>
@@ -84,6 +94,7 @@ const FeaturesSection = () => {
                   width={75}
                   height={75}
                   alt="Easy Process Icon"
+                  priority
                 />
               </div>
               <div>
@@ -106,6 +117,7 @@ const FeaturesSection = () => {
                 width={75}
                 height={75}
                 alt="AI Icon"
+                priority
               />
               <div>
                 <h3 className="text-[24px] md:text-[28px] font-gilroy-bold text-gray-800 mb-5 mt-5 md:mt-2">

@@ -1095,6 +1095,7 @@ const VisaCheckout = () => {
                   width={130}
                   height={20}
                   className="object-contain"
+                  priority
                 />
               </Link>
               <p className="text-sm text-gray-700">
@@ -1109,6 +1110,7 @@ const VisaCheckout = () => {
                 width={30}
                 height={20}
                 className="object-contain hover:opacity-80 transition-opacity"
+                priority
               />
             </Link>
           </div>
@@ -1433,24 +1435,28 @@ const VisaCheckout = () => {
                         width={45}
                         height={45}
                         alt="Visa"
+                        priority
                       />
                       <Image
                         src="/image/mastercard.1c4_lyMp (1).svg"
                         width={45}
                         height={45}
                         alt="Visa"
+                        priority
                       />
                       <Image
                         src="/image/Amex Card.svg"
                         width={55}
                         height={55}
                         alt="Visa"
+                        priority
                       />
                       <Image
                         src="/image/DGN_AcceptanceMark_FC_Hrz_RGB (1).jpg"
                         width={40}
                         height={40}
                         alt="Visa"
+                        priority
                       />
 
                       {/* <div className="bg-[#7350FF] text-white px-2 py-1 rounded text-xs font-bold">

@@ -162,6 +162,7 @@ export default function HeaderSearchSection() {
                 width={24}
                 height={16}
                 className="h-5 w-5"
+                priority
               />
               All Applications
             </button>

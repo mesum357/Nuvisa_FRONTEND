@@ -95,6 +95,7 @@ const Footer = () => {
                   width={130}
                   height={20}
                   className="object-contain"
+                  priority
                 />{" "}
               </Link>
               <div className="text-neutral-500 text-xs md:text-sm font-medium text-center">

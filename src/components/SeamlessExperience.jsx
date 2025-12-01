@@ -24,6 +24,7 @@ const SeamlessExperience = () => {
               height={160}
               alt="Check Rectangle Icon"
               className="md:w-[160px] w-[100px] object-cover rounded-[10px]"
+              priority
             />
             <div className="flex flex-col gap-1">
               <h3 className="text-lg font-gilroy-bold font-semibold text-gray-800">
@@ -47,6 +48,7 @@ const SeamlessExperience = () => {
               height={160}
               alt="Check Rectangle Icon"
               className="md:w-[160px] w-[100px] object-cover"
+            priority
             />
             <div className="flex flex-col gap-1">
               <h3 className="text-lg font-gilroy-bold font-semibold text-gray-800">

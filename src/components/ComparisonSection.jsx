@@ -87,6 +87,7 @@ const ComparisonSection = () => {
                 width={200}
                 height={92}
                 className="object-contain max-sm:w-32 max-sm:h-auto"
+                priority
               />{" "}
             </Link>
           </div>

@@ -1,6 +1,7 @@
 import { ArrowUpRight } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useAppDispatch } from "@/store";
 import {
   setSelectedCountry,
@@ -183,10 +184,13 @@ const VisaSolution = () => {
               onClick={() => handleCountrySelect(destination.name)}
               className="relative flex-shrink-0 w-[384px] h-[200px]  mx-4 group overflow-hidden rounded-xl cursor-pointer"
             >
-              <img
+              <Image
                 src={destination.image}
                 alt={destination.name}
+                width={384}
+                height={200}
                 className="w-full h-full object-cover rounded-[16px] shadow-md transition-transform duration-300 group-hover:scale-105"
+                priority
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent rounded-lg"></div>
               <div className="absolute bottom-4 left-4 right-4 bg-black rounded-full p-3 py-1 w-fit">
