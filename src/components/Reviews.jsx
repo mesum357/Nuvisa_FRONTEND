@@ -76,25 +76,24 @@ export default function Reviews() {
     useEffect(() => {
         const gallery = galleryRef.current;
         if (!gallery) return;
-
+    
         let animationFrameId;
-        let scrollPosition = 0;
-
+    
         const animate = () => {
             if (!isPaused) {
-                scrollPosition += speed;
-                if (scrollPosition >= gallery.scrollWidth / 3) {
-                    scrollPosition = 0;
-                }
-                gallery.scrollLeft = scrollPosition;
+                const maxScroll = gallery.scrollWidth / 3;
+                const next = gallery.scrollLeft + speed;
+    
+                gallery.scrollLeft = next >= maxScroll ? 0 : next;
             }
             animationFrameId = requestAnimationFrame(animate);
         };
-
+    
         animationFrameId = requestAnimationFrame(animate);
-
+    
         return () => cancelAnimationFrame(animationFrameId);
     }, [isPaused]);
+    
 
     return (
         <section className="w-full py-10 text-white flex flex-col items-center justify-center gap-8 mt-10">

@@ -12,8 +12,8 @@
   "dependencies": {
     "@reduxjs/toolkit": "^2.8.2",
     "@sendgrid/mail": "^8.1.5",
-    "@stripe/react-stripe-js": "^2.7.0",
-    "@stripe/stripe-js": "^3.5.0",
+    "@stripe/react-stripe-js": "^5.4.1",
+    "@stripe/stripe-js": "^8.5.3",
     "axios": "^1.11.0",
     "formidable": "^3.5.4",
     "framer-motion": "^12.23.12",

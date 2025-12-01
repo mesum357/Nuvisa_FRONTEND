@@ -107,6 +107,7 @@ const VisaCheckout = () => {
   );
 
   const perDayInsurancePrice = 2; // GBP per day per traveller
+  const originalPerDayInsurancePrice = 3; // Historical price for strike-throughs
   const insuranceFeesPerTraveller = perDayInsurancePrice * travelDays; // GBP per traveller
   const insuranceFeesTotal = insuranceFeesPerTraveller * insuranceCount; // total GBP
   const [includeInsurance, setIncludeInsurance] = useState(
@@ -479,7 +480,7 @@ const VisaCheckout = () => {
         ? Number(selectedVisaType.priceGBP)
         : selectedVisaType && selectedVisaType.price
         ? Math.round(Number(selectedVisaType.price) / 100)
-        : 129; // baseFee
+        : baseVisaFee; // baseFee fallback
     const currentVisaFees = currentBaseFee * travelers;
     const calculatedDiscountAmount =
       (currentVisaFees * discount.percentage) / 100;
@@ -648,17 +649,19 @@ const VisaCheckout = () => {
 
   // SUBTOTAL: Original prices (no discounts applied)
   const originalVisaFees = 200 * travelers; // £200 per traveler
-  const originalInsuranceFees = includeInsurance ? 45 * insuranceCount : 0; // £45 per insurance
+  const originalInsuranceFees = includeInsurance
+    ? originalPerDayInsurancePrice * travelDays * insuranceCount
+    : 0; // Dynamic strike price based on travel days
   const originalGiftCardFees = includeGiftCard ? 245 * giftCardCount : 0; // £245 per gift card
   const eVisaFees = 0; // Currently free
   const subtotal =
     originalVisaFees + originalInsuranceFees + originalGiftCardFees + eVisaFees;
 
   // TOTAL: Start with discounted base prices
-  const baseDiscountedVisaFees = 129 * travelers; // £129 per traveler
+  const baseDiscountedVisaFees = baseVisaFee * travelers; // Dynamic per traveler
   const baseDiscountedInsuranceFees = includeInsurance
-    ? 30 * insuranceCount
-    : 0; // £30 per insurance
+    ? perDayInsurancePrice * travelDays * insuranceCount
+    : 0; // £2 per day per traveller
   const baseDiscountedGiftCardFees = includeGiftCard ? 159 * giftCardCount : 0; // £159 per gift card
 
   // Calculate individual component discounts
@@ -776,7 +779,7 @@ const VisaCheckout = () => {
   const visaFees = finalVisaFees;
   const insuranceFees = finalInsuranceFees;
   const giftCardFees = finalGiftCardFees;
-  const currentBaseFee = 129; // Current base fee per traveler
+  const currentBaseFee = baseVisaFee; // Current base fee per traveler
   const totalAmount = total;
 
   // Check available payment methods from ExpressPaymentRequestButton

@@ -92,7 +92,7 @@ export const Header = ({ href }) => {
         <div className="flex items-center space-x-3">
           {/* Help Center - Hidden on small screens */}
           <Link
-            href={"/#faq"}
+            href={"/get-the-visa#faq"}
             className="hidden xl:flex items-center space-x-2 text-gray-300 hover:text-white cursor-pointer"
           >
             <HelpCircle className="size-5" />
@@ -176,15 +176,15 @@ export const Header = ({ href }) => {
                     My Profile
                   </div>
                 </div>
-                <a
-                  href="#"
+                <Link
+                  href="/get-the-visa#faq"
                   className="block px-4 py-2 text-sm text-gray-300 hover:bg-[#1e1e27] hover:text-white transition-colors"
                 >
                   <div className="flex items-center gap-2">
                     <HelpCircle className="text-gray-400" size={16} />
                     Help & Support
                   </div>
-                </a>
+                </Link>
                 <div className="border-t border-[#423577] my-1"></div>
                 <button
                   onClick={handleLogout}

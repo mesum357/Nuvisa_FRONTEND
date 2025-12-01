@@ -3,6 +3,7 @@ import { Gift, Shield, Plus, Minus, ShoppingCart, ArrowUpRight, ChevronUp, Chevr
 import { useRouter } from "next/navigation";
 import { useAppSelector, useAppDispatch } from "@/store";
 import { setTravelers, setReduxInsuranceCount, setReduxGiftCardCount, setRecommendedItems, setRequiredDocuments, setVisaFees, setInsuranceFees, setGiftCardFees, setTotalAmount, setInsuranceOnly, triggerDocumentValidation } from "@/store/visaSlice";
+import { useToast } from "@/contexts/ToastContext";
 import Drawer from "./Drawer";
 
 
@@ -10,6 +11,7 @@ const StickyBottomBar = () => {
   const dispatch = useAppDispatch();
   const visaState = useAppSelector((state) => state.visa);
   const router = useRouter();
+  const { showSuccess } = useToast();
   
   const [isVisible, setIsVisible] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -22,12 +24,69 @@ const StickyBottomBar = () => {
   const giftCardCount = visaState.giftCardCount || 0;
   const recommendedItems = visaState.recommendedItems;
   const requiredDocuments = visaState.requiredDocuments || {};
+  
+  // Refs to track previous values for toast notifications
+  const prevTravelerCountRef = useRef(travelerCount);
+  const prevInsuranceCountRef = useRef(insuranceCount);
+  const isInitialMountTravelerRef = useRef(true);
+  const isInitialMountInsuranceRef = useRef(true);
 
   const [quantities, setQuantities] = useState({
     schengen: travelerCount,
     insurance: insuranceCount,
     giftCard: giftCardCount
   });
+
+  const perDayInsurancePrice = 2;
+  const DEFAULT_INSURANCE_DAYS = 15;
+  const getVisaFeePerTraveler = () => {
+    if (visaState.selectedVisaType?.priceGBP)
+      return Number(visaState.selectedVisaType.priceGBP);
+    if (visaState.selectedVisaType?.price) {
+      const converted = Math.round(
+        Number(visaState.selectedVisaType.price) / 100
+      );
+      if (converted > 0) return converted;
+    }
+    return 129;
+  };
+
+  const getInsuranceDays = () => {
+    try {
+      const arrivalStr = visaState.arrivalDate;
+      const departureStr = visaState.departureDate;
+      if (!arrivalStr || !departureStr) return DEFAULT_INSURANCE_DAYS;
+      const arrival = new Date(arrivalStr);
+      const departure = new Date(departureStr);
+      if (Number.isNaN(arrival) || Number.isNaN(departure)) {
+        return DEFAULT_INSURANCE_DAYS;
+      }
+      arrival.setHours(0, 0, 0, 0);
+      departure.setHours(0, 0, 0, 0);
+      const diffTime = departure.getTime() - arrival.getTime();
+      if (diffTime < 0) return 1;
+      const inclusiveDays = Math.max(
+        1,
+        Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
+      );
+      return inclusiveDays;
+    } catch {
+      return DEFAULT_INSURANCE_DAYS;
+    }
+  };
+
+  const insuranceDays = getInsuranceDays();
+  const getInsuranceBaseFees = () => {
+    if (
+      !recommendedItems?.insuranceCertificate ||
+      !quantities.insurance ||
+      quantities.insurance <= 0
+    ) {
+      return 0;
+    }
+    const effectiveDays = Math.max(insuranceDays || 0, 1);
+    return perDayInsurancePrice * effectiveDays * quantities.insurance;
+  };
 
   // Sync local state with Redux state when it changes
   useEffect(() => {
@@ -38,6 +97,51 @@ const StickyBottomBar = () => {
       giftCard: giftCardCount
     }));
   }, [travelerCount, insuranceCount, giftCardCount]);
+
+  // Toast notifications for crossing threshold limits
+  useEffect(() => {
+    // Skip on initial mount
+    if (isInitialMountTravelerRef.current) {
+      prevTravelerCountRef.current = travelerCount;
+      isInitialMountTravelerRef.current = false;
+      return;
+    }
+
+    const prevTravelers = prevTravelerCountRef.current;
+    const currentTravelers = travelerCount;
+    
+    // Only show toast if value changed and crossed the threshold
+    if (prevTravelers !== currentTravelers) {
+      if (prevTravelers < 3 && currentTravelers >= 3) {
+        showSuccess("Group discount unlocked! 20% off for 3+ travellers");
+      } else if (prevTravelers >= 3 && currentTravelers < 3) {
+        showSuccess("Group discount removed — fewer than 3 travellers");
+      }
+      prevTravelerCountRef.current = currentTravelers;
+    }
+  }, [travelerCount, showSuccess]);
+
+  useEffect(() => {
+    // Skip on initial mount
+    if (isInitialMountInsuranceRef.current) {
+      prevInsuranceCountRef.current = insuranceCount;
+      isInitialMountInsuranceRef.current = false;
+      return;
+    }
+
+    const prevInsurance = prevInsuranceCountRef.current;
+    const currentInsurance = insuranceCount;
+    
+    // Only show toast if value changed and crossed the threshold
+    if (prevInsurance !== currentInsurance) {
+      if (prevInsurance < 3 && currentInsurance >= 3) {
+        showSuccess("Insurance group discount unlocked! 20% off for 3+ insurances");
+      } else if (prevInsurance >= 3 && currentInsurance < 3) {
+        showSuccess("Insurance group discount removed — fewer than 3 insurances");
+      }
+      prevInsuranceCountRef.current = currentInsurance;
+    }
+  }, [insuranceCount, showSuccess]);
 
   const items = [
     {
@@ -127,8 +231,9 @@ const StickyBottomBar = () => {
     });
     
     // Base discounted prices (not original prices)
-    const baseDiscountedVisaFees = 129 * quantities.schengen;
-    const baseDiscountedInsuranceFees = recommendedItems?.insuranceCertificate ? 30 * quantities.insurance : 0;
+    const baseDiscountedVisaFees =
+      getVisaFeePerTraveler() * quantities.schengen;
+    const baseDiscountedInsuranceFees = getInsuranceBaseFees();
     const baseDiscountedGiftCardFees = recommendedItems?.giftCard ? 159 * quantities.giftCard : 0;
 
     // Calculate individual component discounts

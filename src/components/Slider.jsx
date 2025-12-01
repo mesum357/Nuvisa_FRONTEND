@@ -210,10 +210,23 @@ const CountrySlider = () => {
 
   const initialDepartureDate = computeDefaultDeparture(initialArrivalDate);
 
-  const [arrivalDate, setArrivalDateLocal] = useState(() => initialArrivalDate);
-  const [departureDate, setDepartureDateLocal] = useState(
-    () => initialDepartureDate
+  const parsePersistedDate = (value) => {
+    if (!value) return null;
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  };
+
+  const persistedArrivalDate = parsePersistedDate(visaState.arrivalDate);
+  const persistedDepartureDate = parsePersistedDate(visaState.departureDate);
+
+  const [arrivalDate, setArrivalDateLocal] = useState(
+    () => persistedArrivalDate || initialArrivalDate
   );
+  const [departureDate, setDepartureDateLocal] = useState(() => {
+    if (persistedDepartureDate) return persistedDepartureDate;
+    if (persistedArrivalDate) return computeDefaultDeparture(persistedArrivalDate);
+    return initialDepartureDate;
+  });
   const [dateValidationErrors, setDateValidationErrors] = useState({});
   const [_selectedOptions, setSelectedOptions] = useState({
     approvalRate: true,
@@ -251,6 +264,10 @@ const CountrySlider = () => {
     googlePay: false,
   });
   const hasCheckedAvailabilityRef = useRef(false);
+  
+  // Refs to track previous values for threshold crossing detection
+  const prevInsuranceCountForToastRef = useRef(insuranceCount);
+  const isInitialMountInsuranceToastRef = useRef(true);
 
   const [userEmail, setUserEmailLocal] = useState("");
   const [emailError, setEmailError] = useState("");
@@ -543,19 +560,69 @@ const CountrySlider = () => {
 
   useEffect(() => {
     try {
-      const arrivalStr = getLocalDateString(initialArrivalDate);
-      const departureStr = getLocalDateString(initialDepartureDate);
-      dispatch(setArrivalDate(arrivalStr));
-      dispatch(setDepartureDate(departureStr));
+      if (!visaState.arrivalDate) {
+        const arrivalStr = getLocalDateString(arrivalDate || initialArrivalDate);
+        dispatch(setArrivalDate(arrivalStr));
+      }
 
-      const errors = validateDates(
-        initialArrivalDate,
-        initialDepartureDate,
-        selectedVisaType
-      );
-      setDateValidationErrors(errors);
+      if (!visaState.departureDate) {
+        const fallbackDeparture =
+          departureDate ||
+          (arrivalDate
+            ? computeDefaultDeparture(arrivalDate)
+            : initialDepartureDate);
+        dispatch(setDepartureDate(getLocalDateString(fallbackDeparture)));
+      }
+
+      if (!visaState.arrivalDate || !visaState.departureDate) {
+        const errors = validateDates(
+          arrivalDate || initialArrivalDate,
+          departureDate ||
+            (arrivalDate
+              ? computeDefaultDeparture(arrivalDate)
+              : initialDepartureDate),
+          selectedVisaType
+        );
+        setDateValidationErrors(errors);
+      }
     } catch {}
-  }, []);
+  }, [
+    arrivalDate,
+    departureDate,
+    visaState.arrivalDate,
+    visaState.departureDate,
+    selectedVisaType,
+  ]);
+
+  useEffect(() => {
+    const persistedArrival = parsePersistedDate(visaState.arrivalDate);
+    if (persistedArrival) {
+      const persistedMs = persistedArrival.getTime();
+      if (!arrivalDate || arrivalDate.getTime() !== persistedMs) {
+        setArrivalDateLocal(persistedArrival);
+      }
+    } else if (!visaState.arrivalDate && !arrivalDate) {
+      setArrivalDateLocal(initialArrivalDate);
+    }
+
+    const persistedDeparture = parsePersistedDate(visaState.departureDate);
+    if (persistedDeparture) {
+      const persistedMs = persistedDeparture.getTime();
+      if (!departureDate || departureDate.getTime() !== persistedMs) {
+        setDepartureDateLocal(persistedDeparture);
+      }
+    } else if (!visaState.departureDate && !departureDate) {
+      const fallbackDeparture = arrivalDate
+        ? computeDefaultDeparture(arrivalDate)
+        : initialDepartureDate;
+      setDepartureDateLocal(fallbackDeparture);
+    }
+  }, [
+    visaState.arrivalDate,
+    visaState.departureDate,
+    arrivalDate,
+    departureDate,
+  ]);
 
   let maxDepartureDate = null;
   if (arrivalDate) {
@@ -726,11 +793,49 @@ const CountrySlider = () => {
   })();
 
   const perDayInsurancePrice = 2;
+  const originalPerDayInsurancePrice = 3;
 
-  const computedInsuranceTotal =
-    recommendedItems.insuranceCertificate && insuranceDays > 0
-      ? perDayInsurancePrice * insuranceDays * insuranceCount
-      : 0;
+  const getCurrentVisaFeePerTraveler = () => {
+    if (selectedVisaType?.priceGBP) return Number(selectedVisaType.priceGBP);
+    if (selectedVisaType?.price) {
+      const converted = Math.round(Number(selectedVisaType.price) / 100);
+      if (converted > 0) return converted;
+    }
+    return baseFee;
+  };
+
+  const getEffectiveInsuranceDays = () => {
+    if (!recommendedItems.insuranceCertificate) return 0;
+    return Math.max(insuranceDays || 0, 1);
+  };
+
+  const getDiscountedInsuranceBase = () => {
+    if (
+      !recommendedItems.insuranceCertificate ||
+      !insuranceCount ||
+      insuranceCount <= 0
+    ) {
+      return 0;
+    }
+    return perDayInsurancePrice * getEffectiveInsuranceDays() * insuranceCount;
+  };
+
+  const getOriginalInsuranceBase = () => {
+    if (
+      !recommendedItems.insuranceCertificate ||
+      !insuranceCount ||
+      insuranceCount <= 0
+    ) {
+      return 0;
+    }
+    return (
+      originalPerDayInsurancePrice *
+      getEffectiveInsuranceDays() *
+      insuranceCount
+    );
+  };
+
+  const computedInsuranceTotal = getDiscountedInsuranceBase();
 
   const tooltips = {
     sticker:
@@ -885,10 +990,9 @@ const CountrySlider = () => {
     });
 
     // Base discounted prices (not original prices)
-    const baseDiscountedVisaFees = 129 * travelers; // £129 per traveler
-    const baseDiscountedInsuranceFees = recommendedItems.insuranceCertificate
-      ? 30 * insuranceCount
-      : 0; // £30 per insurance
+    const baseDiscountedVisaFees =
+      getCurrentVisaFeePerTraveler() * travelers; // Dynamic fee per traveler
+    const baseDiscountedInsuranceFees = getDiscountedInsuranceBase();
     const baseDiscountedGiftCardFees = recommendedItems.giftCard
       ? 159 * giftCardCount
       : 0; // £159 per gift card
@@ -972,15 +1076,12 @@ const CountrySlider = () => {
       totalPrice: finalVisaPrice + finalInsurancePrice + finalGiftCardPrice,
     });
 
-    // Return only visa fees for main display (matching original behavior)
-    return finalVisaPrice?.toFixed(2);
+    return finalVisaPrice + finalInsurancePrice + finalGiftCardPrice;
   };
 
   const calculateDiscountedInsurancePrice = () => {
     // Use same logic as calculateFinalPrice for insurance
-    const baseDiscountedInsuranceFees = recommendedItems.insuranceCertificate
-      ? 30 * insuranceCount
-      : 0;
+    const baseDiscountedInsuranceFees = getDiscountedInsuranceBase();
     let insuranceDiscountPercentage = 0;
 
     // Check if insurance qualifies for quantity discount (3+)
@@ -1270,6 +1371,29 @@ const CountrySlider = () => {
   }, [travelers]);
 
   useEffect(() => {
+    // Skip on initial mount for toast detection
+    if (isInitialMountInsuranceToastRef.current) {
+      prevInsuranceCountForToastRef.current = insuranceCount;
+      isInitialMountInsuranceToastRef.current = false;
+      // Still apply discount logic on mount if needed
+      if (insuranceCount >= 3) {
+        setAppliedInsuranceDiscount({
+          description: "Insurance group discount (3+ insurances)",
+          percentage: 20,
+          requiresMinInsurances: 3,
+        });
+        setInsuranceCouponCode("GROUP20");
+      } else {
+        setInsuranceCouponCode(null);
+        setAppliedInsuranceDiscount(null);
+      }
+      return;
+    }
+
+    const prevInsurance = prevInsuranceCountForToastRef.current;
+    const currentInsurance = insuranceCount;
+    const crossedThreshold = (prevInsurance < 3 && currentInsurance >= 3) || (prevInsurance >= 3 && currentInsurance < 3);
+
     if (insuranceCount >= 3) {
       setAppliedInsuranceDiscount({
         description: "Insurance group discount (3+ insurances)",
@@ -1277,12 +1401,18 @@ const CountrySlider = () => {
         requiresMinInsurances: 3,
       });
       setInsuranceCouponCode("GROUP20");
-      showSuccess("Insurance group-20 applied — 20% off for 3+ insurances");
+      // Only show toast when crossing the threshold
+      if (crossedThreshold) {
+        showSuccess("Insurance group-20 applied — 20% off for 3+ insurances");
+      }
     } else {
       setInsuranceCouponCode(null);
       setAppliedInsuranceDiscount(null);
     }
-  }, [insuranceCount]);
+
+    // Update ref after processing
+    prevInsuranceCountForToastRef.current = currentInsurance;
+  }, [insuranceCount, showSuccess]);
 
   useEffect(() => {
     if (arrivalDate && departureDate) {
@@ -1382,9 +1512,7 @@ const CountrySlider = () => {
       visaFees = visaFees - discountAmount;
     }
 
-    let insuranceFees = recommendedItems.insuranceCertificate
-      ? perDayInsurancePrice * insuranceDays * insuranceCount
-      : 0;
+    let insuranceFees = getDiscountedInsuranceBase();
     if (appliedInsuranceDiscount && insuranceFees > 0) {
       const insDisc =
         (insuranceFees * appliedInsuranceDiscount.percentage) / 100;
@@ -1708,19 +1836,16 @@ const CountrySlider = () => {
   const expressPaymentData = useMemo(() => {
     // SUBTOTAL: Original prices (no discounts applied) - matching OrderCheckout
     const originalVisaFees = 200 * travelers; // £200 per traveler
-    const originalInsuranceFees = recommendedItems.insuranceCertificate
-      ? 45 * insuranceCount
-      : 0; // £45 per insurance
+    const originalInsuranceFees = getOriginalInsuranceBase(); // Dynamic per-day pricing
     const originalGiftCardFees = recommendedItems.giftCard
       ? 245 * giftCardCount
       : 0; // £245 per gift card
     const subtotalGBP = originalVisaFees + originalInsuranceFees + originalGiftCardFees;
 
     // Base discounted prices (matching OrderCheckout.jsx and calculateFinalPrice)
-    const baseDiscountedVisaFees = 129 * travelers; // £129 per traveler
-    const baseDiscountedInsuranceFees = recommendedItems.insuranceCertificate
-      ? 30 * insuranceCount
-      : 0; // £30 per insurance
+    const baseDiscountedVisaFees =
+      getCurrentVisaFeePerTraveler() * travelers; // Dynamic per traveler
+    const baseDiscountedInsuranceFees = getDiscountedInsuranceBase();
     const baseDiscountedGiftCardFees = recommendedItems.giftCard
       ? 159 * giftCardCount
       : 0; // £159 per gift card
@@ -2599,7 +2724,7 @@ const CountrySlider = () => {
                         </div>
                         <div className="flex items-center space-x-2 max-sm:space-x-1">
                           <span className="text-lg font-semibold line-through max-sm:text-sm">
-                            £{45 * insuranceCount}
+                            £{Math.round(getOriginalInsuranceBase())}
                           </span>
                           <span className="font-gilroy-bold text-2xl max-sm:text-lg">
                             £{Math.round(calculateDiscountedInsurancePrice())}

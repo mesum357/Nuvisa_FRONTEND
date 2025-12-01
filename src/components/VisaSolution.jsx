@@ -156,26 +156,16 @@ const VisaSolution = () => {
             If you're frustrated with travel agencies that have substantial fees, confusing conditions, and slow appointments - Meet the next generation peace of mind complete visa solution you've been looking for.
           </p>
         </div>
-        <div className="w-[85%] md:w-[60%] min-h-[180px]">
+        <div className="relative w-[85%] md:w-[60%] min-h-[180px] overflow-hidden rounded-[30px]">
           <video
-            className=" object-cover rounded-[30px] mt-[44px] w-full h-full"
-            style={{ objectFit: "cover" }}
+            className="w-full h-full object-cover scale-[1.2]"
             autoPlay
             muted
             loop
             playsInline
             preload="auto"
-            //poster="//magic.fit/cdn/shop/files/Video_Overlay_1.png?v=1668943316&width=1200"
           >
-            <source
-              src="/video/nuvisa.mp4"
-              type="video/mp4"
-            />
-            <source
-              src="//magic.fit/cdn/shop/videos/c/vp/28b6da720a77479b995a18e6df6b1463/28b6da720a77479b995a18e6df6b1463.HD-720p-1.6Mbps-20580260.mp4?v=0"
-              type="video/mp4"
-            />
-            Your browser does not support the video tag.
+            <source src="/video/nuvisa.mp4" type="video/mp4" />
           </video>
         </div>
       </div>
