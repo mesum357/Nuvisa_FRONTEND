@@ -5,14 +5,20 @@ import { useEffect } from "react";
 
 export default function App({ Component, pageProps }) {
   useEffect(() => {
-    // Initialize Stripe when the script loads
+    // Initialize Stripe when the script loads (with error handling to prevent app crash)
     if (typeof window !== 'undefined') {
       const initStripe = () => {
-        if (window.Stripe && process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
-          window.stripeInstance = window.Stripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
-          console.log('Stripe initialized successfully');
-        } else if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
-          console.warn('NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is not set');
+        try {
+          if (window.Stripe && process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
+            window.stripeInstance = window.Stripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
+            console.log('Stripe initialized successfully');
+          } else if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
+            console.warn('NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is not set');
+          }
+        } catch (error) {
+          // Silently catch Stripe initialization errors to prevent app crash
+          console.warn('Stripe initialization skipped:', error.message);
+          window.stripeInstance = null;
         }
       };
       
