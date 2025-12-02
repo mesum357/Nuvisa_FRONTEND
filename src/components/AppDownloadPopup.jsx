@@ -16,14 +16,8 @@ const AppDownloadPopup = () => {
     const isHomePage = router.pathname === '/' || router.pathname === '/home';
 
     if (!hasShownInSession && isHomePage) {
-      // Show popup after 3 seconds
-      const timer = setTimeout(() => {
-        setIsVisible(true);
-        // Mark as shown in this session to prevent showing again during navigation
-        sessionStorage.setItem('nuvisa-popup-shown-session', 'true');
-      }, 6000); // 3 seconds
-
-      return () => clearTimeout(timer);
+      setIsVisible(true);
+      sessionStorage.setItem('nuvisa-popup-shown-session', 'true');
     }
   }, [router.pathname]);
 
