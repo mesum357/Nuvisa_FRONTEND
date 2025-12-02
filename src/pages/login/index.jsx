@@ -245,17 +245,30 @@ const Index = () => {
             )}
 
             <div className="mt-6 text-center">
-              <p className="text-sm text-gray-300">
-                Didn't receive code?{" "}
-                <button
-                  type="button"
-                  onClick={handleResendCode}
-                  disabled={resendLoading}
-                  className="font-medium text-purple-500 hover:text-purple-500 disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {resendLoading ? "Sending..." : "Resend Code"}
-                </button>
-              </p>
+              {!isVerificationSent ? (
+                <p className="text-sm text-gray-300">
+                  No Nuvisa Account?{" "}
+                  <button
+                    type="button"
+                    onClick={() => router.push("/get-the-visa")}
+                    className="font-medium text-purple-500 hover:text-purple-500"
+                  >
+                    Proceed to Checkout
+                  </button>
+                </p>
+              ) : (
+                <p className="text-sm text-gray-300">
+                  Didn't receive code?{" "}
+                  <button
+                    type="button"
+                    onClick={handleResendCode}
+                    disabled={resendLoading}
+                    className="font-medium text-purple-500 hover:text-purple-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {resendLoading ? "Sending..." : "Resend Code"}
+                  </button>
+                </p>
+              )}
             </div>
           </div>
         </div>

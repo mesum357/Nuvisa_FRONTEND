@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useAppDispatch } from "@/store";
+import { useAppDispatch, useAppSelector } from "@/store";
 import {
   setSelectedCountry,
   setVisaFees,
@@ -23,16 +23,22 @@ const CountryCardsSection = () => {
   });
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const visaState = useAppSelector((state) => state.visa);
 
   const handleCountrySelect = (countryName) => {
     // Get dynamic fees based on selected country
     const countryConfig = getCountryConfig(countryName);
 
+    // Preserve existing traveler count, default to 1 if not set
+    const currentTravelerCount = visaState.travelers && visaState.travelers > 0 
+      ? visaState.travelers 
+      : 1;
+
     // Store the selected country and dynamic fees in Redux
     dispatch(setSelectedCountry(String(countryName)));
     dispatch(setVisaFees(Number(countryConfig.visaFee)));
     dispatch(setInsuranceFees(Number(countryConfig.insuranceFee)));
-    dispatch(setTravelers(Number(1)));
+    dispatch(setTravelers(Number(currentTravelerCount)));
 
     // Redirect to checkout with dynamic country information
     router.push(
@@ -40,7 +46,7 @@ const CountryCardsSection = () => {
         countryName
       )}&visaFees=${countryConfig.visaFee}&insuranceFees=${
         countryConfig.insuranceFee
-      }&travelers=1`
+      }&travelers=${currentTravelerCount}`
     );
   };
 

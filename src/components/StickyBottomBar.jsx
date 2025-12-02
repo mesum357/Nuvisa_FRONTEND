@@ -29,8 +29,10 @@ const StickyBottomBar = () => {
   // Refs to track previous values for toast notifications
   const prevTravelerCountRef = useRef(travelerCount);
   const prevInsuranceCountRef = useRef(insuranceCount);
+  const prevGiftCardCountRef = useRef(giftCardCount);
   const isInitialMountTravelerRef = useRef(true);
   const isInitialMountInsuranceRef = useRef(true);
+  const isInitialMountGiftCardRef = useRef(true);
 
   const [quantities, setQuantities] = useState({
     schengen: travelerCount,
@@ -143,6 +145,28 @@ const StickyBottomBar = () => {
       prevInsuranceCountRef.current = currentInsurance;
     }
   }, [insuranceCount, showSuccess]);
+
+  useEffect(() => {
+    // Skip on initial mount
+    if (isInitialMountGiftCardRef.current) {
+      prevGiftCardCountRef.current = giftCardCount;
+      isInitialMountGiftCardRef.current = false;
+      return;
+    }
+
+    const prevGiftCard = prevGiftCardCountRef.current;
+    const currentGiftCard = giftCardCount;
+    
+    // Only show toast if value changed and crossed the threshold
+    if (prevGiftCard !== currentGiftCard) {
+      if (prevGiftCard < 3 && currentGiftCard >= 3) {
+        showSuccess("Gift card group discount unlocked! 20% off for 3+ gift cards");
+      } else if (prevGiftCard >= 3 && currentGiftCard < 3) {
+        showSuccess("Gift card group discount removed — fewer than 3 gift cards");
+      }
+      prevGiftCardCountRef.current = currentGiftCard;
+    }
+  }, [giftCardCount, showSuccess]);
 
   const items = [
     {

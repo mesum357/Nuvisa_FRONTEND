@@ -1407,8 +1407,7 @@ const CountrySlider = () => {
           setCouponCodeLocal("GROUP20");
           setCouponError("");
           setGroupAutoApplied(true);
-          showSuccess &&
-            showSuccess("Group-20 applied — 20% off for 3+ travellers");
+          // Toast notification is handled by StickyBottomBar to avoid duplicate toasts
         }
       } else {
         // If travelers dropped below 3 and we auto-applied the group discount, remove it
@@ -1417,8 +1416,7 @@ const CountrySlider = () => {
           // Only clear couponCode if it was the auto-applied GROUP20
           if (currentCode === "GROUP20") setCouponCodeLocal("");
           setGroupAutoApplied(false);
-          showSuccess &&
-            showSuccess("Group-20 removed — fewer than 3 travellers");
+          // Toast notification is handled by StickyBottomBar to avoid duplicate toasts
         }
         // If the user manually had GROUP20 applied but now travelers < 3, show an error when they try to proceed (existing validation handles this)
       }
@@ -1458,10 +1456,6 @@ const CountrySlider = () => {
         requiresMinInsurances: 3,
       });
       setInsuranceCouponCode("GROUP20");
-      // Only show toast when crossing the threshold
-      if (crossedThreshold) {
-        showSuccess("Insurance group-20 applied — 20% off for 3+ insurances");
-      }
     } else {
       setInsuranceCouponCode(null);
       setAppliedInsuranceDiscount(null);
@@ -1469,7 +1463,7 @@ const CountrySlider = () => {
 
     // Update ref after processing
     prevInsuranceCountForToastRef.current = currentInsurance;
-  }, [insuranceCount, showSuccess]);
+  }, [insuranceCount]);
 
   useEffect(() => {
     if (arrivalDate && departureDate) {

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { FaSearch } from "react-icons/fa";
 import { useRouter } from "next/navigation";
-import { useAppDispatch } from "@/store";
+import { useAppDispatch, useAppSelector } from "@/store";
 import {
   setSelectedCountry,
   setVisaFees,
@@ -50,16 +50,22 @@ export default function CountrySelector() {
   const [searchTerm, setSearchTerm] = useState("");
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const visaState = useAppSelector((state) => state.visa);
 
   const handleCountrySelect = (countryName) => {
     // Get dynamic fees based on selected country
     const countryConfig = getCountryConfig(countryName);
 
+    // Preserve existing traveler count, default to 1 if not set
+    const currentTravelerCount = visaState.travelers && visaState.travelers > 0 
+      ? visaState.travelers 
+      : 1;
+
     // Store the selected country and dynamic fees in Redux
     dispatch(setSelectedCountry(countryName));
     dispatch(setVisaFees(countryConfig.visaFee));
     dispatch(setInsuranceFees(countryConfig.insuranceFee));
-    dispatch(setTravelers(1));
+    dispatch(setTravelers(currentTravelerCount));
 
     // Redirect to get-the-visa page with selected country
     router.push(
