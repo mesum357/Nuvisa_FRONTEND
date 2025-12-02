@@ -796,21 +796,22 @@ const CountrySlider = () => {
   const perDayInsurancePrice = 2;
   const originalPerDayInsurancePrice = 3;
 
-  const getCurrentVisaFeePerTraveler = () => {
+  // Memoize expensive calculations
+  const currentVisaFeePerTraveler = useMemo(() => {
     if (selectedVisaType?.priceGBP) return Number(selectedVisaType.priceGBP);
     if (selectedVisaType?.price) {
       const converted = Math.round(Number(selectedVisaType.price) / 100);
       if (converted > 0) return converted;
     }
     return baseFee;
-  };
+  }, [selectedVisaType?.priceGBP, selectedVisaType?.price, baseFee]);
 
-  const getEffectiveInsuranceDays = () => {
+  const effectiveInsuranceDays = useMemo(() => {
     if (!recommendedItems.insuranceCertificate) return 0;
     return Math.max(insuranceDays || 0, 1);
-  };
+  }, [recommendedItems.insuranceCertificate, insuranceDays]);
 
-  const getDiscountedInsuranceBase = () => {
+  const discountedInsuranceBase = useMemo(() => {
     if (
       !recommendedItems.insuranceCertificate ||
       !insuranceCount ||
@@ -818,10 +819,10 @@ const CountrySlider = () => {
     ) {
       return 0;
     }
-    return perDayInsurancePrice * getEffectiveInsuranceDays() * insuranceCount;
-  };
+    return perDayInsurancePrice * effectiveInsuranceDays * insuranceCount;
+  }, [recommendedItems.insuranceCertificate, insuranceCount, effectiveInsuranceDays]);
 
-  const getOriginalInsuranceBase = () => {
+  const originalInsuranceBase = useMemo(() => {
     if (
       !recommendedItems.insuranceCertificate ||
       !insuranceCount ||
@@ -831,12 +832,12 @@ const CountrySlider = () => {
     }
     return (
       originalPerDayInsurancePrice *
-      getEffectiveInsuranceDays() *
+      effectiveInsuranceDays *
       insuranceCount
     );
-  };
+  }, [recommendedItems.insuranceCertificate, insuranceCount, effectiveInsuranceDays]);
 
-  const computedInsuranceTotal = getDiscountedInsuranceBase();
+  const computedInsuranceTotal = discountedInsuranceBase;
 
   const tooltips = {
     sticker:
@@ -980,233 +981,252 @@ const CountrySlider = () => {
     return emailRegex.test(email);
   };
 
-  const calculateFinalPrice = () => {
-    // NEW DISCOUNT LOGIC - matching OrderCheckout.jsx
-    console.log("Slider calculateFinalPrice - Input values:", {
-      travelers,
-      insuranceCount,
-      giftCardCount,
-      recommendedItems,
-      appliedDiscount,
-    });
-
+  // Memoize calculateFinalPrice to prevent recalculation on every render
+  const finalPrice = useMemo(() => {
     // Base discounted prices (not original prices)
-    const baseDiscountedVisaFees =
-      getCurrentVisaFeePerTraveler() * travelers; // Dynamic fee per traveler
-    const baseDiscountedInsuranceFees = getDiscountedInsuranceBase();
+    const baseDiscountedVisaFees = currentVisaFeePerTraveler * travelers;
+    const baseDiscountedInsuranceFees = discountedInsuranceBase;
     const baseDiscountedGiftCardFees = recommendedItems.giftCard
       ? 159 * giftCardCount
-      : 0; // £159 per gift card
-
-    // Calculate individual component discounts
-    let visaDiscountPercentage = 0;
-    let insuranceDiscountPercentage = 0;
-    let giftCardDiscountPercentage = 0;
+      : 0;
 
     // Check if any component qualifies for quantity discount (3+)
-    // Note: Insurance count cannot exceed traveler count (insurance certificates are for travelers)
     const effectiveInsuranceCount = Math.min(insuranceCount, travelers);
-
     const travelersQualify = travelers >= 3;
     const insuranceQualify = effectiveInsuranceCount >= 3;
     const giftCardQualify = giftCardCount >= 3;
 
-    // Apply quantity-based discounts (20% for 3+ items)
-    if (travelersQualify) visaDiscountPercentage += 20;
-    if (insuranceQualify) insuranceDiscountPercentage += 20;
-    if (giftCardQualify) giftCardDiscountPercentage += 20;
+    // Check if student discount applies
+    const hasStudentDiscount = appliedDiscount && appliedDiscount.code === "STUDENT10";
+    const hasGroupDiscount = appliedDiscount && appliedDiscount.code === "GROUP20";
 
-    // Apply coupon discounts
-    if (appliedDiscount) {
-      console.log("Slider Applied Discount:", appliedDiscount); // Debug log
-      if (appliedDiscount.code === "GROUP20") {
-        // GROUP20: Only applies if travelers >= 3 AND at least one other component >= 3
-        if (travelersQualify && (insuranceQualify || giftCardQualify)) {
-          // Apply 20% to all components that have 3+ items
-          if (travelersQualify)
-            visaDiscountPercentage = Math.max(visaDiscountPercentage, 20);
-          if (insuranceQualify)
-            insuranceDiscountPercentage = Math.max(
-              insuranceDiscountPercentage,
-              20
-            );
-          if (giftCardQualify)
-            giftCardDiscountPercentage = Math.max(
-              giftCardDiscountPercentage,
-              20
-            );
+    // Calculate discounts sequentially (compound): First 20% quantity discount, then 10% student discount on discounted price
+    let finalVisaPrice = baseDiscountedVisaFees;
+    let finalInsurancePrice = baseDiscountedInsuranceFees;
+    let finalGiftCardPrice = baseDiscountedGiftCardFees;
+
+    // Apply 20% quantity discount first (if 3+ items)
+    if (travelersQualify) {
+      const quantityDiscount = (finalVisaPrice * 20) / 100;
+      finalVisaPrice = finalVisaPrice - quantityDiscount;
+    }
+    if (insuranceQualify && recommendedItems.insuranceCertificate) {
+      const quantityDiscount = (finalInsurancePrice * 20) / 100;
+      finalInsurancePrice = finalInsurancePrice - quantityDiscount;
+    }
+    if (giftCardQualify && recommendedItems.giftCard) {
+      const quantityDiscount = (finalGiftCardPrice * 20) / 100;
+      finalGiftCardPrice = finalGiftCardPrice - quantityDiscount;
+    }
+
+    // Apply GROUP20 coupon (ensures 20% is applied if conditions met)
+    if (hasGroupDiscount) {
+      if (travelersQualify && (insuranceQualify || giftCardQualify)) {
+        if (travelersQualify && finalVisaPrice === baseDiscountedVisaFees) {
+          const quantityDiscount = (finalVisaPrice * 20) / 100;
+          finalVisaPrice = finalVisaPrice - quantityDiscount;
         }
-      } else if (appliedDiscount.code === "STUDENT10") {
-        console.log("Slider Applying STUDENT10 discount"); // Debug log
-        // STUDENT10: Adds 10% to ALL components (stacks with quantity discounts)
-        visaDiscountPercentage += 10;
-        if (recommendedItems.insuranceCertificate)
-          insuranceDiscountPercentage += 10;
-        if (recommendedItems.giftCard) giftCardDiscountPercentage += 10;
+        if (insuranceQualify && recommendedItems.insuranceCertificate && finalInsurancePrice === baseDiscountedInsuranceFees) {
+          const quantityDiscount = (finalInsurancePrice * 20) / 100;
+          finalInsurancePrice = finalInsurancePrice - quantityDiscount;
+        }
+        if (giftCardQualify && recommendedItems.giftCard && finalGiftCardPrice === baseDiscountedGiftCardFees) {
+          const quantityDiscount = (finalGiftCardPrice * 20) / 100;
+          finalGiftCardPrice = finalGiftCardPrice - quantityDiscount;
+        }
       }
     }
 
-    console.log("Slider Final discount percentages:", {
-      // Debug log
-      visa: visaDiscountPercentage,
-      insurance: insuranceDiscountPercentage,
-      giftCard: giftCardDiscountPercentage,
-    });
-
-    // Calculate discount amounts
-    const visaDiscountAmount =
-      (baseDiscountedVisaFees * visaDiscountPercentage) / 100;
-    const insuranceDiscountAmount = recommendedItems.insuranceCertificate
-      ? (baseDiscountedInsuranceFees * insuranceDiscountPercentage) / 100
-      : 0;
-    const giftCardDiscountAmount = recommendedItems.giftCard
-      ? (baseDiscountedGiftCardFees * giftCardDiscountPercentage) / 100
-      : 0;
-
-    // Calculate final prices after discounts
-    const finalVisaPrice = baseDiscountedVisaFees - visaDiscountAmount;
-    const finalInsurancePrice =
-      baseDiscountedInsuranceFees - insuranceDiscountAmount;
-    const finalGiftCardPrice =
-      baseDiscountedGiftCardFees - giftCardDiscountAmount;
-
-    console.log("Slider calculateFinalPrice - Final results:", {
-      finalVisaPrice,
-      finalInsurancePrice,
-      finalGiftCardPrice,
-      totalPrice: finalVisaPrice + finalInsurancePrice + finalGiftCardPrice,
-    });
+    // Apply 10% student discount on already-discounted price (if student)
+    if (hasStudentDiscount) {
+      const studentDiscount = (finalVisaPrice * 10) / 100;
+      finalVisaPrice = finalVisaPrice - studentDiscount;
+      if (recommendedItems.insuranceCertificate) {
+        const studentDiscount = (finalInsurancePrice * 10) / 100;
+        finalInsurancePrice = finalInsurancePrice - studentDiscount;
+      }
+      if (recommendedItems.giftCard) {
+        const studentDiscount = (finalGiftCardPrice * 10) / 100;
+        finalGiftCardPrice = finalGiftCardPrice - studentDiscount;
+      }
+    }
 
     return finalVisaPrice + finalInsurancePrice + finalGiftCardPrice;
-  };
+  }, [
+    currentVisaFeePerTraveler,
+    travelers,
+    discountedInsuranceBase,
+    recommendedItems,
+    insuranceCount,
+    giftCardCount,
+    appliedDiscount
+  ]);
 
-  const calculateVisaAndInsurancePrice = () => {
+  // Memoize calculateVisaAndInsurancePrice
+  const visaAndInsurancePrice = useMemo(() => {
     // Calculate only visa + insurance (excluding gift cards) for main price display
-    const baseDiscountedVisaFees =
-      getCurrentVisaFeePerTraveler() * travelers;
-    const baseDiscountedInsuranceFees = getDiscountedInsuranceBase();
-
-    // Calculate individual component discounts
-    let visaDiscountPercentage = 0;
-    let insuranceDiscountPercentage = 0;
+    const baseDiscountedVisaFees = currentVisaFeePerTraveler * travelers;
+    const baseDiscountedInsuranceFees = discountedInsuranceBase;
 
     // Check if any component qualifies for quantity discount (3+)
     const effectiveInsuranceCount = Math.min(insuranceCount, travelers);
-
     const travelersQualify = travelers >= 3;
     const insuranceQualify = effectiveInsuranceCount >= 3;
 
-    // Apply quantity-based discounts (20% for 3+ items)
-    if (travelersQualify) visaDiscountPercentage += 20;
-    if (insuranceQualify) insuranceDiscountPercentage += 20;
+    // Check if student discount applies
+    const hasStudentDiscount = appliedDiscount && appliedDiscount.code === "STUDENT10";
+    const hasGroupDiscount = appliedDiscount && appliedDiscount.code === "GROUP20";
 
-    // Apply coupon discounts
-    if (appliedDiscount) {
-      if (appliedDiscount.code === "GROUP20") {
-        // GROUP20: Only applies if travelers >= 3 AND at least one other component >= 3
-        const giftCardQualify = giftCardCount >= 3;
-        if (travelersQualify && (insuranceQualify || giftCardQualify)) {
-          if (travelersQualify)
-            visaDiscountPercentage = Math.max(visaDiscountPercentage, 20);
-          if (insuranceQualify)
-            insuranceDiscountPercentage = Math.max(
-              insuranceDiscountPercentage,
-              20
-            );
+    // Calculate discounts sequentially (compound): First 20% quantity discount, then 10% student discount on discounted price
+    let finalVisaPrice = baseDiscountedVisaFees;
+    let finalInsurancePrice = baseDiscountedInsuranceFees;
+
+    // Apply 20% quantity discount first (if 3+ items)
+    if (travelersQualify) {
+      const quantityDiscount = (finalVisaPrice * 20) / 100;
+      finalVisaPrice = finalVisaPrice - quantityDiscount;
+    }
+    if (insuranceQualify && recommendedItems.insuranceCertificate) {
+      const quantityDiscount = (finalInsurancePrice * 20) / 100;
+      finalInsurancePrice = finalInsurancePrice - quantityDiscount;
+    }
+
+    // Apply GROUP20 coupon (ensures 20% is applied if conditions met)
+    if (hasGroupDiscount) {
+      const giftCardQualify = giftCardCount >= 3;
+      if (travelersQualify && (insuranceQualify || giftCardQualify)) {
+        if (travelersQualify && finalVisaPrice === baseDiscountedVisaFees) {
+          const quantityDiscount = (finalVisaPrice * 20) / 100;
+          finalVisaPrice = finalVisaPrice - quantityDiscount;
         }
-      } else if (appliedDiscount.code === "STUDENT10") {
-        // STUDENT10: Adds 10% to visa and insurance (stacks with quantity discounts)
-        visaDiscountPercentage += 10;
-        if (recommendedItems.insuranceCertificate)
-          insuranceDiscountPercentage += 10;
+        if (insuranceQualify && recommendedItems.insuranceCertificate && finalInsurancePrice === baseDiscountedInsuranceFees) {
+          const quantityDiscount = (finalInsurancePrice * 20) / 100;
+          finalInsurancePrice = finalInsurancePrice - quantityDiscount;
+        }
       }
     }
 
-    // Calculate discount amounts
-    const visaDiscountAmount =
-      (baseDiscountedVisaFees * visaDiscountPercentage) / 100;
-    const insuranceDiscountAmount = recommendedItems.insuranceCertificate
-      ? (baseDiscountedInsuranceFees * insuranceDiscountPercentage) / 100
-      : 0;
-
-    // Calculate final prices after discounts
-    const finalVisaPrice = baseDiscountedVisaFees - visaDiscountAmount;
-    const finalInsurancePrice =
-      baseDiscountedInsuranceFees - insuranceDiscountAmount;
+    // Apply 10% student discount on already-discounted price (if student)
+    if (hasStudentDiscount) {
+      const studentDiscount = (finalVisaPrice * 10) / 100;
+      finalVisaPrice = finalVisaPrice - studentDiscount;
+      if (recommendedItems.insuranceCertificate) {
+        const studentDiscount = (finalInsurancePrice * 10) / 100;
+        finalInsurancePrice = finalInsurancePrice - studentDiscount;
+      }
+    }
 
     return finalVisaPrice + finalInsurancePrice;
-  };
+  }, [
+    currentVisaFeePerTraveler,
+    travelers,
+    discountedInsuranceBase,
+    insuranceCount,
+    recommendedItems,
+    appliedDiscount,
+    giftCardCount
+  ]);
 
-  const calculateDiscountedInsurancePrice = () => {
+  // Memoize calculateDiscountedInsurancePrice
+  const discountedInsurancePrice = useMemo(() => {
     // Use same logic as calculateFinalPrice for insurance
-    const baseDiscountedInsuranceFees = getDiscountedInsuranceBase();
-    let insuranceDiscountPercentage = 0;
+    const baseDiscountedInsuranceFees = discountedInsuranceBase;
 
     // Check if insurance qualifies for quantity discount (3+)
     const effectiveInsuranceCount = Math.min(insuranceCount, travelers);
     const insuranceQualify = effectiveInsuranceCount >= 3;
 
-    // Apply quantity-based discount (20% for 3+ items)
-    if (insuranceQualify) insuranceDiscountPercentage += 20;
+    // Check if student discount applies
+    const hasStudentDiscount = appliedDiscount && appliedDiscount.code === "STUDENT10";
+    const hasGroupDiscount = appliedDiscount && appliedDiscount.code === "GROUP20";
 
-    // Apply coupon discounts
-    if (appliedDiscount) {
-      if (appliedDiscount.code === "GROUP20") {
-        const travelersQualify = travelers >= 3;
-        const giftCardQualify = giftCardCount >= 3;
-        if (travelersQualify && (insuranceQualify || giftCardQualify)) {
-          if (insuranceQualify)
-            insuranceDiscountPercentage = Math.max(
-              insuranceDiscountPercentage,
-              20
-            );
+    // Calculate discounts sequentially (compound): First 20% quantity discount, then 10% student discount on discounted price
+    let finalInsurancePrice = baseDiscountedInsuranceFees;
+
+    // Apply 20% quantity discount first (if 3+ items)
+    if (insuranceQualify) {
+      const quantityDiscount = (finalInsurancePrice * 20) / 100;
+      finalInsurancePrice = finalInsurancePrice - quantityDiscount;
+    }
+
+    // Apply GROUP20 coupon (ensures 20% is applied if conditions met)
+    if (hasGroupDiscount) {
+      const travelersQualify = travelers >= 3;
+      const giftCardQualify = giftCardCount >= 3;
+      if (travelersQualify && (insuranceQualify || giftCardQualify)) {
+        if (insuranceQualify && finalInsurancePrice === baseDiscountedInsuranceFees) {
+          const quantityDiscount = (finalInsurancePrice * 20) / 100;
+          finalInsurancePrice = finalInsurancePrice - quantityDiscount;
         }
-      } else if (appliedDiscount.code === "STUDENT10") {
-        if (recommendedItems.insuranceCertificate)
-          insuranceDiscountPercentage += 10;
       }
     }
 
-    const insuranceDiscountAmount =
-      (baseDiscountedInsuranceFees * insuranceDiscountPercentage) / 100;
-    return baseDiscountedInsuranceFees - insuranceDiscountAmount;
-  };
+    // Apply 10% student discount on already-discounted price (if student)
+    if (hasStudentDiscount && recommendedItems.insuranceCertificate) {
+      const studentDiscount = (finalInsurancePrice * 10) / 100;
+      finalInsurancePrice = finalInsurancePrice - studentDiscount;
+    }
 
-  const calculateDiscountedGiftCardPrice = () => {
+    return finalInsurancePrice;
+  }, [
+    discountedInsuranceBase,
+    insuranceCount,
+    travelers,
+    recommendedItems,
+    appliedDiscount,
+    giftCardCount
+  ]);
+
+  // Memoize calculateDiscountedGiftCardPrice
+  const discountedGiftCardPrice = useMemo(() => {
     // Use same logic as calculateFinalPrice for gift cards
     const baseDiscountedGiftCardFees = recommendedItems.giftCard
       ? 159 * giftCardCount
       : 0;
-    let giftCardDiscountPercentage = 0;
 
     // Check if gift cards qualify for quantity discount (3+)
     const giftCardQualify = giftCardCount >= 3;
 
-    // Apply quantity-based discount (20% for 3+ items)
-    if (giftCardQualify) giftCardDiscountPercentage += 20;
+    // Check if student discount applies
+    const hasStudentDiscount = appliedDiscount && appliedDiscount.code === "STUDENT10";
+    const hasGroupDiscount = appliedDiscount && appliedDiscount.code === "GROUP20";
 
-    // Apply coupon discounts
-    if (appliedDiscount) {
-      if (appliedDiscount.code === "GROUP20") {
-        const travelersQualify = travelers >= 3;
-        const effectiveInsuranceCount = Math.min(insuranceCount, travelers);
-        const insuranceQualify = effectiveInsuranceCount >= 3;
-        if (travelersQualify && (insuranceQualify || giftCardQualify)) {
-          if (giftCardQualify)
-            giftCardDiscountPercentage = Math.max(
-              giftCardDiscountPercentage,
-              20
-            );
+    // Calculate discounts sequentially (compound): First 20% quantity discount, then 10% student discount on discounted price
+    let finalGiftCardPrice = baseDiscountedGiftCardFees;
+
+    // Apply 20% quantity discount first (if 3+ items)
+    if (giftCardQualify) {
+      const quantityDiscount = (finalGiftCardPrice * 20) / 100;
+      finalGiftCardPrice = finalGiftCardPrice - quantityDiscount;
+    }
+
+    // Apply GROUP20 coupon (ensures 20% is applied if conditions met)
+    if (hasGroupDiscount) {
+      const travelersQualify = travelers >= 3;
+      const effectiveInsuranceCount = Math.min(insuranceCount, travelers);
+      const insuranceQualify = effectiveInsuranceCount >= 3;
+      if (travelersQualify && (insuranceQualify || giftCardQualify)) {
+        if (giftCardQualify && finalGiftCardPrice === baseDiscountedGiftCardFees) {
+          const quantityDiscount = (finalGiftCardPrice * 20) / 100;
+          finalGiftCardPrice = finalGiftCardPrice - quantityDiscount;
         }
-      } else if (appliedDiscount.code === "STUDENT10") {
-        if (recommendedItems.giftCard) giftCardDiscountPercentage += 10;
       }
     }
 
-    const giftCardDiscountAmount =
-      (baseDiscountedGiftCardFees * giftCardDiscountPercentage) / 100;
-    return baseDiscountedGiftCardFees - giftCardDiscountAmount;
-  };
+    // Apply 10% student discount on already-discounted price (if student)
+    if (hasStudentDiscount && recommendedItems.giftCard) {
+      const studentDiscount = (finalGiftCardPrice * 10) / 100;
+      finalGiftCardPrice = finalGiftCardPrice - studentDiscount;
+    }
+
+    return finalGiftCardPrice;
+  }, [
+    recommendedItems,
+    giftCardCount,
+    appliedDiscount,
+    travelers,
+    insuranceCount
+  ]);
 
   const calculateOriginalPrice = () => {
     // Use dynamic strike-out price from admin panel (per traveler)
@@ -1545,32 +1565,75 @@ const CountrySlider = () => {
       }
     }
 
-    // Use selected visa type fees if available, otherwise fallback to baseFee
-    // Use the GBP price if available, otherwise convert from INR
-    const currentBaseFee =
-      selectedVisaType && selectedVisaType.priceGBP
-        ? Number(selectedVisaType.priceGBP)
-        : selectedVisaType && selectedVisaType.price
-        ? Math.round(Number(selectedVisaType.price) / 100)
-        : baseFee;
+    // Use the same discount calculation logic as calculateFinalPrice for consistency
+    // Base discounted prices (not original prices)
+    const baseDiscountedVisaFees = hasOnlyInsurance ? 0 : currentVisaFeePerTraveler * travelers;
+    const baseDiscountedInsuranceFees = discountedInsuranceBase;
+    const baseDiscountedGiftCardFees = recommendedItems.giftCard
+      ? 159 * giftCardCount
+      : 0;
 
-    let visaFees = hasOnlyInsurance ? 0 : currentBaseFee * travelers;
+    // Check if any component qualifies for quantity discount (3+)
+    const effectiveInsuranceCount = Math.min(insuranceCount, travelers);
+    const travelersQualify = travelers >= 3;
+    const insuranceQualify = effectiveInsuranceCount >= 3;
+    const giftCardQualify = giftCardCount >= 3;
 
-    // Apply discount if available
-    let discountAmount = 0;
-    if (appliedDiscount) {
-      discountAmount = (visaFees * appliedDiscount.percentage) / 100;
-      visaFees = visaFees - discountAmount;
+    // Check if student discount applies
+    const hasStudentDiscount = appliedDiscount && appliedDiscount.code === "STUDENT10";
+    const hasGroupDiscount = appliedDiscount && appliedDiscount.code === "GROUP20";
+
+    // Calculate discounts sequentially (compound): First 20% quantity discount, then 10% student discount on discounted price
+    let visaFees = baseDiscountedVisaFees;
+    let insuranceFees = baseDiscountedInsuranceFees;
+    let giftCardFees = baseDiscountedGiftCardFees;
+
+    // Apply 20% quantity discount first (if 3+ items)
+    if (travelersQualify) {
+      const quantityDiscount = (visaFees * 20) / 100;
+      visaFees = visaFees - quantityDiscount;
+    }
+    if (insuranceQualify && recommendedItems.insuranceCertificate) {
+      const quantityDiscount = (insuranceFees * 20) / 100;
+      insuranceFees = insuranceFees - quantityDiscount;
+    }
+    if (giftCardQualify && recommendedItems.giftCard) {
+      const quantityDiscount = (giftCardFees * 20) / 100;
+      giftCardFees = giftCardFees - quantityDiscount;
     }
 
-    let insuranceFees = getDiscountedInsuranceBase();
-    if (appliedInsuranceDiscount && insuranceFees > 0) {
-      const insDisc =
-        (insuranceFees * appliedInsuranceDiscount.percentage) / 100;
-      insuranceFees = Math.max(0, Math.round(insuranceFees - insDisc));
+    // Apply GROUP20 coupon (ensures 20% is applied if conditions met)
+    if (hasGroupDiscount) {
+      if (travelersQualify && (insuranceQualify || giftCardQualify)) {
+        if (travelersQualify && visaFees === baseDiscountedVisaFees) {
+          const quantityDiscount = (visaFees * 20) / 100;
+          visaFees = visaFees - quantityDiscount;
+        }
+        if (insuranceQualify && recommendedItems.insuranceCertificate && insuranceFees === baseDiscountedInsuranceFees) {
+          const quantityDiscount = (insuranceFees * 20) / 100;
+          insuranceFees = insuranceFees - quantityDiscount;
+        }
+        if (giftCardQualify && recommendedItems.giftCard && giftCardFees === baseDiscountedGiftCardFees) {
+          const quantityDiscount = (giftCardFees * 20) / 100;
+          giftCardFees = giftCardFees - quantityDiscount;
+        }
+      }
     }
-    const giftCardFees = recommendedItems.giftCard ? 159 * giftCardCount : 0;
-    const totalAmount = Math.round(visaFees + insuranceFees + giftCardFees);
+
+    // Apply 10% student discount on already-discounted price (if student)
+    if (hasStudentDiscount) {
+      const studentDiscount = (visaFees * 10) / 100;
+      visaFees = visaFees - studentDiscount;
+      if (recommendedItems.insuranceCertificate) {
+        const studentDiscount = (insuranceFees * 10) / 100;
+        insuranceFees = insuranceFees - studentDiscount;
+      }
+      if (recommendedItems.giftCard) {
+        const studentDiscount = (giftCardFees * 10) / 100;
+        giftCardFees = giftCardFees - studentDiscount;
+      }
+    }
+    const totalAmount = visaFees + insuranceFees + giftCardFees;
 
     const countryName = getCountryParam(selectedCountry) || "Germany";
 
@@ -1887,7 +1950,7 @@ const CountrySlider = () => {
   const expressPaymentData = useMemo(() => {
     // SUBTOTAL: Original prices (no discounts applied) - matching OrderCheckout
     const originalVisaFees = 200 * travelers; // £200 per traveler
-    const originalInsuranceFees = getOriginalInsuranceBase(); // Dynamic per-day pricing
+    const originalInsuranceFees = originalInsuranceBase; // Dynamic per-day pricing
     const originalGiftCardFees = recommendedItems.giftCard
       ? 245 * giftCardCount
       : 0; // £245 per gift card
@@ -1895,16 +1958,11 @@ const CountrySlider = () => {
 
     // Base discounted prices (matching OrderCheckout.jsx and calculateFinalPrice)
     const baseDiscountedVisaFees =
-      getCurrentVisaFeePerTraveler() * travelers; // Dynamic per traveler
-    const baseDiscountedInsuranceFees = getDiscountedInsuranceBase();
+      currentVisaFeePerTraveler * travelers; // Dynamic per traveler
+    const baseDiscountedInsuranceFees = discountedInsuranceBase;
     const baseDiscountedGiftCardFees = recommendedItems.giftCard
       ? 159 * giftCardCount
       : 0; // £159 per gift card
-
-    // Calculate individual component discounts (same logic as calculateFinalPrice)
-    let visaDiscountPercentage = 0;
-    let insuranceDiscountPercentage = 0;
-    let giftCardDiscountPercentage = 0;
 
     // Check if any component qualifies for quantity discount (3+)
     const effectiveInsuranceCount = Math.min(insuranceCount, travelers);
@@ -1912,51 +1970,60 @@ const CountrySlider = () => {
     const insuranceQualify = effectiveInsuranceCount >= 3;
     const giftCardQualify = giftCardCount >= 3;
 
-    // Apply quantity-based discounts (20% for 3+ items)
-    if (travelersQualify) visaDiscountPercentage += 20;
-    if (insuranceQualify) insuranceDiscountPercentage += 20;
-    if (giftCardQualify) giftCardDiscountPercentage += 20;
+    // Check if student discount applies
+    const hasStudentDiscount = appliedDiscount && appliedDiscount.code === "STUDENT10";
+    const hasGroupDiscount = appliedDiscount && appliedDiscount.code === "GROUP20";
 
-    // Apply coupon discounts
-    if (appliedDiscount) {
-      if (appliedDiscount.code === "GROUP20") {
-        // GROUP20: Only applies if travelers >= 3 AND at least one other component >= 3
-        if (travelersQualify && (insuranceQualify || giftCardQualify)) {
-          if (travelersQualify)
-            visaDiscountPercentage = Math.max(visaDiscountPercentage, 20);
-          if (insuranceQualify)
-            insuranceDiscountPercentage = Math.max(
-              insuranceDiscountPercentage,
-              20
-            );
-          if (giftCardQualify)
-            giftCardDiscountPercentage = Math.max(giftCardDiscountPercentage, 20);
+    // Calculate discounts sequentially (compound): First 20% quantity discount, then 10% student discount on discounted price
+    let finalVisaFees = baseDiscountedVisaFees;
+    let finalInsuranceFees = baseDiscountedInsuranceFees;
+    let finalGiftCardFees = baseDiscountedGiftCardFees;
+
+    // Apply 20% quantity discount first (if 3+ items)
+    if (travelersQualify) {
+      const quantityDiscount = (finalVisaFees * 20) / 100;
+      finalVisaFees = finalVisaFees - quantityDiscount;
+    }
+    if (insuranceQualify && recommendedItems.insuranceCertificate) {
+      const quantityDiscount = (finalInsuranceFees * 20) / 100;
+      finalInsuranceFees = finalInsuranceFees - quantityDiscount;
+    }
+    if (giftCardQualify && recommendedItems.giftCard) {
+      const quantityDiscount = (finalGiftCardFees * 20) / 100;
+      finalGiftCardFees = finalGiftCardFees - quantityDiscount;
+    }
+
+    // Apply GROUP20 coupon (ensures 20% is applied if conditions met)
+    if (hasGroupDiscount) {
+      if (travelersQualify && (insuranceQualify || giftCardQualify)) {
+        if (travelersQualify && finalVisaFees === baseDiscountedVisaFees) {
+          const quantityDiscount = (finalVisaFees * 20) / 100;
+          finalVisaFees = finalVisaFees - quantityDiscount;
         }
-      } else if (appliedDiscount.code === "STUDENT10") {
-        // STUDENT10: Adds 10% to ALL components (stacks with quantity discounts)
-        visaDiscountPercentage += 10;
-        if (recommendedItems.insuranceCertificate)
-          insuranceDiscountPercentage += 10;
-        if (recommendedItems.giftCard) giftCardDiscountPercentage += 10;
+        if (insuranceQualify && recommendedItems.insuranceCertificate && finalInsuranceFees === baseDiscountedInsuranceFees) {
+          const quantityDiscount = (finalInsuranceFees * 20) / 100;
+          finalInsuranceFees = finalInsuranceFees - quantityDiscount;
+        }
+        if (giftCardQualify && recommendedItems.giftCard && finalGiftCardFees === baseDiscountedGiftCardFees) {
+          const quantityDiscount = (finalGiftCardFees * 20) / 100;
+          finalGiftCardFees = finalGiftCardFees - quantityDiscount;
+        }
       }
     }
 
-    // Calculate discount amounts
-    const visaDiscountAmount =
-      (baseDiscountedVisaFees * visaDiscountPercentage) / 100;
-    const insuranceDiscountAmount = recommendedItems.insuranceCertificate
-      ? (baseDiscountedInsuranceFees * insuranceDiscountPercentage) / 100
-      : 0;
-    const giftCardDiscountAmount = recommendedItems.giftCard
-      ? (baseDiscountedGiftCardFees * giftCardDiscountPercentage) / 100
-      : 0;
-
-    // Calculate final prices after discounts
-    const finalVisaFees = baseDiscountedVisaFees - visaDiscountAmount;
-    const finalInsuranceFees =
-      baseDiscountedInsuranceFees - insuranceDiscountAmount;
-    const finalGiftCardFees =
-      baseDiscountedGiftCardFees - giftCardDiscountAmount;
+    // Apply 10% student discount on already-discounted price (if student)
+    if (hasStudentDiscount) {
+      const studentDiscount = (finalVisaFees * 10) / 100;
+      finalVisaFees = finalVisaFees - studentDiscount;
+      if (recommendedItems.insuranceCertificate) {
+        const studentDiscount = (finalInsuranceFees * 10) / 100;
+        finalInsuranceFees = finalInsuranceFees - studentDiscount;
+      }
+      if (recommendedItems.giftCard) {
+        const studentDiscount = (finalGiftCardFees * 10) / 100;
+        finalGiftCardFees = finalGiftCardFees - studentDiscount;
+      }
+    }
 
     const totalAmount = finalVisaFees + finalInsuranceFees + finalGiftCardFees;
 
@@ -2316,7 +2383,7 @@ const CountrySlider = () => {
 
                   <div className="flex flex-col items-end">
                     <span className="text-2xl font-gilroy-bold max-sm:text-xl">
-                      £{Math.round(calculateVisaAndInsurancePrice())}
+                      £{visaAndInsurancePrice.toFixed(2)}
                     </span>
                   </div>
                 </div>
@@ -2373,20 +2440,54 @@ const CountrySlider = () => {
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 items-start max-sm:gap-3">
               <div className="w-full">
-                <CommonDatePicker
-                  label={"Start date"}
-                  selected={arrivalDate}
-                  onChange={handleArrivalDateChange}
-                  selectsStart
-                  startDate={arrivalDate}
-                  endDate={departureDate}
-                  minDate={new Date()}
-                  dayClassName={getDayClassName}
-                  className="!w-full bg-white/10 backdrop-blur-sm text-white rounded-lg px-4 py-3 font-semibold border-2 border-white/20 hover:border-white/40 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 focus:outline-none max-sm:py-2 max-sm:text-sm"
-                  dateFormat="dd-MM-yyyy"
-                  wrapperClassName="!w-full"
-                  placeholderText="DD-MM-YYYY"
-                />
+                {(() => {
+                  // Calculate first valid date (4 weeks from today)
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  const fourWeeksFromNow = new Date();
+                  fourWeeksFromNow.setHours(0, 0, 0, 0);
+                  fourWeeksFromNow.setDate(today.getDate() + 28);
+                  
+                  // Check if valid dates are at the end of the month
+                  const firstValidDate = fourWeeksFromNow;
+                  const firstValidDay = firstValidDate.getDate();
+                  const firstValidMonth = firstValidDate.getMonth();
+                  const firstValidYear = firstValidDate.getFullYear();
+                  
+                  // Get the last day of the month for the first valid date
+                  const lastDayOfMonth = new Date(firstValidYear, firstValidMonth + 1, 0).getDate();
+                  
+                  // Check if valid dates are in the last few days of the month (day >= 28)
+                  // This means there are only a few valid dates left in the current month
+                  const validDatesAtEndOfMonth = firstValidDay >= 28;
+                  
+                  // Calculate openToDate to show next month if valid dates are at end of current month
+                  let openToDate = null;
+                  
+                  if (validDatesAtEndOfMonth) {
+                    // Show next month's calendar instead
+                    openToDate = new Date(firstValidYear, firstValidMonth + 1, 1);
+                  }
+                  
+                  return (
+                    <CommonDatePicker
+                      label={"Start date"}
+                      selected={arrivalDate}
+                      onChange={handleArrivalDateChange}
+                      selectsStart
+                      startDate={arrivalDate}
+                      endDate={departureDate}
+                      minDate={new Date()}
+                      dayClassName={getDayClassName}
+                      openToDate={openToDate}
+                      calendarClassName={validDatesAtEndOfMonth ? "show-adjacent-month-dates" : ""}
+                      className="!w-full bg-white/10 backdrop-blur-sm text-white rounded-lg px-4 py-3 font-semibold border-2 border-white/20 hover:border-white/40 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 focus:outline-none max-sm:py-2 max-sm:text-sm"
+                      dateFormat="dd-MM-yyyy"
+                      wrapperClassName="!w-full"
+                      placeholderText="DD-MM-YYYY"
+                    />
+                  );
+                })()}
               </div>
 
               <div className="w-full">
@@ -2716,10 +2817,10 @@ const CountrySlider = () => {
             <div className="shadow-xl shadow-black/10 rounded-xl mb-4 max-sm:mb-3">
               <div className="flex gap-[10px] max-sm:gap-2">
                 {/* Insurance Certificate */}
-                <div className="flex flex-col items-center gap-2 mb-6 border-white/20 bg-white/5 border p-2 rounded-2xl text-white w-[220px] max-sm:w-1/2 max-sm:mb-3 max-sm:p-1.5">
+                <div className="flex flex-col items-center gap-2 mb-6 border-white/20 bg-white/5 border p-2 rounded-2xl text-white w-[220px] max-sm:w-1/2 max-sm:mb-3 max-sm:p-1.5 overflow-hidden">
                   <div className="w-full flex items-center max-sm:justify-between">
                     <div
-                      className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all self-start mt-2 cursor-pointer max-sm:mt-1 border ${
+                      className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all self-start mt-2 cursor-pointer max-sm:mt-1 border flex-shrink-0 ${
                         recommendedItems.insuranceCertificate
                           ? "border-transparent bg-[#7350FF]"
                           : "border-gray-400 bg-white"
@@ -2738,36 +2839,36 @@ const CountrySlider = () => {
                       alt="Insurance Certificate"
                       width={120}
                       height={120}
-                      className="w-[120px] rounded-lg ml-2 max-sm:w-[60px] max-sm:ml-0.5"
+                      className="w-[120px] rounded-lg ml-2 max-sm:w-[60px] max-sm:ml-0.5 flex-shrink-0"
                       priority
                     />
-                    <div className="flex items-center space-x-4 max-sm:space-x-1">
-                      <span className="mx-2 text-[12px] max-sm:text-[10px] max-sm:mx-1">
+                    <div className="flex items-center space-x-4 max-sm:space-x-1 flex-shrink-0">
+                      <span className="mx-2 text-[12px] max-sm:text-[10px] max-sm:mx-1 whitespace-nowrap">
                         {insuranceDays} Days
                       </span>
                     </div>
                   </div>
-                  <div className="w-full  flex flex-col items-center md:items-start">
-                    <div className=" cursor-pointer rounded transition-colors flex-1 mb-2">
+                  <div className="w-full flex flex-col items-center md:items-start min-w-0">
+                    <div className="cursor-pointer rounded transition-colors flex-1 mb-2 w-full">
                       <div className="flex items-center space-x-2 max-sm:space-x-1">
                         <div
                           onClick={() =>
                             toggleRecommendedItem("insuranceCertificate")
                           }
-                          className="flex items-center space-x-2 cursor-pointer"
+                          className="flex items-center space-x-2 cursor-pointer min-w-0"
                         >
-                          <span className="font-semibold max-sm:text-xs">
+                          <span className="font-semibold max-sm:text-xs break-words">
                             Insurance certificate
                           </span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="mb-2">
+                    <div className="mb-2 w-full">
                       {selectedVisaType &&
                         selectedVisaType.duration_permitted && (
                           <div className="mb-2 p-2 bg-purple-600/20 rounded-lg max-sm:p-1.5 max-sm:mb-1">
-                            <p className="text-xs text-purple-200 max-sm:text-[10px]">
+                            <p className="text-xs text-purple-200 max-sm:text-[10px] break-words">
                               📅 Maximum stay:{" "}
                               {selectedVisaType.duration_permitted}
                               {selectedVisaType.validity_period &&
@@ -2776,8 +2877,8 @@ const CountrySlider = () => {
                           </div>
                         )}
 
-                      <div className="flex items-center space-x-2 max-sm:flex-col max-sm:space-x-0 max-sm:gap-2">
-                        <div className="flex items-center gap-2">
+                      <div className="flex flex-col gap-2 w-full">
+                        <div className="flex items-center justify-center md:justify-start">
                           <QtyInput
                             value={insuranceCount}
                             onIncrement={() => handleInsuranceChange(1)}
@@ -2785,12 +2886,12 @@ const CountrySlider = () => {
                             min={1}
                           />
                         </div>
-                        <div className="flex items-center space-x-2 max-sm:space-x-1">
-                          <span className="text-lg font-semibold line-through max-sm:text-sm">
-                            £{Math.round(getOriginalInsuranceBase())}
+                        <div className="flex items-center justify-center md:justify-start space-x-2 max-sm:space-x-1 flex-wrap">
+                          <span className="text-base font-semibold line-through max-sm:text-sm whitespace-nowrap">
+                            £{originalInsuranceBase.toFixed(2)}
                           </span>
-                          <span className="font-gilroy-bold text-2xl max-sm:text-lg">
-                            £{Math.round(calculateDiscountedInsurancePrice())}
+                          <span className="font-gilroy-bold text-xl max-sm:text-base whitespace-nowrap">
+                            £{discountedInsurancePrice.toFixed(2)}
                           </span>
                         </div>
                       </div>
@@ -2800,10 +2901,10 @@ const CountrySlider = () => {
 
                 {/* Gift Card */}
                 <div className="rounded-xl mb-6 flex flex-col gap-2 w-[220px] max-sm:w-1/2 max-sm:mb-3">
-                  <div className="flex flex-col items-center gap-2 border-white/20 bg-white/5 p-2 rounded-2xl text-white border max-sm:p-1.5">
+                  <div className="flex flex-col items-center gap-2 border-white/20 bg-white/5 p-2 rounded-2xl text-white border max-sm:p-1.5 overflow-hidden">
                     <div className="w-full flex items-center max-sm:justify-start">
                       <div
-                        className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all self-start mt-2 cursor-pointer max-sm:mt-1 border ${
+                        className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all self-start mt-2 cursor-pointer max-sm:mt-1 border flex-shrink-0 ${
                           recommendedItems.giftCard
                             ? "border-transparent bg-[#7350FF]"
                             : "border-gray-400 bg-white"
@@ -2820,20 +2921,20 @@ const CountrySlider = () => {
                           alt="Gift Card"
                           width={120}
                           height={120}
-                          className="w-[120px] rounded-lg ml-2 max-sm:w-[60px] max-sm:ml-0"
+                          className="w-[120px] rounded-lg ml-2 max-sm:w-[60px] max-sm:ml-0 flex-shrink-0"
                           priority
                         />
                       </div>
                     </div>
-                    <div className="w-full">
+                    <div className="w-full min-w-0">
                       <div className="flex items-center justify-between mb-1">
-                        <div className="cursor-pointer rounded transition-colors flex-1 mb-2">
+                        <div className="cursor-pointer rounded transition-colors flex-1 mb-2 min-w-0">
                           <div className="flex items-center space-x-2 max-sm:space-x-1">
                             <div
                               onClick={() => toggleRecommendedItem("giftCard")}
-                              className="flex items-center space-x-2 cursor-pointer"
+                              className="flex items-center space-x-2 cursor-pointer min-w-0"
                             >
-                              <span className="font-semibold max-sm:text-xs">
+                              <span className="font-semibold max-sm:text-xs break-words">
                                 NUvisa digital gift card
                               </span>
                             </div>
@@ -2841,20 +2942,20 @@ const CountrySlider = () => {
                         </div>
                       </div>
 
-                      <div className="flex items-center space-x-2 mb-2 max-sm:flex-col max-sm:space-x-0 max-sm:gap-2 sm:flex-row">
-                        <div className="flex items-center space-x-2 mb-2 max-sm:mb-0">
+                      <div className="flex flex-col gap-2 w-full">
+                        <div className="flex items-center justify-center md:justify-start">
                           <QtyInput
                             value={giftCardCount}
                             onIncrement={() => handleGiftCardChange(1)}
                             onDecrement={() => handleGiftCardChange(-1)}
                           />
                         </div>
-                        <div className="flex items-center space-x-2 max-sm:space-x-1">
-                          <span className="text-lg font-semibold line-through max-sm:text-sm">
+                        <div className="flex items-center justify-center md:justify-start space-x-2 max-sm:space-x-1 flex-wrap">
+                          <span className="text-base font-semibold line-through max-sm:text-sm whitespace-nowrap">
                             £{245 * giftCardCount}
                           </span>
-                          <span className="font-gilroy-bold text-2xl max-sm:text-lg">
-                            £{Math.round(calculateDiscountedGiftCardPrice())}
+                          <span className="font-gilroy-bold text-xl max-sm:text-base whitespace-nowrap">
+                            £{discountedGiftCardPrice.toFixed(2)}
                           </span>
                         </div>
                       </div>
@@ -3372,3 +3473,5 @@ const CountrySlider = () => {
 };
 
 export default CountrySlider;
+
+

@@ -5,10 +5,13 @@ export default function Document() {
     <Html lang="en">
       <Head>
         {/* Favicon */}
+        <link rel="icon" type="image/png" sizes="32x32" href="/image/logo.png?v=2" />
         <link rel="icon" type="image/x-icon" href="/favicon.ico" />
         <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" />
-        <link rel="apple-touch-icon" href="/favicon.ico" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/favicon.ico" />
         <meta name="msapplication-TileImage" content="/favicon.ico" />
+        <meta name="msapplication-TileColor" content="#7350FF" />
         
         {/* Open Graph / Facebook */}
         <meta property="og:type" content="website" />

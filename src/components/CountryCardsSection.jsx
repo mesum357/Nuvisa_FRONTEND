@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
+import Image from "next/image";
 import { ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/store";
@@ -25,7 +26,8 @@ const CountryCardsSection = () => {
   const dispatch = useAppDispatch();
   const visaState = useAppSelector((state) => state.visa);
 
-  const handleCountrySelect = (countryName) => {
+  // Memoize handleCountrySelect to prevent unnecessary re-renders
+  const handleCountrySelect = useCallback((countryName) => {
     // Get dynamic fees based on selected country
     const countryConfig = getCountryConfig(countryName);
 
@@ -48,7 +50,7 @@ const CountryCardsSection = () => {
         countryConfig.insuranceFee
       }&travelers=${currentTravelerCount}`
     );
-  };
+  }, [visaState.travelers, dispatch, router]);
 
   const fetchData = async () => {
     try {
@@ -297,10 +299,13 @@ const CountryCardsSection = () => {
             >
               {/* Country Image */}
               <div className="relative h-[200px] rounded-t-xl overflow-hidden">
-                <img
+                <Image
                   src={country.image}
                   alt={country.landmark}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  className="object-cover transition-transform duration-500 group-hover:scale-110"
+                  loading={index < 6 ? "eager" : "lazy"}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
               </div>

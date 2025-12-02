@@ -664,11 +664,6 @@ const VisaCheckout = () => {
     : 0; // £2 per day per traveller
   const baseDiscountedGiftCardFees = includeGiftCard ? 159 * giftCardCount : 0; // £159 per gift card
 
-  // Calculate individual component discounts
-  let visaDiscountPercentage = 0;
-  let insuranceDiscountPercentage = 0;
-  let giftCardDiscountPercentage = 0;
-
   // Check if any component qualifies for quantity discount (3+)
   // Note: Insurance count cannot exceed traveler count (insurance certificates are for travelers)
   const effectiveInsuranceCount = Math.min(insuranceCount, travelers);
@@ -677,59 +672,60 @@ const VisaCheckout = () => {
   const insuranceQualify = effectiveInsuranceCount >= 3;
   const giftCardQualify = giftCardCount >= 3;
 
-  // Apply quantity-based discounts (20% for 3+ items)
-  if (travelersQualify) visaDiscountPercentage += 20;
-  if (insuranceQualify) insuranceDiscountPercentage += 20;
-  if (giftCardQualify) giftCardDiscountPercentage += 20;
+  // Check if student discount applies
+  const hasStudentDiscount = appliedDiscount && appliedDiscount.code === "STUDENT10";
+  const hasGroupDiscount = appliedDiscount && appliedDiscount.code === "GROUP20";
 
-  // Apply coupon discounts
-  if (appliedDiscount) {
-    console.log("Applied Discount:", appliedDiscount); // Debug log
-    if (appliedDiscount.code === "GROUP20") {
-      // GROUP20: Only applies if travelers >= 3 AND at least one other component >= 3
-      if (travelersQualify && (insuranceQualify || giftCardQualify)) {
-        // Apply 20% to all components that have 3+ items
-        if (travelersQualify)
-          visaDiscountPercentage = Math.max(visaDiscountPercentage, 20);
-        if (insuranceQualify)
-          insuranceDiscountPercentage = Math.max(
-            insuranceDiscountPercentage,
-            20
-          );
-        if (giftCardQualify)
-          giftCardDiscountPercentage = Math.max(giftCardDiscountPercentage, 20);
+  // Calculate discounts sequentially (compound): First 20% quantity discount, then 10% student discount on discounted price
+  let finalVisaFees = baseDiscountedVisaFees;
+  let finalInsuranceFees = baseDiscountedInsuranceFees;
+  let finalGiftCardFees = baseDiscountedGiftCardFees;
+
+  // Apply 20% quantity discount first (if 3+ items)
+  if (travelersQualify) {
+    const quantityDiscount = (finalVisaFees * 20) / 100;
+    finalVisaFees = finalVisaFees - quantityDiscount;
+  }
+  if (insuranceQualify && includeInsurance) {
+    const quantityDiscount = (finalInsuranceFees * 20) / 100;
+    finalInsuranceFees = finalInsuranceFees - quantityDiscount;
+  }
+  if (giftCardQualify && includeGiftCard) {
+    const quantityDiscount = (finalGiftCardFees * 20) / 100;
+    finalGiftCardFees = finalGiftCardFees - quantityDiscount;
+  }
+
+  // Apply GROUP20 coupon (ensures 20% is applied if conditions met)
+  if (hasGroupDiscount) {
+    if (travelersQualify && (insuranceQualify || giftCardQualify)) {
+      if (travelersQualify && finalVisaFees === baseDiscountedVisaFees) {
+        const quantityDiscount = (finalVisaFees * 20) / 100;
+        finalVisaFees = finalVisaFees - quantityDiscount;
       }
-    } else if (appliedDiscount.code === "STUDENT10") {
-      console.log("Applying STUDENT10 discount"); // Debug log
-      // STUDENT10: Adds 10% to ALL components (stacks with quantity discounts)
-      visaDiscountPercentage += 10;
-      if (includeInsurance) insuranceDiscountPercentage += 10;
-      if (includeGiftCard) giftCardDiscountPercentage += 10;
+      if (insuranceQualify && includeInsurance && finalInsuranceFees === baseDiscountedInsuranceFees) {
+        const quantityDiscount = (finalInsuranceFees * 20) / 100;
+        finalInsuranceFees = finalInsuranceFees - quantityDiscount;
+      }
+      if (giftCardQualify && includeGiftCard && finalGiftCardFees === baseDiscountedGiftCardFees) {
+        const quantityDiscount = (finalGiftCardFees * 20) / 100;
+        finalGiftCardFees = finalGiftCardFees - quantityDiscount;
+      }
     }
   }
 
-  console.log("Final discount percentages:", {
-    // Debug log
-    visa: visaDiscountPercentage,
-    insurance: insuranceDiscountPercentage,
-    giftCard: giftCardDiscountPercentage,
-  });
-
-  // Calculate discount amounts
-  const visaDiscountAmount =
-    (baseDiscountedVisaFees * visaDiscountPercentage) / 100;
-  const insuranceDiscountAmount = includeInsurance
-    ? (baseDiscountedInsuranceFees * insuranceDiscountPercentage) / 100
-    : 0;
-  const giftCardDiscountAmount = includeGiftCard
-    ? (baseDiscountedGiftCardFees * giftCardDiscountPercentage) / 100
-    : 0;
-
-  // Calculate final amounts after discounts
-  const finalVisaFees = baseDiscountedVisaFees - visaDiscountAmount;
-  const finalInsuranceFees =
-    baseDiscountedInsuranceFees - insuranceDiscountAmount;
-  const finalGiftCardFees = baseDiscountedGiftCardFees - giftCardDiscountAmount;
+  // Apply 10% student discount on already-discounted price (if student)
+  if (hasStudentDiscount) {
+    const studentDiscount = (finalVisaFees * 10) / 100;
+    finalVisaFees = finalVisaFees - studentDiscount;
+    if (includeInsurance) {
+      const studentDiscount = (finalInsuranceFees * 10) / 100;
+      finalInsuranceFees = finalInsuranceFees - studentDiscount;
+    }
+    if (includeGiftCard) {
+      const studentDiscount = (finalGiftCardFees * 10) / 100;
+      finalGiftCardFees = finalGiftCardFees - studentDiscount;
+    }
+  }
 
   const total =
     finalVisaFees + finalInsuranceFees + finalGiftCardFees + eVisaFees;
@@ -762,13 +758,18 @@ const VisaCheckout = () => {
   const eVisaFeesGBP = 0; // Currently free
 
   // GBP display values for the UI
-  const visaFeesGBPDisplay = Math.round(finalVisaFees);
+  const visaFeesGBPDisplay = finalVisaFees;
 
   // Insurance display value in GBP (after discounts)
   const displayInsuranceGBP = discountedInsuranceFeesGBP;
 
   // Gift card display value in GBP
   const _giftCardFeesGBP = giftCardFeesGBP;
+
+  // Calculate individual discount amounts
+  const visaDiscountAmount = originalVisaFees - finalVisaFees;
+  const insuranceDiscountAmount = originalInsuranceFees - finalInsuranceFees;
+  const giftCardDiscountAmount = originalGiftCardFees - finalGiftCardFees;
 
   // Discount amount in GBP (for display purposes)
   const totalCouponDiscount =

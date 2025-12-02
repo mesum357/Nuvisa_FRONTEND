@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import Image from "next/image";
 import { Gift, Shield, Plus, Minus, ShoppingCart, ArrowUpRight, ChevronUp, ChevronDown  ,  UserIcon} from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -42,7 +42,9 @@ const StickyBottomBar = () => {
 
   const perDayInsurancePrice = 2;
   const DEFAULT_INSURANCE_DAYS = 15;
-  const getVisaFeePerTraveler = () => {
+  
+  // Memoize visa fee calculation
+  const visaFeePerTraveler = useMemo(() => {
     if (visaState.selectedVisaType?.priceGBP)
       return Number(visaState.selectedVisaType.priceGBP);
     if (visaState.selectedVisaType?.price) {
@@ -52,9 +54,10 @@ const StickyBottomBar = () => {
       if (converted > 0) return converted;
     }
     return 129;
-  };
+  }, [visaState.selectedVisaType?.priceGBP, visaState.selectedVisaType?.price]);
 
-  const getInsuranceDays = () => {
+  // Memoize insurance days calculation
+  const insuranceDays = useMemo(() => {
     try {
       const arrivalStr = visaState.arrivalDate;
       const departureStr = visaState.departureDate;
@@ -76,10 +79,10 @@ const StickyBottomBar = () => {
     } catch {
       return DEFAULT_INSURANCE_DAYS;
     }
-  };
+  }, [visaState.arrivalDate, visaState.departureDate]);
 
-  const insuranceDays = getInsuranceDays();
-  const getInsuranceBaseFees = () => {
+  // Memoize insurance base fees
+  const insuranceBaseFees = useMemo(() => {
     if (
       !recommendedItems?.insuranceCertificate ||
       !quantities.insurance ||
@@ -89,7 +92,7 @@ const StickyBottomBar = () => {
     }
     const effectiveDays = Math.max(insuranceDays || 0, 1);
     return perDayInsurancePrice * effectiveDays * quantities.insurance;
-  };
+  }, [recommendedItems?.insuranceCertificate, quantities.insurance, insuranceDays]);
 
   // Sync local state with Redux state when it changes
   useEffect(() => {
@@ -195,76 +198,68 @@ const StickyBottomBar = () => {
     }
   ];
 
-  const updateQuantity = (itemId, change) => {
-    let newQuantity = Math.max(0, quantities[itemId] + change);
+  // Memoize updateQuantity to prevent unnecessary re-renders
+  const updateQuantity = useCallback((itemId, change) => {
+    setQuantities(prev => {
+      let newQuantity = Math.max(0, prev[itemId] + change);
 
-    // Apply constraints based on item type
-    if (itemId === 'insurance') {
-      // Insurance count cannot exceed traveler count and must be at least 0
-      newQuantity = Math.max(0, Math.min(newQuantity, travelerCount));
-    }
-
-    setQuantities(prev => ({
-      ...prev,
-      [itemId]: newQuantity
-    }));
-
-    // Update Redux store based on item type
-    if (itemId === 'schengen') {
-      dispatch(setTravelers(newQuantity));
-
-      // If traveler count decreases, adjust insurance count if needed
-      if (newQuantity < quantities.insurance) {
-        const adjustedInsuranceCount = Math.min(quantities.insurance, newQuantity);
-        setQuantities(prev => ({
-          ...prev,
-          insurance: adjustedInsuranceCount
-        }));
-        dispatch(setReduxInsuranceCount(adjustedInsuranceCount));
+      // Apply constraints based on item type
+      if (itemId === 'insurance') {
+        // Insurance count cannot exceed traveler count and must be at least 0
+        newQuantity = Math.max(0, Math.min(newQuantity, travelerCount));
       }
-    } else if (itemId === 'insurance') {
-      dispatch(setReduxInsuranceCount(newQuantity));
 
-      // Update recommendedItems based on quantity
-      const newRecommendedItems = {
-        ...recommendedItems,
-        insuranceCertificate: newQuantity > 0
+      const updated = {
+        ...prev,
+        [itemId]: newQuantity
       };
-      dispatch(setRecommendedItems(newRecommendedItems));
-    } else if (itemId === 'giftCard') {
-      dispatch(setReduxGiftCardCount(newQuantity));
 
-      // Update recommendedItems based on quantity
-      const newRecommendedItems = {
-        ...recommendedItems,
-        giftCard: newQuantity > 0
-      };
-      dispatch(setRecommendedItems(newRecommendedItems));
-    }
-  };
+      // Update Redux store based on item type
+      if (itemId === 'schengen') {
+        dispatch(setTravelers(newQuantity));
 
-  const getTotalItems = () => {
+        // If traveler count decreases, adjust insurance count if needed
+        if (newQuantity < prev.insurance) {
+          const adjustedInsuranceCount = Math.min(prev.insurance, newQuantity);
+          updated.insurance = adjustedInsuranceCount;
+          dispatch(setReduxInsuranceCount(adjustedInsuranceCount));
+        }
+      } else if (itemId === 'insurance') {
+        dispatch(setReduxInsuranceCount(newQuantity));
+
+        // Update recommendedItems based on quantity
+        const newRecommendedItems = {
+          ...recommendedItems,
+          insuranceCertificate: newQuantity > 0
+        };
+        dispatch(setRecommendedItems(newRecommendedItems));
+      } else if (itemId === 'giftCard') {
+        dispatch(setReduxGiftCardCount(newQuantity));
+
+        // Update recommendedItems based on quantity
+        const newRecommendedItems = {
+          ...recommendedItems,
+          giftCard: newQuantity > 0
+        };
+        dispatch(setRecommendedItems(newRecommendedItems));
+      }
+
+      return updated;
+    });
+  }, [travelerCount, recommendedItems, dispatch]);
+
+  // Memoize total items calculation
+  const totalItems = useMemo(() => {
     return Object.values(quantities).reduce((sum, qty) => sum + qty, 0);
-  };
+  }, [quantities]);
 
   // NEW DISCOUNT CALCULATION LOGIC - matching OrderCheckout.jsx and Slider.jsx
-  const calculateDiscountedPrices = () => {
-    console.log("StickyBottomBar calculateDiscountedPrices - Input values:", {
-      quantities,
-      recommendedItems,
-      appliedDiscount: visaState.appliedDiscount
-    });
-    
+  // Memoized to prevent recalculation on every render
+  const discountedPrices = useMemo(() => {
     // Base discounted prices (not original prices)
-    const baseDiscountedVisaFees =
-      getVisaFeePerTraveler() * quantities.schengen;
-    const baseDiscountedInsuranceFees = getInsuranceBaseFees();
+    const baseDiscountedVisaFees = visaFeePerTraveler * quantities.schengen;
+    const baseDiscountedInsuranceFees = insuranceBaseFees;
     const baseDiscountedGiftCardFees = recommendedItems?.giftCard ? 159 * quantities.giftCard : 0;
-
-    // Calculate individual component discounts
-    let visaDiscountPercentage = 0;
-    let insuranceDiscountPercentage = 0;
-    let giftCardDiscountPercentage = 0;
 
     // Check if any component qualifies for quantity discount (3+)
     // Note: Insurance count cannot exceed traveler count (insurance certificates are for travelers)
@@ -274,58 +269,61 @@ const StickyBottomBar = () => {
     const insuranceQualify = effectiveInsuranceCount >= 3;
     const giftCardQualify = quantities.giftCard >= 3;
 
-    // Apply quantity-based discounts (20% for 3+ items)
-    if (travelersQualify) visaDiscountPercentage += 20;
-    if (insuranceQualify) insuranceDiscountPercentage += 20;
-    if (giftCardQualify) giftCardDiscountPercentage += 20;
-
     // Apply coupon discounts from Redux state
     const appliedDiscount = visaState.appliedDiscount;
-    if (appliedDiscount) {
-      console.log("StickyBottomBar Applied Discount:", appliedDiscount); // Debug log
-      if (appliedDiscount.code === "GROUP20") {
-        // GROUP20: Only applies if travelers >= 3 AND at least one other component >= 3
-        if (travelersQualify && (insuranceQualify || giftCardQualify)) {
-          // Apply 20% to all components that have 3+ items
-          if (travelersQualify) visaDiscountPercentage = Math.max(visaDiscountPercentage, 20);
-          if (insuranceQualify) insuranceDiscountPercentage = Math.max(insuranceDiscountPercentage, 20);
-          if (giftCardQualify) giftCardDiscountPercentage = Math.max(giftCardDiscountPercentage, 20);
+    const hasStudentDiscount = appliedDiscount && appliedDiscount.code === "STUDENT10";
+    const hasGroupDiscount = appliedDiscount && appliedDiscount.code === "GROUP20";
+
+    // Calculate discounts sequentially (compound): First 20% quantity discount, then 10% student discount on discounted price
+    let finalVisaFees = baseDiscountedVisaFees;
+    let finalInsuranceFees = baseDiscountedInsuranceFees;
+    let finalGiftCardFees = baseDiscountedGiftCardFees;
+
+    // Apply 20% quantity discount first (if 3+ items)
+    if (travelersQualify) {
+      const quantityDiscount = (finalVisaFees * 20) / 100;
+      finalVisaFees = finalVisaFees - quantityDiscount;
+    }
+    if (insuranceQualify && recommendedItems?.insuranceCertificate) {
+      const quantityDiscount = (finalInsuranceFees * 20) / 100;
+      finalInsuranceFees = finalInsuranceFees - quantityDiscount;
+    }
+    if (giftCardQualify && recommendedItems?.giftCard) {
+      const quantityDiscount = (finalGiftCardFees * 20) / 100;
+      finalGiftCardFees = finalGiftCardFees - quantityDiscount;
+    }
+
+    // Apply GROUP20 coupon (ensures 20% is applied if conditions met)
+    if (hasGroupDiscount) {
+      if (travelersQualify && (insuranceQualify || giftCardQualify)) {
+        if (travelersQualify && finalVisaFees === baseDiscountedVisaFees) {
+          const quantityDiscount = (finalVisaFees * 20) / 100;
+          finalVisaFees = finalVisaFees - quantityDiscount;
         }
-      } else if (appliedDiscount.code === "STUDENT10") {
-        console.log("StickyBottomBar Applying STUDENT10 discount"); // Debug log
-        // STUDENT10: Adds 10% to ALL components (stacks with quantity discounts)
-        visaDiscountPercentage += 10;
-        if (recommendedItems?.insuranceCertificate) insuranceDiscountPercentage += 10;
-        if (recommendedItems?.giftCard) giftCardDiscountPercentage += 10;
+        if (insuranceQualify && recommendedItems?.insuranceCertificate && finalInsuranceFees === baseDiscountedInsuranceFees) {
+          const quantityDiscount = (finalInsuranceFees * 20) / 100;
+          finalInsuranceFees = finalInsuranceFees - quantityDiscount;
+        }
+        if (giftCardQualify && recommendedItems?.giftCard && finalGiftCardFees === baseDiscountedGiftCardFees) {
+          const quantityDiscount = (finalGiftCardFees * 20) / 100;
+          finalGiftCardFees = finalGiftCardFees - quantityDiscount;
+        }
       }
     }
-    
-    console.log("StickyBottomBar Final discount percentages:", { // Debug log
-      visa: visaDiscountPercentage,
-      insurance: insuranceDiscountPercentage,
-      giftCard: giftCardDiscountPercentage
-    });
 
-    // Calculate discount amounts
-    const visaDiscountAmount = (baseDiscountedVisaFees * visaDiscountPercentage) / 100;
-    const insuranceDiscountAmount = recommendedItems?.insuranceCertificate 
-      ? (baseDiscountedInsuranceFees * insuranceDiscountPercentage) / 100 
-      : 0;
-    const giftCardDiscountAmount = recommendedItems?.giftCard 
-      ? (baseDiscountedGiftCardFees * giftCardDiscountPercentage) / 100 
-      : 0;
-
-    // Calculate final amounts after discounts
-    const finalVisaFees = baseDiscountedVisaFees - visaDiscountAmount;
-    const finalInsuranceFees = baseDiscountedInsuranceFees - insuranceDiscountAmount;
-    const finalGiftCardFees = baseDiscountedGiftCardFees - giftCardDiscountAmount;
-
-    console.log("StickyBottomBar calculateDiscountedPrices - Final results:", {
-      finalVisaFees,
-      finalInsuranceFees,
-      finalGiftCardFees,
-      totalPrice: finalVisaFees + finalInsuranceFees + finalGiftCardFees
-    });
+    // Apply 10% student discount on already-discounted price (if student)
+    if (hasStudentDiscount) {
+      const studentDiscount = (finalVisaFees * 10) / 100;
+      finalVisaFees = finalVisaFees - studentDiscount;
+      if (recommendedItems?.insuranceCertificate) {
+        const studentDiscount = (finalInsuranceFees * 10) / 100;
+        finalInsuranceFees = finalInsuranceFees - studentDiscount;
+      }
+      if (recommendedItems?.giftCard) {
+        const studentDiscount = (finalGiftCardFees * 10) / 100;
+        finalGiftCardFees = finalGiftCardFees - studentDiscount;
+      }
+    }
 
     return {
       visa: finalVisaFees,
@@ -333,16 +331,16 @@ const StickyBottomBar = () => {
       giftCard: finalGiftCardFees,
       total: finalVisaFees + finalInsuranceFees + finalGiftCardFees
     };
-  };
+  }, [
+    visaFeePerTraveler,
+    quantities,
+    insuranceBaseFees,
+    recommendedItems,
+    visaState.appliedDiscount
+  ]);
 
-  const getTotalPrice = () => {
-    const discountedPrices = calculateDiscountedPrices();
-    return discountedPrices.total;
-  };
-
-  // Helper function to get individual item discounted price
-  const getItemDiscountedPrice = (itemId) => {
-    const discountedPrices = calculateDiscountedPrices();
+  // Memoized helper function to get individual item discounted price
+  const getItemDiscountedPrice = useCallback((itemId) => {
     switch(itemId) {
       case 'schengen':
         return discountedPrices.visa;
@@ -353,16 +351,15 @@ const StickyBottomBar = () => {
       default:
         return 0;
     }
-  };
+  }, [discountedPrices]);
 
 
-  const handleAddToCart = () => {
+  // Memoize handleAddToCart to prevent unnecessary re-renders
+  const handleAddToCart = useCallback(() => {
     // Always trigger document validation when Add to Cart is clicked
     dispatch(triggerDocumentValidation());
 
-    // Calculate fees using new discount logic and dispatch to Redux
-    const discountedPrices = calculateDiscountedPrices();
-    
+    // Use memoized discounted prices
     dispatch(setVisaFees(Math.round(discountedPrices.visa)));
     dispatch(setInsuranceFees(Math.round(discountedPrices.insurance)));
     dispatch(setGiftCardFees(Math.round(discountedPrices.giftCard)));
@@ -372,33 +369,74 @@ const StickyBottomBar = () => {
 
     // Navigate to get the visa page instead of checkout
     router.push('/get-the-visa');
-  };
+  }, [discountedPrices, requiredDocuments, recommendedItems, dispatch, router]);
 
+  // Optimize scroll handler using Intersection Observer for footer and throttled scroll for visibility
   useEffect(() => {
-    const handleScroll = () => {
+    let ticking = false;
+    let lastScrollY = 0;
+    let footerObserver = null;
+    let isFooterVisible = false;
+
+    // Use Intersection Observer for footer visibility (more efficient than getBoundingClientRect)
+    const footerElement = document.querySelector('footer');
+    if (footerElement) {
+      footerObserver = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            isFooterVisible = entry.isIntersecting;
+            // Update visibility when footer visibility changes
+            if (ticking === false) {
+              updateVisibility();
+            }
+          });
+        },
+        {
+          root: null,
+          rootMargin: '0px',
+          threshold: 0.1, // Trigger when 10% of footer is visible
+        }
+      );
+      footerObserver.observe(footerElement);
+    }
+
+    const updateVisibility = () => {
+      ticking = false;
       const scrollPosition = window.scrollY;
-      const windowHeight = window.innerHeight;
-      const documentHeight = document.documentElement.scrollHeight;
       
-      // Get footer element
-      const footer = document.querySelector('footer');
-      const footerTop = footer ? footer.getBoundingClientRect().top + window.scrollY : documentHeight;
-      
-      // Show when scrolled a little bit (200px from top)
+      // Only update if scroll position changed significantly (reduces unnecessary updates)
+      if (Math.abs(scrollPosition - lastScrollY) < 50 && scrollPosition > 1500) {
+        return; // Skip if scroll change is minimal
+      }
+      lastScrollY = scrollPosition;
+
+      // Show when scrolled enough (1500px from top)
       const hasScrolledEnough = scrollPosition > 1500;
       
-      // Hide when footer is visible (when scroll position + window height reaches footer)
-      const isFooterVisible = scrollPosition + windowHeight >= footerTop;
-      
-      if (hasScrolledEnough && !isFooterVisible) {
-        setIsVisible(true);
-      } else {
-        setIsVisible(false);
+      // Update state only if visibility actually changed
+      const shouldBeVisible = hasScrolledEnough && !isFooterVisible;
+      setIsVisible(prev => prev !== shouldBeVisible ? shouldBeVisible : prev);
+    };
+
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(updateVisibility);
+        ticking = true;
       }
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    // Initial check
+    updateVisibility();
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (footerObserver && footerElement) {
+        footerObserver.unobserve(footerElement);
+        footerObserver.disconnect();
+      }
+    };
   }, []);
 
   // Measure sticky bar height to offset drawer
@@ -453,7 +491,7 @@ const StickyBottomBar = () => {
                       £{quantities[item.id] > 0 ? item.originalPrice * quantities[item.id] : item.originalPrice}
                     </span>
                     <span className="text-white font-bold">
-                      £{quantities[item.id] > 0 ? Math.round(getItemDiscountedPrice(item.id)) : item.currentPrice}
+                      £{quantities[item.id] > 0 ? getItemDiscountedPrice(item.id).toFixed(2) : item.currentPrice}
                     </span>
                     {item.badge && (
                       <div className="flex items-center gap-1">
@@ -527,7 +565,7 @@ const StickyBottomBar = () => {
                         £{quantities[item.id] > 0 ? item.originalPrice * quantities[item.id] : item.originalPrice}
                       </span>
                       <span className="text-white font-bold">
-                        £{quantities[item.id] > 0 ? Math.round(getItemDiscountedPrice(item.id)) : item.currentPrice}
+                        £{quantities[item.id] > 0 ? getItemDiscountedPrice(item.id).toFixed(2) : item.currentPrice}
                       </span>
                       
                       {/* Quantity Controls - inline with price */}
@@ -599,7 +637,7 @@ const StickyBottomBar = () => {
               onMouseLeave={(e) => {
                 e.target.style.backgroundColor = '#6B4EFF';
               }}
-              disabled={getTotalItems() === 0}
+              disabled={totalItems === 0}
             >
               ADD TO CART
               <div className="bg-white rounded-full w-8 h-8 flex items-center justify-center ml-2">
@@ -634,7 +672,7 @@ const StickyBottomBar = () => {
                         £{quantities[item.id] > 0 ? item.originalPrice * quantities[item.id] : item.originalPrice}
                       </span>
                       <span className="text-white font-bold">
-                        £{quantities[item.id] > 0 ? Math.round(getItemDiscountedPrice(item.id)) : item.currentPrice}
+                        £{quantities[item.id] > 0 ? getItemDiscountedPrice(item.id).toFixed(2) : item.currentPrice}
                       </span>
                       {item.badge && (
                         <div className="text-white px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1" style={{backgroundColor: '#6B4EFF'}}>
@@ -700,7 +738,7 @@ const StickyBottomBar = () => {
             onClick={handleAddToCart}
             className="w-full text-white px-6 py-3 rounded-full font-semibold text-lg flex items-center justify-center gap-2 relative z-[80]"
             style={{backgroundColor: '#6B4EFF'}}
-            disabled={getTotalItems() === 0}
+            disabled={totalItems === 0}
             onMouseEnter={(e) => {
               e.target.style.backgroundColor = '#5A3FE6';
             }}

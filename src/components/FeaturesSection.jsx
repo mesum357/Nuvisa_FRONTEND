@@ -1,10 +1,22 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Check, Gavel } from "lucide-react";
 import Image from "next/image";
 
-const FeaturesSection = () => {
+const FeaturesSection = React.memo(() => {
   const [scrollOffset, setScrollOffset] = useState(0);
   const sectionRef = useRef(null);
+  const maxOffsetRef = useRef(0);
+
+  // Calculate maxOffset once and cache it
+  useEffect(() => {
+    const calculateMaxOffset = () => {
+      maxOffsetRef.current = (window.innerWidth / 1) * 0.35;
+    };
+    
+    calculateMaxOffset();
+    window.addEventListener('resize', calculateMaxOffset);
+    return () => window.removeEventListener('resize', calculateMaxOffset);
+  }, []);
 
   useEffect(() => {
     let ticking = false;
@@ -16,13 +28,14 @@ const FeaturesSection = () => {
       const rect = sectionRef.current.getBoundingClientRect();
       const sectionTop = rect.top;
       const windowHeight = window.innerHeight;
+      const rectHeight = rect.height;
 
-      if (sectionTop < windowHeight && sectionTop > -rect.height) {
+      if (sectionTop < windowHeight && sectionTop > -rectHeight) {
         const scrollProgress =
-          (windowHeight - sectionTop) / (windowHeight + rect.height);
+          (windowHeight - sectionTop) / (windowHeight + rectHeight);
 
-        // Reduce the distance travelled to slow down the perceived motion.
-        const maxOffset = (window.innerWidth / 1) * 0.35;
+        // Use cached maxOffset
+        const maxOffset = maxOffsetRef.current;
         setScrollOffset(maxOffset - scrollProgress * maxOffset * 2);
       }
     };
@@ -134,6 +147,8 @@ const FeaturesSection = () => {
       </div>
     </div>
   );
-};
+});
+
+FeaturesSection.displayName = 'FeaturesSection';
 
 export default FeaturesSection;
