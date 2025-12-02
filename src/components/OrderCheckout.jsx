@@ -24,6 +24,7 @@ import {
   setGiftCardFees,
   setInsuranceFees,
   setReduxInsuranceCount,
+  setReduxGiftCardCount,
   setTotalAmount,
   setTravelers,
 } from "@/store/visaSlice";
@@ -77,8 +78,10 @@ const VisaCheckout = () => {
   const handleTravelersChange = (newCount) => {
     if (insuranceCount > newCount) {
       setInsuranceCount(newCount);
+      dispatch(setReduxInsuranceCount(Number(newCount)));
     }
     setTravelersLocal(newCount);
+    dispatch(setTravelers(Number(newCount)));
   };
   let travelDays = 15;
   try {
@@ -152,6 +155,14 @@ const VisaCheckout = () => {
   const selectedPaymentMethodRef = useRef(selectedPaymentMethod);
   const userClosedStripeFormRef = useRef(false);
   const userClosedKlarnaFormRef = useRef(false);
+
+  // Refs to track previous values for toast notifications
+  const prevTravelerCountRef = useRef(travelers);
+  const prevInsuranceCountRef = useRef(insuranceCount);
+  const prevGiftCardCountRef = useRef(1); // Will be updated when giftCardCount is defined
+  const isInitialMountTravelerRef = useRef(true);
+  const isInitialMountInsuranceRef = useRef(true);
+  const isInitialMountGiftCardRef = useRef(true);
 
   // Inline Stripe Payment Form
   const [showInlineStripeForm, setShowInlineStripeForm] = useState(false);
@@ -379,28 +390,125 @@ const VisaCheckout = () => {
     } catch {}
   }, []);
 
+  // Sync local state with Redux state when it changes
   useEffect(() => {
-    if (insuranceCount >= 3) {
-      setAppliedInsuranceDiscount({
-        code: "GROUP20",
-        percentage: 20,
-        description: "Group discount on insurance",
-      });
-      setInsuranceCouponCode("GROUP20");
-      setCouponError("");
-      showSuccess("Insurance group-20 applied — 20% off for 3+ insurances");
-    } else {
-      setAppliedInsuranceDiscount(null);
-      setInsuranceCouponCode("");
-      if (appliedDiscount && couponCode === "STUDENT10") {
-        setAppliedInsuranceDiscount({
-          code: "STUDENT10",
-          percentage: 10,
-          description: "Student discount",
-        });
-      }
+    const reduxTravelers = visaState.travelers !== undefined && visaState.travelers !== null
+      ? Number(visaState.travelers)
+      : 1;
+    if (reduxTravelers !== travelers) {
+      setTravelersLocal(reduxTravelers);
     }
-  }, [insuranceCount, appliedDiscount]);
+  }, [visaState.travelers, travelers]);
+
+  useEffect(() => {
+    const reduxInsuranceCount = visaState.insuranceCount || 0;
+    if (reduxInsuranceCount !== insuranceCount) {
+      setInsuranceCount(reduxInsuranceCount);
+    }
+  }, [visaState.insuranceCount, insuranceCount]);
+
+  // Toast notifications for crossing threshold limits - Travelers
+  useEffect(() => {
+    // Skip on initial mount
+    if (isInitialMountTravelerRef.current) {
+      prevTravelerCountRef.current = travelers;
+      isInitialMountTravelerRef.current = false;
+      return;
+    }
+
+    const prevTravelers = prevTravelerCountRef.current;
+    const currentTravelers = travelers;
+    
+    // Only show toast if value changed and crossed the threshold
+    if (prevTravelers !== currentTravelers) {
+      if (prevTravelers < 3 && currentTravelers >= 3) {
+        showSuccess("Group discount unlocked! 20% off for 3+ travellers");
+      } else if (prevTravelers >= 3 && currentTravelers < 3) {
+        showSuccess("Group discount removed — fewer than 3 travellers");
+      }
+      prevTravelerCountRef.current = currentTravelers;
+    }
+  }, [travelers, showSuccess]);
+
+  // Toast notifications for crossing threshold limits - Insurance
+  useEffect(() => {
+    // Skip on initial mount
+    if (isInitialMountInsuranceRef.current) {
+      prevInsuranceCountRef.current = insuranceCount;
+      isInitialMountInsuranceRef.current = false;
+      // Still apply discount logic on mount if needed
+      if (insuranceCount >= 3) {
+        setAppliedInsuranceDiscount({
+          code: "GROUP20",
+          percentage: 20,
+          description: "Group discount on insurance",
+        });
+        setInsuranceCouponCode("GROUP20");
+        setCouponError("");
+      } else {
+        setAppliedInsuranceDiscount(null);
+        setInsuranceCouponCode("");
+        if (appliedDiscount && couponCode === "STUDENT10") {
+          setAppliedInsuranceDiscount({
+            code: "STUDENT10",
+            percentage: 10,
+            description: "Student discount",
+          });
+        }
+      }
+      return;
+    }
+
+    const prevInsurance = prevInsuranceCountRef.current;
+    const currentInsurance = insuranceCount;
+    
+    // Only show toast if value changed and crossed the threshold
+    if (prevInsurance !== currentInsurance) {
+      if (prevInsurance < 3 && currentInsurance >= 3) {
+        showSuccess("Insurance group discount unlocked! 20% off for 3+ insurances");
+        setAppliedInsuranceDiscount({
+          code: "GROUP20",
+          percentage: 20,
+          description: "Group discount on insurance",
+        });
+        setInsuranceCouponCode("GROUP20");
+        setCouponError("");
+      } else if (prevInsurance >= 3 && currentInsurance < 3) {
+        showSuccess("Insurance group discount removed — fewer than 3 insurances");
+        setAppliedInsuranceDiscount(null);
+        setInsuranceCouponCode("");
+        if (appliedDiscount && couponCode === "STUDENT10") {
+          setAppliedInsuranceDiscount({
+            code: "STUDENT10",
+            percentage: 10,
+            description: "Student discount",
+          });
+        }
+      } else {
+        // Update discount state even if not crossing threshold (for consistency)
+        if (currentInsurance >= 3) {
+          setAppliedInsuranceDiscount({
+            code: "GROUP20",
+            percentage: 20,
+            description: "Group discount on insurance",
+          });
+          setInsuranceCouponCode("GROUP20");
+          setCouponError("");
+        } else {
+          setAppliedInsuranceDiscount(null);
+          setInsuranceCouponCode("");
+          if (appliedDiscount && couponCode === "STUDENT10") {
+            setAppliedInsuranceDiscount({
+              code: "STUDENT10",
+              percentage: 10,
+              description: "Student discount",
+            });
+          }
+        }
+      }
+      prevInsuranceCountRef.current = currentInsurance;
+    }
+  }, [insuranceCount, appliedDiscount, couponCode, showSuccess]);
 
   useEffect(() => {
     if (travelers < 3) {
@@ -542,6 +650,37 @@ const VisaCheckout = () => {
     visaState.giftCardCount || 1
   );
 
+  // Sync local state with Redux state when it changes - Gift Card
+  useEffect(() => {
+    const reduxGiftCardCount = visaState.giftCardCount || 1;
+    if (reduxGiftCardCount !== giftCardCount) {
+      setGiftCardCount(reduxGiftCardCount);
+    }
+  }, [visaState.giftCardCount, giftCardCount]);
+
+  // Toast notifications for crossing threshold limits - Gift Card
+  useEffect(() => {
+    // Skip on initial mount
+    if (isInitialMountGiftCardRef.current) {
+      prevGiftCardCountRef.current = giftCardCount;
+      isInitialMountGiftCardRef.current = false;
+      return;
+    }
+
+    const prevGiftCard = prevGiftCardCountRef.current;
+    const currentGiftCard = giftCardCount;
+    
+    // Only show toast if value changed and crossed the threshold
+    if (prevGiftCard !== currentGiftCard) {
+      if (prevGiftCard < 3 && currentGiftCard >= 3) {
+        showSuccess("Gift card group discount unlocked! 20% off for 3+ gift cards");
+      } else if (prevGiftCard >= 3 && currentGiftCard < 3) {
+        showSuccess("Gift card group discount removed — fewer than 3 gift cards");
+      }
+      prevGiftCardCountRef.current = currentGiftCard;
+    }
+  }, [giftCardCount, showSuccess]);
+
   const isDocumentsValid = useMemo(() => {
     const missingDocs = REQUIRED_DOCUMENT_FIELDS.filter(
       (field) => !requiredDocuments[field]
@@ -578,6 +717,7 @@ const VisaCheckout = () => {
     const newValue = giftCardCount + increment;
     if (newValue >= 1) {
       setGiftCardCount(newValue);
+      dispatch(setReduxGiftCardCount(Number(newValue)));
 
       if (newValue > 0 && !includeGiftCard) {
         setIncludeGiftCard(true);
@@ -1946,8 +2086,10 @@ const VisaCheckout = () => {
                 onChange={(e) => {
                   if (e.target.checked && travelers === 1) {
                     setTravelersLocal(2);
+                    dispatch(setTravelers(2));
                   } else if (!e.target.checked && travelers > 1) {
                     setTravelersLocal(1);
+                    dispatch(setTravelers(1));
                   }
                 }}
               />
@@ -1985,6 +2127,7 @@ const VisaCheckout = () => {
                 onClick={() => {
                   setIncludeInsurance(!includeInsurance);
                   setInsuranceCount(1);
+                  dispatch(setReduxInsuranceCount(1));
                 }}
               >
                 <input
@@ -2032,6 +2175,7 @@ const VisaCheckout = () => {
                   setIncludeGiftCard(!includeGiftCard);
                   if (!includeGiftCard) {
                     setGiftCardCount(1);
+                    dispatch(setReduxGiftCardCount(1));
                   }
                 }}
               >
@@ -2043,6 +2187,7 @@ const VisaCheckout = () => {
                     setIncludeGiftCard(e.target.checked);
                     if (e.target.checked && giftCardCount === 0) {
                       setGiftCardCount(1);
+                      dispatch(setReduxGiftCardCount(1));
                     }
                   }}
                   className="h-4 w-4 border-gray-300 rounded"

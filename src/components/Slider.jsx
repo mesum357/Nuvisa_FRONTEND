@@ -1127,6 +1127,54 @@ const CountrySlider = () => {
     giftCardCount
   ]);
 
+  // Memoize visa-only price (without insurance) for traveller card display
+  const visaOnlyPrice = useMemo(() => {
+    const baseDiscountedVisaFees = currentVisaFeePerTraveler * travelers;
+
+    // Check if travelers qualify for quantity discount (3+)
+    const travelersQualify = travelers >= 3;
+
+    // Check if student discount applies
+    const hasStudentDiscount = appliedDiscount && appliedDiscount.code === "STUDENT10";
+    const hasGroupDiscount = appliedDiscount && appliedDiscount.code === "GROUP20";
+
+    // Calculate discounts sequentially (compound): First 20% quantity discount, then 10% student discount on discounted price
+    let finalVisaPrice = baseDiscountedVisaFees;
+
+    // Apply 20% quantity discount first (if 3+ items)
+    if (travelersQualify) {
+      const quantityDiscount = (finalVisaPrice * 20) / 100;
+      finalVisaPrice = finalVisaPrice - quantityDiscount;
+    }
+
+    // Apply GROUP20 coupon (ensures 20% is applied if conditions met)
+    if (hasGroupDiscount) {
+      const effectiveInsuranceCount = Math.min(insuranceCount, travelers);
+      const insuranceQualify = effectiveInsuranceCount >= 3;
+      const giftCardQualify = giftCardCount >= 3;
+      if (travelersQualify && (insuranceQualify || giftCardQualify)) {
+        if (travelersQualify && finalVisaPrice === baseDiscountedVisaFees) {
+          const quantityDiscount = (finalVisaPrice * 20) / 100;
+          finalVisaPrice = finalVisaPrice - quantityDiscount;
+        }
+      }
+    }
+
+    // Apply 10% student discount on already-discounted price (if student)
+    if (hasStudentDiscount) {
+      const studentDiscount = (finalVisaPrice * 10) / 100;
+      finalVisaPrice = finalVisaPrice - studentDiscount;
+    }
+
+    return finalVisaPrice;
+  }, [
+    currentVisaFeePerTraveler,
+    travelers,
+    insuranceCount,
+    appliedDiscount,
+    giftCardCount
+  ]);
+
   // Memoize calculateDiscountedInsurancePrice
   const discountedInsurancePrice = useMemo(() => {
     // Use same logic as calculateFinalPrice for insurance
@@ -1250,14 +1298,7 @@ const CountrySlider = () => {
     }
 
     const baseOriginalPrice = Math.round(currentStrikeOutPrice) * travelers;
-    const insuranceOriginalPrice =
-      recommendedItems.insuranceCertificate && insuranceDays > 0
-        ? Math.round(originalPerDayInsurancePrice * insuranceDays * insuranceCount)
-        : 0;
-    // Note: giftCardOriginalPrice is calculated but not included in return
-    // to keep strike-through price separate from gift card pricing
-
-    return baseOriginalPrice + insuranceOriginalPrice;
+    return baseOriginalPrice;
   };
 
   // Apply coupon immediately (no verification at apply time)
@@ -2383,7 +2424,7 @@ const CountrySlider = () => {
 
                   <div className="flex flex-col items-end">
                     <span className="text-2xl font-gilroy-bold max-sm:text-xl">
-                      £{visaAndInsurancePrice.toFixed(2)}
+                      £{visaOnlyPrice.toFixed(2)}
                     </span>
                   </div>
                 </div>
