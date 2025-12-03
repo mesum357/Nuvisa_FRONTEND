@@ -1967,16 +1967,24 @@ const CountrySlider = () => {
   const validateBeforeExpressPayment = useCallback(() => {
     if (!isDocumentsValid) {
       dispatch(triggerDocumentValidation());
-      return "Please complete all required documents before proceeding with payment.";
+      const message = "Please complete all required documents before proceeding with payment.";
+      showError(message);
+      return message;
     }
     if (
       appliedDiscount &&
       appliedDiscount.description &&
       appliedDiscount.description.toLowerCase().includes("student") &&
-      !studentVerified &&
-      (!userEmail || !validateEmail(userEmail))
+      !studentVerified
     ) {
-      return "Please verify your student email before proceeding with payment.";
+      if (!userEmail || !validateEmail(userEmail)) {
+        const message = "Please enter a valid student email before proceeding to checkout";
+        showError(message);
+        return message;
+      }
+      const message = "Please verify your student email before proceeding with payment.";
+      showError(message);
+      return message;
     }
     return null;
   }, [
@@ -1984,6 +1992,8 @@ const CountrySlider = () => {
     appliedDiscount,
     studentVerified,
     userEmail,
+    dispatch,
+    showError,
   ]);
 
   // Calculate total amount for express payments (Apple Pay/Google Pay) - memoized to prevent infinite loops

@@ -508,8 +508,15 @@ const ExpressPaymentRequestButton = forwardRef(
             return { success: false, message };
           }
 
-          // Don't validate here - validation will happen in handlePaymentMethod
-          // This prevents duplicate error popups
+          // Validate BEFORE showing the payment popup
+          if (onBeforePayment) {
+            const validationError = onBeforePayment();
+            if (validationError) {
+              setButtonError(validationError);
+              return { success: false, message: validationError };
+            }
+          }
+
           if (typeof paymentRequest.show !== "function") {
             const message =
               "Apple Pay / Google Pay is not available on this device. Please select another payment method.";

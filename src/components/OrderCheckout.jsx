@@ -27,6 +27,7 @@ import {
   setReduxGiftCardCount,
   setTotalAmount,
   setTravelers,
+  triggerDocumentValidation,
 } from "@/store/visaSlice";
 import StripeProvider from "./StripeProvider";
 import StripeElementsCheckout from "./StripeElementsCheckout";
@@ -699,6 +700,15 @@ const VisaCheckout = () => {
   }, [requiredDocuments, recommendedItems, includeInsurance, includeGiftCard]);
 
   const validateBeforeExpressPayment = useCallback(() => {
+    // Check for required documents first
+    if (!isDocumentsValid) {
+      dispatch(triggerDocumentValidation());
+      const message = "Please complete all required documents before proceeding with payment.";
+      showError(message);
+      return message;
+    }
+    
+    // Check for student email verification if student discount is applied
     if (
       appliedDiscount &&
       appliedDiscount.description &&
@@ -711,7 +721,7 @@ const VisaCheckout = () => {
       return message;
     }
     return null;
-  }, [isDocumentsValid, appliedDiscount, studentVerified, showError]);
+  }, [isDocumentsValid, appliedDiscount, studentVerified, showError, dispatch]);
 
   const handleGiftCardChange = (increment) => {
     const newValue = giftCardCount + increment;
@@ -2219,7 +2229,6 @@ const VisaCheckout = () => {
             {includeGiftCard && (
               <p className="text-xs text-gray-400">
                 Digital gift card for {giftCardCount}
-                {giftCardCount > 1 ? "s" : ""}
               </p>
             )}
 

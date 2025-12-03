@@ -34,7 +34,7 @@ const Index = () => {
               Schengen visa for Indians from the UK
             </span> */}
             </div>
-            <h1 className="text-4xl sm:text-4xl md:text-[4.5rem] font-gilroy-bold leading-tight mb-4 sm:mb-8 max-sm:tracking-tighter">
+            <h1 className="text-4xl sm:text-4xl md:text-[4.5rem] font-gilroy-bold leading-tight mb-2 max-sm:mb-2 sm:mb-8 max-sm:tracking-tighter">
               {loading ? "Don't Postpone Your Happiness!" : heroContent.title}
               {/* <br /> */}
               {/* <span className="text-white"></span> */}

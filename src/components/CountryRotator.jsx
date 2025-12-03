@@ -85,7 +85,7 @@ const VisaHeroSection = () => {
   }, []);
 
   return (
-    <div className="flex-col flex gap-1 mt-[13px] md:mt-0 items-center justify-center">
+    <div className="flex-col flex gap-1 mt-[6px] max-sm:mt-[6px] md:mt-0 items-center justify-center">
       <style>{`
         .highlight-animation-top {
           position: relative;
@@ -128,7 +128,7 @@ const VisaHeroSection = () => {
         }
       `}</style>
 
-      <h1 className="text-[40px] whitespace-nowrap uppercase md:text-[60px] font-gilroy-bold mt-5">
+      <h1 className="text-[40px] whitespace-nowrap uppercase md:text-[60px] font-gilroy-bold mt-2 max-sm:my-[-30px] md:mt-5">
         <div className="highlight-animation-top">
           {words.map((word, index) => (
             <div
