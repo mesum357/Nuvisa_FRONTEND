@@ -6,6 +6,10 @@ const FeaturesSection = React.memo(() => {
   const [scrollOffset, setScrollOffset] = useState(0);
   const sectionRef = useRef(null);
   const maxOffsetRef = useRef(0);
+  const targetOffsetRef = useRef(0);
+  const currentOffsetRef = useRef(0);
+  const animationFrameRef = useRef(null);
+  const isAnimatingRef = useRef(false);
 
   // Calculate maxOffset once and cache it
   useEffect(() => {
@@ -20,6 +24,59 @@ const FeaturesSection = React.memo(() => {
 
   useEffect(() => {
     let ticking = false;
+    let isInitialized = false;
+
+    // Smooth interpolation function (lerp)
+    const lerp = (start, end, factor) => {
+      return start + (end - start) * factor;
+    };
+
+    // Calculate target offset based on scroll position
+    const calculateTargetOffset = () => {
+      if (!sectionRef.current) return 0;
+
+      const rect = sectionRef.current.getBoundingClientRect();
+      const sectionTop = rect.top;
+      const windowHeight = window.innerHeight;
+      const rectHeight = rect.height;
+      const maxOffset = maxOffsetRef.current;
+
+      // If section is below viewport (not yet visible), start at maxOffset
+      if (sectionTop >= windowHeight) {
+        return maxOffset;
+      }
+      // If section is above viewport (already scrolled past), end at -maxOffset
+      if (sectionTop <= -rectHeight) {
+        return -maxOffset;
+      }
+      // If section is in viewport, calculate based on scroll progress
+      const scrollProgress =
+        (windowHeight - sectionTop) / (windowHeight + rectHeight);
+      return maxOffset - scrollProgress * maxOffset * 2;
+    };
+
+    // Animation loop for smooth interpolation
+    const animate = () => {
+      const currentOffset = currentOffsetRef.current;
+      const targetOffset = targetOffsetRef.current;
+      const difference = Math.abs(currentOffset - targetOffset);
+      
+      // Only animate if there's a meaningful difference
+      if (difference > 0.1) {
+        // Smooth interpolation factor (lower = smoother but slower)
+        const factor = 0.08;
+        const newOffset = lerp(currentOffset, targetOffset, factor);
+        currentOffsetRef.current = newOffset;
+        setScrollOffset(newOffset);
+        animationFrameRef.current = requestAnimationFrame(animate);
+      } else {
+        // Snap to target when close enough
+        currentOffsetRef.current = targetOffset;
+        setScrollOffset(targetOffset);
+        // Continue animation loop to check for new target changes
+        animationFrameRef.current = requestAnimationFrame(animate);
+      }
+    };
 
     const updateOffset = () => {
       ticking = false;
@@ -36,7 +93,35 @@ const FeaturesSection = React.memo(() => {
 
         // Use cached maxOffset
         const maxOffset = maxOffsetRef.current;
-        setScrollOffset(maxOffset - scrollProgress * maxOffset * 2);
+        const newTargetOffset = maxOffset - scrollProgress * maxOffset * 2;
+        targetOffsetRef.current = newTargetOffset;
+
+        // Always restart animation loop when target changes (after initialization)
+        if (isInitialized && !isAnimatingRef.current) {
+          isAnimatingRef.current = true;
+          animationFrameRef.current = requestAnimationFrame(animate);
+        }
+      } else {
+        // Handle cases when section is outside viewport
+        const newTargetOffset = calculateTargetOffset();
+        targetOffsetRef.current = newTargetOffset;
+        
+        // On initial load, set immediately without animation to prevent flicker
+        if (!isInitialized) {
+          currentOffsetRef.current = newTargetOffset;
+          setScrollOffset(newTargetOffset);
+          isInitialized = true;
+        } else {
+          // Stop animation when section is out of viewport
+          if (animationFrameRef.current) {
+            cancelAnimationFrame(animationFrameRef.current);
+            animationFrameRef.current = null;
+          }
+          isAnimatingRef.current = false;
+          // Set position immediately when out of viewport
+          currentOffsetRef.current = newTargetOffset;
+          setScrollOffset(newTargetOffset);
+        }
       }
     };
 
@@ -47,9 +132,34 @@ const FeaturesSection = React.memo(() => {
       }
     };
 
+    // Initialize on mount - calculate and set initial position immediately
+    const initializePosition = () => {
+      if (!sectionRef.current) {
+        // Retry after a short delay if ref isn't ready
+        setTimeout(initializePosition, 10);
+        return;
+      }
+      const initialOffset = calculateTargetOffset();
+      currentOffsetRef.current = initialOffset;
+      targetOffsetRef.current = initialOffset;
+      setScrollOffset(initialOffset);
+      isInitialized = true;
+    };
+
+    // Wait for next frame to ensure layout is complete
+    requestAnimationFrame(() => {
+      initializePosition();
+      updateOffset();
+    });
+
     window.addEventListener("scroll", handleScroll, { passive: true });
-    updateOffset();
-    return () => window.removeEventListener("scroll", handleScroll);
+    
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
   }, []);
 
   return (
@@ -61,7 +171,7 @@ const FeaturesSection = React.memo(() => {
         {/* Animated Heading */}
         <div className="mb-10 md:mb-16">
           <h1
-            className="text-[30px] md:text-[50px] lg:text-[70px] font-extrabold leading-tight transition-transform duration-300 ease-out max-md:tracking-tight max-sm:hidden"
+            className="text-[30px] md:text-[50px] lg:text-[70px] font-extrabold leading-tight max-md:tracking-tight max-sm:hidden"
             style={{
               transform: `translateX(${scrollOffset}px)`,
             }}

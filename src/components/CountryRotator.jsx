@@ -19,7 +19,7 @@ const VisaHeroSection = () => {
   const currentWord = useRef(0);
 
   useEffect(() => {
-    // EXACT JS SPLIT LETTERS LOGIC
+    // EXACT JS SPLIT LETTERS LOGIC FROM SPREADBOT
     wordArray.current = [];
 
     words.forEach((word, idx) => {
@@ -45,15 +45,15 @@ const VisaHeroSection = () => {
     wordRefs.current[0].style.opacity = 1;
 
     const animateLetterOut = (cw, i) => {
-      setTimeout(() => {
-        cw[i].className = "letter out";
+      setTimeout(function() { 
+        cw[i].className = "letter out"; 
       }, i * 80);
     };
 
     const animateLetterIn = (nw, i) => {
-      setTimeout(() => {
-        nw[i].className = "letter in";
-      }, 340 + i * 80);
+      setTimeout(function() { 
+        nw[i].className = "letter in"; 
+      }, 340 + (i * 80));
     };
 
     const changeWord = () => {
@@ -65,14 +65,16 @@ const VisaHeroSection = () => {
       let nw = wordArray.current[nextIndex];
 
       // OUT ANIMATION
-      cw.forEach((_, i) => animateLetterOut(cw, i));
+      for (let i = 0; i < cw.length; i++) {
+        animateLetterOut(cw, i);
+      }
 
       // IN ANIMATION
-      nw.forEach((letter, i) => {
-        letter.className = "letter behind";
+      for (let i = 0; i < nw.length; i++) {
+        nw[i].className = "letter behind";
         nw[0].parentElement.style.opacity = 1;
         animateLetterIn(nw, i);
-      });
+      }
 
       currentWord.current = nextIndex;
     };
@@ -91,38 +93,38 @@ const VisaHeroSection = () => {
           display: flex;
           justify-content: center;
           align-items: center;
+          width: 100%;
         }
 
         .highlight-animation-word {
           position: absolute;
-          top: 0;
+          color: #fff;
+          text-align: center;
+          opacity: 0;
           left: 50%;
           transform: translateX(-50%);
-          opacity: 0;
+          text-transform: uppercase;
+          font-weight: 800;
           white-space: nowrap;
         }
 
         .letter {
           display: inline-block;
-          position: relative;
-          opacity: 0;
-          transform: translateY(0);
-          transition: transform 0.5s ease, opacity 0.5s ease;
-        }
-
-        .letter.behind {
-          opacity: 0;
-          transform: translateY(-30px);
+          transform-origin: 50% 50% 25px;
         }
 
         .letter.out {
-          opacity: 0;
-          transform: translateY(27px);
+          transform: rotateX(90deg);
+          transition: transform .32s cubic-bezier(.55,.055,.675,.19);
+        }
+
+        .letter.behind {
+          transform: rotateX(-90deg);
         }
 
         .letter.in {
-          opacity: 1;
-          transform: translateY(0);
+          transform: rotateX(0);
+          transition: transform .38s cubic-bezier(.175,.885,.32,1.275);
         }
       `}</style>
 
