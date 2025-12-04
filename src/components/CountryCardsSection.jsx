@@ -31,10 +31,10 @@ const CountryCardsSection = () => {
     // Get dynamic fees based on selected country
     const countryConfig = getCountryConfig(countryName);
 
-    // Preserve existing traveler count, default to 1 if not set
-    const currentTravelerCount = visaState.travelers && visaState.travelers > 0 
+    // Preserve existing traveler count, default to 0 if not set
+    const currentTravelerCount = visaState.travelers !== undefined && visaState.travelers !== null
       ? visaState.travelers 
-      : 1;
+      : 0;
 
     // Store the selected country and dynamic fees in Redux
     dispatch(setSelectedCountry(String(countryName)));

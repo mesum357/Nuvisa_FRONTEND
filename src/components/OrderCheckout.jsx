@@ -77,7 +77,7 @@ const VisaCheckout = () => {
   const [travelers, setTravelersLocal] = useState(
     visaState.travelers !== undefined && visaState.travelers !== null
       ? Number(visaState.travelers)
-      : 1
+      : 0
   );
 
   const handleTravelersChange = (newCount) => {
@@ -2255,6 +2255,7 @@ const VisaCheckout = () => {
                 onIncrement={(val) => handleTravelersChange(val)}
                 onDecrement={(val) => handleTravelersChange(val)}
                 value={travelers}
+                min={0}
               />
             </div>
 

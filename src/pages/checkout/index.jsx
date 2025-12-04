@@ -17,7 +17,7 @@ const index = () => {
   const [isEditingEmail, setIsEditingEmail] = useState(false);
   const [tempEmail, setTempEmail] = useState(email);
   const [newsletter, setNewsletter] = useState(true);
-  const [travelers, setTravelers] = useState(visaState.travelers || 1);
+  const [travelers, setTravelers] = useState(visaState.travelers ?? 0);
   const [insurance, setInsurance] = useState(true);
   const [evisa, setEvisa] = useState(true);
 

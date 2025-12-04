@@ -194,7 +194,7 @@ const CountrySlider = () => {
   const [insuranceDays, setInsuranceDays] = useState(0);
 
   // Use Redux state instead of local state
-  const travelers = visaState.travelers || 1;
+  const travelers = visaState.travelers ?? 0;
   const insuranceCount = visaState.insuranceCount || 0;
   const giftCardCount = visaState.giftCardCount || 0;
   // Default arrival = 4 weeks from today, default departure = arrival + 14 days (15 days inclusive)
@@ -871,7 +871,7 @@ const CountrySlider = () => {
 
   const _handleTravelerChange = (increment) => {
     const newValue = travelers + increment;
-    if (newValue >= 1) {
+    if (newValue >= 0) {
       dispatch(setReduxTravelers(Number(newValue)));
     }
   };
@@ -2596,7 +2596,7 @@ const CountrySlider = () => {
                       const n = Number(next);
                       dispatch(setReduxTravelers(Number(n)));
                     }}
-                    min={1}
+                    min={0}
                   />
                 </div>
 
