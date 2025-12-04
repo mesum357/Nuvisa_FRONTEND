@@ -12,6 +12,8 @@ import {
 import usePaymentData from "@/hooks/usePaymentData";
 import { createApplication } from "@/api/visa";
 import { createOrUpdateApplication } from "@/api/visaApplications";
+import { localStorageEnums } from "@/enums/localstorage.enums";
+import { localStorageGateway } from "@/gateways/localStoragegateway";
 
 
 const PaymentSuccess = () => {
@@ -87,6 +89,14 @@ const PaymentSuccess = () => {
         const finalApplicationId = applicationId
 
         setPaymentType(finalPaymentType);
+
+        // Check if this is a gift card purchase
+        if (finalPaymentType === "gift_card") {
+          // Gift card purchase - show confirmation message
+          // The backend webhook will automatically create the gift card and send email
+          setPaymentType("gift_card");
+          return; // Don't create application for gift card purchases
+        }
 
         // Check if this is a full payment or additional traveler payment
         if (
@@ -421,6 +431,59 @@ const PaymentSuccess = () => {
 
     storePaymentDataAndRedirect();
   }, []); // Empty dependency array to run only once
+
+  // Show gift card purchase confirmation
+  if (paymentType === "gift_card") {
+    const userEmail = typeof window !== "undefined" 
+      ? localStorageGateway("userEmail", localStorageEnums.GET) || ""
+      : "";
+    
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
+          <div className="mb-6">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg
+                className="w-8 h-8 text-green-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              Gift Card Purchase Successful!
+            </h1>
+            <p className="text-gray-600 mb-4">
+              Your gift card purchase was successful!
+            </p>
+            {userEmail && (
+              <p className="text-gray-700 mb-2">
+                A confirmation email with your redemption code has been sent to{" "}
+                <span className="font-semibold">{userEmail}</span>
+              </p>
+            )}
+            <p className="text-sm text-gray-500 mt-4">
+              Please check your email for the code. The code format is:{" "}
+              <span className="font-mono font-semibold">NU-VISA-XXXXXX</span>
+            </p>
+          </div>
+          <button
+            onClick={() => router.push("/visa-checkout")}
+            className="w-full bg-[#7350FF] text-white py-3 px-6 rounded-lg font-semibold hover:bg-[#7350FF]/90 transition-colors"
+          >
+            Return to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">

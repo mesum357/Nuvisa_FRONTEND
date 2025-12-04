@@ -22,6 +22,9 @@ import {
   setReduxInsuranceCount,
   setReduxGiftCardCount,
   triggerDocumentValidation,
+  addRedeemedGiftCard,
+  removeRedeemedGiftCard,
+  clearRedeemedGiftCards,
 } from "@/store/visaSlice";
 import ClientOnly from "./ClientOnly";
 import {
@@ -49,6 +52,7 @@ import SimpleAlert from "./SimpleAlert";
 import ConfirmationModal from "./ConfirmationModal";
 import StripeProvider from "./StripeProvider";
 import ExpressPaymentRequestButton from "./ExpressPaymentRequestButton";
+import { validateGiftCardCode, redeemGiftCardCode } from "@/api/giftCard";
 
 const CountrySlider = () => {
   const router = useRouter();
@@ -251,6 +255,20 @@ const CountrySlider = () => {
   const [_showStudentModal, _setShowStudentModal] = useState(false);
   const [pendingCheckoutQuery, setPendingCheckoutQuery] = useState(null);
   const [_studentEmail, _setStudentEmail] = useState("");
+  // Load gift card state from Redux - now supports multiple cards
+  const redeemedGiftCards = visaState.redeemedGiftCards || [];
+  const giftCardRedeemed = redeemedGiftCards.length > 0;
+  
+  // Calculate total benefits from all redeemed gift cards
+  const totalGiftCardBenefits = useMemo(() => {
+    return redeemedGiftCards.reduce((total, card) => ({
+      freeTraveler: total.freeTraveler + (card.benefits?.freeTraveler || 0),
+      freeInsurance: total.freeInsurance + (card.benefits?.freeInsurance || 0),
+    }), { freeTraveler: 0, freeInsurance: 0 });
+  }, [redeemedGiftCards]);
+  
+  const giftCardBenefits = totalGiftCardBenefits.freeTraveler > 0 || totalGiftCardBenefits.freeInsurance > 0 ? totalGiftCardBenefits : null;
+  const [isRedeemingGiftCard, setIsRedeemingGiftCard] = useState(false);
   const [studentVerificationSent, setStudentVerificationSent] = useState(false);
   const [_studentOtp, _setStudentOtp] = useState("");
   const [studentVerified, setStudentVerified] = useState(false);
@@ -983,14 +1001,25 @@ const CountrySlider = () => {
 
   // Memoize calculateFinalPrice to prevent recalculation on every render
   const finalPrice = useMemo(() => {
-    // Base discounted prices (not original prices)
-    const baseDiscountedVisaFees = currentVisaFeePerTraveler * travelers;
-    const baseDiscountedInsuranceFees = discountedInsuranceBase;
+    // Apply gift card benefits: reduce effective counts for calculation
+    const effectiveTravelers = giftCardRedeemed && travelers > 0 
+      ? Math.max(0, travelers - (giftCardBenefits?.freeTraveler || 0))
+      : travelers;
+    const effectiveInsuranceCountForCalc = giftCardRedeemed && insuranceCount > 0
+      ? Math.max(0, insuranceCount - (giftCardBenefits?.freeInsurance || 0))
+      : insuranceCount;
+
+    // Base discounted prices (not original prices) - using effective counts
+    const baseDiscountedVisaFees = currentVisaFeePerTraveler * effectiveTravelers;
+    const baseDiscountedInsuranceFees = recommendedItems.insuranceCertificate && effectiveInsuranceCountForCalc > 0
+      ? perDayInsurancePrice * effectiveInsuranceDays * effectiveInsuranceCountForCalc
+      : 0;
     const baseDiscountedGiftCardFees = recommendedItems.giftCard
       ? 159 * giftCardCount
       : 0;
 
     // Check if any component qualifies for quantity discount (3+)
+    // Use original counts for qualification checks, not effective counts
     const effectiveInsuranceCount = Math.min(insuranceCount, travelers);
     const travelersQualify = travelers >= 3;
     const insuranceQualify = effectiveInsuranceCount >= 3;
@@ -1059,16 +1088,31 @@ const CountrySlider = () => {
     recommendedItems,
     insuranceCount,
     giftCardCount,
-    appliedDiscount
+    appliedDiscount,
+    giftCardRedeemed,
+    giftCardBenefits,
+    perDayInsurancePrice,
+    effectiveInsuranceDays
   ]);
 
   // Memoize calculateVisaAndInsurancePrice
   const visaAndInsurancePrice = useMemo(() => {
+    // Apply gift card benefits: reduce effective counts for calculation
+    const effectiveTravelers = giftCardRedeemed && travelers > 0 
+      ? Math.max(0, travelers - (giftCardBenefits?.freeTraveler || 0))
+      : travelers;
+    const effectiveInsuranceCountForCalc = giftCardRedeemed && insuranceCount > 0
+      ? Math.max(0, insuranceCount - (giftCardBenefits?.freeInsurance || 0))
+      : insuranceCount;
+
     // Calculate only visa + insurance (excluding gift cards) for main price display
-    const baseDiscountedVisaFees = currentVisaFeePerTraveler * travelers;
-    const baseDiscountedInsuranceFees = discountedInsuranceBase;
+    const baseDiscountedVisaFees = currentVisaFeePerTraveler * effectiveTravelers;
+    const baseDiscountedInsuranceFees = recommendedItems.insuranceCertificate && effectiveInsuranceCountForCalc > 0
+      ? perDayInsurancePrice * effectiveInsuranceDays * effectiveInsuranceCountForCalc
+      : 0;
 
     // Check if any component qualifies for quantity discount (3+)
+    // Use original counts for qualification checks, not effective counts
     const effectiveInsuranceCount = Math.min(insuranceCount, travelers);
     const travelersQualify = travelers >= 3;
     const insuranceQualify = effectiveInsuranceCount >= 3;
@@ -1124,14 +1168,24 @@ const CountrySlider = () => {
     insuranceCount,
     recommendedItems,
     appliedDiscount,
-    giftCardCount
+    giftCardCount,
+    giftCardRedeemed,
+    giftCardBenefits,
+    perDayInsurancePrice,
+    effectiveInsuranceDays
   ]);
 
   // Memoize visa-only price (without insurance) for traveller card display
   const visaOnlyPrice = useMemo(() => {
-    const baseDiscountedVisaFees = currentVisaFeePerTraveler * travelers;
+    // Apply gift card benefits: reduce effective count for calculation
+    const effectiveTravelers = giftCardRedeemed && travelers > 0 
+      ? Math.max(0, travelers - (giftCardBenefits?.freeTraveler || 0))
+      : travelers;
+
+    const baseDiscountedVisaFees = currentVisaFeePerTraveler * effectiveTravelers;
 
     // Check if travelers qualify for quantity discount (3+)
+    // Use original count for qualification checks
     const travelersQualify = travelers >= 3;
 
     // Check if student discount applies
@@ -1172,15 +1226,25 @@ const CountrySlider = () => {
     travelers,
     insuranceCount,
     appliedDiscount,
-    giftCardCount
+    giftCardCount,
+    giftCardRedeemed,
+    giftCardBenefits
   ]);
 
   // Memoize calculateDiscountedInsurancePrice
   const discountedInsurancePrice = useMemo(() => {
+    // Apply gift card benefits: reduce effective count for calculation
+    const effectiveInsuranceCountForCalc = giftCardRedeemed && insuranceCount > 0
+      ? Math.max(0, insuranceCount - (giftCardBenefits?.freeInsurance || 0))
+      : insuranceCount;
+
     // Use same logic as calculateFinalPrice for insurance
-    const baseDiscountedInsuranceFees = discountedInsuranceBase;
+    const baseDiscountedInsuranceFees = recommendedItems.insuranceCertificate && effectiveInsuranceCountForCalc > 0
+      ? perDayInsurancePrice * effectiveInsuranceDays * effectiveInsuranceCountForCalc
+      : 0;
 
     // Check if insurance qualifies for quantity discount (3+)
+    // Use original count for qualification checks
     const effectiveInsuranceCount = Math.min(insuranceCount, travelers);
     const insuranceQualify = effectiveInsuranceCount >= 3;
 
@@ -1222,7 +1286,11 @@ const CountrySlider = () => {
     travelers,
     recommendedItems,
     appliedDiscount,
-    giftCardCount
+    giftCardCount,
+    giftCardRedeemed,
+    giftCardBenefits,
+    perDayInsurancePrice,
+    effectiveInsuranceDays
   ]);
 
   // Memoize calculateDiscountedGiftCardPrice
@@ -1302,9 +1370,77 @@ const CountrySlider = () => {
   };
 
   // Apply coupon immediately (no verification at apply time)
-  const applyCouponCode = () => {
+  const applyCouponCode = async () => {
     if (!couponCode.trim()) {
       setCouponError("Please enter a coupon code");
+      return;
+    }
+
+    const codeUpper = couponCode.toUpperCase().trim();
+
+    // Check if it's a gift card code (starts with NU-VISA-)
+    if (codeUpper.startsWith("NU-VISA-")) {
+      setIsRedeemingGiftCard(true);
+      setCouponError("");
+
+      try {
+        // First validate the gift card code
+        const validateResponse = await validateGiftCardCode(codeUpper);
+        
+        if (validateResponse.status === "ERROR" || !validateResponse.data?.results?.valid) {
+          setCouponError(validateResponse.message || "Invalid gift card code");
+          setIsRedeemingGiftCard(false);
+          return;
+        }
+
+        // If valid, redeem it
+        const redeemResponse = await redeemGiftCardCode(codeUpper, userEmail || undefined);
+
+        // Handle different response structures
+        const isSuccess = redeemResponse.status === "SUCCESS" || redeemResponse.status === "success";
+        const hasSuccessData = redeemResponse.data?.success || redeemResponse.data?.results?.success;
+        
+        if (isSuccess && hasSuccessData) {
+          // Store gift card benefits in Redux - add to array of redeemed cards
+          // Benefits are now based on quantity from backend (e.g., 2 gift cards = 2 free travelers + 2 free insurance)
+          const benefits = redeemResponse.data?.benefits || redeemResponse.data?.results?.benefits || { freeTraveler: 1, freeInsurance: 1 };
+          const quantity = redeemResponse.data?.giftCard?.quantity || redeemResponse.data?.results?.giftCard?.quantity || 1;
+          
+          // Check if this code is already redeemed
+          const alreadyRedeemed = redeemedGiftCards.some(card => card.code === codeUpper);
+          if (alreadyRedeemed) {
+            setCouponError("This gift card code has already been redeemed.");
+            setIsRedeemingGiftCard(false);
+            return;
+          }
+          
+          dispatch(addRedeemedGiftCard({
+            code: codeUpper,
+            benefits,
+            quantity,
+          }));
+          setCouponCodeLocal(""); // Clear input after successful redemption
+          setCouponError(""); // Clear any error
+          
+          // Dynamic success message based on actual benefits
+          const freeTravelerCount = benefits.freeTraveler || 1;
+          const freeInsuranceCount = benefits.freeInsurance || 1;
+          const travelerText = freeTravelerCount === 1 ? "traveller" : "travellers";
+          const insuranceText = freeInsuranceCount === 1 ? "insurance" : "insurances";
+          showSuccess(`Gift card ${codeUpper} applied! You get ${freeTravelerCount} free ${travelerText} and ${freeInsuranceCount} free ${insuranceText}.`);
+        } else {
+          setCouponError(redeemResponse.message || "Failed to redeem gift card");
+          setIsRedeemingGiftCard(false);
+          return;
+        }
+      } catch (error) {
+        console.error("Gift card redemption error:", error);
+        setCouponError(error.message || "Failed to redeem gift card. Please try again.");
+        setIsRedeemingGiftCard(false);
+        return;
+      } finally {
+        setIsRedeemingGiftCard(false);
+      }
       return;
     }
 
@@ -1320,7 +1456,7 @@ const CountrySlider = () => {
       },
     };
 
-    const discount = availableDiscounts[couponCode.toUpperCase()];
+    const discount = availableDiscounts[codeUpper];
 
     if (!discount) {
       setCouponError("Invalid coupon code");
@@ -1331,7 +1467,7 @@ const CountrySlider = () => {
     if (
       discount.requiresMinTravellers &&
       travelers < discount.requiresMinTravellers &&
-      couponCode.toUpperCase() === "GROUP20"
+      codeUpper === "GROUP20"
     ) {
       setCouponError(
         `This coupon requires at least ${discount.requiresMinTravellers} travellers`
@@ -1351,11 +1487,11 @@ const CountrySlider = () => {
 
     const discountWithAmount = {
       ...discount,
-      code: couponCode.toUpperCase(),
+      code: codeUpper,
       discountAmount: Math.round(calculatedDiscountAmount),
     };
 
-    if (couponCode.toUpperCase() === "STUDENT10") {
+    if (codeUpper === "STUDENT10") {
       dispatch(setAppliedDiscount(discountWithAmount));
       setAppliedInsuranceDiscount({ ...discountWithAmount, code: "STUDENT10" });
       setInsuranceCouponCode("STUDENT10");
@@ -1364,7 +1500,7 @@ const CountrySlider = () => {
     }
 
     setCouponError("");
-    if (couponCode.toUpperCase() === "GROUP20") {
+    if (codeUpper === "GROUP20") {
       setGroupAutoApplied(false);
     }
 
@@ -1432,7 +1568,13 @@ const CountrySlider = () => {
     setAppliedInsuranceDiscount(null);
     setCouponCodeLocal("");
     setCouponError("");
+    dispatch(clearRedeemedGiftCards());
     // email verification reset not required
+  };
+  
+  const removeGiftCard = (code) => {
+    dispatch(removeRedeemedGiftCard(code));
+    showSuccess(`Gift card ${code} removed.`);
   };
 
   // Auto-apply or remove GROUP20 when traveler count changes
@@ -3098,25 +3240,40 @@ const CountrySlider = () => {
                       }
                       placeholder="Enter coupon code (e.g., STUDENT10)"
                       className={`w-full border ${
-                        couponError ? "border-red-400" : "border-gray-500"
+                        (giftCardRedeemed || appliedDiscount)
+                          ? "border-green-400"
+                          : couponError 
+                            ? "border-red-400" 
+                            : "border-gray-500"
                       } bg-[#24242D] text-white rounded-md p-2 text-sm max-sm:text-xs ${
-                        couponError
-                          ? "outline-none ring-2 ring-red-400"
-                          : "focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        (giftCardRedeemed || appliedDiscount)
+                          ? "outline-none ring-2 ring-green-400"
+                          : couponError
+                            ? "outline-none ring-2 ring-red-400"
+                            : "focus:outline-none focus:ring-2 focus:ring-purple-500"
                       }`}
-                      disabled={appliedDiscount}
+                      disabled={appliedDiscount || isRedeemingGiftCard}
                     />
                   </div>
                   {!appliedDiscount ? (
                     <button
-                      onClick={applyCouponCode}
-                      className="px-4 py-2 bg-white text-black text-sm rounded-md hover:bg-gray-200 transition-colors font-medium max-sm:text-xs max-sm:px-3"
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        applyCouponCode();
+                      }}
+                      disabled={isRedeemingGiftCard}
+                      className="px-4 py-2 bg-white text-black text-sm rounded-md hover:bg-gray-200 transition-colors font-medium max-sm:text-xs max-sm:px-3 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Apply
+                      {isRedeemingGiftCard ? "Processing..." : "Apply"}
                     </button>
                   ) : (
                     <button
-                      onClick={removeCoupon}
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        removeCoupon();
+                      }}
                       className="px-4 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors max-sm:text-xs max-sm:px-3"
                     >
                       Remove
@@ -3136,6 +3293,35 @@ const CountrySlider = () => {
                       ✓ {appliedDiscount.description} (
                       {appliedDiscount.percentage}% off) applied!
                     </span>
+                  </div>
+                )}
+                {redeemedGiftCards.length > 0 && (
+                  <div className="space-y-2">
+                    {redeemedGiftCards.map((card) => {
+                      const freeTravelerCount = card.benefits?.freeTraveler || 0;
+                      const freeInsuranceCount = card.benefits?.freeInsurance || 0;
+                      const travelerText = freeTravelerCount === 1 ? "traveller" : "travellers";
+                      const insuranceText = freeInsuranceCount === 1 ? "insurance" : "insurances";
+                      return (
+                        <div key={card.code} className="flex items-center justify-between text-sm text-green-400 bg-green-600/20 p-2 rounded-md max-sm:text-xs max-sm:p-1.5">
+                          <span>
+                            ✓ Gift card {card.code} applied! {freeTravelerCount} free {travelerText} and {freeInsuranceCount} free {insuranceText}.
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => removeGiftCard(card.code)}
+                            className="ml-2 text-red-400 hover:text-red-300 text-xs font-medium"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {isRedeemingGiftCard && (
+                  <div className="flex items-center space-x-2 text-sm text-blue-400 bg-blue-600/20 p-2 rounded-md max-sm:text-xs max-sm:p-1.5">
+                    <span>Validating gift card code...</span>
                   </div>
                 )}
               </div>
@@ -3330,7 +3516,7 @@ const CountrySlider = () => {
                   insuranceCount={insuranceCount}
                   insurancePaymentAmount={expressPaymentData.insurancePaymentAmount}
                   visaTypeId={expressPaymentData.visaTypeId}
-                  paymentType="application_creation"
+                  paymentType={expressPaymentData.includeGiftCard ? "application_creation,gift_card" : "application_creation"}
                   onBeforePayment={validateBeforeExpressPayment}
                     visaFees={expressPaymentData.visaFees}
                     insuranceFees={expressPaymentData.insuranceFees}

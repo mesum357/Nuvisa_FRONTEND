@@ -15,12 +15,26 @@ export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
 
   const showToast = useCallback((message, type = "error", duration = 5000) => {
-    const id = Date.now() + Math.random();
-    const toast = { id, message, type, duration };
+    // Check if a toast with the same message and type already exists
+    setToasts(prev => {
+      const duplicateExists = prev.some(
+        toast => toast.message === message && toast.type === type
+      );
+      
+      // If duplicate exists, don't add another one
+      if (duplicateExists) {
+        return prev;
+      }
+      
+      // Otherwise, add the new toast
+      const id = Date.now() + Math.random();
+      const toast = { id, message, type, duration };
+      return [...prev, toast];
+    });
     
-    setToasts(prev => [...prev, toast]);
-    
-    return id;
+    // Return null since we can't reliably return the id due to async state updates
+    // The return value is not used anyway
+    return null;
   }, []);
 
   const removeToast = useCallback((id) => {

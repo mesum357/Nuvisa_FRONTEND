@@ -38,8 +38,14 @@ const StripeElementsCheckout = forwardRef(({
   // Expose method to create PaymentIntent on demand
   useImperativeHandle(ref, () => ({
     createPaymentIntent: async () => {
-      if (isInitializingRef.current || clientSecret) {
-        return { success: false, message: "Payment intent already exists or is being created" };
+      // Clear any existing clientSecret to ensure we create a fresh payment intent
+      if (clientSecret) {
+        console.log("Clearing existing clientSecret to create a new payment intent");
+        setClientSecret(null);
+      }
+      
+      if (isInitializingRef.current) {
+        return { success: false, message: "Payment intent is already being created" };
       }
 
       if (!email || !amount) {
@@ -79,6 +85,7 @@ const StripeElementsCheckout = forwardRef(({
 
         if (response?.status === 200 || response?.status === 201) {
           // Handle different possible response structures
+          // Response structure: { status: "success", data: { results: { clientSecret: "..." } } }
           const data = 
             response?.data?.data?.results || 
             response?.data?.results || 
@@ -90,11 +97,23 @@ const StripeElementsCheckout = forwardRef(({
             found: !!newClientSecret,
             prefix: newClientSecret ? `${newClientSecret.substring(0, 30)}...` : "NOT FOUND",
             paymentIntentId: newClientSecret ? newClientSecret.split('_secret_')[0] : null,
+            fullClientSecret: newClientSecret, // Log full secret for debugging (remove in production)
+            responseStructure: {
+              hasDataDataResults: !!response?.data?.data?.results,
+              hasDataResults: !!response?.data?.results,
+              dataStatus: response?.data?.status
+            }
           });
 
           if (!newClientSecret) {
-            console.error("No client secret in response. Full response:", response);
+            console.error("No client secret in response. Full response:", JSON.stringify(response, null, 2));
             throw new Error("No client secret received from server");
+          }
+
+          // Validate clientSecret format (should be: pi_xxx_secret_xxx)
+          if (!newClientSecret.includes('_secret_')) {
+            console.error("Invalid clientSecret format:", newClientSecret);
+            throw new Error("Invalid client secret format received from server");
           }
 
           setClientSecret(newClientSecret);

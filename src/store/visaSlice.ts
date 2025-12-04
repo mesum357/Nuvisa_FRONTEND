@@ -43,6 +43,11 @@ export interface IVisaState {
   amountWithoutDiscount: number;
   insuranceCount?: number;
   giftCardCount?: number;
+  redeemedGiftCards?: Array<{
+    code: string;
+    benefits: { freeTraveler: number; freeInsurance: number };
+    quantity: number;
+  }>;
 }
 
 const initialState: IVisaState = {
@@ -76,6 +81,7 @@ const initialState: IVisaState = {
   amountWithoutDiscount: 0,
   insuranceCount: 0,
   giftCardCount: 0,
+  redeemedGiftCards: [],
 };
 
 export const visaSlice = createSlice({
@@ -146,6 +152,30 @@ export const visaSlice = createSlice({
     setReduxGiftCardCount: (state, action: PayloadAction<number>) => {
       state.giftCardCount = action.payload;
     },
+    addRedeemedGiftCard: (state, action: PayloadAction<{
+      code: string;
+      benefits: { freeTraveler: number; freeInsurance: number };
+      quantity: number;
+    }>) => {
+      if (!state.redeemedGiftCards) {
+        state.redeemedGiftCards = [];
+      }
+      // Check if code already exists, if so replace it, otherwise add
+      const existingIndex = state.redeemedGiftCards.findIndex(card => card.code === action.payload.code);
+      if (existingIndex >= 0) {
+        state.redeemedGiftCards[existingIndex] = action.payload;
+      } else {
+        state.redeemedGiftCards.push(action.payload);
+      }
+    },
+    removeRedeemedGiftCard: (state, action: PayloadAction<string>) => {
+      if (state.redeemedGiftCards) {
+        state.redeemedGiftCards = state.redeemedGiftCards.filter(card => card.code !== action.payload);
+      }
+    },
+    clearRedeemedGiftCards: (state) => {
+      state.redeemedGiftCards = [];
+    },
     clearVisaData: (state) => {
       state.selectedCountry = "";
       state.visaFees = 0;
@@ -177,6 +207,7 @@ export const visaSlice = createSlice({
       state.amountWithoutDiscount = 0;
       state.insuranceCount = 0;
       state.giftCardCount = 0;
+      state.redeemedGiftCards = [];
     },
   },
 });
@@ -204,5 +235,8 @@ export const {
   setAmountWithoutDiscount,
   setReduxInsuranceCount,
   setReduxGiftCardCount,
+  addRedeemedGiftCard,
+  removeRedeemedGiftCard,
+  clearRedeemedGiftCards,
 } = visaSlice.actions;
 export const visaReducer = visaSlice.reducer;

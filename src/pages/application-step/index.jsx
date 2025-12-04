@@ -19,6 +19,9 @@ import {
   setTravelers,
   setArrivalDate,
   setDepartureDate,
+  addRedeemedGiftCard,
+  removeRedeemedGiftCard,
+  clearRedeemedGiftCards,
 } from "@/store/visaSlice";
 import { COUNTRY_CONFIG } from "@/constants/countryConfig";
 import { useSearchParams } from "next/navigation";
@@ -33,6 +36,7 @@ import { XIcon } from "lucide-react";
 import { useSendStudentVerification } from "@/hooks/useSendStudentVerification";
 import { useCalculatePayment } from "@/hooks/useCalculatePayment";
 import ConfirmationModal from "@/components/ConfirmationModal";
+import { validateGiftCardCode, redeemGiftCardCode } from "@/api/giftCard";
 import { TravelDates } from "@/components/TravelDates";
 import { InsuranceStep } from "@/components/InsuranceStep";
 import { calculateDays } from "@/utils/calculateDays";
@@ -4122,6 +4126,20 @@ const FullPaymentStep = ({
   const [appliedDiscount, setAppliedDiscountLocal] = useState(null);
   const [couponCode, setCouponCodeLocal] = useState("");
   const [couponError, setCouponError] = useState("");
+  // Load gift card state from Redux - now supports multiple cards
+  const redeemedGiftCards = visaState.redeemedGiftCards || [];
+  const giftCardRedeemed = redeemedGiftCards.length > 0;
+  
+  // Calculate total benefits from all redeemed gift cards
+  const totalGiftCardBenefits = useMemo(() => {
+    return redeemedGiftCards.reduce((total, card) => ({
+      freeTraveler: total.freeTraveler + (card.benefits?.freeTraveler || 0),
+      freeInsurance: total.freeInsurance + (card.benefits?.freeInsurance || 0),
+    }), { freeTraveler: 0, freeInsurance: 0 });
+  }, [redeemedGiftCards]);
+  
+  const giftCardBenefits = totalGiftCardBenefits.freeTraveler > 0 || totalGiftCardBenefits.freeInsurance > 0 ? totalGiftCardBenefits : null;
+  const [isRedeemingGiftCard, setIsRedeemingGiftCard] = useState(false);
   const [userEmail, setUserEmailLocal] = useState("");
   const [_studentEmail, _setStudentEmail] = useState("");
   const [_studentOtp, _setStudentOtp] = useState("");
@@ -4141,12 +4159,90 @@ const FullPaymentStep = ({
     studentVerificationSent,
   } = useSendStudentVerification();
 
-  const applyCouponCode = () => {
+  const applyCouponCode = async () => {
     if (!couponCode.trim()) {
       setCouponError("Please enter a coupon code");
       return;
     }
 
+    const codeUpper = couponCode.toUpperCase().trim();
+
+    // Check if it's a gift card code (starts with NU-VISA-)
+    if (codeUpper.startsWith("NU-VISA-")) {
+      setIsRedeemingGiftCard(true);
+      setCouponError("");
+
+      try {
+        // First validate the gift card code
+        const validateResponse = await validateGiftCardCode(codeUpper);
+        
+        if (validateResponse.status === "ERROR" || !validateResponse.data?.valid) {
+          setCouponError(validateResponse.message || "Invalid gift card code");
+          setIsRedeemingGiftCard(false);
+          return;
+        }
+
+        // If valid, redeem it
+        const redeemResponse = await redeemGiftCardCode(codeUpper, userEmail || parentVisaApplication?.email || undefined);
+
+        if (redeemResponse.status === "SUCCESS" && redeemResponse.data?.success) {
+          // Store gift card benefits in Redux - add to array of redeemed cards
+          // Benefits are now based on quantity from backend (e.g., 2 gift cards = 2 free travelers + 2 free insurance)
+          const benefits = redeemResponse.data?.benefits || redeemResponse.data?.results?.benefits || { freeTraveler: 1, freeInsurance: 1 };
+          const quantity = redeemResponse.data?.giftCard?.quantity || redeemResponse.data?.results?.giftCard?.quantity || 1;
+          
+          // Check if this code is already redeemed
+          const alreadyRedeemed = redeemedGiftCards.some(card => card.code === codeUpper);
+          if (alreadyRedeemed) {
+            setCouponError("This gift card code has already been redeemed.");
+            setIsRedeemingGiftCard(false);
+            return;
+          }
+          
+          dispatch(addRedeemedGiftCard({
+            code: codeUpper,
+            benefits,
+            quantity,
+          }));
+          setCouponCodeLocal(""); // Clear input after successful redemption
+          setCouponError("");
+          
+          // Dynamic success message based on actual benefits
+          const freeTravelerCount = benefits.freeTraveler || 1;
+          const freeInsuranceCount = benefits.freeInsurance || 1;
+          const travelerText = freeTravelerCount === 1 ? "traveller" : "travellers";
+          const insuranceText = freeInsuranceCount === 1 ? "insurance" : "insurances";
+          const message = `Gift card ${codeUpper} applied! You get ${freeTravelerCount} free ${travelerText} and ${freeInsuranceCount} free ${insuranceText}.`;
+          
+          // Show success message using toast if available
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(
+              new CustomEvent("nuvisa:toast", {
+                detail: {
+                  type: "success",
+                  message: message,
+                  duration: 5000,
+                },
+              })
+            );
+          }
+        } else {
+          setCouponError(redeemResponse.message || "Failed to redeem gift card");
+          setIsRedeemingGiftCard(false);
+          return;
+        }
+      } catch (error) {
+        console.error("Gift card redemption error:", error);
+        setCouponError(error.message || "Failed to redeem gift card. Please try again.");
+        setIsRedeemingGiftCard(false);
+        return;
+      } finally {
+        setIsRedeemingGiftCard(false);
+      }
+      return;
+    }
+
+    // Handle regular coupon codes
     const availableDiscounts = {
       STUDENT10: {
         description: "Student discount",
@@ -4159,7 +4255,7 @@ const FullPaymentStep = ({
       },
     };
 
-    const discount = availableDiscounts[couponCode.toUpperCase()];
+    const discount = availableDiscounts[codeUpper];
 
     if (!discount) {
       setCouponError("Invalid coupon code");
@@ -4187,6 +4283,22 @@ const FullPaymentStep = ({
     setAppliedDiscountLocal(null);
     setCouponCodeLocal("");
     setCouponError("");
+    dispatch(clearRedeemedGiftCards());
+  };
+  
+  const removeGiftCard = (code) => {
+    dispatch(removeRedeemedGiftCard(code));
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("nuvisa:toast", {
+          detail: {
+            type: "success",
+            message: `Gift card ${code} removed.`,
+            duration: 3000,
+          },
+        })
+      );
+    }
   };
 
   // Get payment tracking data from backend
@@ -4369,12 +4481,32 @@ const FullPaymentStep = ({
 
   // Show completion only if ALL payments (travel + insurance) are done
 
-  const calculateTotalPayment = () => {
-    const total =
-      paymentData?.fullRemainingPayment
+  const calculateTotalPayment = (discountOverride = null) => {
+    const baseTotal = paymentData?.fullRemainingPayment || 0;
+    let total = baseTotal;
 
-    if (appliedDiscount && appliedDiscount.percentage) {
-      const discountAmount = (total * appliedDiscount.percentage) / 100;
+    // Apply gift card benefits: 1 free traveller and 1 free insurance
+    if (giftCardRedeemed && giftCardBenefits) {
+      // Calculate per-traveler cost
+      const perTravelerCost = totalTraveler > 0 ? baseTotal / totalTraveler : 0;
+      const travelDays = calculateTravelDays();
+      const insurancePerTraveler = travelDays * 2; // £2 per day
+      
+      // Subtract cost of 1 free traveller
+      if (giftCardBenefits.freeTraveler > 0) {
+        total -= perTravelerCost * Math.min(giftCardBenefits.freeTraveler, totalTraveler);
+      }
+      
+      // Subtract cost of 1 free insurance
+      if (giftCardBenefits.freeInsurance > 0 && travelersNeedingInsurance > 0) {
+        total -= insurancePerTraveler * Math.min(giftCardBenefits.freeInsurance, travelersNeedingInsurance);
+      }
+    }
+
+    // Apply discount if provided
+    const discountToUse = discountOverride || appliedDiscount;
+    if (discountToUse && discountToUse.percentage) {
+      const discountAmount = (total * discountToUse.percentage) / 100;
       return total - discountAmount;
     }
 
@@ -4553,15 +4685,16 @@ const FullPaymentStep = ({
                         ? "outline-none ring-2 ring-red-400"
                         : "focus:outline-none focus:ring-2 focus:ring-purple-500"
                       }`}
-                    disabled={appliedDiscount}
+                    disabled={appliedDiscount || isRedeemingGiftCard}
                   />
                 </div>
                 {!appliedDiscount ? (
                   <button
                     onClick={applyCouponCode}
-                    className="px-4 py-2 bg-[#7350FF] text-white text-sm rounded-md hover:opacity-0.9 transition-colors font-medium"
+                    disabled={isRedeemingGiftCard}
+                    className="px-4 py-2 bg-[#7350FF] text-white text-sm rounded-md hover:opacity-0.9 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Apply
+                    {isRedeemingGiftCard ? "Processing..." : "Apply"}
                   </button>
                 ) : (
                   <button
@@ -4583,6 +4716,35 @@ const FullPaymentStep = ({
                     ✓ {appliedDiscount.description} (
                     {appliedDiscount.percentage}% off) applied!
                   </span>
+                </div>
+              )}
+              {redeemedGiftCards.length > 0 && (
+                <div className="space-y-2">
+                  {redeemedGiftCards.map((card) => {
+                    const freeTravelerCount = card.benefits?.freeTraveler || 0;
+                    const freeInsuranceCount = card.benefits?.freeInsurance || 0;
+                    const travelerText = freeTravelerCount === 1 ? "traveller" : "travellers";
+                    const insuranceText = freeInsuranceCount === 1 ? "insurance" : "insurances";
+                    return (
+                      <div key={card.code} className="flex items-center justify-between text-sm text-green-400 bg-green-600/20 p-2 rounded-md">
+                        <span>
+                          ✓ Gift card {card.code} applied! {freeTravelerCount} free {travelerText} and {freeInsuranceCount} free {insuranceText}.
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeGiftCard(card.code)}
+                          className="ml-2 text-red-400 hover:text-red-300 text-xs font-medium"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {isRedeemingGiftCard && (
+                <div className="flex items-center space-x-2 text-sm text-blue-400 bg-blue-600/20 p-2 rounded-md">
+                  <span>Validating gift card code...</span>
                 </div>
               )}
             </div>

@@ -22,6 +22,8 @@ const useCreateDynamicCheckoutSession = () => {
     uiMode = "hosted", // 'hosted' or 'embedded'
     paymentMethod, // 'klarna', 'stripe', etc.
     klarnaFormData, // Form data for Klarna
+    quantity, // Number of gift cards purchased
+    noOfGiftCards, // Alternative field name for quantity
     ...options // Additional options
   }) => {
     setCreatingDynamicCheckout(true);
@@ -136,6 +138,10 @@ const useCreateDynamicCheckoutSession = () => {
       // Insurance-related fields
       noOfInsurance: noOfInsurance || undefined,
       insurancePaymentAmount: insurancePaymentAmount || undefined,
+      // Gift card quantity - include when paymentType includes "gift_card"
+      ...(normalizedPaymentType && normalizedPaymentType.includes("gift_card") && (quantity || noOfGiftCards)
+        ? { quantity: String(quantity || noOfGiftCards || "1"), noOfGiftCards: String(quantity || noOfGiftCards || "1") }
+        : {}),
     };
 
     // If no orderId provided by caller, generate one and persist temporarily

@@ -30,7 +30,6 @@ const ComparisonSection = () => {
     fetchComparisonData();
   }, []);
 
-
   // Fallback data if API fails or data is not available
   const defaultData = {
     title: "Travel Agency",
@@ -54,7 +53,7 @@ const ComparisonSection = () => {
     ],
   };
 
-  const data = defaultData;
+  const data = comparisonData || defaultData;
   const leftItems = data.leftSideItems || [];
   const rightItems = data.rightSideItems || [];
 

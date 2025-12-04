@@ -50,5 +50,10 @@ export const backendApiEnums = {
       REMOVE: "/coupon/remove",
       VERIFY_STUDENT: "/coupon/verify-student",
     },
+
+    GIFT_CARD: {
+      VALIDATE: "/gift-card/validate",
+      REDEEM: "/gift-card/redeem",
+    },
   },
 };

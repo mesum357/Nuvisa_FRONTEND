@@ -86,8 +86,20 @@ const StripePaymentForm = forwardRef(({
       const paymentIntentId = clientSecret?.split('_secret_')[0];
       console.log("Confirming payment with clientSecret:", {
         paymentIntentId: paymentIntentId,
-        clientSecretPrefix: clientSecret?.substring(0, 30) + "..."
+        clientSecretPrefix: clientSecret?.substring(0, 30) + "...",
+        fullClientSecret: clientSecret, // Log full secret for debugging (remove in production)
+        clientSecretLength: clientSecret?.length,
+        isValidFormat: clientSecret?.includes('_secret_')
       });
+
+      // Validate clientSecret before using it
+      if (!clientSecret || !clientSecret.includes('_secret_')) {
+        const errorMsg = "Invalid payment intent. Please try again.";
+        setError(errorMsg);
+        onError?.(new Error(errorMsg));
+        setProcessing(false);
+        return;
+      }
 
       const { error: confirmError, paymentIntent } =
         await stripe.confirmCardPayment(clientSecret, {
@@ -102,13 +114,30 @@ const StripePaymentForm = forwardRef(({
 
       console.log("Payment confirmation result:", {
         error: confirmError?.message,
+        errorCode: confirmError?.code,
+        errorType: confirmError?.type,
         paymentIntentId: paymentIntent?.id,
-        status: paymentIntent?.status
+        status: paymentIntent?.status,
+        attemptedPaymentIntentId: paymentIntentId
       });
 
       if (confirmError) {
-        setError(confirmError.message);
-        onError?.(confirmError);
+        // Handle specific Stripe errors
+        if (confirmError.code === "resource_missing" || confirmError.type === "invalid_request_error") {
+          const errorMsg = "Payment intent not found. This may be due to a server issue. Please refresh and try again.";
+          setError(errorMsg);
+          console.error("Payment intent not found error details:", {
+            errorCode: confirmError.code,
+            errorMessage: confirmError.message,
+            attemptedPaymentIntentId: paymentIntentId,
+            clientSecretUsed: clientSecret?.substring(0, 50) + "..."
+          });
+          // Don't clear clientSecret here - let the parent component handle it
+          onError?.(new Error(errorMsg));
+        } else {
+          setError(confirmError.message);
+          onError?.(confirmError);
+        }
         setProcessing(false);
       } else if (paymentIntent.status === "succeeded") {
         onSuccess?.(paymentIntent);

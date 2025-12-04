@@ -41,7 +41,7 @@ const authPersistConfig = {
 const visaPersistConfig = {
   key: "visa",
   storage: storage,
-  whitelist: ["selectedCountry", "visaFees", "insuranceFees", "travelers", "visaTypeId", "selectedVisaType", "arrivalDate", "departureDate", "requiredDocuments", "recommendedItems", "appliedDiscount", "couponCode", "userEmail", "selectedPaymentMethod", "giftCardFees", "totalAmount", "insuranceOnly", "insuranceCount", "giftCardCount"],
+  whitelist: ["selectedCountry", "visaFees", "insuranceFees", "travelers", "visaTypeId", "selectedVisaType", "arrivalDate", "departureDate", "requiredDocuments", "recommendedItems", "appliedDiscount", "couponCode", "userEmail", "selectedPaymentMethod", "giftCardFees", "totalAmount", "insuranceOnly", "insuranceCount", "giftCardCount", "redeemedGiftCards"],
 };
 
 const persistedAuthReducer = persistReducer(authPersistConfig, authReducer);
