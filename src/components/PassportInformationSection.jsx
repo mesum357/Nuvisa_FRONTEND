@@ -76,6 +76,7 @@ const PassportInformationSection = ({
   const [extractionProgress, setExtractionProgress] = useState(0);
   const [extractionStep, setExtractionStep] = useState("");
   const [showAutofillAnimation, setShowAutofillAnimation] = useState(false);
+  const [showManualFallback, setShowManualFallback] = useState(false);
   const [deletingFront, setDeletingFront] = useState(false);
   const [deletingBack, setDeletingBack] = useState(false);
 

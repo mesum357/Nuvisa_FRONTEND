@@ -81,10 +81,17 @@ export default function Reviews() {
     
         const animate = () => {
             if (!isPaused) {
-                const maxScroll = gallery.scrollWidth / 3;
+                // Calculate the width of one set of reviews (half of total scrollWidth)
+                const singleSetWidth = gallery.scrollWidth / 2;
                 const next = gallery.scrollLeft + speed;
     
-                gallery.scrollLeft = next >= maxScroll ? 0 : next;
+                // When we've scrolled past the first set, reset seamlessly to continue from the start
+                // This creates an infinite loop without visible flicker
+                if (next >= singleSetWidth) {
+                    gallery.scrollLeft = next - singleSetWidth;
+                } else {
+                    gallery.scrollLeft = next;
+                }
             }
             animationFrameId = requestAnimationFrame(animate);
         };

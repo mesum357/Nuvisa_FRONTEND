@@ -2530,10 +2530,10 @@ const CountrySlider = () => {
                     setCurrentIndex(index);
                     resetTimer();
                   }}
-                  className={`w-20 aspect-square object-cover cursor-pointer rounded-xl border-2 transition-all border-white max-sm:w-12 max-sm:rounded-lg ${
+                  className={`w-20 aspect-square object-cover cursor-pointer rounded-xl border-2 transition-all max-sm:w-12 max-sm:rounded-lg ${
                     index === currentIndex
-                      ? "border-none"
-                      : "opacity-70 hover:opacity-100"
+                      ? "border-[#7350FF]"
+                      : "border-white opacity-70 hover:opacity-100"
                   }`}
                   priority
                   style={{ boxSizing: "border-box" }}

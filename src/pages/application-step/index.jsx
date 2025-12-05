@@ -961,6 +961,23 @@ const MultiStepAccordion = () => {
         open: step.id === stepId ? true : false,
       }))
     );
+
+    // Scroll to the top strip (ProgressHeader) first, then to the step
+    setTimeout(() => {
+      const progressHeader = document.getElementById("progress-header-top");
+      if (progressHeader) {
+        progressHeader.scrollIntoView({
+          behavior: "smooth",
+          block: "start"
+        });
+      } else {
+        // Fallback: scroll to the step if progress header not found
+        document.getElementById(`step-${stepId}`)?.scrollIntoView({
+          behavior: "smooth",
+          block: "start"
+        });
+      }
+    }, 100);
   };
   const openDocumentsStep = () => {
     const visible = getVisibleSteps();
@@ -972,6 +989,22 @@ const MultiStepAccordion = () => {
           open: step.id === documentsStep.id,
         }))
       );
+      // Scroll to the top strip (ProgressHeader) first
+      setTimeout(() => {
+        const progressHeader = document.getElementById("progress-header-top");
+        if (progressHeader) {
+          progressHeader.scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+          });
+        } else {
+          // Fallback: scroll to the step if progress header not found
+          document.getElementById(`step-${documentsStep.id}`)?.scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+          });
+        }
+      }, 100);
     }
   };
 
@@ -991,12 +1024,21 @@ const MultiStepAccordion = () => {
         }))
       );
 
-      // Scroll to the previous step
+      // Scroll to the top strip (ProgressHeader) first
       setTimeout(() => {
-        document.getElementById(`step-${prev.id}`)?.scrollIntoView({
-          behavior: "smooth",
-          block: "start"
-        });
+        const progressHeader = document.getElementById("progress-header-top");
+        if (progressHeader) {
+          progressHeader.scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+          });
+        } else {
+          // Fallback: scroll to the step if progress header not found
+          document.getElementById(`step-${prev.id}`)?.scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+          });
+        }
       }, 100);
     }
   }
@@ -1238,9 +1280,20 @@ const MultiStepAccordion = () => {
             }))
           );
 
-          document
-            .getElementById(`step-${step.id}`)
-            ?.scrollIntoView({ behavior: "smooth" });
+          // Scroll to the top strip (ProgressHeader) first
+          const progressHeader = document.getElementById("progress-header-top");
+          if (progressHeader) {
+            progressHeader.scrollIntoView({
+              behavior: "smooth",
+              block: "start"
+            });
+          } else {
+            // Fallback: scroll to the step if progress header not found
+            document.getElementById(`step-${step.id}`)?.scrollIntoView({ 
+              behavior: "smooth",
+              block: "start"
+            });
+          }
         } else {
           let allPaidHaveStep = true;
           for (let i = 0; i < paidCount; i++) {
@@ -1291,10 +1344,20 @@ const MultiStepAccordion = () => {
               );
 
               setTimeout(() => {
-                document.getElementById(`step-${nextVisibleStep.id}`)?.scrollIntoView({
-                  behavior: "smooth",
-                  block: "start"
-                });
+                // Scroll to the top strip (ProgressHeader) first
+                const progressHeader = document.getElementById("progress-header-top");
+                if (progressHeader) {
+                  progressHeader.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start"
+                  });
+                } else {
+                  // Fallback: scroll to the step if progress header not found
+                  document.getElementById(`step-${nextVisibleStep.id}`)?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start"
+                  });
+                }
               }, 100);
             }
           }
@@ -1693,7 +1756,11 @@ const MultiStepAccordion = () => {
               });
 
               setTravelersData(filledTravelersData);
-              setNumberOfTravelers(filledTravelersData.length);
+              // Set numberOfTravelers based on actual travelersData length
+              // This ensures the traveler strip shows correctly for draft applications
+              const actualNumberOfTravelers = filledTravelersData.length;
+              setNumberOfTravelers(actualNumberOfTravelers);
+              dispatch(setTravelers(actualNumberOfTravelers));
 
               const initialTravelersStepInfo = {};
               savedTravelersData.forEach((traveler) => {
@@ -1725,9 +1792,8 @@ const MultiStepAccordion = () => {
                 "Failed to load application data. Please refresh the page."
               );
             }
-          }
-
-          if (applicationData.numberOfTravellers) {
+          } else if (applicationData.numberOfTravellers) {
+            // Only set from applicationData if travelersData wasn't loaded
             setNumberOfTravelers(applicationData.numberOfTravellers);
             dispatch(setTravelers(applicationData.numberOfTravellers));
           }
@@ -1772,9 +1838,20 @@ const MultiStepAccordion = () => {
             open: step.id === paymentStep.id,
           }))
         );
-        document
-          .getElementById(`step-${paymentStep.id}`)
-          ?.scrollIntoView({ behavior: "smooth" });
+        // Scroll to the top strip (ProgressHeader) first
+        const progressHeader = document.getElementById("progress-header-top");
+        if (progressHeader) {
+          progressHeader.scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+          });
+        } else {
+          // Fallback: scroll to the step if progress header not found
+          document.getElementById(`step-${paymentStep.id}`)?.scrollIntoView({ 
+            behavior: "smooth",
+            block: "start"
+          });
+        }
       }
     } else if (currentStep === "traveler_insurance" || "currentStep" === "insurance") {
       const visible = getVisibleSteps();
@@ -1786,9 +1863,20 @@ const MultiStepAccordion = () => {
             open: step.id === insuranceStep.id,
           }))
         );
-        document
-          .getElementById(`step-${insuranceStep.id}`)
-          ?.scrollIntoView({ behavior: "smooth" });
+        // Scroll to the top strip (ProgressHeader) first
+        const progressHeader = document.getElementById("progress-header-top");
+        if (progressHeader) {
+          progressHeader.scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+          });
+        } else {
+          // Fallback: scroll to the step if progress header not found
+          document.getElementById(`step-${insuranceStep.id}`)?.scrollIntoView({ 
+            behavior: "smooth",
+            block: "start"
+          });
+        }
       }
     }
 
@@ -2030,7 +2118,7 @@ const MultiStepAccordion = () => {
         {(() => {
           const completedSteps = parentVisaApplication?.stepInfo?.completedSteps || [];
           const hasAppointment = completedSteps.includes("appointment");
-          const hasPayment = completedSteps.includes("fullPayment") || paymentData?.allPaymentCompleted;
+          const hasPayment = paymentData?.allPaymentCompleted || false;
           const hasInsurance = completedSteps.includes("insurance");
           const hasDocuments = completedSteps.includes("documents");
           const hasBasicDetails = completedSteps.includes("basicDetails");
@@ -2163,13 +2251,15 @@ const MultiStepAccordion = () => {
           </div>
         )}
 
-        <ProgressHeader
-          steps={getVisibleSteps()}
-          stepInfo={
-            parentVisaApplication?.stepInfo || getCurrentTravelerStepInfo()
-          }
-          onStepClick={(stepId) => toggleStep(stepId)}
-        />
+        <div id="progress-header-top">
+          <ProgressHeader
+            steps={getVisibleSteps()}
+            stepInfo={
+              parentVisaApplication?.stepInfo || getCurrentTravelerStepInfo()
+            }
+            onStepClick={(stepId) => toggleStep(stepId)}
+          />
+        </div>
 
         {/* Step Sections */}
         <div className="space-y-2 w-full">
@@ -2643,7 +2733,7 @@ const MultiStepAccordion = () => {
                           (() => {
                             const completedSteps = parentVisaApplication?.stepInfo?.completedSteps || [];
                             const hasAppointment = completedSteps.includes("appointment");
-                            const hasPayment = completedSteps.includes("fullPayment") || paymentData?.allPaymentCompleted;
+                            const hasPayment = paymentData?.allPaymentCompleted || false;
                             const hasInsurance = completedSteps.includes("insurance");
                             const hasDocuments = completedSteps.includes("documents");
                             const hasBasicDetails = completedSteps.includes("basicDetails");
@@ -2701,7 +2791,7 @@ const MultiStepAccordion = () => {
                           (() => {
                             const completedSteps = parentVisaApplication?.stepInfo?.completedSteps || [];
                             const hasAppointment = completedSteps.includes("appointment");
-                            const hasPayment = completedSteps.includes("fullPayment") || paymentData?.allPaymentCompleted;
+                            const hasPayment = paymentData?.allPaymentCompleted || false;
                             const hasInsurance = completedSteps.includes("insurance");
                             const hasDocuments = completedSteps.includes("documents");
                             const hasBasicDetails = completedSteps.includes("basicDetails");
@@ -3355,7 +3445,7 @@ const MultiStepAccordion = () => {
           (() => {
             const completedSteps = parentVisaApplication?.stepInfo?.completedSteps || [];
             const hasAppointment = completedSteps.includes("appointment");
-            const hasPayment = completedSteps.includes("fullPayment") || paymentData?.allPaymentCompleted;
+            const hasPayment = paymentData?.allPaymentCompleted || false;
             const hasInsurance = completedSteps.includes("insurance");
             const hasDocuments = completedSteps.includes("documents");
             const hasBasicDetails = completedSteps.includes("basicDetails");
@@ -4118,9 +4208,12 @@ const FullPaymentStep = ({
   disabled = false,
   totalTraveler = 1,
 }) => {
+  const dispatch = useAppDispatch();
+  const visaState = useAppSelector((state) => state.visa);
   const { paymentData } = useCalculatePayment(
     parentVisaApplication?.id
   )
+  const { showError: showToastError } = useToast();
   const [paymentError, setPaymentError] = useState("");
   const [isPaying, setIsPaying] = useState(false);
   const [appliedDiscount, setAppliedDiscountLocal] = useState(null);
@@ -4275,7 +4368,10 @@ const FullPaymentStep = ({
       return;
     }
 
-    setAppliedDiscountLocal(discount);
+    setAppliedDiscountLocal({
+      ...discount,
+      code: codeUpper, // Include the code for verification checks
+    });
     setCouponError("");
   };
 
@@ -4390,6 +4486,21 @@ const FullPaymentStep = ({
     setPaymentError("");
 
     try {
+      // Check for student email verification if student discount is applied
+      const hasStudentDiscount = appliedDiscount && (
+        appliedDiscount.code === "STUDENT10" ||
+        (appliedDiscount.description && appliedDiscount.description.toLowerCase().includes("student"))
+      );
+      if (hasStudentDiscount && !studentVerified) {
+        const message = "Please verify your student email before proceeding with payment.";
+        setPaymentError(message);
+        if (showToastError) {
+          showToastError(message);
+        }
+        setIsPaying(false);
+        return;
+      }
+
       // Calculate total payment including insurance if documents not uploaded
       const totalAmount = calculateTotalPayment();
 
@@ -4447,6 +4558,20 @@ const FullPaymentStep = ({
   const handleSave = () => {
     setPaymentError("");
 
+    // Check for student email verification if student discount is applied
+    const hasStudentDiscount = appliedDiscount && (
+      appliedDiscount.code === "STUDENT10" ||
+      (appliedDiscount.description && appliedDiscount.description.toLowerCase().includes("student"))
+    );
+    if (hasStudentDiscount && !studentVerified) {
+      const message = "Please verify your student email before proceeding with payment.";
+      setPaymentError(message);
+      if (showToastError) {
+        showToastError(message);
+      }
+      return;
+    }
+
     // For full payment step, we just mark it as completed
     const saveData = {
       travelerIndex: travelerIndex,
@@ -4481,36 +4606,64 @@ const FullPaymentStep = ({
 
   // Show completion only if ALL payments (travel + insurance) are done
 
+  // Calculate total payment function - will calculate unpaidPayment inline when needed
   const calculateTotalPayment = (discountOverride = null) => {
-    const baseTotal = paymentData?.fullRemainingPayment || 0;
-    let total = baseTotal;
+    // Calculate unpaid payments inline from allPayments if not yet defined
+    const unpaid = parentVisaApplication?.travelersData?.filter((el) => 
+      !el?.fullPayment?.paymentCompleted
+    ) || [];
+    const unpaidCount = unpaid.length;
+    if (unpaidCount === 0) return 0;
 
-    // Apply gift card benefits: 1 free traveller and 1 free insurance
-    if (giftCardRedeemed && giftCardBenefits) {
-      // Calculate per-traveler cost
-      const perTravelerCost = totalTraveler > 0 ? baseTotal / totalTraveler : 0;
-      const travelDays = calculateTravelDays();
-      const insurancePerTraveler = travelDays * 2; // £2 per day
-      
-      // Subtract cost of 1 free traveller
-      if (giftCardBenefits.freeTraveler > 0) {
-        total -= perTravelerCost * Math.min(giftCardBenefits.freeTraveler, totalTraveler);
-      }
-      
-      // Subtract cost of 1 free insurance
-      if (giftCardBenefits.freeInsurance > 0 && travelersNeedingInsurance > 0) {
-        total -= insurancePerTraveler * Math.min(giftCardBenefits.freeInsurance, travelersNeedingInsurance);
-      }
-    }
+    // Get base visa fee per traveler
+    const paymentWithoutInsurance = Number(parentVisaApplication?.paymentWithoutInsurance || 0);
+    const baseVisaFeePerTraveler = initiallyPaidTraveler > 0 && paymentWithoutInsurance > 0
+      ? paymentWithoutInsurance / initiallyPaidTraveler
+      : 149;
 
-    // Apply discount if provided
+    // If discount override is provided, recalculate with that discount
     const discountToUse = discountOverride || appliedDiscount;
-    if (discountToUse && discountToUse.percentage) {
-      const discountAmount = (total * discountToUse.percentage) / 100;
-      return total - discountAmount;
+    
+    // Apply gift card benefits: reduce effective count for calculation
+    const effectiveTravelers = giftCardRedeemed && unpaidCount > 0 
+      ? Math.max(0, unpaidCount - (giftCardBenefits?.freeTraveler || 0))
+      : unpaidCount;
+
+    // Base price for unpaid travelers (using effective count after gift cards)
+    const basePrice = baseVisaFeePerTraveler * effectiveTravelers;
+
+    // Check if travelers qualify for quantity discount (3+ travelers)
+    const travelersQualify = unpaidCount >= 3;
+
+    // Check discount type
+    const hasStudentDiscount = discountToUse && discountToUse.code === "STUDENT10";
+    const hasGroupDiscount = discountToUse && discountToUse.code === "GROUP20";
+
+    // Calculate discounts sequentially (compound): First 20% quantity discount, then 10% student discount
+    let finalPrice = basePrice;
+
+    // Apply 20% quantity discount first (if 3+ travelers)
+    if (travelersQualify) {
+      const quantityDiscount = (finalPrice * 20) / 100;
+      finalPrice = finalPrice - quantityDiscount;
     }
 
-    return total;
+    // Apply GROUP20 coupon (ensures 20% is applied if conditions met)
+    if (hasGroupDiscount) {
+      if (travelersQualify && finalPrice === basePrice) {
+        const quantityDiscount = (finalPrice * 20) / 100;
+        finalPrice = finalPrice - quantityDiscount;
+      }
+    }
+
+    // Apply 10% student discount on already-discounted price (if student)
+    if (hasStudentDiscount) {
+      const studentDiscount = (finalPrice * 10) / 100;
+      finalPrice = finalPrice - studentDiscount;
+    }
+
+    // Return total price (already calculated for all travelers)
+    return finalPrice;
   };
 
 
@@ -4587,17 +4740,61 @@ const FullPaymentStep = ({
     return acc + (curr?.payment?.paymentAmount || 0);
   }, 0);
 
-  // Calculate dynamic payment fees per traveler from paymentData
-  // Use paymentData.totalFullPayment if available (dynamic), otherwise fallback to 149
-  const basePaymentPerTraveler = paymentData?.totalFullPayment && unpaidPayment?.length > 0
-    ? paymentData.totalFullPayment / (unpaidPayment?.length || totalTraveler || 1)
-    : paymentData?.fullRemainingPayment && unpaidPayment?.length > 0
-      ? paymentData.fullRemainingPayment / (unpaidPayment?.length || totalTraveler || 1)
-      : 159;
+  // Get base visa fee per traveler from application data (using existing initiallyPaidTraveler)
+  const paymentWithoutInsurance = Number(parentVisaApplication?.paymentWithoutInsurance || 0);
+  const baseVisaFeePerTraveler = initiallyPaidTraveler > 0 && paymentWithoutInsurance > 0
+    ? paymentWithoutInsurance / initiallyPaidTraveler
+    : 149; // Default fallback
 
-  const paymentFees = appliedDiscount && appliedDiscount.percentage
-    ? basePaymentPerTraveler - (basePaymentPerTraveler * appliedDiscount.percentage) / 100
-    : basePaymentPerTraveler;
+  // Calculate price per traveler with discounts (matching Slider.jsx logic)
+  const calculatePricePerTraveler = useMemo(() => {
+    const unpaidCount = unpaidPayment?.length || 0;
+    if (unpaidCount === 0) return 0;
+
+    // Apply gift card benefits: reduce effective count for calculation
+    const effectiveTravelers = giftCardRedeemed && unpaidCount > 0 
+      ? Math.max(0, unpaidCount - (giftCardBenefits?.freeTraveler || 0))
+      : unpaidCount;
+
+    // Base price for unpaid travelers (using effective count after gift cards)
+    const basePrice = baseVisaFeePerTraveler * effectiveTravelers;
+
+    // Check if travelers qualify for quantity discount (3+ travelers)
+    const travelersQualify = unpaidCount >= 3;
+
+    // Check discount type
+    const hasStudentDiscount = appliedDiscount && appliedDiscount.code === "STUDENT10";
+    const hasGroupDiscount = appliedDiscount && appliedDiscount.code === "GROUP20";
+
+    // Calculate discounts sequentially (compound): First 20% quantity discount, then 10% student discount
+    let finalPrice = basePrice;
+
+    // Apply 20% quantity discount first (if 3+ travelers)
+    if (travelersQualify) {
+      const quantityDiscount = (finalPrice * 20) / 100;
+      finalPrice = finalPrice - quantityDiscount;
+    }
+
+    // Apply GROUP20 coupon (ensures 20% is applied if conditions met)
+    if (hasGroupDiscount) {
+      if (travelersQualify && finalPrice === basePrice) {
+        const quantityDiscount = (finalPrice * 20) / 100;
+        finalPrice = finalPrice - quantityDiscount;
+      }
+    }
+
+    // Apply 10% student discount on already-discounted price (if student)
+    if (hasStudentDiscount) {
+      const studentDiscount = (finalPrice * 10) / 100;
+      finalPrice = finalPrice - studentDiscount;
+    }
+
+    // Return price per traveler (divide by unpaid count)
+    return unpaidCount > 0 ? finalPrice / unpaidCount : 0;
+  }, [unpaidPayment?.length, baseVisaFeePerTraveler, appliedDiscount, giftCardRedeemed, giftCardBenefits]);
+
+  // Payment fee per traveler (for display in summary)
+  const paymentFees = calculatePricePerTraveler;
 
   // Use calculateTotalPayment() for dynamic total, which already handles discounts
   const totalPaymentDue = unpaidPayment?.length > 0
