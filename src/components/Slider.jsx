@@ -872,6 +872,10 @@ const CountrySlider = () => {
   const _handleTravelerChange = (increment) => {
     const newValue = travelers + increment;
     if (newValue >= 0) {
+      // If traveler count decreases, adjust insurance count if needed
+      if (insuranceCount > newValue) {
+        dispatch(setReduxInsuranceCount(Number(newValue)));
+      }
       dispatch(setReduxTravelers(Number(newValue)));
     }
   };
@@ -2594,6 +2598,10 @@ const CountrySlider = () => {
                     value={travelers}
                     onChange={(next) => {
                       const n = Number(next);
+                      // If traveler count decreases, adjust insurance count if needed
+                      if (insuranceCount > n) {
+                        dispatch(setReduxInsuranceCount(Number(n)));
+                      }
                       dispatch(setReduxTravelers(Number(n)));
                     }}
                     min={0}
