@@ -1,7 +1,7 @@
+import React, { useEffect } from "react";
 import { Provider, useDispatch } from "react-redux";
 import { store } from "./index";
 import { persistStore } from "redux-persist";
-import { useEffect } from "react";
 import { setAuthState } from "./authSlice";
 
 persistStore(store);
