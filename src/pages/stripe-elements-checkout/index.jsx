@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAppSelector } from "@/store";
 import StripeProvider from "@/components/StripeProvider";
@@ -8,6 +8,7 @@ import StripeElementsCheckout from "@/components/StripeElementsCheckout";
 import { localStorageEnums } from "@/enums/localstorage.enums";
 import { localStorageGateway } from "@/gateways/localStoragegateway";
 import ClientOnly from "@/components/ClientOnly";
+import { trackInitiateCheckout } from "@/utils/analytics";
 
 const StripeElementsCheckoutPage = () => {
   const router = useRouter();
@@ -15,6 +16,23 @@ const StripeElementsCheckoutPage = () => {
   const visaState = useAppSelector((state) => state.visa);
   const [paymentData, setPaymentData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const hasTrackedCheckout = useRef(false);
+
+  // Track checkout event when payment data is loaded
+  useEffect(() => {
+    if (paymentData && !hasTrackedCheckout.current) {
+      hasTrackedCheckout.current = true;
+      trackInitiateCheckout({
+        currency: 'GBP',
+        value: paymentData.amount,
+        content_name: 'Visa Application',
+        content_category: 'Visa',
+        num_items: paymentData.travelers,
+        email: paymentData.email,
+        country: paymentData.country,
+      });
+    }
+  }, [paymentData]);
 
   useEffect(() => {
     const loadPaymentData = async () => {
