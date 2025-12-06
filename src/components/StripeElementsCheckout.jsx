@@ -25,6 +25,8 @@ const StripeElementsCheckout = forwardRef(({
   noOfInsurance,
   insurancePaymentAmount,
   hideSubmitButton = false,
+  includeGiftCard,
+  giftCardCount,
 }, ref) => {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -72,6 +74,10 @@ const StripeElementsCheckout = forwardRef(({
           insurancePaymentAmount: insurancePaymentAmount || 0,
           successUrl: `${window.location.origin}/payment-success`,
           cancelUrl: `${window.location.origin}/visa-checkout`,
+          // Include gift card quantity when paymentType includes "gift_card"
+          ...(paymentType && paymentType.includes("gift_card") && includeGiftCard && giftCardCount > 0
+            ? { quantity: String(giftCardCount), noOfGiftCards: String(giftCardCount) }
+            : {}),
         };
 
         console.log("Creating payment intent with payload:", payload);

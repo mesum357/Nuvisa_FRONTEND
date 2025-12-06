@@ -1815,6 +1815,8 @@ const VisaCheckout = () => {
                           noOfInsurance={insuranceCount}
                           insurancePaymentAmount={discountedInsuranceFeesGBP}
                           hideSubmitButton={true}
+                          includeGiftCard={includeGiftCard}
+                          giftCardCount={giftCardCount}
                         />
                       </StripeProvider>
                     </div>
