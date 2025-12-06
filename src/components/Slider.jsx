@@ -897,6 +897,7 @@ const CountrySlider = () => {
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const timerRef = useRef(null);
+  const thumbnailContainerRef = useRef(null);
 
   useEffect(() => {
     const startTimer = () => {
@@ -916,6 +917,22 @@ const CountrySlider = () => {
       }
     };
   }, [countries.length]);
+
+  // Auto-scroll thumbnail container to keep active thumbnail visible
+  useEffect(() => {
+    const container = thumbnailContainerRef.current;
+    if (!container) return;
+
+    const activeThumbnail = container.children[currentIndex];
+    if (!activeThumbnail) return;
+    
+    // Scroll the active thumbnail into view, centered if possible
+    activeThumbnail.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest',
+      inline: 'center'
+    });
+  }, [currentIndex]);
 
   const goToPrevious = () => {
     const isFirstSlide = currentIndex === 0;
@@ -2518,7 +2535,11 @@ const CountrySlider = () => {
             </div>
 
             {/* Thumbnails for slider navigation */}
-            <div className="flex justify-center gap-2 max-lg:hidden mt-8 overflow-auto w-full max-sm:mt-4">
+            <div 
+              ref={thumbnailContainerRef}
+              className="flex justify-start gap-2 max-lg:hidden mt-8 overflow-x-auto overflow-y-hidden w-full max-sm:mt-4 px-4"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
+            >
               {countries.map((country, index) => (
                 <Image
                   key={country.id}
