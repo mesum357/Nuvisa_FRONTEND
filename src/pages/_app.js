@@ -2,8 +2,27 @@ import ToastProvider from "@/contexts/ToastContext";
 import ReduxProvider from "@/store/redux-provider";
 import "@/styles/globals.css";
 import { useEffect } from "react";
+import { useRouter } from "next/router";
+import { trackPageView } from "@/utils/analytics";
 
 export default function App({ Component, pageProps }) {
+  const router = useRouter();
+
+  // Track page views on route changes
+  useEffect(() => {
+    const handleRouteChange = (url) => {
+      trackPageView(url, document.title);
+    };
+
+    // Track initial page view
+    trackPageView(window.location.pathname, document.title);
+
+    router.events.on('routeChangeComplete', handleRouteChange);
+    return () => {
+      router.events.off('routeChangeComplete', handleRouteChange);
+    };
+  }, [router.events]);
+
   useEffect(() => {
     // Initialize Stripe when the script loads (with error handling to prevent app crash)
     if (typeof window !== 'undefined') {

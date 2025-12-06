@@ -14,6 +14,7 @@ import { createApplication } from "@/api/visa";
 import { createOrUpdateApplication } from "@/api/visaApplications";
 import { localStorageEnums } from "@/enums/localstorage.enums";
 import { localStorageGateway } from "@/gateways/localStoragegateway";
+import { trackPurchase } from "@/utils/analytics";
 
 
 const PaymentSuccess = () => {
@@ -25,6 +26,7 @@ const PaymentSuccess = () => {
   const [isCreatingApplication, setIsCreatingApplication] = useState(false);
   const [paymentType, setPaymentType] = useState("application_creation");
   const hasProcessedPayment = useRef(false);
+  const hasTrackedPurchase = useRef(false);
 
   useEffect(() => {
     const storePaymentDataAndRedirect = async () => {
@@ -145,6 +147,21 @@ const PaymentSuccess = () => {
           totalAmount: currentData.totalAmount,
           paymentDate: new Date().toISOString(),
         };
+
+        // Track purchase event (only once)
+        if (!hasTrackedPurchase.current) {
+          hasTrackedPurchase.current = true;
+          trackPurchase({
+            transaction_id: sessionId || `txn_${Date.now()}`,
+            currency: 'GBP',
+            value: Number(currentData.totalAmount) || 0,
+            content_name: 'Visa Application',
+            content_category: 'Visa',
+            num_items: Number(currentData.travelers) || 1,
+            email: currentData.email || '',
+            country: currentData.selectedCountry || '',
+          });
+        }
 
         // Add to payment history
         await addPaymentToHistory(paymentInfo);
