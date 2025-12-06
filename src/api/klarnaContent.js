@@ -1,14 +1,32 @@
 import axios from "axios";
 
+// Helper to check if URL is localhost
+const isLocalhost = (url) => {
+	if (!url) return false;
+	try {
+		const urlObj = new URL(url);
+		return urlObj.hostname === 'localhost' || urlObj.hostname === '127.0.0.1' || urlObj.hostname.startsWith('192.168.') || urlObj.hostname.startsWith('10.') || urlObj.hostname.startsWith('172.');
+	} catch {
+		return url.includes('localhost') || url.includes('127.0.0.1');
+	}
+};
+
+// Helper to check if we're in production
+const isProduction = () => {
+	return process.env.NODE_ENV === 'production' && 
+	       process.env.NEXT_PUBLIC_NODE_ENV !== 'development';
+};
+
 // Fetch Klarna content from admin panel API
 export const fetchKlarnaContent = async (section = null) => {
   // Try multiple endpoints in order of preference
+  const adminApiUrl = process.env.NEXT_PUBLIC_ADMIN_API_URL;
+  // Only skip localhost URLs in production (allow them in development)
+  const shouldSkipLocalhost = isProduction() && isLocalhost(adminApiUrl);
   const apiEndpoints = [
-    // 1. Admin panel API (if running)
-    process.env.NEXT_PUBLIC_ADMIN_API_URL ? `${(process.env.NEXT_PUBLIC_ADMIN_API_URL || '').replace(/\/+$/, '')}/api/public/klarna-content` : null,
-    // 2. Local admin panel (development)
-    'http://localhost:3001/api/public/klarna-content',
-    // 3. Frontend's own API route (fallback)
+    // 1. Admin panel API (if configured and not localhost in production)
+    adminApiUrl && !shouldSkipLocalhost ? `${adminApiUrl.replace(/\/+$/, '')}/api/public/klarna-content` : null,
+    // 2. Frontend's own API route (fallback)
     '/api/klarna-content',
   ].filter(Boolean);
 

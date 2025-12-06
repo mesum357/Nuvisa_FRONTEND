@@ -1,15 +1,11 @@
 import axios from "axios";
+import { getAdminApiBase } from '@/utils/adminApiBase';
 
 // Fetch appointment texts from Nuvisa-Admin API
 export const fetchAppointmentTexts = async () => {
-  const baseUrl = process.env.NEXT_PUBLIC_ADMIN_API_URL;
-  if (!baseUrl) {
-    throw new Error("Missing NEXT_PUBLIC_ADMIN_API_URL environment variable");
-  }
-
-  // Ensure no trailing slash to avoid 308 redirects
-  const cleanBaseUrl = baseUrl.replace(/\/$/, '');
-  const url = `${cleanBaseUrl}/api/appointment-text`;
+  // Use getAdminApiBase() which handles localhost URLs and provides fallback
+  const baseUrl = getAdminApiBase();
+  const url = `${baseUrl}/api/appointment-text`;
   
   try {
     const res = await axios.get(url, {

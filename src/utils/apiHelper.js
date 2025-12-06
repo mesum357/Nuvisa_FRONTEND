@@ -3,7 +3,6 @@
  */
 
 import { getAdminApiBase } from '@/utils/adminApiBase';
-const API_BASE_URL = getAdminApiBase();
 
 /**
  * Fetch data from API with error handling
@@ -12,6 +11,7 @@ const API_BASE_URL = getAdminApiBase();
  */
 export const fetchContent = async (endpoint) => {
   try {
+    const API_BASE_URL = getAdminApiBase();
     const response = await fetch(`${API_BASE_URL}/api/public/${endpoint}`, {
       headers: {
         'Content-Type': 'application/json',

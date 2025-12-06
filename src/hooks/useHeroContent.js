@@ -18,6 +18,7 @@ export const useHeroContent = () => {
         setError(null);
         
         // Try to fetch from admin panel API first
+        // getAdminApiBase() now handles localhost URLs and returns production URL
         const response = await fetch(`${getAdminApiBase()}/api/public/hero-content`);
         
         if (response.ok) {

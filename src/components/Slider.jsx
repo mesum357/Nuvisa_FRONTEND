@@ -920,18 +920,88 @@ const CountrySlider = () => {
 
   // Auto-scroll thumbnail container to keep active thumbnail visible
   useEffect(() => {
-    const container = thumbnailContainerRef.current;
-    if (!container) return;
+    const scrollToActiveThumbnail = (retryCount = 0) => {
+      const container = thumbnailContainerRef.current;
+      if (!container) {
+        // Retry if container not ready (max 3 retries)
+        if (retryCount < 3) {
+          setTimeout(() => scrollToActiveThumbnail(retryCount + 1), 100);
+        }
+        return;
+      }
 
-    const activeThumbnail = container.children[currentIndex];
-    if (!activeThumbnail) return;
+      const activeThumbnail = container.children[currentIndex];
+      if (!activeThumbnail) {
+        // Retry if thumbnail not ready (max 3 retries)
+        if (retryCount < 3) {
+          setTimeout(() => scrollToActiveThumbnail(retryCount + 1), 100);
+        }
+        return;
+      }
+      
+      // Use requestAnimationFrame to ensure layout is calculated
+      requestAnimationFrame(() => {
+        // Manually calculate scroll position to avoid affecting main page scroll
+        const containerRect = container.getBoundingClientRect();
+        const thumbnailRect = activeThumbnail.getBoundingClientRect();
+        const containerWidth = containerRect.width;
+        const thumbnailWidth = thumbnailRect.width;
+        
+        let targetScrollLeft;
+        let useFallback = false;
+        
+        // Check if getBoundingClientRect returned valid values
+        if (containerWidth > 0 && thumbnailWidth > 0 && thumbnailRect.width > 0) {
+          // Use getBoundingClientRect calculation (preferred method)
+          const containerScrollLeft = container.scrollLeft;
+          const thumbnailLeft = thumbnailRect.left - containerRect.left + containerScrollLeft;
+          const thumbnailCenter = thumbnailLeft + thumbnailWidth / 2;
+          targetScrollLeft = thumbnailCenter - containerWidth / 2;
+        } else {
+          // Fallback: calculate based on index and estimated dimensions
+          useFallback = true;
+          // Thumbnail width: 80px (w-20), gap: 8px (gap-2), padding: 16px (px-4)
+          const estimatedThumbnailWidth = 80; // w-20 = 80px
+          const estimatedGap = 8; // gap-2 = 8px
+          const estimatedPadding = 16; // px-4 = 16px
+          const thumbnailLeft = currentIndex * (estimatedThumbnailWidth + estimatedGap) + estimatedPadding;
+          const thumbnailCenter = thumbnailLeft + estimatedThumbnailWidth / 2;
+          targetScrollLeft = thumbnailCenter - (containerWidth > 0 ? containerWidth : container.clientWidth) / 2;
+        }
+        
+        // Ensure targetScrollLeft is valid
+        if (typeof targetScrollLeft === 'number' && !isNaN(targetScrollLeft)) {
+          // Clamp to valid scroll range
+          const maxScroll = Math.max(0, container.scrollWidth - (containerWidth > 0 ? containerWidth : container.clientWidth));
+          targetScrollLeft = Math.max(0, Math.min(targetScrollLeft, maxScroll));
+          
+          // Try scrollTo first, with fallback to direct scrollLeft assignment
+          if (container.scrollTo) {
+            try {
+              container.scrollTo({
+                left: targetScrollLeft,
+                behavior: 'smooth'
+              });
+            } catch (e) {
+              // Fallback for browsers that don't support scrollTo options
+              container.scrollLeft = targetScrollLeft;
+            }
+          } else {
+            // Direct assignment as fallback
+            container.scrollLeft = targetScrollLeft;
+          }
+        } else if (retryCount < 3) {
+          // Retry if calculation failed (max 3 retries)
+          setTimeout(() => scrollToActiveThumbnail(retryCount + 1), 100);
+        }
+      });
+    };
+
+    // Add a delay to ensure images are loaded and layout is settled
+    // Use longer delay for production builds where images may load slower
+    const timeoutId = setTimeout(() => scrollToActiveThumbnail(0), 100);
     
-    // Scroll the active thumbnail into view, centered if possible
-    activeThumbnail.scrollIntoView({
-      behavior: 'smooth',
-      block: 'nearest',
-      inline: 'center'
-    });
+    return () => clearTimeout(timeoutId);
   }, [currentIndex]);
 
   const goToPrevious = () => {

@@ -12,6 +12,7 @@ import {
 import GetTheVisaButton from "./layout/GetTheVisaButton";
 import { getCountryConfig } from "@/constants/countryConfig";
 import { fetchAppointmentTexts } from "@/api/appointmentText";
+import { getAdminApiBase } from "@/utils/adminApiBase";
 
 const CountryCardsSection = () => {
   const [showAll, setShowAll] = useState(false);
@@ -252,7 +253,7 @@ const CountryCardsSection = () => {
         countryImage = countryData.image.startsWith('http') 
           ? countryData.image 
           : countryData.image.startsWith('/')
-          ? `${process.env.NEXT_PUBLIC_ADMIN_API_URL || ''}${countryData.image}`
+          ? `${getAdminApiBase()}${countryData.image}`
           : countryData.image;
       } else if (staticCountry?.image) {
         // Use static image
