@@ -70,62 +70,103 @@ const reviews = [
 
 export default function Reviews() {
     const [isPaused, setIsPaused] = useState(false);
-    const marqueeDurationSeconds = 40; // adjust to taste
-    const track = [...reviews, ...reviews]; // two copies for seamless loop
+    const [marqueeDurationSeconds, setMarqueeDurationSeconds] = useState(60); // tuned to match previous speed (~60px/s)
+    const trackRef = useRef(null);
+    const duplicateTracks = [0, 1]; // render two identical tracks side by side for seamless loop
+    const gapPx = 10; // matches gap-10 (2.5rem) to keep spacing when cycle repeats
     
+    useEffect(() => {
+        const trackEl = trackRef.current;
+        if (!trackEl) return;
+
+        const computeDuration = () => {
+            const width = trackEl.scrollWidth;
+            if (width > 0) {
+                // Match the old JS loop speed (~1px per frame at 60fps => ~60px/s)
+                const seconds = width / 60;
+                setMarqueeDurationSeconds(seconds);
+            }
+        };
+
+        computeDuration();
+        const resizeObserver = new ResizeObserver(() => computeDuration());
+        resizeObserver.observe(trackEl);
+
+        return () => resizeObserver.disconnect();
+    }, []);
 
     return (
         <section className="w-full py-10 text-white flex flex-col items-center justify-center gap-8 mt-10">
             <style jsx>{`
                 @keyframes reviews-marquee {
                     0% { transform: translateX(0); }
-                    100% { transform: translateX(-50%); }
+                    100% { transform: translateX(-100%); }
+                }
+                .marquee-track {
+                    animation-name: reviews-marquee;
+                    animation-timing-function: linear;
+                    animation-iteration-count: infinite;
+                    will-change: transform; /* avoid flicker at loop boundary */
                 }
             `}</style>
-            <div className="w-full overflow-hidden">
-                <div
-                    className="flex w-fit items-center gap-10"
-                    style={{
-                        animation: `reviews-marquee ${marqueeDurationSeconds}s linear infinite`,
-                        animationPlayState: isPaused ? "paused" : "running",
-                    }}
-                    onMouseEnter={() => setIsPaused(true)}
-                    onMouseLeave={() => setIsPaused(false)}
-                >
-                    {track.map((r, index) => (
+            <div
+                className="w-full overflow-hidden"
+                onMouseEnter={() => setIsPaused(true)}
+                onMouseLeave={() => setIsPaused(false)}
+            >
+                <div className="flex items-center">
+                    {duplicateTracks.map((dupIndex) => (
                         <div
-                            key={index}
-                            className="flex-shrink-0 w-[400px] md:w-[400px] h-[150px] bg-[#1E1E27] cursor-pointer gap-5 font-bold"
+                            key={dupIndex}
+                            ref={dupIndex === 0 ? trackRef : null}
+                            className="marquee-track flex w-fit flex-shrink-0 items-center gap-10"
+                            style={{
+                                animationDuration: `${marqueeDurationSeconds}s`,
+                                animationPlayState: isPaused ? "paused" : "running",
+                            }}
+                            aria-hidden={dupIndex === 1}
                         >
+                            {reviews.map((r, index) => (
+                                <div
+                                    key={`${dupIndex}-${index}`}
+                                    className="flex-shrink-0 w-[400px] md:w-[400px] h-[150px] bg-[#1E1E27] cursor-pointer gap-5 font-bold"
+                                >
 
-                            <div className="review-header flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-3">
-                                    <Image
-                                        src={r.img}
-                                        alt={r.name}
-                                        width={40}
-                                        height={40}
-                                        className="h-[40px] w-[40px] rounded-full object-cover"
-                                        priority
-                                    />
-                                    <div>
-                                        <h3 className="font-semibold text-white text-sm">{r.name}</h3>
-                                        <p className="text-xs text-gray-400">{r.role}</p>
+                                    <div className="review-header flex items-center justify-between mb-2">
+                                        <div className="flex items-center gap-3">
+                                            <Image
+                                                src={r.img}
+                                                alt={r.name}
+                                                width={40}
+                                                height={40}
+                                                className="h-[40px] w-[40px] rounded-full object-cover"
+                                                priority
+                                            />
+                                            <div>
+                                                <h3 className="font-semibold text-white text-sm">{r.name}</h3>
+                                                <p className="text-xs text-gray-400">{r.role}</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Stars */}
+                                        <div className="flex items-center text-yellow-400 text-lg rating inline-block bg-yellow-200/15 px-3 py-1 rounded-md text-lg font-medium ml-auto">
+                                            <span>★</span>
+                                            <span>★</span>
+                                            <span>★</span>
+                                            <span>★</span>
+                                            <span>★</span>
+                                        </div>
                                     </div>
+                                    <p className="text-gray-400 text-xs ml-10 pl-4">
+                                        {r.comment}
+                                    </p>
                                 </div>
-
-                                {/* Stars */}
-                                <div className="flex items-center text-yellow-400 text-lg rating inline-block bg-yellow-200/15 px-3 py-1 rounded-md text-lg font-medium ml-auto">
-                                    <span>★</span>
-                                    <span>★</span>
-                                    <span>★</span>
-                                    <span>★</span>
-                                    <span>★</span>
-                                </div>
-                            </div>
-                            <p className="text-gray-400 text-xs ml-10 pl-4">
-                                {r.comment}
-                            </p>
+                            ))}
+                            <div
+                                className="flex-shrink-0"
+                                style={{ width: gapPx }}
+                                aria-hidden
+                            />
                         </div>
                     ))}
                 </div>
