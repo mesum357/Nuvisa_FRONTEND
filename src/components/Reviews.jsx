@@ -69,83 +69,66 @@ const reviews = [
 ];
 
 export default function Reviews() {
-    const galleryRef = useRef(null);
     const [isPaused, setIsPaused] = useState(false);
-    const speed = 1; // scroll speed
-
-    useEffect(() => {
-        const gallery = galleryRef.current;
-        if (!gallery) return;
-    
-        let animationFrameId;
-    
-        const animate = () => {
-            if (!isPaused) {
-                // Calculate the width of one set of reviews (half of total scrollWidth)
-                const singleSetWidth = gallery.scrollWidth / 2;
-                const next = gallery.scrollLeft + speed;
-    
-                // When we've scrolled past the first set, reset seamlessly to continue from the start
-                // This creates an infinite loop without visible flicker
-                if (next >= singleSetWidth) {
-                    gallery.scrollLeft = next - singleSetWidth;
-                } else {
-                    gallery.scrollLeft = next;
-                }
-            }
-            animationFrameId = requestAnimationFrame(animate);
-        };
-    
-        animationFrameId = requestAnimationFrame(animate);
-    
-        return () => cancelAnimationFrame(animationFrameId);
-    }, [isPaused]);
+    const marqueeDurationSeconds = 40; // adjust to taste
+    const track = [...reviews, ...reviews]; // two copies for seamless loop
     
 
     return (
         <section className="w-full py-10 text-white flex flex-col items-center justify-center gap-8 mt-10">
-            <div
-                ref={galleryRef}
-                className="flex overflow-x-hidden w-full justify-center items-center gap-10"
-                onMouseEnter={() => setIsPaused(true)}
-                onMouseLeave={() => setIsPaused(false)}
-            >
-                {[...reviews, ...reviews].map((r, index) => (
-                    <div
-                        key={index}
-                        className="flex-shrink-0 w-[400px] md:w-[400px] h-[150px]  bg-[#1E1E27]  cursor-pointer gap-5 font-bold"
-                    >
+            <style jsx>{`
+                @keyframes reviews-marquee {
+                    0% { transform: translateX(0); }
+                    100% { transform: translateX(-50%); }
+                }
+            `}</style>
+            <div className="w-full overflow-hidden">
+                <div
+                    className="flex w-fit items-center gap-10"
+                    style={{
+                        animation: `reviews-marquee ${marqueeDurationSeconds}s linear infinite`,
+                        animationPlayState: isPaused ? "paused" : "running",
+                    }}
+                    onMouseEnter={() => setIsPaused(true)}
+                    onMouseLeave={() => setIsPaused(false)}
+                >
+                    {track.map((r, index) => (
+                        <div
+                            key={index}
+                            className="flex-shrink-0 w-[400px] md:w-[400px] h-[150px] bg-[#1E1E27] cursor-pointer gap-5 font-bold"
+                        >
 
-                        <div className="review-header flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-3">
-                                <Image
-                                    src={r.img}
-                                    alt={r.name}
-                                    width={40}
-                                    height={40}
-                                    className="h-[40px] w-[40px] rounded-full object-cover"
-                                    priority
-                                />
-                                <div>
-                                    <h3 className="font-semibold text-white text-sm">{r.name}</h3>
-                                    <p className="text-xs text-gray-400">{r.role}</p>
+                            <div className="review-header flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-3">
+                                    <Image
+                                        src={r.img}
+                                        alt={r.name}
+                                        width={40}
+                                        height={40}
+                                        className="h-[40px] w-[40px] rounded-full object-cover"
+                                        priority
+                                    />
+                                    <div>
+                                        <h3 className="font-semibold text-white text-sm">{r.name}</h3>
+                                        <p className="text-xs text-gray-400">{r.role}</p>
+                                    </div>
+                                </div>
+
+                                {/* Stars */}
+                                <div className="flex items-center text-yellow-400 text-lg rating inline-block bg-yellow-200/15 px-3 py-1 rounded-md text-lg font-medium ml-auto">
+                                    <span>★</span>
+                                    <span>★</span>
+                                    <span>★</span>
+                                    <span>★</span>
+                                    <span>★</span>
                                 </div>
                             </div>
-
-                            {/* Stars */}
-                            <div className="flex items-center text-yellow-400 text-lg rating inline-block bg-yellow-200/15 px-3 py-1 rounded-md text-lg font-medium ml-auto">
-                                <span>★</span>
-                                <span>★</span>
-                                <span>★</span>
-                                <span>★</span>
-                                <span>★</span>
-                            </div>
+                            <p className="text-gray-400 text-xs ml-10 pl-4">
+                                {r.comment}
+                            </p>
                         </div>
-                        <p className="text-gray-400 text-xs ml-10 pl-4">
-                            {r.comment}
-                        </p>
-                    </div>
-                ))}
+                    ))}
+                </div>
             </div>
         </section>
     );
