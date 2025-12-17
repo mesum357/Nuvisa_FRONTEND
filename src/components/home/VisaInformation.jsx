@@ -63,7 +63,7 @@ const VisaInformation = () => {
     <ClientOnly>
       <div className="bg-[#1E1E27] text-white w-full overflow-x-hidden">
         <Navbar />
-        <div className="w-full mx-auto flex flex-col gap-0 items-center justify-center mt-5 overflow-x-hidden">
+        <div className="w-full mx-auto flex flex-col gap-0 items-center justify-center mt-5 ">
           <CountrySlider />
 
           {/* Visa Type Selection */}
