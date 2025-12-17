@@ -109,10 +109,14 @@ const useCreateDynamicCheckoutSession = () => {
         ? undefined
         : String(travelerIndex);
 
+    const cancelUrl = applicationId 
+      ? `/application-step?application_id=${encodeURIComponent(applicationId)}`
+      : "/visa-checkout";
+
     const payload = {
       email: String(email || ""),
       successUrl,
-      cancelUrl: "/cancel-payment",
+      cancelUrl,
       amount: normalizedAmount,
       travellers: normalizedTravellers,
       country: normalizedCountry,

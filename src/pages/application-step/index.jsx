@@ -2118,7 +2118,7 @@ const MultiStepAccordion = () => {
         {(() => {
           const completedSteps = parentVisaApplication?.stepInfo?.completedSteps || [];
           const hasAppointment = completedSteps.includes("appointment");
-          const hasPayment = paymentData?.allPaymentCompleted || false;
+          const hasPayment = _validateFullPayment();
           const hasInsurance = completedSteps.includes("insurance");
           const hasDocuments = completedSteps.includes("documents");
           const hasBasicDetails = completedSteps.includes("basicDetails");
@@ -2733,7 +2733,7 @@ const MultiStepAccordion = () => {
                           (() => {
                             const completedSteps = parentVisaApplication?.stepInfo?.completedSteps || [];
                             const hasAppointment = completedSteps.includes("appointment");
-                            const hasPayment = paymentData?.allPaymentCompleted || false;
+                            const hasPayment = _validateFullPayment();
                             const hasInsurance = completedSteps.includes("insurance");
                             const hasDocuments = completedSteps.includes("documents");
                             const hasBasicDetails = completedSteps.includes("basicDetails");
@@ -2791,7 +2791,7 @@ const MultiStepAccordion = () => {
                           (() => {
                             const completedSteps = parentVisaApplication?.stepInfo?.completedSteps || [];
                             const hasAppointment = completedSteps.includes("appointment");
-                            const hasPayment = paymentData?.allPaymentCompleted || false;
+                            const hasPayment = _validateFullPayment();
                             const hasInsurance = completedSteps.includes("insurance");
                             const hasDocuments = completedSteps.includes("documents");
                             const hasBasicDetails = completedSteps.includes("basicDetails");
@@ -3445,7 +3445,7 @@ const MultiStepAccordion = () => {
           (() => {
             const completedSteps = parentVisaApplication?.stepInfo?.completedSteps || [];
             const hasAppointment = completedSteps.includes("appointment");
-            const hasPayment = paymentData?.allPaymentCompleted || false;
+            const hasPayment = _validateFullPayment();
             const hasInsurance = completedSteps.includes("insurance");
             const hasDocuments = completedSteps.includes("documents");
             const hasBasicDetails = completedSteps.includes("basicDetails");
