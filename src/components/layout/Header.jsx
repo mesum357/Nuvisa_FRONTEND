@@ -82,12 +82,12 @@ export const Header = ({ href }) => {
           </Link>
         </div>
 
-        {/* Tagline - Hidden on small screens */}
-        <div className="hidden lg:block">
+        {/* Tagline - Hidden on dashboard */}
+        {/* <div className="hidden lg:block">
           <span className="text-[28px] font-gilroy-bold">
             {getContent('nav_tagline')}
           </span>
-        </div>
+        </div> */}
 
         {/* Right Side Actions */}
         <div className="flex items-center space-x-3">
