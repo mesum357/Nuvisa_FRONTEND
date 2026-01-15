@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import { getCountryConfig } from "@/constants/countryConfig";
 import { useAppDispatch, useAppSelector } from "@/store";
 import {
@@ -21,6 +22,9 @@ import {
   setReduxInsuranceCount,
   setReduxGiftCardCount,
   triggerDocumentValidation,
+  addRedeemedGiftCard,
+  removeRedeemedGiftCard,
+  clearRedeemedGiftCards,
 } from "@/store/visaSlice";
 import ClientOnly from "./ClientOnly";
 import {
@@ -48,6 +52,7 @@ import SimpleAlert from "./SimpleAlert";
 import ConfirmationModal from "./ConfirmationModal";
 import StripeProvider from "./StripeProvider";
 import ExpressPaymentRequestButton from "./ExpressPaymentRequestButton";
+import { validateGiftCardCode, redeemGiftCardCode } from "@/api/giftCard";
 
 const CountrySlider = () => {
   const router = useRouter();
@@ -98,7 +103,7 @@ const CountrySlider = () => {
       id: 8,
       name: "Hungary",
       image: "/image/country/Hungary.jpg",
-
+    
     },
     {
       id: 9,
@@ -189,7 +194,7 @@ const CountrySlider = () => {
   const [insuranceDays, setInsuranceDays] = useState(0);
 
   // Use Redux state instead of local state
-  const travelers = visaState.travelers || 1;
+  const travelers = visaState.travelers ?? 0;
   const insuranceCount = visaState.insuranceCount || 0;
   const giftCardCount = visaState.giftCardCount || 0;
   // Default arrival = 4 weeks from today, default departure = arrival + 14 days (15 days inclusive)
@@ -210,10 +215,23 @@ const CountrySlider = () => {
 
   const initialDepartureDate = computeDefaultDeparture(initialArrivalDate);
 
-  const [arrivalDate, setArrivalDateLocal] = useState(() => initialArrivalDate);
-  const [departureDate, setDepartureDateLocal] = useState(
-    () => initialDepartureDate
+  const parsePersistedDate = (value) => {
+    if (!value) return null;
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  };
+
+  const persistedArrivalDate = parsePersistedDate(visaState.arrivalDate);
+  const persistedDepartureDate = parsePersistedDate(visaState.departureDate);
+
+  const [arrivalDate, setArrivalDateLocal] = useState(
+    () => persistedArrivalDate || initialArrivalDate
   );
+  const [departureDate, setDepartureDateLocal] = useState(() => {
+    if (persistedDepartureDate) return persistedDepartureDate;
+    if (persistedArrivalDate) return computeDefaultDeparture(persistedArrivalDate);
+    return initialDepartureDate;
+  });
   const [dateValidationErrors, setDateValidationErrors] = useState({});
   const [_selectedOptions, setSelectedOptions] = useState({
     approvalRate: true,
@@ -237,6 +255,20 @@ const CountrySlider = () => {
   const [_showStudentModal, _setShowStudentModal] = useState(false);
   const [pendingCheckoutQuery, setPendingCheckoutQuery] = useState(null);
   const [_studentEmail, _setStudentEmail] = useState("");
+  // Load gift card state from Redux - now supports multiple cards
+  const redeemedGiftCards = visaState.redeemedGiftCards || [];
+  const giftCardRedeemed = redeemedGiftCards.length > 0;
+  
+  // Calculate total benefits from all redeemed gift cards
+  const totalGiftCardBenefits = useMemo(() => {
+    return redeemedGiftCards.reduce((total, card) => ({
+      freeTraveler: total.freeTraveler + (card.benefits?.freeTraveler || 0),
+      freeInsurance: total.freeInsurance + (card.benefits?.freeInsurance || 0),
+    }), { freeTraveler: 0, freeInsurance: 0 });
+  }, [redeemedGiftCards]);
+  
+  const giftCardBenefits = totalGiftCardBenefits.freeTraveler > 0 || totalGiftCardBenefits.freeInsurance > 0 ? totalGiftCardBenefits : null;
+  const [isRedeemingGiftCard, setIsRedeemingGiftCard] = useState(false);
   const [studentVerificationSent, setStudentVerificationSent] = useState(false);
   const [_studentOtp, _setStudentOtp] = useState("");
   const [studentVerified, setStudentVerified] = useState(false);
@@ -251,6 +283,10 @@ const CountrySlider = () => {
     googlePay: false,
   });
   const hasCheckedAvailabilityRef = useRef(false);
+  
+  // Refs to track previous values for threshold crossing detection
+  const prevInsuranceCountForToastRef = useRef(insuranceCount);
+  const isInitialMountInsuranceToastRef = useRef(true);
 
   const [userEmail, setUserEmailLocal] = useState("");
   const [emailError, setEmailError] = useState("");
@@ -543,19 +579,69 @@ const CountrySlider = () => {
 
   useEffect(() => {
     try {
-      const arrivalStr = getLocalDateString(initialArrivalDate);
-      const departureStr = getLocalDateString(initialDepartureDate);
-      dispatch(setArrivalDate(arrivalStr));
-      dispatch(setDepartureDate(departureStr));
+      if (!visaState.arrivalDate) {
+        const arrivalStr = getLocalDateString(arrivalDate || initialArrivalDate);
+        dispatch(setArrivalDate(arrivalStr));
+      }
 
-      const errors = validateDates(
-        initialArrivalDate,
-        initialDepartureDate,
-        selectedVisaType
-      );
-      setDateValidationErrors(errors);
-    } catch { }
-  }, []);
+      if (!visaState.departureDate) {
+        const fallbackDeparture =
+          departureDate ||
+          (arrivalDate
+            ? computeDefaultDeparture(arrivalDate)
+            : initialDepartureDate);
+        dispatch(setDepartureDate(getLocalDateString(fallbackDeparture)));
+      }
+
+      if (!visaState.arrivalDate || !visaState.departureDate) {
+        const errors = validateDates(
+          arrivalDate || initialArrivalDate,
+          departureDate ||
+            (arrivalDate
+              ? computeDefaultDeparture(arrivalDate)
+              : initialDepartureDate),
+          selectedVisaType
+        );
+        setDateValidationErrors(errors);
+      }
+    } catch {}
+  }, [
+    arrivalDate,
+    departureDate,
+    visaState.arrivalDate,
+    visaState.departureDate,
+    selectedVisaType,
+  ]);
+
+  useEffect(() => {
+    const persistedArrival = parsePersistedDate(visaState.arrivalDate);
+    if (persistedArrival) {
+      const persistedMs = persistedArrival.getTime();
+      if (!arrivalDate || arrivalDate.getTime() !== persistedMs) {
+        setArrivalDateLocal(persistedArrival);
+      }
+    } else if (!visaState.arrivalDate && !arrivalDate) {
+      setArrivalDateLocal(initialArrivalDate);
+    }
+
+    const persistedDeparture = parsePersistedDate(visaState.departureDate);
+    if (persistedDeparture) {
+      const persistedMs = persistedDeparture.getTime();
+      if (!departureDate || departureDate.getTime() !== persistedMs) {
+        setDepartureDateLocal(persistedDeparture);
+      }
+    } else if (!visaState.departureDate && !departureDate) {
+      const fallbackDeparture = arrivalDate
+        ? computeDefaultDeparture(arrivalDate)
+        : initialDepartureDate;
+      setDepartureDateLocal(fallbackDeparture);
+    }
+  }, [
+    visaState.arrivalDate,
+    visaState.departureDate,
+    arrivalDate,
+    departureDate,
+  ]);
 
   let maxDepartureDate = null;
   if (arrivalDate) {
@@ -726,11 +812,50 @@ const CountrySlider = () => {
   })();
 
   const perDayInsurancePrice = 2;
+  const originalPerDayInsurancePrice = 3;
 
-  const computedInsuranceTotal =
-    recommendedItems.insuranceCertificate && insuranceDays > 0
-      ? perDayInsurancePrice * insuranceDays * insuranceCount
-      : 0;
+  // Memoize expensive calculations
+  const currentVisaFeePerTraveler = useMemo(() => {
+    if (selectedVisaType?.priceGBP) return Number(selectedVisaType.priceGBP);
+    if (selectedVisaType?.price) {
+      const converted = Math.round(Number(selectedVisaType.price) / 100);
+      if (converted > 0) return converted;
+    }
+    return baseFee;
+  }, [selectedVisaType?.priceGBP, selectedVisaType?.price, baseFee]);
+
+  const effectiveInsuranceDays = useMemo(() => {
+    if (!recommendedItems.insuranceCertificate) return 0;
+    return Math.max(insuranceDays || 0, 1);
+  }, [recommendedItems.insuranceCertificate, insuranceDays]);
+
+  const discountedInsuranceBase = useMemo(() => {
+    if (
+      !recommendedItems.insuranceCertificate ||
+      !insuranceCount ||
+      insuranceCount <= 0
+    ) {
+      return 0;
+    }
+    return perDayInsurancePrice * effectiveInsuranceDays * insuranceCount;
+  }, [recommendedItems.insuranceCertificate, insuranceCount, effectiveInsuranceDays]);
+
+  const originalInsuranceBase = useMemo(() => {
+    if (
+      !recommendedItems.insuranceCertificate ||
+      !insuranceCount ||
+      insuranceCount <= 0
+    ) {
+      return 0;
+    }
+    return (
+      originalPerDayInsurancePrice *
+      effectiveInsuranceDays *
+      insuranceCount
+    );
+  }, [recommendedItems.insuranceCertificate, insuranceCount, effectiveInsuranceDays]);
+
+  const computedInsuranceTotal = discountedInsuranceBase;
 
   const tooltips = {
     sticker:
@@ -746,7 +871,11 @@ const CountrySlider = () => {
 
   const _handleTravelerChange = (increment) => {
     const newValue = travelers + increment;
-    if (newValue >= 1) {
+    if (newValue >= 0) {
+      // If traveler count decreases, adjust insurance count if needed
+      if (insuranceCount > newValue) {
+        dispatch(setReduxInsuranceCount(Number(newValue)));
+      }
       dispatch(setReduxTravelers(Number(newValue)));
     }
   };
@@ -764,21 +893,11 @@ const CountrySlider = () => {
     dispatch(setReduxSelectedCountry(String(countryName)));
     dispatch(setVisaFees(Number(countryConfig.visaFee)));
     dispatch(setInsuranceFees(Number(countryConfig.insuranceFee)));
-    dispatch(setReduxTravelers(Number(1)));
   };
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const timerRef = useRef(null);
-  const thumbRefs = useRef([]);
-  useEffect(() => {
-    if (thumbRefs.current[currentIndex]) {
-      thumbRefs.current[currentIndex].scrollIntoView({
-        behavior: "smooth",
-        inline: "center",
-        block: "nearest",
-      });
-    }
-  }, [currentIndex]);
+  const thumbnailContainerRef = useRef(null);
 
   useEffect(() => {
     const startTimer = () => {
@@ -798,6 +917,92 @@ const CountrySlider = () => {
       }
     };
   }, [countries.length]);
+
+  // Auto-scroll thumbnail container to keep active thumbnail visible
+  useEffect(() => {
+    const scrollToActiveThumbnail = (retryCount = 0) => {
+      const container = thumbnailContainerRef.current;
+      if (!container) {
+        // Retry if container not ready (max 3 retries)
+        if (retryCount < 3) {
+          setTimeout(() => scrollToActiveThumbnail(retryCount + 1), 100);
+        }
+        return;
+      }
+
+      const activeThumbnail = container.children[currentIndex];
+      if (!activeThumbnail) {
+        // Retry if thumbnail not ready (max 3 retries)
+        if (retryCount < 3) {
+          setTimeout(() => scrollToActiveThumbnail(retryCount + 1), 100);
+        }
+        return;
+      }
+      
+      // Use requestAnimationFrame to ensure layout is calculated
+      requestAnimationFrame(() => {
+        // Manually calculate scroll position to avoid affecting main page scroll
+        const containerRect = container.getBoundingClientRect();
+        const thumbnailRect = activeThumbnail.getBoundingClientRect();
+        const containerWidth = containerRect.width;
+        const thumbnailWidth = thumbnailRect.width;
+        
+        let targetScrollLeft;
+        let useFallback = false;
+        
+        // Check if getBoundingClientRect returned valid values
+        if (containerWidth > 0 && thumbnailWidth > 0 && thumbnailRect.width > 0) {
+          // Use getBoundingClientRect calculation (preferred method)
+          const containerScrollLeft = container.scrollLeft;
+          const thumbnailLeft = thumbnailRect.left - containerRect.left + containerScrollLeft;
+          const thumbnailCenter = thumbnailLeft + thumbnailWidth / 2;
+          targetScrollLeft = thumbnailCenter - containerWidth / 2;
+        } else {
+          // Fallback: calculate based on index and estimated dimensions
+          useFallback = true;
+          // Thumbnail width: 80px (w-20), gap: 8px (gap-2), padding: 16px (px-4)
+          const estimatedThumbnailWidth = 80; // w-20 = 80px
+          const estimatedGap = 8; // gap-2 = 8px
+          const estimatedPadding = 16; // px-4 = 16px
+          const thumbnailLeft = currentIndex * (estimatedThumbnailWidth + estimatedGap) + estimatedPadding;
+          const thumbnailCenter = thumbnailLeft + estimatedThumbnailWidth / 2;
+          targetScrollLeft = thumbnailCenter - (containerWidth > 0 ? containerWidth : container.clientWidth) / 2;
+        }
+        
+        // Ensure targetScrollLeft is valid
+        if (typeof targetScrollLeft === 'number' && !isNaN(targetScrollLeft)) {
+          // Clamp to valid scroll range
+          const maxScroll = Math.max(0, container.scrollWidth - (containerWidth > 0 ? containerWidth : container.clientWidth));
+          targetScrollLeft = Math.max(0, Math.min(targetScrollLeft, maxScroll));
+          
+          // Try scrollTo first, with fallback to direct scrollLeft assignment
+          if (container.scrollTo) {
+            try {
+              container.scrollTo({
+                left: targetScrollLeft,
+                behavior: 'smooth'
+              });
+            } catch (e) {
+              // Fallback for browsers that don't support scrollTo options
+              container.scrollLeft = targetScrollLeft;
+            }
+          } else {
+            // Direct assignment as fallback
+            container.scrollLeft = targetScrollLeft;
+          }
+        } else if (retryCount < 3) {
+          // Retry if calculation failed (max 3 retries)
+          setTimeout(() => scrollToActiveThumbnail(retryCount + 1), 100);
+        }
+      });
+    };
+
+    // Add a delay to ensure images are loaded and layout is settled
+    // Use longer delay for production builds where images may load slower
+    const timeoutId = setTimeout(() => scrollToActiveThumbnail(0), 100);
+    
+    return () => clearTimeout(timeoutId);
+  }, [currentIndex]);
 
   const goToPrevious = () => {
     const isFirstSlide = currentIndex === 0;
@@ -885,180 +1090,350 @@ const CountrySlider = () => {
     return emailRegex.test(email);
   };
 
-  const calculateFinalPrice = () => {
-    // NEW DISCOUNT LOGIC - matching OrderCheckout.jsx
-    console.log("Slider calculateFinalPrice - Input values:", {
-      travelers,
-      insuranceCount,
-      giftCardCount,
-      recommendedItems,
-      appliedDiscount,
-    });
+  // Memoize calculateFinalPrice to prevent recalculation on every render
+  const finalPrice = useMemo(() => {
+    // Apply gift card benefits: reduce effective counts for calculation
+    const effectiveTravelers = giftCardRedeemed && travelers > 0 
+      ? Math.max(0, travelers - (giftCardBenefits?.freeTraveler || 0))
+      : travelers;
+    const effectiveInsuranceCountForCalc = giftCardRedeemed && insuranceCount > 0
+      ? Math.max(0, insuranceCount - (giftCardBenefits?.freeInsurance || 0))
+      : insuranceCount;
 
-    // Base discounted prices (not original prices)
-    const baseDiscountedVisaFees = 129 * travelers; // £129 per traveler
-    const baseDiscountedInsuranceFees = recommendedItems.insuranceCertificate
-      ? 30 * insuranceCount
-      : 0; // £30 per insurance
+    // Base discounted prices (not original prices) - using effective counts
+    const baseDiscountedVisaFees = currentVisaFeePerTraveler * effectiveTravelers;
+    const baseDiscountedInsuranceFees = recommendedItems.insuranceCertificate && effectiveInsuranceCountForCalc > 0
+      ? perDayInsurancePrice * effectiveInsuranceDays * effectiveInsuranceCountForCalc
+      : 0;
     const baseDiscountedGiftCardFees = recommendedItems.giftCard
       ? 159 * giftCardCount
-      : 0; // £159 per gift card
-
-    // Calculate individual component discounts
-    let visaDiscountPercentage = 0;
-    let insuranceDiscountPercentage = 0;
-    let giftCardDiscountPercentage = 0;
+      : 0;
 
     // Check if any component qualifies for quantity discount (3+)
-    // Note: Insurance count cannot exceed traveler count (insurance certificates are for travelers)
+    // Use original counts for qualification checks, not effective counts
     const effectiveInsuranceCount = Math.min(insuranceCount, travelers);
-
     const travelersQualify = travelers >= 3;
     const insuranceQualify = effectiveInsuranceCount >= 3;
     const giftCardQualify = giftCardCount >= 3;
 
-    // Apply quantity-based discounts (20% for 3+ items)
-    if (travelersQualify) visaDiscountPercentage += 20;
-    if (insuranceQualify) insuranceDiscountPercentage += 20;
-    if (giftCardQualify) giftCardDiscountPercentage += 20;
+    // Check if student discount applies
+    const hasStudentDiscount = appliedDiscount && appliedDiscount.code === "STUDENT10";
+    const hasGroupDiscount = appliedDiscount && appliedDiscount.code === "GROUP20";
 
-    // Apply coupon discounts
-    if (appliedDiscount) {
-      console.log("Slider Applied Discount:", appliedDiscount); // Debug log
-      if (appliedDiscount.code === "GROUP20") {
-        // GROUP20: Only applies if travelers >= 3 AND at least one other component >= 3
-        if (travelersQualify && (insuranceQualify || giftCardQualify)) {
-          // Apply 20% to all components that have 3+ items
-          if (travelersQualify)
-            visaDiscountPercentage = Math.max(visaDiscountPercentage, 20);
-          if (insuranceQualify)
-            insuranceDiscountPercentage = Math.max(
-              insuranceDiscountPercentage,
-              20
-            );
-          if (giftCardQualify)
-            giftCardDiscountPercentage = Math.max(
-              giftCardDiscountPercentage,
-              20
-            );
+    // Calculate discounts sequentially (compound): First 20% quantity discount, then 10% student discount on discounted price
+    let finalVisaPrice = baseDiscountedVisaFees;
+    let finalInsurancePrice = baseDiscountedInsuranceFees;
+    let finalGiftCardPrice = baseDiscountedGiftCardFees;
+
+    // Apply 20% quantity discount first (if 3+ items)
+    if (travelersQualify) {
+      const quantityDiscount = (finalVisaPrice * 20) / 100;
+      finalVisaPrice = finalVisaPrice - quantityDiscount;
+    }
+    if (insuranceQualify && recommendedItems.insuranceCertificate) {
+      const quantityDiscount = (finalInsurancePrice * 20) / 100;
+      finalInsurancePrice = finalInsurancePrice - quantityDiscount;
+    }
+    if (giftCardQualify && recommendedItems.giftCard) {
+      const quantityDiscount = (finalGiftCardPrice * 20) / 100;
+      finalGiftCardPrice = finalGiftCardPrice - quantityDiscount;
+    }
+
+    // Apply GROUP20 coupon (ensures 20% is applied if conditions met)
+    if (hasGroupDiscount) {
+      if (travelersQualify && (insuranceQualify || giftCardQualify)) {
+        if (travelersQualify && finalVisaPrice === baseDiscountedVisaFees) {
+          const quantityDiscount = (finalVisaPrice * 20) / 100;
+          finalVisaPrice = finalVisaPrice - quantityDiscount;
         }
-      } else if (appliedDiscount.code === "STUDENT10") {
-        console.log("Slider Applying STUDENT10 discount"); // Debug log
-        // STUDENT10: Adds 10% to ALL components (stacks with quantity discounts)
-        visaDiscountPercentage += 10;
-        if (recommendedItems.insuranceCertificate)
-          insuranceDiscountPercentage += 10;
-        if (recommendedItems.giftCard) giftCardDiscountPercentage += 10;
+        if (insuranceQualify && recommendedItems.insuranceCertificate && finalInsurancePrice === baseDiscountedInsuranceFees) {
+          const quantityDiscount = (finalInsurancePrice * 20) / 100;
+          finalInsurancePrice = finalInsurancePrice - quantityDiscount;
+        }
+        if (giftCardQualify && recommendedItems.giftCard && finalGiftCardPrice === baseDiscountedGiftCardFees) {
+          const quantityDiscount = (finalGiftCardPrice * 20) / 100;
+          finalGiftCardPrice = finalGiftCardPrice - quantityDiscount;
+        }
       }
     }
 
-    console.log("Slider Final discount percentages:", {
-      // Debug log
-      visa: visaDiscountPercentage,
-      insurance: insuranceDiscountPercentage,
-      giftCard: giftCardDiscountPercentage,
-    });
+    // Apply 10% student discount on already-discounted price (if student)
+    if (hasStudentDiscount) {
+      const studentDiscount = (finalVisaPrice * 10) / 100;
+      finalVisaPrice = finalVisaPrice - studentDiscount;
+      if (recommendedItems.insuranceCertificate) {
+        const studentDiscount = (finalInsurancePrice * 10) / 100;
+        finalInsurancePrice = finalInsurancePrice - studentDiscount;
+      }
+      if (recommendedItems.giftCard) {
+        const studentDiscount = (finalGiftCardPrice * 10) / 100;
+        finalGiftCardPrice = finalGiftCardPrice - studentDiscount;
+      }
+    }
 
-    // Calculate discount amounts
-    const visaDiscountAmount =
-      (baseDiscountedVisaFees * visaDiscountPercentage) / 100;
-    const insuranceDiscountAmount = recommendedItems.insuranceCertificate
-      ? (baseDiscountedInsuranceFees * insuranceDiscountPercentage) / 100
+    return finalVisaPrice + finalInsurancePrice + finalGiftCardPrice;
+  }, [
+    currentVisaFeePerTraveler,
+    travelers,
+    discountedInsuranceBase,
+    recommendedItems,
+    insuranceCount,
+    giftCardCount,
+    appliedDiscount,
+    giftCardRedeemed,
+    giftCardBenefits,
+    perDayInsurancePrice,
+    effectiveInsuranceDays
+  ]);
+
+  // Memoize calculateVisaAndInsurancePrice
+  const visaAndInsurancePrice = useMemo(() => {
+    // Apply gift card benefits: reduce effective counts for calculation
+    const effectiveTravelers = giftCardRedeemed && travelers > 0 
+      ? Math.max(0, travelers - (giftCardBenefits?.freeTraveler || 0))
+      : travelers;
+    const effectiveInsuranceCountForCalc = giftCardRedeemed && insuranceCount > 0
+      ? Math.max(0, insuranceCount - (giftCardBenefits?.freeInsurance || 0))
+      : insuranceCount;
+
+    // Calculate only visa + insurance (excluding gift cards) for main price display
+    const baseDiscountedVisaFees = currentVisaFeePerTraveler * effectiveTravelers;
+    const baseDiscountedInsuranceFees = recommendedItems.insuranceCertificate && effectiveInsuranceCountForCalc > 0
+      ? perDayInsurancePrice * effectiveInsuranceDays * effectiveInsuranceCountForCalc
       : 0;
-    const giftCardDiscountAmount = recommendedItems.giftCard
-      ? (baseDiscountedGiftCardFees * giftCardDiscountPercentage) / 100
-      : 0;
 
-    // Calculate final prices after discounts
-    const finalVisaPrice = baseDiscountedVisaFees - visaDiscountAmount;
-    const finalInsurancePrice =
-      baseDiscountedInsuranceFees - insuranceDiscountAmount;
-    const finalGiftCardPrice =
-      baseDiscountedGiftCardFees - giftCardDiscountAmount;
+    // Check if any component qualifies for quantity discount (3+)
+    // Use original counts for qualification checks, not effective counts
+    const effectiveInsuranceCount = Math.min(insuranceCount, travelers);
+    const travelersQualify = travelers >= 3;
+    const insuranceQualify = effectiveInsuranceCount >= 3;
 
-    console.log("Slider calculateFinalPrice - Final results:", {
-      finalVisaPrice,
-      finalInsurancePrice,
-      finalGiftCardPrice,
-      totalPrice: finalVisaPrice + finalInsurancePrice + finalGiftCardPrice,
-    });
+    // Check if student discount applies
+    const hasStudentDiscount = appliedDiscount && appliedDiscount.code === "STUDENT10";
+    const hasGroupDiscount = appliedDiscount && appliedDiscount.code === "GROUP20";
 
-    // Return only visa fees for main display (matching original behavior)
-    return finalVisaPrice?.toFixed(2);
-  };
+    // Calculate discounts sequentially (compound): First 20% quantity discount, then 10% student discount on discounted price
+    let finalVisaPrice = baseDiscountedVisaFees;
+    let finalInsurancePrice = baseDiscountedInsuranceFees;
 
-  const calculateDiscountedInsurancePrice = () => {
+    // Apply 20% quantity discount first (if 3+ items)
+    if (travelersQualify) {
+      const quantityDiscount = (finalVisaPrice * 20) / 100;
+      finalVisaPrice = finalVisaPrice - quantityDiscount;
+    }
+    if (insuranceQualify && recommendedItems.insuranceCertificate) {
+      const quantityDiscount = (finalInsurancePrice * 20) / 100;
+      finalInsurancePrice = finalInsurancePrice - quantityDiscount;
+    }
+
+    // Apply GROUP20 coupon (ensures 20% is applied if conditions met)
+    if (hasGroupDiscount) {
+      const giftCardQualify = giftCardCount >= 3;
+      if (travelersQualify && (insuranceQualify || giftCardQualify)) {
+        if (travelersQualify && finalVisaPrice === baseDiscountedVisaFees) {
+          const quantityDiscount = (finalVisaPrice * 20) / 100;
+          finalVisaPrice = finalVisaPrice - quantityDiscount;
+        }
+        if (insuranceQualify && recommendedItems.insuranceCertificate && finalInsurancePrice === baseDiscountedInsuranceFees) {
+          const quantityDiscount = (finalInsurancePrice * 20) / 100;
+          finalInsurancePrice = finalInsurancePrice - quantityDiscount;
+        }
+      }
+    }
+
+    // Apply 10% student discount on already-discounted price (if student)
+    if (hasStudentDiscount) {
+      const studentDiscount = (finalVisaPrice * 10) / 100;
+      finalVisaPrice = finalVisaPrice - studentDiscount;
+      if (recommendedItems.insuranceCertificate) {
+        const studentDiscount = (finalInsurancePrice * 10) / 100;
+        finalInsurancePrice = finalInsurancePrice - studentDiscount;
+      }
+    }
+
+    return finalVisaPrice + finalInsurancePrice;
+  }, [
+    currentVisaFeePerTraveler,
+    travelers,
+    discountedInsuranceBase,
+    insuranceCount,
+    recommendedItems,
+    appliedDiscount,
+    giftCardCount,
+    giftCardRedeemed,
+    giftCardBenefits,
+    perDayInsurancePrice,
+    effectiveInsuranceDays
+  ]);
+
+  // Memoize visa-only price (without insurance) for traveller card display
+  const visaOnlyPrice = useMemo(() => {
+    // Apply gift card benefits: reduce effective count for calculation
+    const effectiveTravelers = giftCardRedeemed && travelers > 0 
+      ? Math.max(0, travelers - (giftCardBenefits?.freeTraveler || 0))
+      : travelers;
+
+    const baseDiscountedVisaFees = currentVisaFeePerTraveler * effectiveTravelers;
+
+    // Check if travelers qualify for quantity discount (3+)
+    // Use original count for qualification checks
+    const travelersQualify = travelers >= 3;
+
+    // Check if student discount applies
+    const hasStudentDiscount = appliedDiscount && appliedDiscount.code === "STUDENT10";
+    const hasGroupDiscount = appliedDiscount && appliedDiscount.code === "GROUP20";
+
+    // Calculate discounts sequentially (compound): First 20% quantity discount, then 10% student discount on discounted price
+    let finalVisaPrice = baseDiscountedVisaFees;
+
+    // Apply 20% quantity discount first (if 3+ items)
+    if (travelersQualify) {
+      const quantityDiscount = (finalVisaPrice * 20) / 100;
+      finalVisaPrice = finalVisaPrice - quantityDiscount;
+    }
+
+    // Apply GROUP20 coupon (ensures 20% is applied if conditions met)
+    if (hasGroupDiscount) {
+      const effectiveInsuranceCount = Math.min(insuranceCount, travelers);
+      const insuranceQualify = effectiveInsuranceCount >= 3;
+      const giftCardQualify = giftCardCount >= 3;
+      if (travelersQualify && (insuranceQualify || giftCardQualify)) {
+        if (travelersQualify && finalVisaPrice === baseDiscountedVisaFees) {
+          const quantityDiscount = (finalVisaPrice * 20) / 100;
+          finalVisaPrice = finalVisaPrice - quantityDiscount;
+        }
+      }
+    }
+
+    // Apply 10% student discount on already-discounted price (if student)
+    if (hasStudentDiscount) {
+      const studentDiscount = (finalVisaPrice * 10) / 100;
+      finalVisaPrice = finalVisaPrice - studentDiscount;
+    }
+
+    return finalVisaPrice;
+  }, [
+    currentVisaFeePerTraveler,
+    travelers,
+    insuranceCount,
+    appliedDiscount,
+    giftCardCount,
+    giftCardRedeemed,
+    giftCardBenefits
+  ]);
+
+  // Memoize calculateDiscountedInsurancePrice
+  const discountedInsurancePrice = useMemo(() => {
+    // Apply gift card benefits: reduce effective count for calculation
+    const effectiveInsuranceCountForCalc = giftCardRedeemed && insuranceCount > 0
+      ? Math.max(0, insuranceCount - (giftCardBenefits?.freeInsurance || 0))
+      : insuranceCount;
+
     // Use same logic as calculateFinalPrice for insurance
-    const baseDiscountedInsuranceFees = recommendedItems.insuranceCertificate
-      ? 30 * insuranceCount
+    const baseDiscountedInsuranceFees = recommendedItems.insuranceCertificate && effectiveInsuranceCountForCalc > 0
+      ? perDayInsurancePrice * effectiveInsuranceDays * effectiveInsuranceCountForCalc
       : 0;
-    let insuranceDiscountPercentage = 0;
 
     // Check if insurance qualifies for quantity discount (3+)
+    // Use original count for qualification checks
     const effectiveInsuranceCount = Math.min(insuranceCount, travelers);
     const insuranceQualify = effectiveInsuranceCount >= 3;
 
-    // Apply quantity-based discount (20% for 3+ items)
-    if (insuranceQualify) insuranceDiscountPercentage += 20;
+    // Check if student discount applies
+    const hasStudentDiscount = appliedDiscount && appliedDiscount.code === "STUDENT10";
+    const hasGroupDiscount = appliedDiscount && appliedDiscount.code === "GROUP20";
 
-    // Apply coupon discounts
-    if (appliedDiscount) {
-      if (appliedDiscount.code === "GROUP20") {
-        const travelersQualify = travelers >= 3;
-        const giftCardQualify = giftCardCount >= 3;
-        if (travelersQualify && (insuranceQualify || giftCardQualify)) {
-          if (insuranceQualify)
-            insuranceDiscountPercentage = Math.max(
-              insuranceDiscountPercentage,
-              20
-            );
+    // Calculate discounts sequentially (compound): First 20% quantity discount, then 10% student discount on discounted price
+    let finalInsurancePrice = baseDiscountedInsuranceFees;
+
+    // Apply 20% quantity discount first (if 3+ items)
+    if (insuranceQualify) {
+      const quantityDiscount = (finalInsurancePrice * 20) / 100;
+      finalInsurancePrice = finalInsurancePrice - quantityDiscount;
+    }
+
+    // Apply GROUP20 coupon (ensures 20% is applied if conditions met)
+    if (hasGroupDiscount) {
+      const travelersQualify = travelers >= 3;
+      const giftCardQualify = giftCardCount >= 3;
+      if (travelersQualify && (insuranceQualify || giftCardQualify)) {
+        if (insuranceQualify && finalInsurancePrice === baseDiscountedInsuranceFees) {
+          const quantityDiscount = (finalInsurancePrice * 20) / 100;
+          finalInsurancePrice = finalInsurancePrice - quantityDiscount;
         }
-      } else if (appliedDiscount.code === "STUDENT10") {
-        if (recommendedItems.insuranceCertificate)
-          insuranceDiscountPercentage += 10;
       }
     }
 
-    const insuranceDiscountAmount =
-      (baseDiscountedInsuranceFees * insuranceDiscountPercentage) / 100;
-    return baseDiscountedInsuranceFees - insuranceDiscountAmount;
-  };
+    // Apply 10% student discount on already-discounted price (if student)
+    if (hasStudentDiscount && recommendedItems.insuranceCertificate) {
+      const studentDiscount = (finalInsurancePrice * 10) / 100;
+      finalInsurancePrice = finalInsurancePrice - studentDiscount;
+    }
 
-  const calculateDiscountedGiftCardPrice = () => {
+    return finalInsurancePrice;
+  }, [
+    discountedInsuranceBase,
+    insuranceCount,
+    travelers,
+    recommendedItems,
+    appliedDiscount,
+    giftCardCount,
+    giftCardRedeemed,
+    giftCardBenefits,
+    perDayInsurancePrice,
+    effectiveInsuranceDays
+  ]);
+
+  // Memoize calculateDiscountedGiftCardPrice
+  const discountedGiftCardPrice = useMemo(() => {
     // Use same logic as calculateFinalPrice for gift cards
     const baseDiscountedGiftCardFees = recommendedItems.giftCard
       ? 159 * giftCardCount
       : 0;
-    let giftCardDiscountPercentage = 0;
 
     // Check if gift cards qualify for quantity discount (3+)
     const giftCardQualify = giftCardCount >= 3;
 
-    // Apply quantity-based discount (20% for 3+ items)
-    if (giftCardQualify) giftCardDiscountPercentage += 20;
+    // Check if student discount applies
+    const hasStudentDiscount = appliedDiscount && appliedDiscount.code === "STUDENT10";
+    const hasGroupDiscount = appliedDiscount && appliedDiscount.code === "GROUP20";
 
-    // Apply coupon discounts
-    if (appliedDiscount) {
-      if (appliedDiscount.code === "GROUP20") {
-        const travelersQualify = travelers >= 3;
-        const effectiveInsuranceCount = Math.min(insuranceCount, travelers);
-        const insuranceQualify = effectiveInsuranceCount >= 3;
-        if (travelersQualify && (insuranceQualify || giftCardQualify)) {
-          if (giftCardQualify)
-            giftCardDiscountPercentage = Math.max(
-              giftCardDiscountPercentage,
-              20
-            );
+    // Calculate discounts sequentially (compound): First 20% quantity discount, then 10% student discount on discounted price
+    let finalGiftCardPrice = baseDiscountedGiftCardFees;
+
+    // Apply 20% quantity discount first (if 3+ items)
+    if (giftCardQualify) {
+      const quantityDiscount = (finalGiftCardPrice * 20) / 100;
+      finalGiftCardPrice = finalGiftCardPrice - quantityDiscount;
+    }
+
+    // Apply GROUP20 coupon (ensures 20% is applied if conditions met)
+    if (hasGroupDiscount) {
+      const travelersQualify = travelers >= 3;
+      const effectiveInsuranceCount = Math.min(insuranceCount, travelers);
+      const insuranceQualify = effectiveInsuranceCount >= 3;
+      if (travelersQualify && (insuranceQualify || giftCardQualify)) {
+        if (giftCardQualify && finalGiftCardPrice === baseDiscountedGiftCardFees) {
+          const quantityDiscount = (finalGiftCardPrice * 20) / 100;
+          finalGiftCardPrice = finalGiftCardPrice - quantityDiscount;
         }
-      } else if (appliedDiscount.code === "STUDENT10") {
-        if (recommendedItems.giftCard) giftCardDiscountPercentage += 10;
       }
     }
 
-    const giftCardDiscountAmount =
-      (baseDiscountedGiftCardFees * giftCardDiscountPercentage) / 100;
-    return baseDiscountedGiftCardFees - giftCardDiscountAmount;
-  };
+    // Apply 10% student discount on already-discounted price (if student)
+    if (hasStudentDiscount && recommendedItems.giftCard) {
+      const studentDiscount = (finalGiftCardPrice * 10) / 100;
+      finalGiftCardPrice = finalGiftCardPrice - studentDiscount;
+    }
+
+    return finalGiftCardPrice;
+  }, [
+    recommendedItems,
+    giftCardCount,
+    appliedDiscount,
+    travelers,
+    insuranceCount
+  ]);
 
   const calculateOriginalPrice = () => {
     // Use dynamic strike-out price from admin panel (per traveler)
@@ -1082,21 +1457,81 @@ const CountrySlider = () => {
     }
 
     const baseOriginalPrice = Math.round(currentStrikeOutPrice) * travelers;
-    const insuranceOriginalPrice =
-      recommendedItems.insuranceCertificate && insuranceDays > 0
-        ? Math.round(perDayInsurancePrice * insuranceDays * travelers * 1.25)
-        : 0;
-    const giftCardOriginalPrice = recommendedItems.giftCard
-      ? 245 * giftCardCount
-      : 0;
-
     return baseOriginalPrice;
   };
 
   // Apply coupon immediately (no verification at apply time)
-  const applyCouponCode = () => {
+  const applyCouponCode = async () => {
     if (!couponCode.trim()) {
       setCouponError("Please enter a coupon code");
+      return;
+    }
+
+    const codeUpper = couponCode.toUpperCase().trim();
+
+    // Check if it's a gift card code (starts with NU-VISA-)
+    if (codeUpper.startsWith("NU-VISA-")) {
+      setIsRedeemingGiftCard(true);
+      setCouponError("");
+
+      try {
+        // First validate the gift card code
+        const validateResponse = await validateGiftCardCode(codeUpper);
+        
+        if (validateResponse.status === "ERROR" || !validateResponse.data?.results?.valid) {
+          setCouponError(validateResponse.message || "Invalid gift card code");
+          setIsRedeemingGiftCard(false);
+          return;
+        }
+
+        // If valid, redeem it
+        const redeemResponse = await redeemGiftCardCode(codeUpper, userEmail || undefined);
+
+        // Handle different response structures
+        const isSuccess = redeemResponse.status === "SUCCESS" || redeemResponse.status === "success";
+        const hasSuccessData = redeemResponse.data?.success || redeemResponse.data?.results?.success;
+        
+        if (isSuccess && hasSuccessData) {
+          // Store gift card benefits in Redux - add to array of redeemed cards
+          // Benefits are now based on quantity from backend (e.g., 2 gift cards = 2 free travelers + 2 free insurance)
+          const benefits = redeemResponse.data?.benefits || redeemResponse.data?.results?.benefits || { freeTraveler: 1, freeInsurance: 1 };
+          const quantity = redeemResponse.data?.giftCard?.quantity || redeemResponse.data?.results?.giftCard?.quantity || 1;
+          
+          // Check if this code is already redeemed
+          const alreadyRedeemed = redeemedGiftCards.some(card => card.code === codeUpper);
+          if (alreadyRedeemed) {
+            setCouponError("This gift card code has already been redeemed.");
+            setIsRedeemingGiftCard(false);
+            return;
+          }
+          
+          dispatch(addRedeemedGiftCard({
+            code: codeUpper,
+            benefits,
+            quantity,
+          }));
+          setCouponCodeLocal(""); // Clear input after successful redemption
+          setCouponError(""); // Clear any error
+          
+          // Dynamic success message based on actual benefits
+          const freeTravelerCount = benefits.freeTraveler || 1;
+          const freeInsuranceCount = benefits.freeInsurance || 1;
+          const travelerText = freeTravelerCount === 1 ? "traveller" : "travellers";
+          const insuranceText = freeInsuranceCount === 1 ? "insurance" : "insurances";
+          showSuccess(`Gift card ${codeUpper} applied! You get ${freeTravelerCount} free ${travelerText} and ${freeInsuranceCount} free ${insuranceText}.`);
+        } else {
+          setCouponError(redeemResponse.message || "Failed to redeem gift card");
+          setIsRedeemingGiftCard(false);
+          return;
+        }
+      } catch (error) {
+        console.error("Gift card redemption error:", error);
+        setCouponError(error.message || "Failed to redeem gift card. Please try again.");
+        setIsRedeemingGiftCard(false);
+        return;
+      } finally {
+        setIsRedeemingGiftCard(false);
+      }
       return;
     }
 
@@ -1112,7 +1547,7 @@ const CountrySlider = () => {
       },
     };
 
-    const discount = availableDiscounts[couponCode.toUpperCase()];
+    const discount = availableDiscounts[codeUpper];
 
     if (!discount) {
       setCouponError("Invalid coupon code");
@@ -1123,7 +1558,7 @@ const CountrySlider = () => {
     if (
       discount.requiresMinTravellers &&
       travelers < discount.requiresMinTravellers &&
-      couponCode.toUpperCase() === "GROUP20"
+      codeUpper === "GROUP20"
     ) {
       setCouponError(
         `This coupon requires at least ${discount.requiresMinTravellers} travellers`
@@ -1135,19 +1570,19 @@ const CountrySlider = () => {
       selectedVisaType && selectedVisaType.priceGBP
         ? Number(selectedVisaType.priceGBP)
         : selectedVisaType && selectedVisaType.price
-          ? Math.round(Number(selectedVisaType.price) / 100)
-          : baseFee;
+        ? Math.round(Number(selectedVisaType.price) / 100)
+        : baseFee;
     const currentVisaFees = currentBaseFee * travelers;
     const calculatedDiscountAmount =
       (currentVisaFees * discount.percentage) / 100;
 
     const discountWithAmount = {
       ...discount,
-      code: couponCode.toUpperCase(),
+      code: codeUpper,
       discountAmount: Math.round(calculatedDiscountAmount),
     };
 
-    if (couponCode.toUpperCase() === "STUDENT10") {
+    if (codeUpper === "STUDENT10") {
       dispatch(setAppliedDiscount(discountWithAmount));
       setAppliedInsuranceDiscount({ ...discountWithAmount, code: "STUDENT10" });
       setInsuranceCouponCode("STUDENT10");
@@ -1156,7 +1591,7 @@ const CountrySlider = () => {
     }
 
     setCouponError("");
-    if (couponCode.toUpperCase() === "GROUP20") {
+    if (codeUpper === "GROUP20") {
       setGroupAutoApplied(false);
     }
 
@@ -1224,7 +1659,13 @@ const CountrySlider = () => {
     setAppliedInsuranceDiscount(null);
     setCouponCodeLocal("");
     setCouponError("");
+    dispatch(clearRedeemedGiftCards());
     // email verification reset not required
+  };
+  
+  const removeGiftCard = (code) => {
+    dispatch(removeRedeemedGiftCard(code));
+    showSuccess(`Gift card ${code} removed.`);
   };
 
   // Auto-apply or remove GROUP20 when traveler count changes
@@ -1244,8 +1685,8 @@ const CountrySlider = () => {
             selectedVisaType && selectedVisaType.priceGBP
               ? Number(selectedVisaType.priceGBP)
               : selectedVisaType && selectedVisaType.price
-                ? Math.round(Number(selectedVisaType.price) / 100)
-                : baseFee;
+              ? Math.round(Number(selectedVisaType.price) / 100)
+              : baseFee;
           const currentVisaFees = currentBaseFee * travelers;
           const calculatedDiscountAmount = (currentVisaFees * 20) / 100;
 
@@ -1260,8 +1701,7 @@ const CountrySlider = () => {
           setCouponCodeLocal("GROUP20");
           setCouponError("");
           setGroupAutoApplied(true);
-          showSuccess &&
-            showSuccess("Group-20 applied — 20% off for 3+ travellers");
+          // Toast notification is handled by StickyBottomBar to avoid duplicate toasts
         }
       } else {
         // If travelers dropped below 3 and we auto-applied the group discount, remove it
@@ -1270,8 +1710,7 @@ const CountrySlider = () => {
           // Only clear couponCode if it was the auto-applied GROUP20
           if (currentCode === "GROUP20") setCouponCodeLocal("");
           setGroupAutoApplied(false);
-          showSuccess &&
-            showSuccess("Group-20 removed — fewer than 3 travellers");
+          // Toast notification is handled by StickyBottomBar to avoid duplicate toasts
         }
         // If the user manually had GROUP20 applied but now travelers < 3, show an error when they try to proceed (existing validation handles this)
       }
@@ -1281,6 +1720,29 @@ const CountrySlider = () => {
   }, [travelers]);
 
   useEffect(() => {
+    // Skip on initial mount for toast detection
+    if (isInitialMountInsuranceToastRef.current) {
+      prevInsuranceCountForToastRef.current = insuranceCount;
+      isInitialMountInsuranceToastRef.current = false;
+      // Still apply discount logic on mount if needed
+      if (insuranceCount >= 3) {
+        setAppliedInsuranceDiscount({
+          description: "Insurance group discount (3+ insurances)",
+          percentage: 20,
+          requiresMinInsurances: 3,
+        });
+        setInsuranceCouponCode("GROUP20");
+      } else {
+        setInsuranceCouponCode(null);
+        setAppliedInsuranceDiscount(null);
+      }
+      return;
+    }
+
+    const prevInsurance = prevInsuranceCountForToastRef.current;
+    const currentInsurance = insuranceCount;
+    const crossedThreshold = (prevInsurance < 3 && currentInsurance >= 3) || (prevInsurance >= 3 && currentInsurance < 3);
+
     if (insuranceCount >= 3) {
       setAppliedInsuranceDiscount({
         description: "Insurance group discount (3+ insurances)",
@@ -1288,11 +1750,13 @@ const CountrySlider = () => {
         requiresMinInsurances: 3,
       });
       setInsuranceCouponCode("GROUP20");
-      showSuccess("Insurance group-20 applied — 20% off for 3+ insurances");
     } else {
       setInsuranceCouponCode(null);
       setAppliedInsuranceDiscount(null);
     }
+
+    // Update ref after processing
+    prevInsuranceCountForToastRef.current = currentInsurance;
   }, [insuranceCount]);
 
   useEffect(() => {
@@ -1375,34 +1839,75 @@ const CountrySlider = () => {
       }
     }
 
-    // Use selected visa type fees if available, otherwise fallback to baseFee
-    // Use the GBP price if available, otherwise convert from INR
-    const currentBaseFee =
-      selectedVisaType && selectedVisaType.priceGBP
-        ? Number(selectedVisaType.priceGBP)
-        : selectedVisaType && selectedVisaType.price
-          ? Math.round(Number(selectedVisaType.price) / 100)
-          : baseFee;
-
-    let visaFees = hasOnlyInsurance ? 0 : currentBaseFee * travelers;
-
-    // Apply discount if available
-    let discountAmount = 0;
-    if (appliedDiscount) {
-      discountAmount = (visaFees * appliedDiscount.percentage) / 100;
-      visaFees = visaFees - discountAmount;
-    }
-
-    let insuranceFees = recommendedItems.insuranceCertificate
-      ? perDayInsurancePrice * insuranceDays * insuranceCount
+    // Use the same discount calculation logic as calculateFinalPrice for consistency
+    // Base discounted prices (not original prices)
+    const baseDiscountedVisaFees = hasOnlyInsurance ? 0 : currentVisaFeePerTraveler * travelers;
+    const baseDiscountedInsuranceFees = discountedInsuranceBase;
+    const baseDiscountedGiftCardFees = recommendedItems.giftCard
+      ? 159 * giftCardCount
       : 0;
-    if (appliedInsuranceDiscount && insuranceFees > 0) {
-      const insDisc =
-        (insuranceFees * appliedInsuranceDiscount.percentage) / 100;
-      insuranceFees = Math.max(0, Math.round(insuranceFees - insDisc));
+
+    // Check if any component qualifies for quantity discount (3+)
+    const effectiveInsuranceCount = Math.min(insuranceCount, travelers);
+    const travelersQualify = travelers >= 3;
+    const insuranceQualify = effectiveInsuranceCount >= 3;
+    const giftCardQualify = giftCardCount >= 3;
+
+    // Check if student discount applies
+    const hasStudentDiscount = appliedDiscount && appliedDiscount.code === "STUDENT10";
+    const hasGroupDiscount = appliedDiscount && appliedDiscount.code === "GROUP20";
+
+    // Calculate discounts sequentially (compound): First 20% quantity discount, then 10% student discount on discounted price
+    let visaFees = baseDiscountedVisaFees;
+    let insuranceFees = baseDiscountedInsuranceFees;
+    let giftCardFees = baseDiscountedGiftCardFees;
+
+    // Apply 20% quantity discount first (if 3+ items)
+    if (travelersQualify) {
+      const quantityDiscount = (visaFees * 20) / 100;
+      visaFees = visaFees - quantityDiscount;
     }
-    const giftCardFees = recommendedItems.giftCard ? 159 * giftCardCount : 0;
-    const totalAmount = Math.round(visaFees + insuranceFees + giftCardFees);
+    if (insuranceQualify && recommendedItems.insuranceCertificate) {
+      const quantityDiscount = (insuranceFees * 20) / 100;
+      insuranceFees = insuranceFees - quantityDiscount;
+    }
+    if (giftCardQualify && recommendedItems.giftCard) {
+      const quantityDiscount = (giftCardFees * 20) / 100;
+      giftCardFees = giftCardFees - quantityDiscount;
+    }
+
+    // Apply GROUP20 coupon (ensures 20% is applied if conditions met)
+    if (hasGroupDiscount) {
+      if (travelersQualify && (insuranceQualify || giftCardQualify)) {
+        if (travelersQualify && visaFees === baseDiscountedVisaFees) {
+          const quantityDiscount = (visaFees * 20) / 100;
+          visaFees = visaFees - quantityDiscount;
+        }
+        if (insuranceQualify && recommendedItems.insuranceCertificate && insuranceFees === baseDiscountedInsuranceFees) {
+          const quantityDiscount = (insuranceFees * 20) / 100;
+          insuranceFees = insuranceFees - quantityDiscount;
+        }
+        if (giftCardQualify && recommendedItems.giftCard && giftCardFees === baseDiscountedGiftCardFees) {
+          const quantityDiscount = (giftCardFees * 20) / 100;
+          giftCardFees = giftCardFees - quantityDiscount;
+        }
+      }
+    }
+
+    // Apply 10% student discount on already-discounted price (if student)
+    if (hasStudentDiscount) {
+      const studentDiscount = (visaFees * 10) / 100;
+      visaFees = visaFees - studentDiscount;
+      if (recommendedItems.insuranceCertificate) {
+        const studentDiscount = (insuranceFees * 10) / 100;
+        insuranceFees = insuranceFees - studentDiscount;
+      }
+      if (recommendedItems.giftCard) {
+        const studentDiscount = (giftCardFees * 10) / 100;
+        giftCardFees = giftCardFees - studentDiscount;
+      }
+    }
+    const totalAmount = visaFees + insuranceFees + giftCardFees;
 
     const countryName = getCountryParam(selectedCountry) || "Germany";
 
@@ -1695,16 +2200,24 @@ const CountrySlider = () => {
   const validateBeforeExpressPayment = useCallback(() => {
     if (!isDocumentsValid) {
       dispatch(triggerDocumentValidation());
-      return "Please complete all required documents before proceeding with payment.";
+      const message = "Please complete all required documents before proceeding with payment.";
+      showError(message);
+      return message;
     }
     if (
       appliedDiscount &&
       appliedDiscount.description &&
       appliedDiscount.description.toLowerCase().includes("student") &&
-      !studentVerified &&
-      (!userEmail || !validateEmail(userEmail))
+      !studentVerified
     ) {
-      return "Please verify your student email before proceeding with payment.";
+      if (!userEmail || !validateEmail(userEmail)) {
+        const message = "Please enter a valid student email before proceeding to checkout";
+        showError(message);
+        return message;
+      }
+      const message = "Please verify your student email before proceeding with payment.";
+      showError(message);
+      return message;
     }
     return null;
   }, [
@@ -1712,6 +2225,8 @@ const CountrySlider = () => {
     appliedDiscount,
     studentVerified,
     userEmail,
+    dispatch,
+    showError,
   ]);
 
   // Calculate total amount for express payments (Apple Pay/Google Pay) - memoized to prevent infinite loops
@@ -1719,27 +2234,19 @@ const CountrySlider = () => {
   const expressPaymentData = useMemo(() => {
     // SUBTOTAL: Original prices (no discounts applied) - matching OrderCheckout
     const originalVisaFees = 200 * travelers; // £200 per traveler
-    const originalInsuranceFees = recommendedItems.insuranceCertificate
-      ? 45 * insuranceCount
-      : 0; // £45 per insurance
+    const originalInsuranceFees = originalInsuranceBase; // Dynamic per-day pricing
     const originalGiftCardFees = recommendedItems.giftCard
       ? 245 * giftCardCount
       : 0; // £245 per gift card
     const subtotalGBP = originalVisaFees + originalInsuranceFees + originalGiftCardFees;
 
     // Base discounted prices (matching OrderCheckout.jsx and calculateFinalPrice)
-    const baseDiscountedVisaFees = 129 * travelers; // £129 per traveler
-    const baseDiscountedInsuranceFees = recommendedItems.insuranceCertificate
-      ? 30 * insuranceCount
-      : 0; // £30 per insurance
+    const baseDiscountedVisaFees =
+      currentVisaFeePerTraveler * travelers; // Dynamic per traveler
+    const baseDiscountedInsuranceFees = discountedInsuranceBase;
     const baseDiscountedGiftCardFees = recommendedItems.giftCard
       ? 159 * giftCardCount
       : 0; // £159 per gift card
-
-    // Calculate individual component discounts (same logic as calculateFinalPrice)
-    let visaDiscountPercentage = 0;
-    let insuranceDiscountPercentage = 0;
-    let giftCardDiscountPercentage = 0;
 
     // Check if any component qualifies for quantity discount (3+)
     const effectiveInsuranceCount = Math.min(insuranceCount, travelers);
@@ -1747,51 +2254,60 @@ const CountrySlider = () => {
     const insuranceQualify = effectiveInsuranceCount >= 3;
     const giftCardQualify = giftCardCount >= 3;
 
-    // Apply quantity-based discounts (20% for 3+ items)
-    if (travelersQualify) visaDiscountPercentage += 20;
-    if (insuranceQualify) insuranceDiscountPercentage += 20;
-    if (giftCardQualify) giftCardDiscountPercentage += 20;
+    // Check if student discount applies
+    const hasStudentDiscount = appliedDiscount && appliedDiscount.code === "STUDENT10";
+    const hasGroupDiscount = appliedDiscount && appliedDiscount.code === "GROUP20";
 
-    // Apply coupon discounts
-    if (appliedDiscount) {
-      if (appliedDiscount.code === "GROUP20") {
-        // GROUP20: Only applies if travelers >= 3 AND at least one other component >= 3
-        if (travelersQualify && (insuranceQualify || giftCardQualify)) {
-          if (travelersQualify)
-            visaDiscountPercentage = Math.max(visaDiscountPercentage, 20);
-          if (insuranceQualify)
-            insuranceDiscountPercentage = Math.max(
-              insuranceDiscountPercentage,
-              20
-            );
-          if (giftCardQualify)
-            giftCardDiscountPercentage = Math.max(giftCardDiscountPercentage, 20);
+    // Calculate discounts sequentially (compound): First 20% quantity discount, then 10% student discount on discounted price
+    let finalVisaFees = baseDiscountedVisaFees;
+    let finalInsuranceFees = baseDiscountedInsuranceFees;
+    let finalGiftCardFees = baseDiscountedGiftCardFees;
+
+    // Apply 20% quantity discount first (if 3+ items)
+    if (travelersQualify) {
+      const quantityDiscount = (finalVisaFees * 20) / 100;
+      finalVisaFees = finalVisaFees - quantityDiscount;
+    }
+    if (insuranceQualify && recommendedItems.insuranceCertificate) {
+      const quantityDiscount = (finalInsuranceFees * 20) / 100;
+      finalInsuranceFees = finalInsuranceFees - quantityDiscount;
+    }
+    if (giftCardQualify && recommendedItems.giftCard) {
+      const quantityDiscount = (finalGiftCardFees * 20) / 100;
+      finalGiftCardFees = finalGiftCardFees - quantityDiscount;
+    }
+
+    // Apply GROUP20 coupon (ensures 20% is applied if conditions met)
+    if (hasGroupDiscount) {
+      if (travelersQualify && (insuranceQualify || giftCardQualify)) {
+        if (travelersQualify && finalVisaFees === baseDiscountedVisaFees) {
+          const quantityDiscount = (finalVisaFees * 20) / 100;
+          finalVisaFees = finalVisaFees - quantityDiscount;
         }
-      } else if (appliedDiscount.code === "STUDENT10") {
-        // STUDENT10: Adds 10% to ALL components (stacks with quantity discounts)
-        visaDiscountPercentage += 10;
-        if (recommendedItems.insuranceCertificate)
-          insuranceDiscountPercentage += 10;
-        if (recommendedItems.giftCard) giftCardDiscountPercentage += 10;
+        if (insuranceQualify && recommendedItems.insuranceCertificate && finalInsuranceFees === baseDiscountedInsuranceFees) {
+          const quantityDiscount = (finalInsuranceFees * 20) / 100;
+          finalInsuranceFees = finalInsuranceFees - quantityDiscount;
+        }
+        if (giftCardQualify && recommendedItems.giftCard && finalGiftCardFees === baseDiscountedGiftCardFees) {
+          const quantityDiscount = (finalGiftCardFees * 20) / 100;
+          finalGiftCardFees = finalGiftCardFees - quantityDiscount;
+        }
       }
     }
 
-    // Calculate discount amounts
-    const visaDiscountAmount =
-      (baseDiscountedVisaFees * visaDiscountPercentage) / 100;
-    const insuranceDiscountAmount = recommendedItems.insuranceCertificate
-      ? (baseDiscountedInsuranceFees * insuranceDiscountPercentage) / 100
-      : 0;
-    const giftCardDiscountAmount = recommendedItems.giftCard
-      ? (baseDiscountedGiftCardFees * giftCardDiscountPercentage) / 100
-      : 0;
-
-    // Calculate final prices after discounts
-    const finalVisaFees = baseDiscountedVisaFees - visaDiscountAmount;
-    const finalInsuranceFees =
-      baseDiscountedInsuranceFees - insuranceDiscountAmount;
-    const finalGiftCardFees =
-      baseDiscountedGiftCardFees - giftCardDiscountAmount;
+    // Apply 10% student discount on already-discounted price (if student)
+    if (hasStudentDiscount) {
+      const studentDiscount = (finalVisaFees * 10) / 100;
+      finalVisaFees = finalVisaFees - studentDiscount;
+      if (recommendedItems.insuranceCertificate) {
+        const studentDiscount = (finalInsuranceFees * 10) / 100;
+        finalInsuranceFees = finalInsuranceFees - studentDiscount;
+      }
+      if (recommendedItems.giftCard) {
+        const studentDiscount = (finalGiftCardFees * 10) / 100;
+        finalGiftCardFees = finalGiftCardFees - studentDiscount;
+      }
+    }
 
     const totalAmount = finalVisaFees + finalInsuranceFees + finalGiftCardFees;
 
@@ -2017,10 +2533,13 @@ const CountrySlider = () => {
 
               <div className="text-left my-4 max-sm:my-3">
                 <p className="flex gap-2 max-sm:gap-1 max-sm:text-sm">
-                  <img
+                  <Image
                     src="/icons/megaphone.png"
+                    width={24}
+                    height={20}
                     className="w-6 h-5 max-sm:w-5 max-sm:h-4"
                     alt="Notice"
+                    priority
                   />
                   <span>{sliderContent["embassy_notice_text"]}</span>
                 </p>
@@ -2034,10 +2553,13 @@ const CountrySlider = () => {
               {/* Slider container */}
               <div className="overflow-hidden rounded-3xl shadow-lg max-sm:rounded-2xl">
                 <div className="relative h-full w-full">
-                  <img
+                  <Image
                     src={countries[currentIndex].image}
                     alt={countries[currentIndex].name}
+                    width={800}
+                    height={800}
                     className="w-full aspect-square object-cover"
+                    priority
                   />
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6 max-sm:p-4">
                     <h3 className="text-2xl font-gilroy-bold text-white max-sm:text-xl">
@@ -2071,10 +2593,11 @@ const CountrySlider = () => {
                       setCurrentIndex(index);
                       resetTimer();
                     }}
-                    className={`w-2.5 h-2.5 cursor-pointer rounded-full transition-all max-sm:w-2 max-sm:h-2 ${index === currentIndex
+                    className={`w-2.5 h-2.5 cursor-pointer rounded-full transition-all max-sm:w-2 max-sm:h-2 ${
+                      index === currentIndex
                         ? "bg-white w-6 max-sm:w-4"
                         : "bg-white/50"
-                      }`}
+                    }`}
                     aria-label={`Go to slide ${index + 1}`}
                   />
                 ))}
@@ -2082,40 +2605,28 @@ const CountrySlider = () => {
             </div>
 
             {/* Thumbnails for slider navigation */}
-            {/* <div className="flex justify-center gap-2 max-lg:hidden mt-8 overflow-auto w-full max-sm:mt-4">
+            <div 
+              ref={thumbnailContainerRef}
+              className="flex justify-start gap-2 max-lg:hidden mt-8 overflow-x-auto overflow-y-hidden w-full max-sm:mt-4 px-4"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
+            >
               {countries.map((country, index) => (
-                <img
+                <Image
                   key={country.id}
                   src={country.image}
                   alt={country.name}
+                  width={80}
+                  height={80}
                   onClick={() => {
                     setCurrentIndex(index);
                     resetTimer();
                   }}
-                  className={`w-20 aspect-square object-cover cursor-pointer rounded-xl border-2 transition-all border-white max-sm:w-12 max-sm:rounded-lg ${
+                  className={`w-20 aspect-square object-cover cursor-pointer rounded-xl border-2 transition-all max-sm:w-12 max-sm:rounded-lg ${
                     index === currentIndex
-                      ? "border-none"
-                      : "opacity-70 hover:opacity-100"
+                      ? "border-[#7350FF]"
+                      : "border-white opacity-70 hover:opacity-100"
                   }`}
-                  style={{ boxSizing: "border-box" }}
-                />
-              ))}
-            </div> */}
-            <div className="flex justify-center gap-2 max-lg:hidden mt-8 overflow-auto w-full max-sm:mt-4">
-              {countries.map((country, index) => (
-                <img
-                  key={country.id}
-                  ref={(el) => (thumbRefs.current[index] = el)}
-                  src={country.image}
-                  alt={country.name}
-                  onClick={() => {
-                    setCurrentIndex(index);
-                    resetTimer();
-                  }}
-                  className={`w-20 aspect-square object-cover cursor-pointer rounded-xl border-2 transition-all border-white max-sm:w-12 max-sm:rounded-lg ${index === currentIndex
-                    ? "border-none"
-                    : "opacity-70 hover:opacity-100"
-                    }`}
+                  priority
                   style={{ boxSizing: "border-box" }}
                 />
               ))}
@@ -2154,13 +2665,13 @@ const CountrySlider = () => {
               </h1>
               <div className="flex items-center justify-between gap-3 mb-4 max-sm:flex-col max-sm:items-start max-sm:gap-3">
                 <div className="flex gap-3 max-sm:w-full max-sm:justify-between">
-                  <span className="text-lg font-semibold line-through decoration-3 decoration-neutral-400 decoration-from-font">
+                  <span className="text-lg font-semibold max-sm:text-base line-through decoration-2 decoration-neutral-400">
                     £{calculateOriginalPrice()}
                   </span>
 
                   <div className="flex flex-col items-end">
                     <span className="text-2xl font-gilroy-bold max-sm:text-xl">
-                      £{Math.round(calculateFinalPrice())}
+                      £{visaOnlyPrice.toFixed(2)}
                     </span>
                   </div>
                 </div>
@@ -2178,9 +2689,13 @@ const CountrySlider = () => {
                     value={travelers}
                     onChange={(next) => {
                       const n = Number(next);
+                      // If traveler count decreases, adjust insurance count if needed
+                      if (insuranceCount > n) {
+                        dispatch(setReduxInsuranceCount(Number(n)));
+                      }
                       dispatch(setReduxTravelers(Number(n)));
                     }}
-                    min={1}
+                    min={0}
                   />
                 </div>
 
@@ -2211,76 +2726,60 @@ const CountrySlider = () => {
           </div>
 
           <div className="w-full">
-            {/* Free Services */}
-            <div className="mb-6 max-sm:mb-4">
-              <div className="space-y-4 font-gilroy-medium !font-semibold max-sm:space-y-3">
-                {/* Auto-booking */}
-                <div className="flex items-center justify-between max-sm:items-start max-sm:gap-2">
-                  <div className="flex items-center space-x-3 max-sm:space-x-2">
-                    <div className="w-10 aspect-square rounded-full flex items-center justify-center max-sm:w-8">
-                      <img
-                        src="/image/calendar.jpg"
-                        alt="Calendar"
-                        className="max-sm:w-6 max-sm:h-6"
-                      />
-                    </div>
-                    <div>
-                      <h3 className="max-sm:text-sm">
-                        Auto-booking appointment
-                      </h3>
-                    </div>
-                  </div>
-                  <div className="flex gap-[2px] items-center max-sm:flex-shrink-0">
-                    <span className="line-through max-sm:text-sm">£100</span>
-                    <span className="ml-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium max-sm:ml-1 max-sm:px-2 max-sm:py-0.5 max-sm:text-xs">
-                      Free
-                    </span>
-                  </div>
-                </div>
-
-                {/* Concierge assistance */}
-                <div className="flex items-center justify-between max-sm:items-start max-sm:gap-2">
-                  <div className="flex items-center space-x-3 max-sm:space-x-2">
-                    <div className="w-10 aspect-square rounded-full flex items-center justify-center max-sm:w-8">
-                      <img
-                        src="/image/flights.jpg"
-                        alt="Flights"
-                        className="w-10 aspect-square max-sm:w-6 max-sm:h-6"
-                      />
-                    </div>
-                    <div>
-                      <h3 className="max-sm:text-sm">Concierge assistance</h3>
-                    </div>
-                  </div>
-                  <div className="flex gap-[2px] items-center max-sm:flex-shrink-0">
-                    <span className="line-through max-sm:text-sm">£35</span>
-                    <span className="ml-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium max-sm:ml-1 max-sm:px-2 max-sm:py-0.5 max-sm:text-xs">
-                      Free
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
             <p className="text-sm mb-4 max-sm:text-xs max-sm:mb-3">
               Dates are required for visa processing only and can be changed
               later within visa validity period.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 items-start max-sm:gap-3">
               <div className="w-full">
-                <CommonDatePicker
-                  label={"Start date"}
-                  selected={arrivalDate}
-                  onChange={handleArrivalDateChange}
-                  selectsStart
-                  startDate={arrivalDate}
-                  endDate={departureDate}
-                  minDate={new Date()}
-                  dayClassName={getDayClassName}
-                  className="!w-full bg-white/10 backdrop-blur-sm text-white rounded-lg px-4 py-3 font-semibold border-2 border-white/20 hover:border-white/40 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 focus:outline-none max-sm:py-2 max-sm:text-sm"
-                  dateFormat="dd-MM-yyyy"
-                  wrapperClassName="!w-full"
-                  placeholderText="DD-MM-YYYY"
-                />
+                {(() => {
+                  // Calculate first valid date (4 weeks from today)
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  const fourWeeksFromNow = new Date();
+                  fourWeeksFromNow.setHours(0, 0, 0, 0);
+                  fourWeeksFromNow.setDate(today.getDate() + 28);
+                  
+                  // Check if valid dates are at the end of the month
+                  const firstValidDate = fourWeeksFromNow;
+                  const firstValidDay = firstValidDate.getDate();
+                  const firstValidMonth = firstValidDate.getMonth();
+                  const firstValidYear = firstValidDate.getFullYear();
+                  
+                  // Get the last day of the month for the first valid date
+                  const lastDayOfMonth = new Date(firstValidYear, firstValidMonth + 1, 0).getDate();
+                  
+                  // Check if valid dates are in the last few days of the month (day >= 28)
+                  // This means there are only a few valid dates left in the current month
+                  const validDatesAtEndOfMonth = firstValidDay >= 28;
+                  
+                  // Calculate openToDate to show next month if valid dates are at end of current month
+                  let openToDate = null;
+                  
+                  if (validDatesAtEndOfMonth) {
+                    // Show next month's calendar instead
+                    openToDate = new Date(firstValidYear, firstValidMonth + 1, 1);
+                  }
+                  
+                  return (
+                    <CommonDatePicker
+                      label={"Start date"}
+                      selected={arrivalDate}
+                      onChange={handleArrivalDateChange}
+                      selectsStart
+                      startDate={arrivalDate}
+                      endDate={departureDate}
+                      minDate={new Date()}
+                      dayClassName={getDayClassName}
+                      openToDate={openToDate}
+                      calendarClassName={validDatesAtEndOfMonth ? "show-adjacent-month-dates" : ""}
+                      className="!w-full bg-white/10 backdrop-blur-sm text-white rounded-lg px-4 py-3 font-semibold border-2 border-white/20 hover:border-white/40 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 focus:outline-none max-sm:py-2 max-sm:text-sm"
+                      dateFormat="dd-MM-yyyy"
+                      wrapperClassName="!w-full"
+                      placeholderText="DD-MM-YYYY"
+                    />
+                  );
+                })()}
               </div>
 
               <div className="w-full">
@@ -2344,10 +2843,11 @@ const CountrySlider = () => {
           <ClientOnly>
             <div className="my-6 max-sm:my-4" data-documents-section>
               <div
-                className={`bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden transition-all duration-300 hover:bg-white/10 ${validationErrors.size > 0
+                className={`bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden transition-all duration-300 hover:bg-white/10 ${
+                  validationErrors.size > 0
                     ? "!bg-red-500/10 border !border-red-500 shadow-lg"
                     : ""
-                  }`}
+                }`}
               >
                 <h2
                   className={`text-xl font-gilroy-bold p-4 cursor-pointer flex items-center justify-between hover:bg-white/5 transition-all duration-200 max-sm:p-3 max-sm:text-lg`}
@@ -2366,8 +2866,9 @@ const CountrySlider = () => {
                     </div>
                   </span>
                   <div
-                    className={`transform transition-transform duration-300 ${documentsAccordionOpen ? "rotate-180" : "rotate-0"
-                      }`}
+                    className={`transform transition-transform duration-300 ${
+                      documentsAccordionOpen ? "rotate-180" : "rotate-0"
+                    }`}
                   >
                     <svg
                       width="16"
@@ -2389,29 +2890,32 @@ const CountrySlider = () => {
                 </h2>
 
                 <div
-                  className={`transition-all duration-300 ease-in-out ${documentsAccordionOpen
+                  className={`transition-all duration-300 ease-in-out ${
+                    documentsAccordionOpen
                       ? "max-h-[600px] opacity-100"
                       : "max-h-0 opacity-0"
-                    }`}
+                  }`}
                 >
                   <div className="px-4 pb-4 max-sm:px-3 max-sm:pb-3">
                     <div className="h-px bg-white/10 mb-4"></div>
                     <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1 max-sm:gap-2">
                       {/* Passport */}
                       <div
-                        className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border max-sm:p-2 ${requiredDocuments.passport
+                        className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border max-sm:p-2 ${
+                          requiredDocuments.passport
                             ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
                             : validationErrors.has("passport")
-                              ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
-                              : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
-                          }`}
+                            ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
+                            : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
+                        }`}
                         onClick={() => toggleRequiredDocument("passport")}
                       >
                         <div
-                          className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all max-sm:w-4 max-sm:h-4 ${requiredDocuments.passport
+                          className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all max-sm:w-4 max-sm:h-4 ${
+                            requiredDocuments.passport
                               ? "bg-[#7350FF] border-2 border-[#7350FF]"
                               : "bg-transparent border-2 border-white/40"
-                            }`}
+                          }`}
                         >
                           {requiredDocuments.passport && (
                             <Check className="w-3 h-3 text-white max-sm:w-2.5 max-sm:h-2.5" />
@@ -2429,19 +2933,21 @@ const CountrySlider = () => {
 
                       {/* UK Visa */}
                       <div
-                        className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border max-sm:p-2 ${requiredDocuments.ukVisa
+                        className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border max-sm:p-2 ${
+                          requiredDocuments.ukVisa
                             ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
                             : validationErrors.has("ukVisa")
-                              ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
-                              : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
-                          }`}
+                            ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
+                            : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
+                        }`}
                         onClick={() => toggleRequiredDocument("ukVisa")}
                       >
                         <div
-                          className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all max-sm:w-4 max-sm:h-4 ${requiredDocuments.ukVisa
+                          className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all max-sm:w-4 max-sm:h-4 ${
+                            requiredDocuments.ukVisa
                               ? "bg-[#7350FF] border-2 border-[#7350FF]"
                               : "bg-transparent border-2 border-white/40"
-                            }`}
+                          }`}
                         >
                           {requiredDocuments.ukVisa && (
                             <Check className="w-3 h-3 text-white max-sm:w-2.5 max-sm:h-2.5" />
@@ -2459,19 +2965,21 @@ const CountrySlider = () => {
 
                       {/* Photos */}
                       <div
-                        className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border max-sm:p-2 ${requiredDocuments.photos
+                        className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border max-sm:p-2 ${
+                          requiredDocuments.photos
                             ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
                             : validationErrors.has("photos")
-                              ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
-                              : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
-                          }`}
+                            ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
+                            : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
+                        }`}
                         onClick={() => toggleRequiredDocument("photos")}
                       >
                         <div
-                          className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all max-sm:w-4 max-sm:h-4 ${requiredDocuments.photos
+                          className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all max-sm:w-4 max-sm:h-4 ${
+                            requiredDocuments.photos
                               ? "bg-[#7350FF] border-2 border-[#7350FF]"
                               : "bg-transparent border-2 border-white/40"
-                            }`}
+                          }`}
                         >
                           {requiredDocuments.photos && (
                             <Check className="w-3 h-3 text-white max-sm:w-2.5 max-sm:h-2.5" />
@@ -2489,19 +2997,21 @@ const CountrySlider = () => {
 
                       {/* Bank Statements */}
                       <div
-                        className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border max-sm:p-2 ${requiredDocuments.bankStatements
+                        className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border max-sm:p-2 ${
+                          requiredDocuments.bankStatements
                             ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
                             : validationErrors.has("bankStatements")
-                              ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
-                              : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
-                          }`}
+                            ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
+                            : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
+                        }`}
                         onClick={() => toggleRequiredDocument("bankStatements")}
                       >
                         <div
-                          className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all max-sm:w-4 max-sm:h-4 ${requiredDocuments.bankStatements
+                          className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all max-sm:w-4 max-sm:h-4 ${
+                            requiredDocuments.bankStatements
                               ? "bg-[#7350FF] border-2 border-[#7350FF]"
                               : "bg-transparent border-2 border-white/40"
-                            }`}
+                          }`}
                         >
                           {requiredDocuments.bankStatements && (
                             <Check className="w-3 h-3 text-white max-sm:w-2.5 max-sm:h-2.5" />
@@ -2520,21 +3030,23 @@ const CountrySlider = () => {
 
                       {/* Employment Proof */}
                       <div
-                        className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border max-sm:p-2 ${requiredDocuments.employmentProof
+                        className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border max-sm:p-2 ${
+                          requiredDocuments.employmentProof
                             ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
                             : validationErrors.has("employmentProof")
-                              ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
-                              : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
-                          }`}
+                            ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
+                            : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
+                        }`}
                         onClick={() =>
                           toggleRequiredDocument("employmentProof")
                         }
                       >
                         <div
-                          className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all max-sm:w-4 max-sm:h-4 ${requiredDocuments.employmentProof
+                          className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all max-sm:w-4 max-sm:h-4 ${
+                            requiredDocuments.employmentProof
                               ? "bg-[#7350FF] border-2 border-[#7350FF]"
                               : "bg-transparent border-2 border-white/40"
-                            }`}
+                          }`}
                         >
                           {requiredDocuments.employmentProof && (
                             <Check className="w-3 h-3 text-white max-sm:w-2.5 max-sm:h-2.5" />
@@ -2553,17 +3065,19 @@ const CountrySlider = () => {
 
                       {/* Insurance */}
                       <div
-                        className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border max-sm:p-2 ${requiredDocuments.insurance
+                        className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border max-sm:p-2 ${
+                          requiredDocuments.insurance
                             ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
                             : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
-                          }`}
+                        }`}
                         onClick={() => toggleRequiredDocument("insurance")}
                       >
                         <div
-                          className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all max-sm:w-4 max-sm:h-4 ${requiredDocuments.insurance
+                          className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all max-sm:w-4 max-sm:h-4 ${
+                            requiredDocuments.insurance
                               ? "bg-[#7350FF] border-2 border-[#7350FF]"
                               : "bg-transparent border-2 border-white/40"
-                            }`}
+                          }`}
                         >
                           {requiredDocuments.insurance && (
                             <Check className="w-3 h-3 text-white max-sm:w-2.5 max-sm:h-2.5" />
@@ -2584,210 +3098,9 @@ const CountrySlider = () => {
               </div>
             </div>
           </ClientOnly>
-          {/* Express Checkout Section */}
-          <div className="space-y-3 mb-6 max-sm:mb-4">
-            <div className="flex items-center justify-between">
-              <h2 className="font-medium text-lg pt-4 max-sm:text-base max-sm:pt-3">
-                Express checkout
-              </h2>
-              <div className="flex items-center gap-2 text-xs text-gray-400">
-                <span className="flex items-center gap-1">
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                  >
-                    <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
-                  </svg>
-                  Apple Pay
-                </span>
-                <span className="flex items-center gap-1">
-                  <svg width="14" height="14" viewBox="0 0 18 18">
-                    <g fill="none" fillRule="evenodd">
-                      <path
-                        fill="#4285F4"
-                        d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
-                      />
-                      <path
-                        fill="#34A853"
-                        d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"
-                      />
-                      <path
-                        fill="#FBBC05"
-                        d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"
-                      />
-                      <path
-                        fill="#EA4335"
-                        d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"
-                      />
-                    </g>
-                  </svg>
-                  Google Pay
-                </span>
-              </div>
-            </div>
-
-            <div className="rounded-2xl p-4 bg-transparent">
-              <StripeProvider>
-                {/* Hidden component that handles payment logic - buttons below trigger it */}
-                <ExpressPaymentRequestButton
-                  ref={expressPaymentButtonRef}
-                  amount={expressPaymentData.totalAmount}
-                  currency="GBP"
-                  email={userEmail}
-                  travellers={travelers}
-                  country={getCountryParam(selectedCountry) || "Germany"}
-                  includeInsurance={expressPaymentData.includeInsurance}
-                  insuranceCount={insuranceCount}
-                  insurancePaymentAmount={expressPaymentData.insurancePaymentAmount}
-                  visaTypeId={expressPaymentData.visaTypeId}
-                  paymentType="application_creation"
-                  onBeforePayment={validateBeforeExpressPayment}
-                  visaFees={expressPaymentData.visaFees}
-                  insuranceFees={expressPaymentData.insuranceFees}
-                  giftCardFees={expressPaymentData.giftCardFees}
-                  includeGiftCard={expressPaymentData.includeGiftCard}
-                  giftCardCount={expressPaymentData.giftCardCount}
-                  hideUI={true} // Hide the Stripe button UI
-                  // Pass all values needed for localStorage/Redux setup (same as handleProceedToCheckout)
-                  subtotalGBP={expressPaymentData.subtotalGBP}
-                  discountedInsuranceFeesGBP={expressPaymentData.discountedInsuranceFeesGBP}
-                  visaFeesGBP={expressPaymentData.visaFeesGBP}
-                  couponCode={expressPaymentData.couponCode}
-                />
-
-                {/* Simple buttons that use the same trigger method as radio button */}
-                <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1 max-sm:gap-2">
-                  {/* Apple Pay Button */}
-                  {(availablePaymentMethods.applePay ||
-                    process.env.NODE_ENV === "development" ||
-                    process.env.NEXT_PUBLIC_NODE_ENV === "development") && (
-                      <button
-                        onClick={() => {
-                          if (!expressPaymentButtonRef.current?.triggerPaymentRequest) {
-                            showError(
-                              "Payment system is not initialized. Please refresh and try again."
-                            );
-                            return;
-                          }
-
-                          const triggerResult =
-                            expressPaymentButtonRef.current.triggerPaymentRequest();
-                          if (!triggerResult?.success) {
-                            const fallbackMessage =
-                              triggerResult?.message ||
-                              "Apple Pay is not available on this device. Please select another payment method.";
-                            showError(fallbackMessage);
-                          }
-                        }}
-                        className="group relative flex items-center justify-center bg-black text-white rounded-full px-6 py-3 text-sm font-medium hover:opacity-90 transition-all duration-200 shadow-sm max-sm:py-2.5"
-                        style={{
-                          backgroundColor: "#000",
-                          minHeight: "44px",
-                          border: "1px solid rgba(255,255,255,0.1)",
-                        }}
-                      >
-                        <div className="flex items-center gap-2">
-                          <svg
-                            width="18"
-                            height="18"
-                            viewBox="0 0 24 24"
-                            fill="currentColor"
-                          >
-                            <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
-                          </svg>
-                          <span className="font-medium tracking-wide max-sm:text-sm">
-                            Pay with Apple Pay
-                          </span>
-                        </div>
-                      </button>
-                    )}
-
-                  {/* Google Pay Button */}
-                  {(availablePaymentMethods.googlePay ||
-                    process.env.NODE_ENV === "development" ||
-                    process.env.NEXT_PUBLIC_NODE_ENV === "development") && (
-                      <button
-                        onClick={() => {
-                          if (!expressPaymentButtonRef.current?.triggerPaymentRequest) {
-                            showError(
-                              "Payment system is not initialized. Please refresh and try again."
-                            );
-                            return;
-                          }
-
-                          const triggerResult =
-                            expressPaymentButtonRef.current.triggerPaymentRequest();
-                          if (!triggerResult?.success) {
-                            const fallbackMessage =
-                              triggerResult?.message ||
-                              "Google Pay is not available on this device. Please select another payment method.";
-                            showError(fallbackMessage);
-                          }
-                        }}
-                        className="group relative flex items-center justify-center bg-white text-gray-800 rounded-full px-6 py-3 text-sm font-medium hover:shadow-md transition-all duration-200 shadow-sm border border-gray-200 max-sm:py-2.5"
-                        style={{
-                          minHeight: "44px",
-                          background: "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)",
-                        }}
-                      >
-                        <div className="flex items-center gap-2">
-                          <svg
-                            width="18"
-                            height="18"
-                            viewBox="0 0 18 18"
-                            className="shrink-0 max-sm:w-4 max-sm:h-4"
-                          >
-                            <g fill="none" fillRule="evenodd">
-                              <path
-                                fill="#4285F4"
-                                d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
-                              />
-                              <path
-                                fill="#34A853"
-                                d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"
-                              />
-                              <path
-                                fill="#FBBC05"
-                                d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"
-                              />
-                              <path
-                                fill="#EA4335"
-                                d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"
-                              />
-                            </g>
-                          </svg>
-                          <span className="font-medium tracking-wide text-gray-700 max-sm:text-sm">
-                            Pay with Google Pay
-                          </span>
-                        </div>
-                      </button>
-                    )}
-                </div>
-              </StripeProvider>
-            </div>
-          </div>
-
-          {/* Checkout Button */}
-          <button
-            onClick={() => handleGetVisa()}
-            className="group flex w-full justify-between items-center bg-[#6B4EFF] text-white gap-[16px] font-medium px-[20px] py-3.5 rounded-full cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb] max-sm:py-3 max-sm:px-4"
-          >
-            <span className="mr-3 text-xl font-semibold max-sm:text-lg max-sm:mr-2">
-              {selectedPaymentMethod === "stripe"
-                ? "CONTINUE WITH CREDIT CARD"
-                : selectedPaymentMethod === "klarna"
-                  ? "CONTINUE WITH KLARNA"
-                  : "CONTINUE TO CHECKOUT"}
-            </span>
-            <span className="bg-white rounded-full p-1.5 transition-transform duration-300 group-hover:rotate-45 group-hover:translate-x-1 group-hover:-translate-y-0 max-sm:p-1">
-              <ArrowUpRight className="w-5 h-5 text-[#6B4EFF] max-sm:w-4 max-sm:h-4" />
-            </span>
-          </button>
 
           {/* Recommended Section */}
-          <div className="mb-6 max-sm:mb-4 mt-6">
+          <div className="mb-6 max-sm:mb-4">
             <h2 className="text-xl font-gilroy-bold mb-4 max-sm:text-lg max-sm:mb-3">
               Recommended
             </h2>
@@ -2796,13 +3109,14 @@ const CountrySlider = () => {
             <div className="shadow-xl shadow-black/10 rounded-xl mb-4 max-sm:mb-3">
               <div className="flex gap-[10px] max-sm:gap-2">
                 {/* Insurance Certificate */}
-                <div className="flex flex-col items-center gap-2 mb-6 border-white/20 bg-white/5 border p-2 rounded-2xl text-white w-[220px] max-sm:w-1/2 max-sm:mb-3 max-sm:p-1.5">
+                <div className="flex flex-col items-center gap-2 mb-6 border-white/20 bg-white/5 border p-2 rounded-2xl text-white w-[220px] max-sm:w-1/2 max-sm:mb-3 max-sm:p-1.5 overflow-hidden">
                   <div className="w-full flex items-center max-sm:justify-between">
                     <div
-                      className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all self-start mt-2 cursor-pointer max-sm:mt-1 border ${recommendedItems.insuranceCertificate
+                      className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all self-start mt-2 cursor-pointer max-sm:mt-1 border flex-shrink-0 ${
+                        recommendedItems.insuranceCertificate
                           ? "border-transparent bg-[#7350FF]"
                           : "border-gray-400 bg-white"
-                        }`}
+                      }`}
                       onClick={() =>
                         toggleRecommendedItem("insuranceCertificate")
                       }
@@ -2812,38 +3126,41 @@ const CountrySlider = () => {
                       )}
                     </div>
 
-                    <img
+                    <Image
                       src="/image/certificatee.jpg"
                       alt="Insurance Certificate"
-                      className="w-[120px] rounded-lg ml-2 max-sm:w-[60px] max-sm:ml-0.5"
+                      width={120}
+                      height={120}
+                      className="w-[120px] rounded-lg ml-2 max-sm:w-[60px] max-sm:ml-0.5 flex-shrink-0"
+                      priority
                     />
-                    <div className="flex items-center space-x-4 max-sm:space-x-1">
-                      <span className="mx-2 text-[12px] max-sm:text-[10px] max-sm:mx-1">
+                    <div className="flex items-center space-x-4 max-sm:space-x-1 flex-shrink-0">
+                      <span className="mx-2 text-[12px] max-sm:text-[10px] max-sm:mx-1 whitespace-nowrap">
                         {insuranceDays} Days
                       </span>
                     </div>
                   </div>
-                  <div className="w-full  flex flex-col items-center md:items-start">
-                    <div className=" cursor-pointer rounded transition-colors flex-1 mb-2">
+                  <div className="w-full flex flex-col items-center md:items-start min-w-0">
+                    <div className="cursor-pointer rounded transition-colors flex-1 mb-2 w-full">
                       <div className="flex items-center space-x-2 max-sm:space-x-1">
                         <div
                           onClick={() =>
                             toggleRecommendedItem("insuranceCertificate")
                           }
-                          className="flex items-center space-x-2 cursor-pointer"
+                          className="flex items-center space-x-2 cursor-pointer min-w-0"
                         >
-                          <span className="font-semibold max-sm:text-xs">
+                          <span className="font-semibold max-sm:text-xs break-words">
                             Insurance certificate
                           </span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="mb-2">
+                    <div className="mb-2 w-full">
                       {selectedVisaType &&
                         selectedVisaType.duration_permitted && (
                           <div className="mb-2 p-2 bg-purple-600/20 rounded-lg max-sm:p-1.5 max-sm:mb-1">
-                            <p className="text-xs text-purple-200 max-sm:text-[10px]">
+                            <p className="text-xs text-purple-200 max-sm:text-[10px] break-words">
                               📅 Maximum stay:{" "}
                               {selectedVisaType.duration_permitted}
                               {selectedVisaType.validity_period &&
@@ -2852,8 +3169,8 @@ const CountrySlider = () => {
                           </div>
                         )}
 
-                      <div className="flex items-center space-x-2 max-sm:flex-col max-sm:space-x-0 max-sm:gap-2">
-                        <div className="flex items-center gap-2">
+                      <div className="flex flex-col gap-2 w-full">
+                        <div className="flex items-center justify-center md:justify-start">
                           <QtyInput
                             value={insuranceCount}
                             onIncrement={() => handleInsuranceChange(1)}
@@ -2861,12 +3178,12 @@ const CountrySlider = () => {
                             min={1}
                           />
                         </div>
-                        <div className="flex items-center space-x-2 max-sm:space-x-1">
-                          <span className="text-lg font-semibold line-through max-sm:text-sm">
-                            £{45 * insuranceCount}
+                        <div className="flex items-center justify-center md:justify-start space-x-2 max-sm:space-x-1 flex-wrap">
+                          <span className="text-base font-semibold line-through max-sm:text-sm whitespace-nowrap">
+                            £{originalInsuranceBase.toFixed(2)}
                           </span>
-                          <span className="font-gilroy-bold text-2xl max-sm:text-lg">
-                            £{Math.round(calculateDiscountedInsurancePrice())}
+                          <span className="font-gilroy-bold text-xl max-sm:text-base whitespace-nowrap">
+                            £{discountedInsurancePrice.toFixed(2)}
                           </span>
                         </div>
                       </div>
@@ -2876,13 +3193,14 @@ const CountrySlider = () => {
 
                 {/* Gift Card */}
                 <div className="rounded-xl mb-6 flex flex-col gap-2 w-[220px] max-sm:w-1/2 max-sm:mb-3">
-                  <div className="flex flex-col items-center gap-2 border-white/20 bg-white/5 p-2 rounded-2xl text-white border max-sm:p-1.5">
+                  <div className="flex flex-col items-center gap-2 border-white/20 bg-white/5 p-2 rounded-2xl text-white border max-sm:p-1.5 overflow-hidden">
                     <div className="w-full flex items-center max-sm:justify-start">
                       <div
-                        className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all self-start mt-2 cursor-pointer max-sm:mt-1 border ${recommendedItems.giftCard
+                        className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all self-start mt-2 cursor-pointer max-sm:mt-1 border flex-shrink-0 ${
+                          recommendedItems.giftCard
                             ? "border-transparent bg-[#7350FF]"
                             : "border-gray-400 bg-white"
-                          }`}
+                        }`}
                         onClick={() => toggleRecommendedItem("giftCard")}
                       >
                         {recommendedItems.giftCard && (
@@ -2890,22 +3208,25 @@ const CountrySlider = () => {
                         )}
                       </div>
                       <div className="max-sm:flex-1 max-sm:flex max-sm:justify-center">
-                        <img
+                        <Image
                           src="/image/gitftnewcard.png"
                           alt="Gift Card"
-                          className="w-[120px] rounded-lg ml-2 max-sm:w-[60px] max-sm:ml-0"
+                          width={120}
+                          height={120}
+                          className="w-[120px] rounded-lg ml-2 max-sm:w-[60px] max-sm:ml-0 flex-shrink-0"
+                          priority
                         />
                       </div>
                     </div>
-                    <div className="w-full">
+                    <div className="w-full min-w-0">
                       <div className="flex items-center justify-between mb-1">
-                        <div className="cursor-pointer rounded transition-colors flex-1 mb-2">
+                        <div className="cursor-pointer rounded transition-colors flex-1 mb-2 min-w-0">
                           <div className="flex items-center space-x-2 max-sm:space-x-1">
                             <div
                               onClick={() => toggleRecommendedItem("giftCard")}
-                              className="flex items-center space-x-2 cursor-pointer"
+                              className="flex items-center space-x-2 cursor-pointer min-w-0"
                             >
-                              <span className="font-semibold max-sm:text-xs">
+                              <span className="font-semibold max-sm:text-xs break-words">
                                 NUvisa digital gift card
                               </span>
                             </div>
@@ -2913,20 +3234,20 @@ const CountrySlider = () => {
                         </div>
                       </div>
 
-                      <div className="flex items-center space-x-2 mb-2 max-sm:flex-col max-sm:space-x-0 max-sm:gap-2 sm:flex-row">
-                        <div className="flex items-center space-x-2 mb-2 max-sm:mb-0">
+                      <div className="flex flex-col gap-2 w-full">
+                        <div className="flex items-center justify-center md:justify-start">
                           <QtyInput
                             value={giftCardCount}
                             onIncrement={() => handleGiftCardChange(1)}
                             onDecrement={() => handleGiftCardChange(-1)}
                           />
                         </div>
-                        <div className="flex items-center space-x-2 max-sm:space-x-1">
-                          <span className="text-lg font-semibold line-through max-sm:text-sm">
+                        <div className="flex items-center justify-center md:justify-start space-x-2 max-sm:space-x-1 flex-wrap">
+                          <span className="text-base font-semibold line-through max-sm:text-sm whitespace-nowrap">
                             £{245 * giftCardCount}
                           </span>
-                          <span className="font-gilroy-bold text-2xl max-sm:text-lg">
-                            £{Math.round(calculateDiscountedGiftCardPrice())}
+                          <span className="font-gilroy-bold text-xl max-sm:text-base whitespace-nowrap">
+                            £{discountedGiftCardPrice.toFixed(2)}
                           </span>
                         </div>
                       </div>
@@ -2935,7 +3256,62 @@ const CountrySlider = () => {
                 </div>
               </div>
 
+              {/* Free Services */}
+              <div className="mb-6 max-sm:mb-4">
+                <div className="space-y-4 font-gilroy-medium !font-semibold max-sm:space-y-3">
+                  {/* Auto-booking */}
+                  <div className="flex items-center justify-between max-sm:items-start max-sm:gap-2">
+                    <div className="flex items-center space-x-3 max-sm:space-x-2">
+                      <div className="w-10 aspect-square rounded-full flex items-center justify-center max-sm:w-8">
+                        <Image
+                          src="/image/calendar.jpg"
+                          alt="Calendar"
+                          width={40}
+                          height={40}
+                          className="max-sm:w-6 max-sm:h-6"
+                          priority
+                        />
+                      </div>
+                      <div>
+                        <h3 className="max-sm:text-sm">
+                          Auto-booking appointment
+                        </h3>
+                      </div>
+                    </div>
+                    <div className="flex gap-[2px] items-center max-sm:flex-shrink-0">
+                      <span className="line-through max-sm:text-sm">£100</span>
+                      <span className="ml-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium max-sm:ml-1 max-sm:px-2 max-sm:py-0.5 max-sm:text-xs">
+                        Free
+                      </span>
+                    </div>
+                  </div>
 
+                  {/* Concierge assistance */}
+                  <div className="flex items-center justify-between max-sm:items-start max-sm:gap-2">
+                    <div className="flex items-center space-x-3 max-sm:space-x-2">
+                      <div className="w-10 aspect-square rounded-full flex items-center justify-center max-sm:w-8">
+                        <Image
+                          src="/image/flights.jpg"
+                          alt="Flights"
+                          width={40}
+                          height={40}
+                          className="w-10 aspect-square max-sm:w-6 max-sm:h-6"
+                          priority
+                        />
+                      </div>
+                      <div>
+                        <h3 className="max-sm:text-sm">Concierge assistance</h3>
+                      </div>
+                    </div>
+                    <div className="flex gap-[2px] items-center max-sm:flex-shrink-0">
+                      <span className="line-through max-sm:text-sm">£35</span>
+                      <span className="ml-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium max-sm:ml-1 max-sm:px-2 max-sm:py-0.5 max-sm:text-xs">
+                        Free
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Alert Message */}
@@ -2946,6 +3322,115 @@ const CountrySlider = () => {
                 </p>
               </div>
             )}
+
+            {/* Discount Code Section */}
+            <div className="space-y-3 mb-6 max-sm:mb-4">
+              <h2 className="font-medium text-lg max-sm:text-base">
+                Discount Code
+              </h2>
+              <div className="space-y-2">
+                <div className="flex space-x-2 max-sm:flex-col max-sm:space-x-0 max-sm:space-y-2">
+                  <div className="flex-1 max-sm:w-full">
+                    <input
+                      type="text"
+                      value={couponCode}
+                      onChange={(e) =>
+                        setCouponCodeLocal(e.target.value.toUpperCase())
+                      }
+                      placeholder="Enter coupon code (e.g., STUDENT10)"
+                      className={`w-full border ${
+                        (giftCardRedeemed || appliedDiscount)
+                          ? "border-green-400"
+                          : couponError 
+                            ? "border-red-400" 
+                            : "border-gray-500"
+                      } bg-[#24242D] text-white rounded-md p-2 text-sm max-sm:text-xs ${
+                        (giftCardRedeemed || appliedDiscount)
+                          ? "outline-none ring-2 ring-green-400"
+                          : couponError
+                            ? "outline-none ring-2 ring-red-400"
+                            : "focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      }`}
+                      disabled={appliedDiscount || isRedeemingGiftCard}
+                    />
+                  </div>
+                  {!appliedDiscount ? (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        applyCouponCode();
+                      }}
+                      disabled={isRedeemingGiftCard}
+                      className="px-4 py-2 bg-white text-black text-sm rounded-md hover:bg-gray-200 transition-colors font-medium max-sm:text-xs max-sm:px-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isRedeemingGiftCard ? "Processing..." : "Apply"}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        removeCoupon();
+                      }}
+                      className="px-4 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors max-sm:text-xs max-sm:px-3"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+
+                {couponError && (
+                  <span className="text-sm text-red-400 max-sm:text-xs">
+                    {couponError}
+                  </span>
+                )}
+
+                {appliedDiscount && (
+                  <div className="flex items-center space-x-2 text-sm text-green-400 bg-green-600/20 p-2 rounded-md max-sm:text-xs max-sm:p-1.5">
+                    <span>
+                      ✓ {appliedDiscount.description} (
+                      {appliedDiscount.percentage}% off) applied!
+                    </span>
+                  </div>
+                )}
+                {redeemedGiftCards.length > 0 && (
+                  <div className="space-y-2">
+                    {redeemedGiftCards.map((card) => {
+                      const freeTravelerCount = card.benefits?.freeTraveler || 0;
+                      const freeInsuranceCount = card.benefits?.freeInsurance || 0;
+                      const travelerText = freeTravelerCount === 1 ? "traveller" : "travellers";
+                      const insuranceText = freeInsuranceCount === 1 ? "insurance" : "insurances";
+                      return (
+                        <div key={card.code} className="flex items-center justify-between text-sm text-green-400 bg-green-600/20 p-2 rounded-md max-sm:text-xs max-sm:p-1.5">
+                          <span>
+                            ✓ Gift card {card.code} applied! {freeTravelerCount} free {travelerText} and {freeInsuranceCount} free {insuranceText}.
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => removeGiftCard(card.code)}
+                            className="ml-2 text-red-400 hover:text-red-300 text-xs font-medium"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {isRedeemingGiftCard && (
+                  <div className="flex items-center space-x-2 text-sm text-blue-400 bg-blue-600/20 p-2 rounded-md max-sm:text-xs max-sm:p-1.5">
+                    <span>Validating gift card code...</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="text-xs pb-4 max-sm:text-xs max-sm:pb-2">
+              Student? Add your student email, we'll send verification email
+              there.
+            </div>
+
             {/* Email Verification Section */}
             {appliedDiscount &&
               appliedDiscount.description.toLowerCase().includes("student") && (
@@ -2967,11 +3452,13 @@ const CountrySlider = () => {
                           value={userEmail}
                           onChange={(e) => setUserEmailLocal(e.target.value)}
                           placeholder="Enter your student email (e.g., you@student.uni.ac.uk)"
-                          className={`w-full border ${emailError ? "border-red-400" : "border-gray-500"
-                            } bg-[#24242D] text-white rounded-md p-2 text-sm max-sm:text-xs ${emailError
+                          className={`w-full border ${
+                            emailError ? "border-red-400" : "border-gray-500"
+                          } bg-[#24242D] text-white rounded-md p-2 text-sm max-sm:text-xs ${
+                            emailError
                               ? "outline-none ring-2 ring-red-400"
                               : "focus:outline-none focus:ring-2 focus:ring-purple-500"
-                            }`}
+                          }`}
                           disabled={studentVerified}
                         />
                       </div>
@@ -3014,6 +3501,7 @@ const CountrySlider = () => {
                   </div>
                 </div>
               )}
+
             {/* Free Offer Banner */}
             <div className="border rounded-3xl border-white/20 bg-white/5 backdrop-blur-sm overflow-hidden max-sm:rounded-2xl">
               <div className="flex items-center gap-4 p-4 border-b border-white/10 max-sm:p-3 max-sm:gap-3">
@@ -3068,67 +3556,222 @@ const CountrySlider = () => {
                 </div>
               </div>
             </div>
-            {/* Discount Code Section */}
-            <div className="space-y-3 mb-6 max-sm:mb-4 mt-4">
-              <h2 className="font-medium text-lg max-sm:text-base">
-                Discount Code
+
+            {/* Express Checkout Section */}
+            <div className="space-y-3 mb-6 max-sm:mb-4">
+              <div className="flex items-center justify-between">
+              <h2 className="font-medium text-lg pt-4 max-sm:text-base max-sm:pt-3">
+                  Express checkout
               </h2>
-              <div className="space-y-2">
-                <div className="flex space-x-2 max-sm:flex-col max-sm:space-x-0 max-sm:space-y-2">
-                  <div className="flex-1 max-sm:w-full">
-                    <input
-                      type="text"
-                      value={couponCode}
-                      onChange={(e) =>
-                        setCouponCodeLocal(e.target.value.toUpperCase())
-                      }
-                      placeholder="Enter coupon code (e.g., STUDENT10)"
-                      className={`w-full border ${couponError ? "border-red-400" : "border-gray-500"
-                        } bg-[#24242D] text-white rounded-md p-2 text-sm max-sm:text-xs ${couponError
-                          ? "outline-none ring-2 ring-red-400"
-                          : "focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        }`}
-                      disabled={appliedDiscount}
-                    />
-                  </div>
-                  {!appliedDiscount ? (
-                    <button
-                      onClick={applyCouponCode}
-                      className="px-4 py-2 bg-white text-black text-sm rounded-md hover:bg-gray-200 transition-colors font-medium max-sm:text-xs max-sm:px-3"
+                <div className="flex items-center gap-2 text-xs text-gray-400">
+                  <span className="flex items-center gap-1">
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
                     >
-                      Apply
-                    </button>
-                  ) : (
-                    <button
-                      onClick={removeCoupon}
-                      className="px-4 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors max-sm:text-xs max-sm:px-3"
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
-
-                {couponError && (
-                  <span className="text-sm text-red-400 max-sm:text-xs">
-                    {couponError}
+                      <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
+                    </svg>
+                    Apple Pay
                   </span>
-                )}
-
-                {appliedDiscount && (
-                  <div className="flex items-center space-x-2 text-sm text-green-400 bg-green-600/20 p-2 rounded-md max-sm:text-xs max-sm:p-1.5">
-                    <span>
-                      ✓ {appliedDiscount.description} (
-                      {appliedDiscount.percentage}% off) applied!
-                    </span>
-                  </div>
-                )}
+                  <span className="flex items-center gap-1">
+                    <svg width="14" height="14" viewBox="0 0 18 18">
+                      <g fill="none" fillRule="evenodd">
+                        <path
+                          fill="#4285F4"
+                          d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
+                        />
+                        <path
+                          fill="#34A853"
+                          d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"
+                        />
+                        <path
+                          fill="#FBBC05"
+                          d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"
+                        />
+                        <path
+                          fill="#EA4335"
+                          d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"
+                        />
+                      </g>
+                    </svg>
+                    Google Pay
+                  </span>
+                </div>
               </div>
+
+             
+              <StripeProvider>
+                  {/* Hidden component that handles payment logic - buttons below trigger it */}
+                <ExpressPaymentRequestButton
+                    ref={expressPaymentButtonRef}
+                  amount={expressPaymentData.totalAmount}
+                    currency="GBP"
+                  email={userEmail}
+                  travellers={travelers}
+                  country={getCountryParam(selectedCountry) || "Germany"}
+                  includeInsurance={expressPaymentData.includeInsurance}
+                  insuranceCount={insuranceCount}
+                  insurancePaymentAmount={expressPaymentData.insurancePaymentAmount}
+                  visaTypeId={expressPaymentData.visaTypeId}
+                  paymentType={expressPaymentData.includeGiftCard ? "application_creation,gift_card" : "application_creation"}
+                  onBeforePayment={validateBeforeExpressPayment}
+                    visaFees={expressPaymentData.visaFees}
+                    insuranceFees={expressPaymentData.insuranceFees}
+                    giftCardFees={expressPaymentData.giftCardFees}
+                    includeGiftCard={expressPaymentData.includeGiftCard}
+                    giftCardCount={expressPaymentData.giftCardCount}
+                    hideUI={true} // Hide the Stripe button UI
+                    // Pass all values needed for localStorage/Redux setup (same as handleProceedToCheckout)
+                    subtotalGBP={expressPaymentData.subtotalGBP}
+                    discountedInsuranceFeesGBP={expressPaymentData.discountedInsuranceFeesGBP}
+                    visaFeesGBP={expressPaymentData.visaFeesGBP}
+                    couponCode={expressPaymentData.couponCode}
+                  />
+                  
+                  {/* Simple buttons that use the same trigger method as radio button */}
+                  {(() => {
+                    const isApplePayAvailable =
+                      availablePaymentMethods.applePay ||
+                      process.env.NODE_ENV === "development" ||
+                      process.env.NEXT_PUBLIC_NODE_ENV === "development";
+                    const isGooglePayAvailable =
+                    availablePaymentMethods.googlePay ||
+                    process.env.NODE_ENV === "development" ||
+                    process.env.NEXT_PUBLIC_NODE_ENV === "development";
+                    const availableCount = (isApplePayAvailable ? 1 : 0) + (isGooglePayAvailable ? 1 : 0);
+                    const gridCols = availableCount === 1 ? "grid-cols-1" : "grid-cols-2";
+                    
+                    return (
+                      <div className={`grid ${gridCols} gap-3 max-sm:grid-cols-1 max-sm:gap-2`}>
+                        {/* Apple Pay Button */}
+                        {isApplePayAvailable && (
+                          <button
+                            onClick={() => {
+                              if (!expressPaymentButtonRef.current?.triggerPaymentRequest) {
+                                showError(
+                                  "Payment system is not initialized. Please refresh and try again."
+                                );
+                                return;
+                              }
+
+                              const triggerResult =
+                                expressPaymentButtonRef.current.triggerPaymentRequest();
+                              if (!triggerResult?.success) {
+                                const fallbackMessage =
+                                  triggerResult?.message ||
+                                  "Apple Pay is not available on this device. Please select another payment method.";
+                                showError(fallbackMessage);
+                              }
+                            }}
+                            className="group relative flex items-center justify-center bg-black text-white rounded-full px-[20px] py-3.5 text-sm font-medium hover:opacity-90 transition-all duration-200 shadow-sm w-full max-sm:py-2.5"
+                            style={{
+                              backgroundColor: "#000",
+                              minHeight: "44px",
+                              border: "1px solid rgba(255,255,255,0.1)",
+                            }}
+                          >
+                            <div className="flex items-center gap-2">
+                            <svg
+                                width="25"
+                                height="25"
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                                className="shrink-0 max-sm:w-4 max-sm:h-4"
+                              >
+                                <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
+                              </svg>
+                              <span className="font-bold tracking-wide text-white text-lg">
+                                Pay
+                              </span>
+                            </div>
+                          </button>
+                        )}
+
+                        {/* Google Pay Button */}
+                        {isGooglePayAvailable && (
+                          <button
+                            onClick={() => {
+                              if (!expressPaymentButtonRef.current?.triggerPaymentRequest) {
+                                showError(
+                                  "Payment system is not initialized. Please refresh and try again."
+                                );
+                                return;
+                              }
+
+                              const triggerResult =
+                                expressPaymentButtonRef.current.triggerPaymentRequest();
+                              if (!triggerResult?.success) {
+                                const fallbackMessage =
+                                  triggerResult?.message ||
+                                  "Google Pay is not available on this device. Please select another payment method.";
+                                showError(fallbackMessage);
+                              }
+                            }}
+                            className="group relative flex items-center justify-center bg-white text-gray-800 rounded-full px-[20px] py-3.5 text-sm font-medium hover:shadow-md transition-all duration-200 shadow-sm border border-gray-200 w-full max-sm:py-2.5"
+                            style={{
+                              minHeight: "44px",
+                              maxHeight: "44px",
+                              background: "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)",
+                              boxSizing: "border-box",
+                            }}
+                          >
+                            <div className="flex items-center gap-2">
+                              <svg
+                                width="18"
+                                height="18"
+                                viewBox="0 0 18 18"
+                                className="shrink-0 max-sm:w-4 max-sm:h-4"
+                              >
+                                <g fill="none" fillRule="evenodd">
+                                  <path
+                                    fill="#4285F4"
+                                    d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
+                                  />
+                                  <path
+                                    fill="#34A853"
+                                    d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"
+                                  />
+                                  <path
+                                    fill="#FBBC05"
+                                    d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"
+                                  />
+                                  <path
+                                    fill="#EA4335"
+                                    d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"
+                                  />
+                                </g>
+                              </svg>
+                              <span className="font-bold tracking-wide text-gray-700 text-lg">
+                                Pay
+                              </span>
+                            </div>
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })()}
+              </StripeProvider>
             </div>
 
-            <div className="text-xs pb-4 max-sm:text-xs max-sm:pb-2">
-              Student? Add your student email, we'll send verification email
-              there.
-            </div>
+            {/* Checkout Button */}
+            <button
+              onClick={() => handleGetVisa()}
+              className="group flex w-full justify-between items-center bg-[#6B4EFF] text-white gap-[16px] font-medium px-[20px] py-3.5 rounded-full cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb] max-sm:py-3 max-sm:px-4"
+            >
+              <span className="mr-3 text-xl font-semibold max-sm:text-lg max-sm:mr-2">
+                {selectedPaymentMethod === "stripe"
+                  ? "CONTINUE WITH CREDIT CARD"
+                  : selectedPaymentMethod === "klarna"
+                  ? "CONTINUE WITH KLARNA"
+                  : "CONTINUE TO CHECKOUT"}
+              </span>
+              <span className="bg-white rounded-full p-1.5 transition-transform duration-300 group-hover:rotate-45 group-hover:translate-x-1 group-hover:-translate-y-0 max-sm:p-1">
+                <ArrowUpRight className="w-5 h-5 text-[#6B4EFF] max-sm:w-4 max-sm:h-4" />
+              </span>
+            </button>
+
             {/* Footer Info */}
             <div className="mt-4 space-y-2 max-sm:mt-3 max-sm:space-y-1.5">
               <div className="flex items-center space-x-2 text-sm max-sm:text-xs">
@@ -3143,15 +3786,18 @@ const CountrySlider = () => {
 
             {/* Get Help Button */}
             <a
-              href="https://wa.me/447387667534"
+              href="https://wa.me/447388120901"
               target="_blank"
               rel="noopener noreferrer"
               className="mt-4 w-fit rounded-full border border-white text-white py-1.5 hover:border-purple-500 transition-colors text-sm px-4 cursor-pointer max-sm:mt-3 max-sm:py-1 max-sm:px-3 max-sm:text-xs flex items-center"
             >
-              <img
+              <Image
                 src="/icons/whatsapp.svg"
                 alt="Get Help"
+                width={20}
+                height={20}
                 className="inline-block mr-1 size-5 text-white max-sm:w-4 max-sm:h-4"
+                priority
               />
               Get Help
             </a>
@@ -3163,3 +3809,5 @@ const CountrySlider = () => {
 };
 
 export default CountrySlider;
+
+
