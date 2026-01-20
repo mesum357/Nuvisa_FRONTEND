@@ -1666,14 +1666,9 @@ const VisaCheckout = () => {
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-300"></div>
               </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="bg-white px-2 text-gray-500">
-                  or pay with card
-                </span>
-              </div>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-3 mt-10">
               <h2 className="font-medium text-lg">Payment Method</h2>
               <div className="space-y-2">
                 <div
@@ -2573,9 +2568,6 @@ const VisaCheckout = () => {
                   <p>
                     • <span className="font-semibold">GROUP20</span> - 20% group
                     discount (3 or more travellers)
-                  </p>
-                  <p>
-                    • <span className="font-semibold">NU-VISA-XXXXXX</span> - Gift card code (1 free traveller + 1 free insurance)
                   </p>
                 </div>
               </div>

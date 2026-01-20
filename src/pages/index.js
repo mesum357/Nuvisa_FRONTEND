@@ -57,9 +57,9 @@ const Index = () => {
         <CountryCardsSection />
 
       </div>
-      <FeaturesSection />
-      <VisaSolution />
       <ComparisonSection />
+      <VisaSolution />
+      <FeaturesSection />
       <PremiumServiceSection />
       <div className="bg-gradient-to-br from-purple-100 to-[#f3e6ff]">
         <div className=" py-16 px-6">

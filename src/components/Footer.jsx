@@ -1,4 +1,5 @@
 import { Facebook, Instagram, Twitter } from "lucide-react";
+import { twitter } from '../../public/image/twitter.png';
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -40,7 +41,12 @@ const Footer = () => {
             href={getContent('social_twitter_url')}
             className="text-neutral-400 hover:text-white transition-colors duration-200"
           >
-            <Twitter className="w-5 h-5 stoke-[1px]" />
+            <Image
+                  src="/image/twitter.png"
+                  alt="Icon"
+                  width={18}
+                  height={18}
+                />
           </a>
           <a
             href={getContent('social_facebook_url')}
