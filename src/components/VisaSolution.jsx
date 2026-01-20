@@ -103,7 +103,7 @@ const VisaSolution = () => {
       landmark: "Warsaw Old Town",
     },
     {
-      name: "NORWAY",
+      name: "Norway",
       image:
         "/image/country/Norway.jpg",
       landmark: "Norwegian Fjords",

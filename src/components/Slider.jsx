@@ -122,7 +122,7 @@ const CountrySlider = () => {
     },
     {
       id: 12,
-      name: "NORWAY",
+      name: "Norway",
       image: "/image/country/Norway.jpg",
     },
     {
@@ -192,6 +192,9 @@ const CountrySlider = () => {
   const [selectedCountry, setSelectedCountryLocal] = useState("France");
   const [activeTooltip, setActiveTooltip] = useState(null);
   const [insuranceDays, setInsuranceDays] = useState(0);
+  const [isHighlighted, setIsHighlighted] = useState(false);
+
+  const requiredDocumentRef = useRef(null);
 
   // Use Redux state instead of local state
   const travelers = visaState.travelers ?? 0;
@@ -290,7 +293,7 @@ const CountrySlider = () => {
 
   const [userEmail, setUserEmailLocal] = useState("");
   const [emailError, setEmailError] = useState("");
-  const [documentsAccordionOpen, setDocumentsAccordionOpen] = useState(false);
+  const [documentsAccordionOpen, setDocumentsAccordionOpen] = useState(true);
 
   // Unified alert and confirm state (system schema)
   const [alertState, setAlertState] = useState({
@@ -2358,6 +2361,32 @@ const CountrySlider = () => {
     return () => clearInterval(interval);
   }, [expressPaymentData.totalAmount, travelers, expressPaymentData.includeInsurance]);
 
+useEffect(() => {
+    const handleScrollAndHighlight = () => {
+      if (window.location.hash === "#required-documents" && requiredDocumentRef.current) {
+        
+        setTimeout(() => {
+        setIsHighlighted(true);
+        console.log("Highlighting ON");
+
+        setTimeout(() => {
+          setIsHighlighted(false);
+          console.log("Highlighting OFF");
+        }, 3000); 
+
+      }, 800); 
+      }
+    };
+
+    handleScrollAndHighlight();
+
+    router.events.on('routeChangeComplete', handleScrollAndHighlight);
+    
+    return () => {
+      router.events.off('routeChangeComplete', handleScrollAndHighlight);
+    };
+  }, [router]);
+
   return (
     <div className="w-full max-w-[1300px] gap-20 max-lg:flex-col max-lg:gap-10 flex items-start justify-center mt-5 px-5 max-sm:px-3">
       {/* System Alerts */}
@@ -2664,7 +2693,7 @@ const CountrySlider = () => {
                 Schengen visa from the UK
               </h1>
               <div className="flex items-center justify-between gap-3 mb-4 max-sm:flex-col max-sm:items-start max-sm:gap-3">
-                <div className="flex gap-3 max-sm:w-full max-sm:justify-between">
+                <div className="flex gap-3 max-sm:w-full max-sm:justify-between items-center">
                   <span className="text-lg font-semibold max-sm:text-base line-through decoration-2 decoration-neutral-400">
                     £{calculateOriginalPrice()}
                   </span>
@@ -2724,6 +2753,62 @@ const CountrySlider = () => {
               </div>
             </div>
           </div>
+
+          <div className="mb-6 max-sm:mb-4">
+                <div className="space-y-4 font-gilroy-medium !font-semibold max-sm:space-y-3">
+                  {/* Auto-booking */}
+                  <div className="flex items-center justify-between max-sm:items-start max-sm:gap-2">
+                    <div className="flex items-center space-x-3 max-sm:space-x-2">
+                      <div className="w-10 aspect-square rounded-lg flex items-center justify-center max-sm:w-8 overflow-hidden">
+                        <Image
+                          src="/image/calendar.jpg"
+                          alt="Calendar"
+                          width={40}
+                          height={40}
+                          className="max-sm:w-6 max-sm:h-6"
+                          priority
+                        />
+                      </div>
+                      <div>
+                        <h3 className="max-sm:text-sm">
+                          Auto-booking appointment
+                        </h3>
+                      </div>
+                    </div>
+                    <div className="flex gap-[2px] items-center max-sm:flex-shrink-0">
+                      <span className="line-through max-sm:text-sm">£100</span>
+                      <span className="ml-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium max-sm:ml-1 max-sm:px-2 max-sm:py-0.5 max-sm:text-xs">
+                        Free
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Concierge assistance */}
+                  <div className="flex items-center justify-between max-sm:items-start max-sm:gap-2">
+                    <div className="flex items-center space-x-3 max-sm:space-x-2">
+                      <div className="w-10 aspect-square rounded-lg flex items-center justify-center max-sm:w-8 overflow-hidden">
+                        <Image
+                          src="/image/flights.jpg"
+                          alt="Flights"
+                          width={40}
+                          height={40}
+                          className="w-10 aspect-square max-sm:w-6 max-sm:h-6"
+                          priority
+                        />
+                      </div>
+                      <div>
+                        <h3 className="max-sm:text-sm">Concierge assistance</h3>
+                      </div>
+                    </div>
+                    <div className="flex gap-[2px] items-center max-sm:flex-shrink-0">
+                      <span className="line-through max-sm:text-sm">£35</span>
+                      <span className="ml-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium max-sm:ml-1 max-sm:px-2 max-sm:py-0.5 max-sm:text-xs">
+                        Free
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
           <div className="w-full">
             <p className="text-sm mb-4 max-sm:text-xs max-sm:mb-3">
@@ -2841,13 +2926,15 @@ const CountrySlider = () => {
 
           {/* Required Documents */}
           <ClientOnly>
-            <div className="my-6 max-sm:my-4" data-documents-section>
+            <div className="my-6 max-sm:my-4" data-documents-section id="required-documents" ref={requiredDocumentRef}>
               <div
                 className={`bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden transition-all duration-300 hover:bg-white/10 ${
                   validationErrors.size > 0
                     ? "!bg-red-500/10 border !border-red-500 shadow-lg"
                     : ""
-                }`}
+                } ${
+        isHighlighted ? "bg-white/80 border-white" : ""
+      }`}
               >
                 <h2
                   className={`text-xl font-gilroy-bold p-4 cursor-pointer flex items-center justify-between hover:bg-white/5 transition-all duration-200 max-sm:p-3 max-sm:text-lg`}
@@ -3099,8 +3186,261 @@ const CountrySlider = () => {
             </div>
           </ClientOnly>
 
+          {/* Express Checkout Section */}
+            <div className="space-y-3 mb-6 max-sm:mb-4">
+              <div className="flex items-center justify-between">
+              <h2 className="font-medium text-lg pt-4 max-sm:text-base max-sm:pt-3">
+                  Express checkout
+              </h2>
+                <div className="flex items-center gap-2 text-xs text-gray-400">
+                  <span className="flex items-center gap-1">
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
+                    </svg>
+                    Apple Pay
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <svg width="14" height="14" viewBox="0 0 18 18">
+                      <g fill="none" fillRule="evenodd">
+                        <path
+                          fill="#4285F4"
+                          d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
+                        />
+                        <path
+                          fill="#34A853"
+                          d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"
+                        />
+                        <path
+                          fill="#FBBC05"
+                          d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"
+                        />
+                        <path
+                          fill="#EA4335"
+                          d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"
+                        />
+                      </g>
+                    </svg>
+                    Google Pay
+                  </span>
+                </div>
+              </div>
+
+             
+              <StripeProvider>
+                  {/* Hidden component that handles payment logic - buttons below trigger it */}
+                <ExpressPaymentRequestButton
+                    ref={expressPaymentButtonRef}
+                  amount={expressPaymentData.totalAmount}
+                    currency="GBP"
+                  email={userEmail}
+                  travellers={travelers}
+                  country={getCountryParam(selectedCountry) || "Germany"}
+                  includeInsurance={expressPaymentData.includeInsurance}
+                  insuranceCount={insuranceCount}
+                  insurancePaymentAmount={expressPaymentData.insurancePaymentAmount}
+                  visaTypeId={expressPaymentData.visaTypeId}
+                  paymentType={expressPaymentData.includeGiftCard ? "application_creation,gift_card" : "application_creation"}
+                  onBeforePayment={validateBeforeExpressPayment}
+                    visaFees={expressPaymentData.visaFees}
+                    insuranceFees={expressPaymentData.insuranceFees}
+                    giftCardFees={expressPaymentData.giftCardFees}
+                    includeGiftCard={expressPaymentData.includeGiftCard}
+                    giftCardCount={expressPaymentData.giftCardCount}
+                    hideUI={true} // Hide the Stripe button UI
+                    // Pass all values needed for localStorage/Redux setup (same as handleProceedToCheckout)
+                    subtotalGBP={expressPaymentData.subtotalGBP}
+                    discountedInsuranceFeesGBP={expressPaymentData.discountedInsuranceFeesGBP}
+                    visaFeesGBP={expressPaymentData.visaFeesGBP}
+                    couponCode={expressPaymentData.couponCode}
+                  />
+                  
+                  {/* Simple buttons that use the same trigger method as radio button */}
+                  {(() => {
+                    const isApplePayAvailable =
+                      availablePaymentMethods.applePay ||
+                      process.env.NODE_ENV === "development" ||
+                      process.env.NEXT_PUBLIC_NODE_ENV === "development";
+                    const isGooglePayAvailable =
+                    availablePaymentMethods.googlePay ||
+                    process.env.NODE_ENV === "development" ||
+                    process.env.NEXT_PUBLIC_NODE_ENV === "development";
+                    const availableCount = (isApplePayAvailable ? 1 : 0) + (isGooglePayAvailable ? 1 : 0);
+                    const gridCols = availableCount === 1 ? "grid-cols-1" : "grid-cols-2";
+                    
+                    return (
+                      <div className={`grid ${gridCols} gap-3 max-sm:grid-cols-1 max-sm:gap-2`}>
+                        {/* Apple Pay Button */}
+                        {isApplePayAvailable && (
+                          <button
+                            onClick={() => {
+                              if (!expressPaymentButtonRef.current?.triggerPaymentRequest) {
+                                showError(
+                                  "Payment system is not initialized. Please refresh and try again."
+                                );
+                                return;
+                              }
+
+                              const triggerResult =
+                                expressPaymentButtonRef.current.triggerPaymentRequest();
+                              if (!triggerResult?.success) {
+                                const fallbackMessage =
+                                  triggerResult?.message ||
+                                  "Apple Pay is not available on this device. Please select another payment method.";
+                                showError(fallbackMessage);
+                              }
+                            }}
+                            className="group relative flex items-center justify-center bg-black text-white rounded-full px-[20px] py-3.5 text-sm font-medium hover:opacity-90 transition-all duration-200 shadow-sm w-full max-sm:py-2.5"
+                            style={{
+                              backgroundColor: "#000",
+                              minHeight: "44px",
+                              border: "1px solid rgba(255,255,255,0.1)",
+                            }}
+                          >
+                            <div className="flex items-center gap-2">
+                            <svg
+                                width="25"
+                                height="25"
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                                className="shrink-0 max-sm:w-4 max-sm:h-4"
+                              >
+                                <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
+                              </svg>
+                              <span className="font-bold tracking-wide text-white text-lg">
+                                Pay
+                              </span>
+                            </div>
+                          </button>
+                        )}
+
+                        {/* Google Pay Button */}
+                        {isGooglePayAvailable && (
+                          <button
+                            onClick={() => {
+                              if (!expressPaymentButtonRef.current?.triggerPaymentRequest) {
+                                showError(
+                                  "Payment system is not initialized. Please refresh and try again."
+                                );
+                                return;
+                              }
+
+                              const triggerResult =
+                                expressPaymentButtonRef.current.triggerPaymentRequest();
+                              if (!triggerResult?.success) {
+                                const fallbackMessage =
+                                  triggerResult?.message ||
+                                  "Google Pay is not available on this device. Please select another payment method.";
+                                showError(fallbackMessage);
+                              }
+                            }}
+                            className="group relative flex items-center justify-center bg-white text-gray-800 rounded-full px-[20px] py-3.5 text-sm font-medium hover:shadow-md transition-all duration-200 shadow-sm border border-gray-200 w-full max-sm:py-2.5"
+                            style={{
+                              minHeight: "44px",
+                              maxHeight: "44px",
+                              background: "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)",
+                              boxSizing: "border-box",
+                            }}
+                          >
+                            <div className="flex items-center gap-2">
+                              <svg
+                                width="18"
+                                height="18"
+                                viewBox="0 0 18 18"
+                                className="shrink-0 max-sm:w-4 max-sm:h-4"
+                              >
+                                <g fill="none" fillRule="evenodd">
+                                  <path
+                                    fill="#4285F4"
+                                    d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
+                                  />
+                                  <path
+                                    fill="#34A853"
+                                    d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"
+                                  />
+                                  <path
+                                    fill="#FBBC05"
+                                    d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"
+                                  />
+                                  <path
+                                    fill="#EA4335"
+                                    d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"
+                                  />
+                                </g>
+                              </svg>
+                              <span className="font-bold tracking-wide text-gray-700 text-lg">
+                                Pay
+                              </span>
+                            </div>
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })()}
+              </StripeProvider>
+            </div>
+
+            {/* Free Offer Banner */}
+            <div className="border rounded-3xl border-white/20 bg-white/5 backdrop-blur-sm overflow-hidden max-sm:rounded-2xl">
+              <div className="flex items-center gap-4 p-4 border-b border-white/10 max-sm:p-3 max-sm:gap-3">
+                <div
+                  className="h-4 w-4 rounded-full 
+              bg-purple-500
+               min-w-4 animate-pulse max-sm:h-3 max-sm:w-3"
+                ></div>
+                <div>
+                  <span className="text-sm font-medium text-white max-sm:text-xs">
+                    {sliderContent["free_offer_banner_text"]}
+                  </span>
+                </div>
+              </div>
+              <div className="p-4 max-sm:p-3">
+                <div className="grid grid-cols-3 gap-3 max-sm:gap-2">
+                  {/* August slots */}
+                  <div className="text-center">
+                    <div className="text-xs text-white/70 mb-2 font-medium max-sm:text-xs max-sm:mb-1">
+                      {sliderContent["slot1_label"]}
+                    </div>
+                    <div className="bg-[#1e1e27] rounded-full p-2 max-sm:p-1.5">
+                      <div className="text-xs text-white font-semibold max-sm:text-xs">
+                        {sliderContent["slot1_status"]}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* September slots */}
+                  <div className="text-center">
+                    <div className="text-xs text-white/70 mb-2 font-medium max-sm:text-xs max-sm:mb-1">
+                      {sliderContent["slot2_label"]}
+                    </div>
+                    <div className="bg-[#5a3ddb] rounded-full p-2 max-sm:p-1.5">
+                      <div className="text-xs text-white font-semibold max-sm:text-xs">
+                        {sliderContent["slot2_status"]}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* October slots */}
+                  <div className="text-center">
+                    <div className="text-xs text-white/70 mb-2 font-medium max-sm:text-xs max-sm:mb-1">
+                      {sliderContent["slot3_label"]}
+                    </div>
+                    <div className="bg-[#1e1e27] rounded-full p-2 max-sm:p-1.5">
+                      <div className="text-xs text-white font-semibold max-sm:text-xs">
+                        {sliderContent["slot3_status"]}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
           {/* Recommended Section */}
-          <div className="mb-6 max-sm:mb-4">
+          <div className="mb-6 max-sm:mb-4 mt-5">
             <h2 className="text-xl font-gilroy-bold mb-4 max-sm:text-lg max-sm:mb-3">
               Recommended
             </h2>
@@ -3257,61 +3597,7 @@ const CountrySlider = () => {
               </div>
 
               {/* Free Services */}
-              <div className="mb-6 max-sm:mb-4">
-                <div className="space-y-4 font-gilroy-medium !font-semibold max-sm:space-y-3">
-                  {/* Auto-booking */}
-                  <div className="flex items-center justify-between max-sm:items-start max-sm:gap-2">
-                    <div className="flex items-center space-x-3 max-sm:space-x-2">
-                      <div className="w-10 aspect-square rounded-full flex items-center justify-center max-sm:w-8">
-                        <Image
-                          src="/image/calendar.jpg"
-                          alt="Calendar"
-                          width={40}
-                          height={40}
-                          className="max-sm:w-6 max-sm:h-6"
-                          priority
-                        />
-                      </div>
-                      <div>
-                        <h3 className="max-sm:text-sm">
-                          Auto-booking appointment
-                        </h3>
-                      </div>
-                    </div>
-                    <div className="flex gap-[2px] items-center max-sm:flex-shrink-0">
-                      <span className="line-through max-sm:text-sm">£100</span>
-                      <span className="ml-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium max-sm:ml-1 max-sm:px-2 max-sm:py-0.5 max-sm:text-xs">
-                        Free
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Concierge assistance */}
-                  <div className="flex items-center justify-between max-sm:items-start max-sm:gap-2">
-                    <div className="flex items-center space-x-3 max-sm:space-x-2">
-                      <div className="w-10 aspect-square rounded-full flex items-center justify-center max-sm:w-8">
-                        <Image
-                          src="/image/flights.jpg"
-                          alt="Flights"
-                          width={40}
-                          height={40}
-                          className="w-10 aspect-square max-sm:w-6 max-sm:h-6"
-                          priority
-                        />
-                      </div>
-                      <div>
-                        <h3 className="max-sm:text-sm">Concierge assistance</h3>
-                      </div>
-                    </div>
-                    <div className="flex gap-[2px] items-center max-sm:flex-shrink-0">
-                      <span className="line-through max-sm:text-sm">£35</span>
-                      <span className="ml-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium max-sm:ml-1 max-sm:px-2 max-sm:py-0.5 max-sm:text-xs">
-                        Free
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              
             </div>
 
             {/* Alert Message */}
@@ -3557,208 +3843,12 @@ const CountrySlider = () => {
               </div>
             </div>
 
-            {/* Express Checkout Section */}
-            <div className="space-y-3 mb-6 max-sm:mb-4">
-              <div className="flex items-center justify-between">
-              <h2 className="font-medium text-lg pt-4 max-sm:text-base max-sm:pt-3">
-                  Express checkout
-              </h2>
-                <div className="flex items-center gap-2 text-xs text-gray-400">
-                  <span className="flex items-center gap-1">
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="currentColor"
-                    >
-                      <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
-                    </svg>
-                    Apple Pay
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <svg width="14" height="14" viewBox="0 0 18 18">
-                      <g fill="none" fillRule="evenodd">
-                        <path
-                          fill="#4285F4"
-                          d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
-                        />
-                        <path
-                          fill="#34A853"
-                          d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"
-                        />
-                        <path
-                          fill="#FBBC05"
-                          d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"
-                        />
-                        <path
-                          fill="#EA4335"
-                          d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"
-                        />
-                      </g>
-                    </svg>
-                    Google Pay
-                  </span>
-                </div>
-              </div>
-
-             
-              <StripeProvider>
-                  {/* Hidden component that handles payment logic - buttons below trigger it */}
-                <ExpressPaymentRequestButton
-                    ref={expressPaymentButtonRef}
-                  amount={expressPaymentData.totalAmount}
-                    currency="GBP"
-                  email={userEmail}
-                  travellers={travelers}
-                  country={getCountryParam(selectedCountry) || "Germany"}
-                  includeInsurance={expressPaymentData.includeInsurance}
-                  insuranceCount={insuranceCount}
-                  insurancePaymentAmount={expressPaymentData.insurancePaymentAmount}
-                  visaTypeId={expressPaymentData.visaTypeId}
-                  paymentType={expressPaymentData.includeGiftCard ? "application_creation,gift_card" : "application_creation"}
-                  onBeforePayment={validateBeforeExpressPayment}
-                    visaFees={expressPaymentData.visaFees}
-                    insuranceFees={expressPaymentData.insuranceFees}
-                    giftCardFees={expressPaymentData.giftCardFees}
-                    includeGiftCard={expressPaymentData.includeGiftCard}
-                    giftCardCount={expressPaymentData.giftCardCount}
-                    hideUI={true} // Hide the Stripe button UI
-                    // Pass all values needed for localStorage/Redux setup (same as handleProceedToCheckout)
-                    subtotalGBP={expressPaymentData.subtotalGBP}
-                    discountedInsuranceFeesGBP={expressPaymentData.discountedInsuranceFeesGBP}
-                    visaFeesGBP={expressPaymentData.visaFeesGBP}
-                    couponCode={expressPaymentData.couponCode}
-                  />
-                  
-                  {/* Simple buttons that use the same trigger method as radio button */}
-                  {(() => {
-                    const isApplePayAvailable =
-                      availablePaymentMethods.applePay ||
-                      process.env.NODE_ENV === "development" ||
-                      process.env.NEXT_PUBLIC_NODE_ENV === "development";
-                    const isGooglePayAvailable =
-                    availablePaymentMethods.googlePay ||
-                    process.env.NODE_ENV === "development" ||
-                    process.env.NEXT_PUBLIC_NODE_ENV === "development";
-                    const availableCount = (isApplePayAvailable ? 1 : 0) + (isGooglePayAvailable ? 1 : 0);
-                    const gridCols = availableCount === 1 ? "grid-cols-1" : "grid-cols-2";
-                    
-                    return (
-                      <div className={`grid ${gridCols} gap-3 max-sm:grid-cols-1 max-sm:gap-2`}>
-                        {/* Apple Pay Button */}
-                        {isApplePayAvailable && (
-                          <button
-                            onClick={() => {
-                              if (!expressPaymentButtonRef.current?.triggerPaymentRequest) {
-                                showError(
-                                  "Payment system is not initialized. Please refresh and try again."
-                                );
-                                return;
-                              }
-
-                              const triggerResult =
-                                expressPaymentButtonRef.current.triggerPaymentRequest();
-                              if (!triggerResult?.success) {
-                                const fallbackMessage =
-                                  triggerResult?.message ||
-                                  "Apple Pay is not available on this device. Please select another payment method.";
-                                showError(fallbackMessage);
-                              }
-                            }}
-                            className="group relative flex items-center justify-center bg-black text-white rounded-full px-[20px] py-3.5 text-sm font-medium hover:opacity-90 transition-all duration-200 shadow-sm w-full max-sm:py-2.5"
-                            style={{
-                              backgroundColor: "#000",
-                              minHeight: "44px",
-                              border: "1px solid rgba(255,255,255,0.1)",
-                            }}
-                          >
-                            <div className="flex items-center gap-2">
-                            <svg
-                                width="25"
-                                height="25"
-                                viewBox="0 0 24 24"
-                                fill="currentColor"
-                                className="shrink-0 max-sm:w-4 max-sm:h-4"
-                              >
-                                <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
-                              </svg>
-                              <span className="font-bold tracking-wide text-white text-lg">
-                                Pay
-                              </span>
-                            </div>
-                          </button>
-                        )}
-
-                        {/* Google Pay Button */}
-                        {isGooglePayAvailable && (
-                          <button
-                            onClick={() => {
-                              if (!expressPaymentButtonRef.current?.triggerPaymentRequest) {
-                                showError(
-                                  "Payment system is not initialized. Please refresh and try again."
-                                );
-                                return;
-                              }
-
-                              const triggerResult =
-                                expressPaymentButtonRef.current.triggerPaymentRequest();
-                              if (!triggerResult?.success) {
-                                const fallbackMessage =
-                                  triggerResult?.message ||
-                                  "Google Pay is not available on this device. Please select another payment method.";
-                                showError(fallbackMessage);
-                              }
-                            }}
-                            className="group relative flex items-center justify-center bg-white text-gray-800 rounded-full px-[20px] py-3.5 text-sm font-medium hover:shadow-md transition-all duration-200 shadow-sm border border-gray-200 w-full max-sm:py-2.5"
-                            style={{
-                              minHeight: "44px",
-                              maxHeight: "44px",
-                              background: "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)",
-                              boxSizing: "border-box",
-                            }}
-                          >
-                            <div className="flex items-center gap-2">
-                              <svg
-                                width="18"
-                                height="18"
-                                viewBox="0 0 18 18"
-                                className="shrink-0 max-sm:w-4 max-sm:h-4"
-                              >
-                                <g fill="none" fillRule="evenodd">
-                                  <path
-                                    fill="#4285F4"
-                                    d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
-                                  />
-                                  <path
-                                    fill="#34A853"
-                                    d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"
-                                  />
-                                  <path
-                                    fill="#FBBC05"
-                                    d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"
-                                  />
-                                  <path
-                                    fill="#EA4335"
-                                    d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"
-                                  />
-                                </g>
-                              </svg>
-                              <span className="font-bold tracking-wide text-gray-700 text-lg">
-                                Pay
-                              </span>
-                            </div>
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })()}
-              </StripeProvider>
-            </div>
+            
 
             {/* Checkout Button */}
             <button
               onClick={() => handleGetVisa()}
-              className="group flex w-full justify-between items-center bg-[#6B4EFF] text-white gap-[16px] font-medium px-[20px] py-3.5 rounded-full cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb] max-sm:py-3 max-sm:px-4"
+              className="group flex w-full justify-between items-center bg-[#6B4EFF] text-white gap-[16px] font-medium px-[20px] py-3.5 rounded-full cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb] max-sm:py-3 max-sm:px-4 mt-5"
             >
               <span className="mr-3 text-xl font-semibold max-sm:text-lg max-sm:mr-2">
                 {selectedPaymentMethod === "stripe"
