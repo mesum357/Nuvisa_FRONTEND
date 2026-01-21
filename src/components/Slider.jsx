@@ -293,7 +293,7 @@ const CountrySlider = () => {
 
   const [userEmail, setUserEmailLocal] = useState("");
   const [emailError, setEmailError] = useState("");
-  const [documentsAccordionOpen, setDocumentsAccordionOpen] = useState(true);
+  const [documentsAccordionOpen, setDocumentsAccordionOpen] = useState(false);
 
   // Unified alert and confirm state (system schema)
   const [alertState, setAlertState] = useState({
@@ -2364,6 +2364,7 @@ const CountrySlider = () => {
 useEffect(() => {
     const handleScrollAndHighlight = () => {
       if (window.location.hash === "#required-documents" && requiredDocumentRef.current) {
+        setDocumentsAccordionOpen(true);
         
         setTimeout(() => {
         setIsHighlighted(true);
@@ -3787,61 +3788,6 @@ useEffect(() => {
                   </div>
                 </div>
               )}
-
-            {/* Free Offer Banner */}
-            <div className="border rounded-3xl border-white/20 bg-white/5 backdrop-blur-sm overflow-hidden max-sm:rounded-2xl">
-              <div className="flex items-center gap-4 p-4 border-b border-white/10 max-sm:p-3 max-sm:gap-3">
-                <div
-                  className="h-4 w-4 rounded-full 
-              bg-purple-500
-               min-w-4 animate-pulse max-sm:h-3 max-sm:w-3"
-                ></div>
-                <div>
-                  <span className="text-sm font-medium text-white max-sm:text-xs">
-                    {sliderContent["free_offer_banner_text"]}
-                  </span>
-                </div>
-              </div>
-              <div className="p-4 max-sm:p-3">
-                <div className="grid grid-cols-3 gap-3 max-sm:gap-2">
-                  {/* August slots */}
-                  <div className="text-center">
-                    <div className="text-xs text-white/70 mb-2 font-medium max-sm:text-xs max-sm:mb-1">
-                      {sliderContent["slot1_label"]}
-                    </div>
-                    <div className="bg-[#1e1e27] rounded-full p-2 max-sm:p-1.5">
-                      <div className="text-xs text-white font-semibold max-sm:text-xs">
-                        {sliderContent["slot1_status"]}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* September slots */}
-                  <div className="text-center">
-                    <div className="text-xs text-white/70 mb-2 font-medium max-sm:text-xs max-sm:mb-1">
-                      {sliderContent["slot2_label"]}
-                    </div>
-                    <div className="bg-[#5a3ddb] rounded-full p-2 max-sm:p-1.5">
-                      <div className="text-xs text-white font-semibold max-sm:text-xs">
-                        {sliderContent["slot2_status"]}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* October slots */}
-                  <div className="text-center">
-                    <div className="text-xs text-white/70 mb-2 font-medium max-sm:text-xs max-sm:mb-1">
-                      {sliderContent["slot3_label"]}
-                    </div>
-                    <div className="bg-[#1e1e27] rounded-full p-2 max-sm:p-1.5">
-                      <div className="text-xs text-white font-semibold max-sm:text-xs">
-                        {sliderContent["slot3_status"]}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
 
             
 
