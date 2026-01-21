@@ -48,28 +48,54 @@ const AppDownloadPopup = () => {
     fetchPopupContent();
   }, []);
 
- useEffect(() => {
-  const isHomePage = router.pathname === '/' || router.pathname === '/home';
-  const hasInteractedThisSession = sessionStorage.getItem("popupSessionStatus");
+  useEffect(() => {
+    const isHomePage = router.pathname === '/' || router.pathname === '/home';
+    const hasInteractedThisSession = sessionStorage.getItem("popupSessionStatus");
 
-  if (isHomePage && hasInteractedThisSession !== "hidden") {
-    const timer = setTimeout(() => {
-      setIsVisible(true);
-      setTimeout(() => setIsAnimating(true), 10); 
-    }, 3000);
-    return () => clearTimeout(timer);
-  }
-}, [router.pathname]);
+    // Agar user home page par hai aur popup pehle se hidden nahi hai
+    if (isHomePage && hasInteractedThisSession !== "hidden") {
+      const timer = setTimeout(() => {
+        setIsVisible(true);
+        setTimeout(() => setIsAnimating(true), 10); 
+      }, 3000);
+      return () => clearTimeout(timer);
+    } else if (!isHomePage) {
+      setIsVisible(false);
+      setIsAnimating(false);
+    }
+  }, [router.pathname]);
 
   useEffect(() => {
     setError("");
   }, [answers, currentStep]);
 
+  // Naya Handler: Phone number ko restrict karne ke liye
+  const handleAnswerChange = (questionId, value) => {
+    const currentQuestion = questions[currentStep];
+    const isPhone = currentQuestion.text.toLowerCase().includes('phone') || currentQuestion.text.toLowerCase().includes('number');
+
+    if (isPhone) {
+      // Sirf numbers allowed hain
+      const onlyNums = value.replace(/[^0-9]/g, '');
+      setAnswers(prev => ({ ...prev, [questionId]: onlyNums }));
+    } else {
+      setAnswers(prev => ({ ...prev, [questionId]: value }));
+    }
+  };
 
   const handleNext = async () => {
     const currentQuestion = questions[currentStep];
-    if (!answers[currentQuestion.id]?.trim()) {
+    const currentAnswer = answers[currentQuestion.id] || "";
+
+    if (!currentAnswer.trim()) {
       setError("This field is required.");
+      return;
+    }
+
+    // Phone Number Validation (At least 10 digits)
+    const isPhone = currentQuestion.text.toLowerCase().includes('phone') || currentQuestion.text.toLowerCase().includes('number');
+    if (isPhone && currentAnswer.length < 10) {
+      setError("Please enter a valid number (at least 10 digits).");
       return;
     }
 
@@ -115,15 +141,11 @@ const AppDownloadPopup = () => {
     }
   };
 
-  const handleAnswerChange = (questionId, value) => {
-    setAnswers(prev => ({ ...prev, [questionId]: value }));
-  };
-
   const closePopup = () => {
-  setIsAnimating(false);
-  sessionStorage.setItem("popupSessionStatus", "hidden");
-  setTimeout(() => setIsVisible(false), 500);
-};
+    setIsAnimating(false);
+    sessionStorage.setItem("popupSessionStatus", "hidden");
+    setTimeout(() => setIsVisible(false), 500);
+  };
 
   if (!isVisible || isLoadingContent || !dbContent) return null;
 
@@ -139,8 +161,8 @@ const AppDownloadPopup = () => {
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50 py-0 px-2 sm:px-4">
-      <div className={`bg-[#23232B] rounded-t-3xl md:rounded-2xl max-w-5xl w-full relative shadow-2xl overflow-hidden flex flex-col md:flex-row max-h-[90vh] border-t border-x border-gray-700 
-      transition-all duration-700 ease-out transform
+      <div className={`bg-[#23232B] rounded-t-3xl md:rounded-2xl max-w-5xl w-full relative shadow-2xl overflow-hidden flex flex-col md:flex-row h-[90vh] border-t border-x border-gray-700 
+      transition-all duration-1100 ease-out transform
       ${isAnimating ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}`}>
         
         <div className="absolute top-3 left-3 z-30">
@@ -155,7 +177,6 @@ const AppDownloadPopup = () => {
         </button>
 
         <div className="flex-1 p-5 sm:p-7 flex flex-col overflow-y-auto custom-scrollbar">
-          
           <div className="flex flex-col items-center shrink-0">
             <img src="/image/logo.png" alt="Logo" className="w-[130px] mb-2" />
             <div className="border-b border-gray-600 w-full text-center pb-2">
@@ -167,7 +188,9 @@ const AppDownloadPopup = () => {
             <div className="w-full space-y-2 mt-3 mb-4">
               <div className="flex justify-between items-center text-[15px]">
                 <div className="flex items-center gap-2">
-                  <Image src={Images.CalenderIcon} width={30} height={30} />
+                  <div className="overflow-hidden">
+                    <Image src={Images.CalenderIcon} width={30} height={30} className="rounded-lg" />
+                  </div>
                   <span className="text-gray-300">{dbContent.subHeading}</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -179,7 +202,9 @@ const AppDownloadPopup = () => {
               </div>
               <div className="flex justify-between items-center text-[15px] border-b border-gray-700 pb-3">
                 <div className="flex items-center gap-2">
-                  <Image src={Images.FlightsIcon} width={30} height={30} />
+                  <div className="overflow-hidden">
+                    <Image src={Images.FlightsIcon} width={30} height={30} className="rounded-lg" />
+                  </div>
                   <span className="text-gray-300">{dbContent.conciergeTitle}</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -197,7 +222,15 @@ const AppDownloadPopup = () => {
                   <h3 className="text-[18px] font-semibold text-white mb-4 text-center">{currentQuestion.text}</h3>
                   
                   {currentQuestion.type === 'TEXT' && (
-                    <input type="text" value={answers[currentQuestion.id]} onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)} className="w-full bg-transparent border-b border-gray-600 py-2 mb-8 text-white text-[15px] outline-none focus:border-blue-500" placeholder="Type your answer..." disabled={isSubmitting} />
+                    <input 
+                      type="text" 
+                      inputMode={currentQuestion.text.toLowerCase().includes('phone') ? "numeric" : "text"}
+                      value={answers[currentQuestion.id]} 
+                      onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)} 
+                      className="w-full bg-transparent border-b border-gray-600 py-2 mb-8 text-white text-[15px] outline-none focus:border-blue-500" 
+                      placeholder={currentQuestion.text.toLowerCase().includes('phone') ? "Enter your number" : "Type your answer..."} 
+                      disabled={isSubmitting} 
+                    />
                   )}
 
                   {currentQuestion.type === 'OPTIONS' && (
@@ -215,7 +248,7 @@ const AppDownloadPopup = () => {
             </div>
 
             <div className="mt-auto">
-              {error && <p className="text-red-500 text-[12px] text-center mb-2 animate-pulse">{error}</p>}
+              {error && <p className="text-red-500 text-[15px] text-center mb-2 animate-pulse font-semibold">{error}</p>}
               <ProgressBar activeStep={currentStep} total={totalSteps} />
               
               <button 
@@ -229,7 +262,6 @@ const AppDownloadPopup = () => {
               <div className="text-center mt-5">
                 <p className="text-white text-[18px]">{dbContent.lastChanceText}</p>
               </div>
-
             </div>
           </div>
         </div>
