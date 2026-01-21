@@ -506,6 +506,12 @@ const CountrySlider = () => {
       setDateValidationErrors(errors2);
     }
   }; // Revalidate dates when visa type changes
+
+
+  useEffect(() => {
+  sessionStorage.setItem("popupSessionStatus", "hidden");
+}, []);
+
   useEffect(() => {
     if (selectedVisaType) {
       const errors = validateDates(
@@ -2364,7 +2370,6 @@ const CountrySlider = () => {
 useEffect(() => {
     const handleScrollAndHighlight = () => {
       if (window.location.hash === "#required-documents" && requiredDocumentRef.current) {
-        setDocumentsAccordionOpen(true);
         
         setTimeout(() => {
         setIsHighlighted(true);
@@ -2387,6 +2392,26 @@ useEffect(() => {
       router.events.off('routeChangeComplete', handleScrollAndHighlight);
     };
   }, [router]);
+
+  useEffect(() => {
+  const handleHashChange = () => {
+    if (window.location.hash === '#required-documents') {
+      setDocumentsAccordionOpen(true);
+      
+      setTimeout(() => {
+        const element = document.getElementById('required-documents');
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+    }
+  };
+
+  handleHashChange();
+
+  window.addEventListener('hashchange', handleHashChange);
+  return () => window.removeEventListener('hashchange', handleHashChange);
+}, []);
 
   return (
     <div className="w-full max-w-[1300px] gap-20 max-lg:flex-col max-lg:gap-10 flex items-start justify-center mt-5 px-5 max-sm:px-3">
@@ -3440,6 +3465,126 @@ useEffect(() => {
               </div>
             </div>
 
+            {/* Discount Code Section */}
+            <div className="space-y-3 mb-6 max-sm:mb-4 mt-10">
+              <h2 className="font-medium text-lg max-sm:text-base">
+                Discount Code
+              </h2>
+              <div className="space-y-2">
+                <div className="flex space-x-2 max-sm:flex-col max-sm:space-x-0 max-sm:space-y-2">
+                  <div className="flex-1 max-sm:w-full">
+                    <input
+                      type="text"
+                      value={couponCode}
+                      onChange={(e) =>
+                        setCouponCodeLocal(e.target.value.toUpperCase())
+                      }
+                      placeholder="Enter coupon code (e.g., STUDENT10)"
+                      className={`w-full border ${
+                        (giftCardRedeemed || appliedDiscount)
+                          ? "border-green-400"
+                          : couponError 
+                            ? "border-red-400" 
+                            : "border-gray-500"
+                      } bg-[#24242D] text-white rounded-md p-2 text-sm max-sm:text-xs ${
+                        (giftCardRedeemed || appliedDiscount)
+                          ? "outline-none ring-2 ring-green-400"
+                          : couponError
+                            ? "outline-none ring-2 ring-red-400"
+                            : "focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      }`}
+                      disabled={appliedDiscount || isRedeemingGiftCard}
+                    />
+                  </div>
+                  
+                  {!appliedDiscount ? (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        applyCouponCode();
+                      }}
+                      disabled={isRedeemingGiftCard}
+                      className="px-4 py-2 bg-white text-black text-sm rounded-md hover:bg-gray-200 transition-colors font-medium max-sm:text-xs max-sm:px-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isRedeemingGiftCard ? "Processing..." : "Apply"}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        removeCoupon();
+                      }}
+                      className="px-4 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors max-sm:text-xs max-sm:px-3"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+
+                {couponError && (
+                  <span className="text-sm text-red-400 max-sm:text-xs">
+                    {couponError}
+                  </span>
+                )}
+
+                {appliedDiscount && (
+                  <div className="flex items-center space-x-2 text-sm text-green-400 bg-green-600/20 p-2 rounded-md max-sm:text-xs max-sm:p-1.5">
+                    <span>
+                      ✓ {appliedDiscount.description} (
+                      {appliedDiscount.percentage}% off) applied!
+                    </span>
+                  </div>
+                )}
+                <div className="text-xs text-gray-400">
+                  <p>Available discounts:</p>
+                  <p>
+                    • <span className="font-semibold">STUDENT10</span> - 10%
+                    student discount
+                  </p>
+                  <p>
+                    • <span className="font-semibold">GROUP20</span> - 20% group
+                    discount (3 or more travellers)
+                  </p>
+                </div>
+                {redeemedGiftCards.length > 0 && (
+                  <div className="space-y-2">
+                    {redeemedGiftCards.map((card) => {
+                      const freeTravelerCount = card.benefits?.freeTraveler || 0;
+                      const freeInsuranceCount = card.benefits?.freeInsurance || 0;
+                      const travelerText = freeTravelerCount === 1 ? "traveller" : "travellers";
+                      const insuranceText = freeInsuranceCount === 1 ? "insurance" : "insurances";
+                      return (
+                        <div key={card.code} className="flex items-center justify-between text-sm text-green-400 bg-green-600/20 p-2 rounded-md max-sm:text-xs max-sm:p-1.5">
+                          <span>
+                            ✓ Gift card {card.code} applied! {freeTravelerCount} free {travelerText} and {freeInsuranceCount} free {insuranceText}.
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => removeGiftCard(card.code)}
+                            className="ml-2 text-red-400 hover:text-red-300 text-xs font-medium"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {isRedeemingGiftCard && (
+                  <div className="flex items-center space-x-2 text-sm text-blue-400 bg-blue-600/20 p-2 rounded-md max-sm:text-xs max-sm:p-1.5">
+                    <span>Validating gift card code...</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="text-xs pb-4 max-sm:text-xs max-sm:pb-2">
+              Student? Add your student email, we'll send verification email
+              there.
+            </div>
+
           {/* Recommended Section */}
           <div className="mb-6 max-sm:mb-4 mt-5">
             <h2 className="text-xl font-gilroy-bold mb-4 max-sm:text-lg max-sm:mb-3">
@@ -3610,114 +3755,6 @@ useEffect(() => {
               </div>
             )}
 
-            {/* Discount Code Section */}
-            <div className="space-y-3 mb-6 max-sm:mb-4">
-              <h2 className="font-medium text-lg max-sm:text-base">
-                Discount Code
-              </h2>
-              <div className="space-y-2">
-                <div className="flex space-x-2 max-sm:flex-col max-sm:space-x-0 max-sm:space-y-2">
-                  <div className="flex-1 max-sm:w-full">
-                    <input
-                      type="text"
-                      value={couponCode}
-                      onChange={(e) =>
-                        setCouponCodeLocal(e.target.value.toUpperCase())
-                      }
-                      placeholder="Enter coupon code (e.g., STUDENT10)"
-                      className={`w-full border ${
-                        (giftCardRedeemed || appliedDiscount)
-                          ? "border-green-400"
-                          : couponError 
-                            ? "border-red-400" 
-                            : "border-gray-500"
-                      } bg-[#24242D] text-white rounded-md p-2 text-sm max-sm:text-xs ${
-                        (giftCardRedeemed || appliedDiscount)
-                          ? "outline-none ring-2 ring-green-400"
-                          : couponError
-                            ? "outline-none ring-2 ring-red-400"
-                            : "focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      }`}
-                      disabled={appliedDiscount || isRedeemingGiftCard}
-                    />
-                  </div>
-                  {!appliedDiscount ? (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        applyCouponCode();
-                      }}
-                      disabled={isRedeemingGiftCard}
-                      className="px-4 py-2 bg-white text-black text-sm rounded-md hover:bg-gray-200 transition-colors font-medium max-sm:text-xs max-sm:px-3 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isRedeemingGiftCard ? "Processing..." : "Apply"}
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        removeCoupon();
-                      }}
-                      className="px-4 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors max-sm:text-xs max-sm:px-3"
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
-
-                {couponError && (
-                  <span className="text-sm text-red-400 max-sm:text-xs">
-                    {couponError}
-                  </span>
-                )}
-
-                {appliedDiscount && (
-                  <div className="flex items-center space-x-2 text-sm text-green-400 bg-green-600/20 p-2 rounded-md max-sm:text-xs max-sm:p-1.5">
-                    <span>
-                      ✓ {appliedDiscount.description} (
-                      {appliedDiscount.percentage}% off) applied!
-                    </span>
-                  </div>
-                )}
-                {redeemedGiftCards.length > 0 && (
-                  <div className="space-y-2">
-                    {redeemedGiftCards.map((card) => {
-                      const freeTravelerCount = card.benefits?.freeTraveler || 0;
-                      const freeInsuranceCount = card.benefits?.freeInsurance || 0;
-                      const travelerText = freeTravelerCount === 1 ? "traveller" : "travellers";
-                      const insuranceText = freeInsuranceCount === 1 ? "insurance" : "insurances";
-                      return (
-                        <div key={card.code} className="flex items-center justify-between text-sm text-green-400 bg-green-600/20 p-2 rounded-md max-sm:text-xs max-sm:p-1.5">
-                          <span>
-                            ✓ Gift card {card.code} applied! {freeTravelerCount} free {travelerText} and {freeInsuranceCount} free {insuranceText}.
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => removeGiftCard(card.code)}
-                            className="ml-2 text-red-400 hover:text-red-300 text-xs font-medium"
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-                {isRedeemingGiftCard && (
-                  <div className="flex items-center space-x-2 text-sm text-blue-400 bg-blue-600/20 p-2 rounded-md max-sm:text-xs max-sm:p-1.5">
-                    <span>Validating gift card code...</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="text-xs pb-4 max-sm:text-xs max-sm:pb-2">
-              Student? Add your student email, we'll send verification email
-              there.
-            </div>
-
             {/* Email Verification Section */}
             {appliedDiscount &&
               appliedDiscount.description.toLowerCase().includes("student") && (
@@ -3749,6 +3786,7 @@ useEffect(() => {
                           disabled={studentVerified}
                         />
                       </div>
+                      
                       {!studentVerified ? (
                         <button
                           onClick={() => sendStudentVerification(userEmail)}
