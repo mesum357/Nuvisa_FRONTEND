@@ -103,7 +103,7 @@ const CountrySlider = () => {
       id: 8,
       name: "Hungary",
       image: "/image/country/Hungary.jpg",
-    
+
     },
     {
       id: 9,
@@ -195,6 +195,7 @@ const CountrySlider = () => {
   const [isHighlighted, setIsHighlighted] = useState(false);
 
   const requiredDocumentRef = useRef(null);
+  const mainSectionRef = useRef(null);
 
   // Use Redux state instead of local state
   const travelers = visaState.travelers ?? 0;
@@ -261,7 +262,7 @@ const CountrySlider = () => {
   // Load gift card state from Redux - now supports multiple cards
   const redeemedGiftCards = visaState.redeemedGiftCards || [];
   const giftCardRedeemed = redeemedGiftCards.length > 0;
-  
+
   // Calculate total benefits from all redeemed gift cards
   const totalGiftCardBenefits = useMemo(() => {
     return redeemedGiftCards.reduce((total, card) => ({
@@ -269,7 +270,7 @@ const CountrySlider = () => {
       freeInsurance: total.freeInsurance + (card.benefits?.freeInsurance || 0),
     }), { freeTraveler: 0, freeInsurance: 0 });
   }, [redeemedGiftCards]);
-  
+
   const giftCardBenefits = totalGiftCardBenefits.freeTraveler > 0 || totalGiftCardBenefits.freeInsurance > 0 ? totalGiftCardBenefits : null;
   const [isRedeemingGiftCard, setIsRedeemingGiftCard] = useState(false);
   const [studentVerificationSent, setStudentVerificationSent] = useState(false);
@@ -286,7 +287,7 @@ const CountrySlider = () => {
     googlePay: false,
   });
   const hasCheckedAvailabilityRef = useRef(false);
-  
+
   // Refs to track previous values for threshold crossing detection
   const prevInsuranceCountForToastRef = useRef(insuranceCount);
   const isInitialMountInsuranceToastRef = useRef(true);
@@ -509,8 +510,8 @@ const CountrySlider = () => {
 
 
   useEffect(() => {
-  sessionStorage.setItem("popupSessionStatus", "hidden");
-}, []);
+    sessionStorage.setItem("popupSessionStatus", "hidden");
+  }, []);
 
   useEffect(() => {
     if (selectedVisaType) {
@@ -606,14 +607,14 @@ const CountrySlider = () => {
         const errors = validateDates(
           arrivalDate || initialArrivalDate,
           departureDate ||
-            (arrivalDate
-              ? computeDefaultDeparture(arrivalDate)
-              : initialDepartureDate),
+          (arrivalDate
+            ? computeDefaultDeparture(arrivalDate)
+            : initialDepartureDate),
           selectedVisaType
         );
         setDateValidationErrors(errors);
       }
-    } catch {}
+    } catch { }
   }, [
     arrivalDate,
     departureDate,
@@ -947,7 +948,7 @@ const CountrySlider = () => {
         }
         return;
       }
-      
+
       // Use requestAnimationFrame to ensure layout is calculated
       requestAnimationFrame(() => {
         // Manually calculate scroll position to avoid affecting main page scroll
@@ -955,10 +956,10 @@ const CountrySlider = () => {
         const thumbnailRect = activeThumbnail.getBoundingClientRect();
         const containerWidth = containerRect.width;
         const thumbnailWidth = thumbnailRect.width;
-        
+
         let targetScrollLeft;
         let useFallback = false;
-        
+
         // Check if getBoundingClientRect returned valid values
         if (containerWidth > 0 && thumbnailWidth > 0 && thumbnailRect.width > 0) {
           // Use getBoundingClientRect calculation (preferred method)
@@ -977,13 +978,13 @@ const CountrySlider = () => {
           const thumbnailCenter = thumbnailLeft + estimatedThumbnailWidth / 2;
           targetScrollLeft = thumbnailCenter - (containerWidth > 0 ? containerWidth : container.clientWidth) / 2;
         }
-        
+
         // Ensure targetScrollLeft is valid
         if (typeof targetScrollLeft === 'number' && !isNaN(targetScrollLeft)) {
           // Clamp to valid scroll range
           const maxScroll = Math.max(0, container.scrollWidth - (containerWidth > 0 ? containerWidth : container.clientWidth));
           targetScrollLeft = Math.max(0, Math.min(targetScrollLeft, maxScroll));
-          
+
           // Try scrollTo first, with fallback to direct scrollLeft assignment
           if (container.scrollTo) {
             try {
@@ -1009,7 +1010,7 @@ const CountrySlider = () => {
     // Add a delay to ensure images are loaded and layout is settled
     // Use longer delay for production builds where images may load slower
     const timeoutId = setTimeout(() => scrollToActiveThumbnail(0), 100);
-    
+
     return () => clearTimeout(timeoutId);
   }, [currentIndex]);
 
@@ -1102,7 +1103,7 @@ const CountrySlider = () => {
   // Memoize calculateFinalPrice to prevent recalculation on every render
   const finalPrice = useMemo(() => {
     // Apply gift card benefits: reduce effective counts for calculation
-    const effectiveTravelers = giftCardRedeemed && travelers > 0 
+    const effectiveTravelers = giftCardRedeemed && travelers > 0
       ? Math.max(0, travelers - (giftCardBenefits?.freeTraveler || 0))
       : travelers;
     const effectiveInsuranceCountForCalc = giftCardRedeemed && insuranceCount > 0
@@ -1198,7 +1199,7 @@ const CountrySlider = () => {
   // Memoize calculateVisaAndInsurancePrice
   const visaAndInsurancePrice = useMemo(() => {
     // Apply gift card benefits: reduce effective counts for calculation
-    const effectiveTravelers = giftCardRedeemed && travelers > 0 
+    const effectiveTravelers = giftCardRedeemed && travelers > 0
       ? Math.max(0, travelers - (giftCardBenefits?.freeTraveler || 0))
       : travelers;
     const effectiveInsuranceCountForCalc = giftCardRedeemed && insuranceCount > 0
@@ -1278,7 +1279,7 @@ const CountrySlider = () => {
   // Memoize visa-only price (without insurance) for traveller card display
   const visaOnlyPrice = useMemo(() => {
     // Apply gift card benefits: reduce effective count for calculation
-    const effectiveTravelers = giftCardRedeemed && travelers > 0 
+    const effectiveTravelers = giftCardRedeemed && travelers > 0
       ? Math.max(0, travelers - (giftCardBenefits?.freeTraveler || 0))
       : travelers;
 
@@ -1486,7 +1487,7 @@ const CountrySlider = () => {
       try {
         // First validate the gift card code
         const validateResponse = await validateGiftCardCode(codeUpper);
-        
+
         if (validateResponse.status === "ERROR" || !validateResponse.data?.results?.valid) {
           setCouponError(validateResponse.message || "Invalid gift card code");
           setIsRedeemingGiftCard(false);
@@ -1499,13 +1500,13 @@ const CountrySlider = () => {
         // Handle different response structures
         const isSuccess = redeemResponse.status === "SUCCESS" || redeemResponse.status === "success";
         const hasSuccessData = redeemResponse.data?.success || redeemResponse.data?.results?.success;
-        
+
         if (isSuccess && hasSuccessData) {
           // Store gift card benefits in Redux - add to array of redeemed cards
           // Benefits are now based on quantity from backend (e.g., 2 gift cards = 2 free travelers + 2 free insurance)
           const benefits = redeemResponse.data?.benefits || redeemResponse.data?.results?.benefits || { freeTraveler: 1, freeInsurance: 1 };
           const quantity = redeemResponse.data?.giftCard?.quantity || redeemResponse.data?.results?.giftCard?.quantity || 1;
-          
+
           // Check if this code is already redeemed
           const alreadyRedeemed = redeemedGiftCards.some(card => card.code === codeUpper);
           if (alreadyRedeemed) {
@@ -1513,7 +1514,7 @@ const CountrySlider = () => {
             setIsRedeemingGiftCard(false);
             return;
           }
-          
+
           dispatch(addRedeemedGiftCard({
             code: codeUpper,
             benefits,
@@ -1521,7 +1522,7 @@ const CountrySlider = () => {
           }));
           setCouponCodeLocal(""); // Clear input after successful redemption
           setCouponError(""); // Clear any error
-          
+
           // Dynamic success message based on actual benefits
           const freeTravelerCount = benefits.freeTraveler || 1;
           const freeInsuranceCount = benefits.freeInsurance || 1;
@@ -1579,8 +1580,8 @@ const CountrySlider = () => {
       selectedVisaType && selectedVisaType.priceGBP
         ? Number(selectedVisaType.priceGBP)
         : selectedVisaType && selectedVisaType.price
-        ? Math.round(Number(selectedVisaType.price) / 100)
-        : baseFee;
+          ? Math.round(Number(selectedVisaType.price) / 100)
+          : baseFee;
     const currentVisaFees = currentBaseFee * travelers;
     const calculatedDiscountAmount =
       (currentVisaFees * discount.percentage) / 100;
@@ -1671,7 +1672,7 @@ const CountrySlider = () => {
     dispatch(clearRedeemedGiftCards());
     // email verification reset not required
   };
-  
+
   const removeGiftCard = (code) => {
     dispatch(removeRedeemedGiftCard(code));
     showSuccess(`Gift card ${code} removed.`);
@@ -1694,8 +1695,8 @@ const CountrySlider = () => {
             selectedVisaType && selectedVisaType.priceGBP
               ? Number(selectedVisaType.priceGBP)
               : selectedVisaType && selectedVisaType.price
-              ? Math.round(Number(selectedVisaType.price) / 100)
-              : baseFee;
+                ? Math.round(Number(selectedVisaType.price) / 100)
+                : baseFee;
           const currentVisaFees = currentBaseFee * travelers;
           const calculatedDiscountAmount = (currentVisaFees * 20) / 100;
 
@@ -2367,54 +2368,84 @@ const CountrySlider = () => {
     return () => clearInterval(interval);
   }, [expressPaymentData.totalAmount, travelers, expressPaymentData.includeInsurance]);
 
-useEffect(() => {
+  // Smoothly navigating to Required Documents section
+
+  useEffect(() => {
     const handleScrollAndHighlight = () => {
       if (window.location.hash === "#required-documents" && requiredDocumentRef.current) {
-        
-        setTimeout(() => {
-        setIsHighlighted(true);
-        console.log("Highlighting ON");
 
         setTimeout(() => {
-          setIsHighlighted(false);
-          console.log("Highlighting OFF");
-        }, 3000); 
+          setIsHighlighted(true);
+          console.log("Highlighting ON");
 
-      }, 800); 
+          setTimeout(() => {
+            setIsHighlighted(false);
+            console.log("Highlighting OFF");
+          }, 3000);
+
+        }, 800);
       }
     };
 
     handleScrollAndHighlight();
 
     router.events.on('routeChangeComplete', handleScrollAndHighlight);
-    
+
     return () => {
       router.events.off('routeChangeComplete', handleScrollAndHighlight);
     };
   }, [router]);
 
   useEffect(() => {
-  const handleHashChange = () => {
-    if (window.location.hash === '#required-documents') {
-      setDocumentsAccordionOpen(true);
-      
-      setTimeout(() => {
-        const element = document.getElementById('required-documents');
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth' });
-        }
-      }, 100);
-    }
-  };
+    const handleHashChange = () => {
+      if (window.location.hash === '#required-documents') {
+        setDocumentsAccordionOpen(true);
 
-  handleHashChange();
+        setTimeout(() => {
+          const element = document.getElementById('required-documents');
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth' });
+          }
+        }, 100);
+      }
+    };
 
-  window.addEventListener('hashchange', handleHashChange);
-  return () => window.removeEventListener('hashchange', handleHashChange);
-}, []);
+    handleHashChange();
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  // Smoothly navigating to Main section 
+
+  useEffect(() => {
+    const handleScrollAndHighlight = () => {
+      if (window.location.hash === "#add-to-cart" && mainSectionRef.current) {
+
+        setTimeout(() => {
+          setIsHighlighted(true);
+          console.log("Highlighting ON");
+
+          setTimeout(() => {
+            setIsHighlighted(false);
+            console.log("Highlighting OFF");
+          }, 3000);
+
+        }, 800);
+      }
+    };
+
+    handleScrollAndHighlight();
+
+    router.events.on('routeChangeComplete', handleScrollAndHighlight);
+
+    return () => {
+      router.events.off('routeChangeComplete', handleScrollAndHighlight);
+    };
+  }, [router]);
 
   return (
-    <div className="w-full max-w-[1300px] gap-20 max-lg:flex-col max-lg:gap-10 flex items-start justify-center mt-5 px-5 max-sm:px-3">
+    <div className="w-full max-w-[1300px] gap-20 max-lg:flex-col max-lg:gap-10 flex items-start justify-center px-5 max-sm:px-3">
       {/* System Alerts */}
       <SimpleAlert
         isOpen={alertState.isOpen}
@@ -2441,15 +2472,15 @@ useEffect(() => {
       <div className="w-full gap-3 flex flex-col items-start lg:max-w-[60%] max-sm:gap-4">
         {/* Badges Section */}
         <section className="text-center text-white rounded-2xl p-2 w-full max-sm:p-1">
-          <div className="w-full flex justify-start items-center gap-2 px-3 max-sm:flex-col max-sm:gap-3 max-sm:px-1">
-            <button className="bg-[#24242D] border border-white px-6 py-[10px] rounded-full font-medium text-white select-none transition-colors relative overflow-hidden max-sm:w-full max-sm:px-4 max-sm:py-3">
-              <span className="relative z-10 font-bold text-[22px] leading-none max-sm:text-[18px]">
+          <div className="w-full hidden md:flex justify-start items-center gap-2 px-3 max-sm:gap-3 max-sm:px-1">
+            <button className="bg-[#24242D] border border-white px-4 py-[10px] rounded-full font-medium text-white select-none transition-colors relative overflow-hidden max-sm:w-full max-sm:px-4 max-sm:py-3">
+              <span className="relative z-10 font-bold text-[22px] leading-none max-sm:text-[15px]">
                 {sliderContent["badge_1_text"]}
               </span>
             </button>
 
-            <button className="bg-[#24242D] border border-white px-6 py-[10px] rounded-full font-medium text-white select-none transition-colors relative overflow-hidden max-sm:w-full max-sm:px-4 max-sm:py-3">
-              <span className="relative z-10 font-bold text-[22px] leading-none max-sm:text-[18px]">
+            <button className="bg-[#24242D] border border-white px-4 py-[10px] rounded-full font-medium text-white select-none transition-colors relative overflow-hidden max-sm:w-full max-sm:px-4 max-sm:py-3">
+              <span className="relative z-10 font-bold text-[22px] leading-none max-sm:text-[15px]">
                 {sliderContent["badge_2_text"]}
               </span>
             </button>
@@ -2617,7 +2648,7 @@ useEffect(() => {
                     priority
                   />
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6 max-sm:p-4">
-                    <h3 className="text-2xl font-gilroy-bold text-white max-sm:text-xl">
+                    <h3 className="text-2xl font-gilroy-bold text-white max-sm:text-xl mb-5">
                       {countries[currentIndex].name}
                     </h3>
                   </div>
@@ -2648,11 +2679,10 @@ useEffect(() => {
                       setCurrentIndex(index);
                       resetTimer();
                     }}
-                    className={`w-2.5 h-2.5 cursor-pointer rounded-full transition-all max-sm:w-2 max-sm:h-2 ${
-                      index === currentIndex
+                    className={`w-2.5 h-2.5 cursor-pointer rounded-full transition-all max-sm:w-2 max-sm:h-2 ${index === currentIndex
                         ? "bg-white w-6 max-sm:w-4"
                         : "bg-white/50"
-                    }`}
+                      }`}
                     aria-label={`Go to slide ${index + 1}`}
                   />
                 ))}
@@ -2660,7 +2690,7 @@ useEffect(() => {
             </div>
 
             {/* Thumbnails for slider navigation */}
-            <div 
+            <div
               ref={thumbnailContainerRef}
               className="flex justify-start gap-2 max-lg:hidden mt-8 overflow-x-auto overflow-y-hidden w-full max-sm:mt-4 px-4"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
@@ -2676,17 +2706,16 @@ useEffect(() => {
                     setCurrentIndex(index);
                     resetTimer();
                   }}
-                  className={`w-20 aspect-square object-cover cursor-pointer rounded-xl border-2 transition-all max-sm:w-12 max-sm:rounded-lg ${
-                    index === currentIndex
+                  className={`w-20 aspect-square object-cover cursor-pointer rounded-xl border-2 transition-all max-sm:w-12 max-sm:rounded-lg ${index === currentIndex
                       ? "border-[#7350FF]"
                       : "border-white opacity-70 hover:opacity-100"
-                  }`}
+                    }`}
                   priority
                   style={{ boxSizing: "border-box" }}
                 />
               ))}
             </div>
-            <p className="text-[18px] mt-8 text-white font-gilroy-bold text-center max-sm:text-[16px] max-sm:mt-4">
+            <p className="text-[18px] hidden md:block mt-8 text-white font-gilroy-bold text-center max-sm:text-[16px] max-sm:mt-8">
               {sliderContent["urgent_note_text"]}
             </p>
           </section>
@@ -2711,7 +2740,7 @@ useEffect(() => {
         </section>
 
         {/* Main Content Section */}
-        <section className="bg-[#24242D] text-white rounded-2xl p-6 w-full max-sm:p-4">
+        <section ref={mainSectionRef} id="add-to-cart" className="bg-[#24242D] text-white rounded-2xl p-6 w-full max-sm:p-4">
           <div className="w-full">
             {/* Header with pricing */}
             <div className="mb-6 max-sm:mb-4">
@@ -2781,67 +2810,67 @@ useEffect(() => {
           </div>
 
           <div className="mb-6 max-sm:mb-4">
-                <div className="space-y-4 font-gilroy-medium !font-semibold max-sm:space-y-3">
-                  {/* Auto-booking */}
-                  <div className="flex items-center justify-between max-sm:items-start max-sm:gap-2">
-                    <div className="flex items-center space-x-3 max-sm:space-x-2">
-                      <div className="w-10 aspect-square rounded-lg flex items-center justify-center max-sm:w-8 overflow-hidden">
-                        <Image
-                          src="/image/calendar.jpg"
-                          alt="Calendar"
-                          width={40}
-                          height={40}
-                          className="max-sm:w-6 max-sm:h-6"
-                          priority
-                        />
-                      </div>
-                      <div>
-                        <h3 className="max-sm:text-sm">
-                          Auto-booking appointment
-                        </h3>
-                      </div>
-                    </div>
-                    <div className="flex gap-[2px] items-center max-sm:flex-shrink-0">
-                      <span className="line-through max-sm:text-sm">£100</span>
-                      <span className="ml-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium max-sm:ml-1 max-sm:px-2 max-sm:py-0.5 max-sm:text-xs">
-                        Free
-                      </span>
-                    </div>
+            <div className="space-y-4 font-gilroy-medium !font-semibold max-sm:space-y-3">
+              {/* Auto-booking */}
+              <div className="flex items-center justify-between max-sm:items-start max-sm:gap-2">
+                <div className="flex items-center space-x-3 max-sm:space-x-2">
+                  <div className="w-10 aspect-square rounded-lg flex items-center justify-center max-sm:w-8 overflow-hidden">
+                    <Image
+                      src="/image/calendar.jpg"
+                      alt="Calendar"
+                      width={40}
+                      height={40}
+                      className="max-sm:w-6 max-sm:h-6"
+                      priority
+                    />
                   </div>
-
-                  {/* Concierge assistance */}
-                  <div className="flex items-center justify-between max-sm:items-start max-sm:gap-2">
-                    <div className="flex items-center space-x-3 max-sm:space-x-2">
-                      <div className="w-10 aspect-square rounded-lg flex items-center justify-center max-sm:w-8 overflow-hidden">
-                        <Image
-                          src="/image/flights.jpg"
-                          alt="Flights"
-                          width={40}
-                          height={40}
-                          className="w-10 aspect-square max-sm:w-6 max-sm:h-6"
-                          priority
-                        />
-                      </div>
-                      <div>
-                        <h3 className="max-sm:text-sm">Concierge assistance</h3>
-                      </div>
-                    </div>
-                    <div className="flex gap-[2px] items-center max-sm:flex-shrink-0">
-                      <span className="line-through max-sm:text-sm">£35</span>
-                      <span className="ml-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium max-sm:ml-1 max-sm:px-2 max-sm:py-0.5 max-sm:text-xs">
-                        Free
-                      </span>
-                    </div>
+                  <div>
+                    <h3 className="max-sm:text-sm">
+                      Auto-booking appointment
+                    </h3>
                   </div>
                 </div>
+                <div className="flex gap-[2px] items-center max-sm:flex-shrink-0">
+                  <span className="line-through max-sm:text-sm">£100</span>
+                  <span className="ml-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium max-sm:ml-1 max-sm:px-2 max-sm:py-0.5 max-sm:text-xs">
+                    Free
+                  </span>
+                </div>
               </div>
+
+              {/* Concierge assistance */}
+              <div className="flex items-center justify-between max-sm:items-start max-sm:gap-2">
+                <div className="flex items-center space-x-3 max-sm:space-x-2">
+                  <div className="w-10 aspect-square rounded-lg flex items-center justify-center max-sm:w-8 overflow-hidden">
+                    <Image
+                      src="/image/flights.jpg"
+                      alt="Flights"
+                      width={40}
+                      height={40}
+                      className="w-10 aspect-square max-sm:w-6 max-sm:h-6"
+                      priority
+                    />
+                  </div>
+                  <div>
+                    <h3 className="max-sm:text-sm">Concierge assistance</h3>
+                  </div>
+                </div>
+                <div className="flex gap-[2px] items-center max-sm:flex-shrink-0">
+                  <span className="line-through max-sm:text-sm">£35</span>
+                  <span className="ml-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium max-sm:ml-1 max-sm:px-2 max-sm:py-0.5 max-sm:text-xs">
+                    Free
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
 
           <div className="w-full">
             <p className="text-sm mb-4 max-sm:text-xs max-sm:mb-3">
               Dates are required for visa processing only and can be changed
               later within visa validity period.
             </p>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 items-start max-sm:gap-3">
               <div className="w-full">
                 {(() => {
@@ -2851,28 +2880,28 @@ useEffect(() => {
                   const fourWeeksFromNow = new Date();
                   fourWeeksFromNow.setHours(0, 0, 0, 0);
                   fourWeeksFromNow.setDate(today.getDate() + 28);
-                  
+
                   // Check if valid dates are at the end of the month
                   const firstValidDate = fourWeeksFromNow;
                   const firstValidDay = firstValidDate.getDate();
                   const firstValidMonth = firstValidDate.getMonth();
                   const firstValidYear = firstValidDate.getFullYear();
-                  
+
                   // Get the last day of the month for the first valid date
                   const lastDayOfMonth = new Date(firstValidYear, firstValidMonth + 1, 0).getDate();
-                  
+
                   // Check if valid dates are in the last few days of the month (day >= 28)
                   // This means there are only a few valid dates left in the current month
                   const validDatesAtEndOfMonth = firstValidDay >= 28;
-                  
+
                   // Calculate openToDate to show next month if valid dates are at end of current month
                   let openToDate = null;
-                  
+
                   if (validDatesAtEndOfMonth) {
                     // Show next month's calendar instead
                     openToDate = new Date(firstValidYear, firstValidMonth + 1, 1);
                   }
-                  
+
                   return (
                     <CommonDatePicker
                       label={"Start date"}
@@ -2955,13 +2984,11 @@ useEffect(() => {
           <ClientOnly>
             <div className="mt-6" data-documents-section id="required-documents" ref={requiredDocumentRef}>
               <div
-                className={`bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden transition-all duration-300 hover:bg-white/10 ${
-                  validationErrors.size > 0
+                className={`bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden transition-all duration-300 hover:bg-white/10 ${validationErrors.size > 0
                     ? "!bg-red-500/10 border !border-red-500 shadow-lg"
                     : ""
-                } ${
-        isHighlighted ? "bg-white/80 border-white" : ""
-      }`}
+                  } ${isHighlighted ? "bg-white/80 border-white" : ""
+                  }`}
               >
                 <h2
                   className={`text-xl font-gilroy-bold p-4 cursor-pointer flex items-center justify-between hover:bg-white/5 transition-all duration-200 max-sm:p-3 max-sm:text-lg`}
@@ -2980,9 +3007,8 @@ useEffect(() => {
                     </div>
                   </span>
                   <div
-                    className={`transform transition-transform duration-300 ${
-                      documentsAccordionOpen ? "rotate-180" : "rotate-0"
-                    }`}
+                    className={`transform transition-transform duration-300 ${documentsAccordionOpen ? "rotate-180" : "rotate-0"
+                      }`}
                   >
                     <svg
                       width="16"
@@ -3004,32 +3030,29 @@ useEffect(() => {
                 </h2>
 
                 <div
-                  className={`transition-all duration-300 ease-in-out ${
-                    documentsAccordionOpen
+                  className={`transition-all duration-300 ease-in-out ${documentsAccordionOpen
                       ? "max-h-[600px] opacity-100"
                       : "max-h-0 opacity-0"
-                  }`}
+                    }`}
                 >
                   <div className="px-4 pb-4 max-sm:px-3 max-sm:pb-3">
                     <div className="h-px bg-white/10 mb-4"></div>
                     <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1 max-sm:gap-2">
                       {/* Passport */}
                       <div
-                        className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border max-sm:p-2 ${
-                          requiredDocuments.passport
+                        className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border max-sm:p-2 ${requiredDocuments.passport
                             ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
                             : validationErrors.has("passport")
-                            ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
-                            : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
-                        }`}
+                              ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
+                              : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
+                          }`}
                         onClick={() => toggleRequiredDocument("passport")}
                       >
                         <div
-                          className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all max-sm:w-4 max-sm:h-4 ${
-                            requiredDocuments.passport
+                          className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all max-sm:w-4 max-sm:h-4 ${requiredDocuments.passport
                               ? "bg-[#7350FF] border-2 border-[#7350FF]"
                               : "bg-transparent border-2 border-white/40"
-                          }`}
+                            }`}
                         >
                           {requiredDocuments.passport && (
                             <Check className="w-3 h-3 text-white max-sm:w-2.5 max-sm:h-2.5" />
@@ -3047,21 +3070,19 @@ useEffect(() => {
 
                       {/* UK Visa */}
                       <div
-                        className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border max-sm:p-2 ${
-                          requiredDocuments.ukVisa
+                        className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border max-sm:p-2 ${requiredDocuments.ukVisa
                             ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
                             : validationErrors.has("ukVisa")
-                            ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
-                            : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
-                        }`}
+                              ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
+                              : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
+                          }`}
                         onClick={() => toggleRequiredDocument("ukVisa")}
                       >
                         <div
-                          className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all max-sm:w-4 max-sm:h-4 ${
-                            requiredDocuments.ukVisa
+                          className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all max-sm:w-4 max-sm:h-4 ${requiredDocuments.ukVisa
                               ? "bg-[#7350FF] border-2 border-[#7350FF]"
                               : "bg-transparent border-2 border-white/40"
-                          }`}
+                            }`}
                         >
                           {requiredDocuments.ukVisa && (
                             <Check className="w-3 h-3 text-white max-sm:w-2.5 max-sm:h-2.5" />
@@ -3079,21 +3100,19 @@ useEffect(() => {
 
                       {/* Photos */}
                       <div
-                        className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border max-sm:p-2 ${
-                          requiredDocuments.photos
+                        className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border max-sm:p-2 ${requiredDocuments.photos
                             ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
                             : validationErrors.has("photos")
-                            ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
-                            : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
-                        }`}
+                              ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
+                              : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
+                          }`}
                         onClick={() => toggleRequiredDocument("photos")}
                       >
                         <div
-                          className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all max-sm:w-4 max-sm:h-4 ${
-                            requiredDocuments.photos
+                          className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all max-sm:w-4 max-sm:h-4 ${requiredDocuments.photos
                               ? "bg-[#7350FF] border-2 border-[#7350FF]"
                               : "bg-transparent border-2 border-white/40"
-                          }`}
+                            }`}
                         >
                           {requiredDocuments.photos && (
                             <Check className="w-3 h-3 text-white max-sm:w-2.5 max-sm:h-2.5" />
@@ -3111,21 +3130,19 @@ useEffect(() => {
 
                       {/* Bank Statements */}
                       <div
-                        className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border max-sm:p-2 ${
-                          requiredDocuments.bankStatements
+                        className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border max-sm:p-2 ${requiredDocuments.bankStatements
                             ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
                             : validationErrors.has("bankStatements")
-                            ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
-                            : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
-                        }`}
+                              ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
+                              : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
+                          }`}
                         onClick={() => toggleRequiredDocument("bankStatements")}
                       >
                         <div
-                          className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all max-sm:w-4 max-sm:h-4 ${
-                            requiredDocuments.bankStatements
+                          className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all max-sm:w-4 max-sm:h-4 ${requiredDocuments.bankStatements
                               ? "bg-[#7350FF] border-2 border-[#7350FF]"
                               : "bg-transparent border-2 border-white/40"
-                          }`}
+                            }`}
                         >
                           {requiredDocuments.bankStatements && (
                             <Check className="w-3 h-3 text-white max-sm:w-2.5 max-sm:h-2.5" />
@@ -3144,23 +3161,21 @@ useEffect(() => {
 
                       {/* Employment Proof */}
                       <div
-                        className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border max-sm:p-2 ${
-                          requiredDocuments.employmentProof
+                        className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border max-sm:p-2 ${requiredDocuments.employmentProof
                             ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
                             : validationErrors.has("employmentProof")
-                            ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
-                            : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
-                        }`}
+                              ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
+                              : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
+                          }`}
                         onClick={() =>
                           toggleRequiredDocument("employmentProof")
                         }
                       >
                         <div
-                          className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all max-sm:w-4 max-sm:h-4 ${
-                            requiredDocuments.employmentProof
+                          className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all max-sm:w-4 max-sm:h-4 ${requiredDocuments.employmentProof
                               ? "bg-[#7350FF] border-2 border-[#7350FF]"
                               : "bg-transparent border-2 border-white/40"
-                          }`}
+                            }`}
                         >
                           {requiredDocuments.employmentProof && (
                             <Check className="w-3 h-3 text-white max-sm:w-2.5 max-sm:h-2.5" />
@@ -3179,19 +3194,17 @@ useEffect(() => {
 
                       {/* Insurance */}
                       <div
-                        className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border max-sm:p-2 ${
-                          requiredDocuments.insurance
+                        className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border max-sm:p-2 ${requiredDocuments.insurance
                             ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
                             : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
-                        }`}
+                          }`}
                         onClick={() => toggleRequiredDocument("insurance")}
                       >
                         <div
-                          className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all max-sm:w-4 max-sm:h-4 ${
-                            requiredDocuments.insurance
+                          className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all max-sm:w-4 max-sm:h-4 ${requiredDocuments.insurance
                               ? "bg-[#7350FF] border-2 border-[#7350FF]"
                               : "bg-transparent border-2 border-white/40"
-                          }`}
+                            }`}
                         >
                           {requiredDocuments.insurance && (
                             <Check className="w-3 h-3 text-white max-sm:w-2.5 max-sm:h-2.5" />
@@ -3214,376 +3227,372 @@ useEffect(() => {
           </ClientOnly>
 
           {/* Express Checkout Section */}
-            <div className="space-y-3 mt-6">
-              <div className="flex items-center justify-between">
+          <div className="space-y-3 mt-6">
+            <div className="flex items-center justify-between">
               <h2 className="font-medium text-lg max-sm:text-base  ">
-                  Express checkout
+                Express checkout
               </h2>
-                <div className="flex items-center gap-2 text-xs text-gray-400 ">
-                  <span className="flex items-center gap-1">
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="currentColor"
-                    >
-                      <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
-                    </svg>
-                    Apple Pay
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <svg width="14" height="14" viewBox="0 0 18 18">
-                      <g fill="none" fillRule="evenodd">
-                        <path
-                          fill="#4285F4"
-                          d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
-                        />
-                        <path
-                          fill="#34A853"
-                          d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"
-                        />
-                        <path
-                          fill="#FBBC05"
-                          d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"
-                        />
-                        <path
-                          fill="#EA4335"
-                          d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"
-                        />
-                      </g>
-                    </svg>
-                    Google Pay
-                  </span>
-                </div>
+              <div className="flex items-center gap-2 text-xs text-gray-400 ">
+                <span className="flex items-center gap-1">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
+                  </svg>
+                  Apple Pay
+                </span>
+                <span className="flex items-center gap-1">
+                  <svg width="14" height="14" viewBox="0 0 18 18">
+                    <g fill="none" fillRule="evenodd">
+                      <path
+                        fill="#4285F4"
+                        d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
+                      />
+                      <path
+                        fill="#34A853"
+                        d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"
+                      />
+                      <path
+                        fill="#FBBC05"
+                        d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"
+                      />
+                      <path
+                        fill="#EA4335"
+                        d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"
+                      />
+                    </g>
+                  </svg>
+                  Google Pay
+                </span>
               </div>
-
-             
-              <StripeProvider>
-                  {/* Hidden component that handles payment logic - buttons below trigger it */}
-                <ExpressPaymentRequestButton
-                    ref={expressPaymentButtonRef}
-                  amount={expressPaymentData.totalAmount}
-                    currency="GBP"
-                  email={userEmail}
-                  travellers={travelers}
-                  country={getCountryParam(selectedCountry) || "Germany"}
-                  includeInsurance={expressPaymentData.includeInsurance}
-                  insuranceCount={insuranceCount}
-                  insurancePaymentAmount={expressPaymentData.insurancePaymentAmount}
-                  visaTypeId={expressPaymentData.visaTypeId}
-                  paymentType={expressPaymentData.includeGiftCard ? "application_creation,gift_card" : "application_creation"}
-                  onBeforePayment={validateBeforeExpressPayment}
-                    visaFees={expressPaymentData.visaFees}
-                    insuranceFees={expressPaymentData.insuranceFees}
-                    giftCardFees={expressPaymentData.giftCardFees}
-                    includeGiftCard={expressPaymentData.includeGiftCard}
-                    giftCardCount={expressPaymentData.giftCardCount}
-                    hideUI={true} // Hide the Stripe button UI
-                    // Pass all values needed for localStorage/Redux setup (same as handleProceedToCheckout)
-                    subtotalGBP={expressPaymentData.subtotalGBP}
-                    discountedInsuranceFeesGBP={expressPaymentData.discountedInsuranceFeesGBP}
-                    visaFeesGBP={expressPaymentData.visaFeesGBP}
-                    couponCode={expressPaymentData.couponCode}
-                  />
-                  
-                  {/* Simple buttons that use the same trigger method as radio button */}
-                  {(() => {
-                    const isApplePayAvailable =
-                      availablePaymentMethods.applePay ||
-                      process.env.NODE_ENV === "development" ||
-                      process.env.NEXT_PUBLIC_NODE_ENV === "development";
-                    const isGooglePayAvailable =
-                    availablePaymentMethods.googlePay ||
-                    process.env.NODE_ENV === "development" ||
-                    process.env.NEXT_PUBLIC_NODE_ENV === "development";
-                    const availableCount = (isApplePayAvailable ? 1 : 0) + (isGooglePayAvailable ? 1 : 0);
-                    const gridCols = availableCount === 1 ? "grid-cols-1" : "grid-cols-2";
-                    
-                    return (
-                      <div className={`flex flex-col sm:flex-row items-center justify-between gap-2`}>
-                        {/* Apple Pay Button */}
-                        {isApplePayAvailable && (
-                          <button
-                            onClick={() => {
-                              if (!expressPaymentButtonRef.current?.triggerPaymentRequest) {
-                                showError(
-                                  "Payment system is not initialized. Please refresh and try again."
-                                );
-                                return;
-                              }
-
-                              const triggerResult =
-                                expressPaymentButtonRef.current.triggerPaymentRequest();
-                              if (!triggerResult?.success) {
-                                const fallbackMessage =
-                                  triggerResult?.message ||
-                                  "Apple Pay is not available on this device. Please select another payment method.";
-                                showError(fallbackMessage);
-                              }
-                            }}
-                            className="group relative flex items-center justify-center bg-black text-white rounded-full px-[20px] py-3.5 text-sm font-medium hover:opacity-90 transition-all duration-200 shadow-sm w-full max-sm:py-2.5"
-                            style={{
-                              backgroundColor: "#000",
-                              minHeight: "44px",
-                              border: "1px solid rgba(255,255,255,0.1)",
-                            }}
-                          >
-                            <div className="flex items-center gap-2">
-                            <svg
-                                width="25"
-                                height="25"
-                                viewBox="0 0 24 24"
-                                fill="currentColor"
-                                className="shrink-0 max-sm:w-4 max-sm:h-4"
-                              >
-                                <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
-                              </svg>
-                              <span className="font-bold tracking-wide text-white text-lg">
-                                Pay
-                              </span>
-                            </div>
-                          </button>
-                        )}
-
-                        {/* Google Pay Button */}
-                        {isGooglePayAvailable && (
-                          <button
-                            onClick={() => {
-                              if (!expressPaymentButtonRef.current?.triggerPaymentRequest) {
-                                showError(
-                                  "Payment system is not initialized. Please refresh and try again."
-                                );
-                                return;
-                              }
-
-                              const triggerResult =
-                                expressPaymentButtonRef.current.triggerPaymentRequest();
-                              if (!triggerResult?.success) {
-                                const fallbackMessage =
-                                  triggerResult?.message ||
-                                  "Google Pay is not available on this device. Please select another payment method.";
-                                showError(fallbackMessage);
-                              }
-                            }}
-                            className="group relative flex items-center justify-center bg-white text-gray-800 rounded-full px-[20px] py-3.5 text-sm font-medium hover:shadow-md transition-all duration-200 shadow-sm border border-gray-200 w-full max-sm:py-2.5"
-                            style={{
-                              minHeight: "44px",
-                              maxHeight: "44px",
-                              background: "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)",
-                            }}
-                          >
-                            <div className="flex items-center gap-2">
-                              <svg
-                                width="18"
-                                height="18"
-                                viewBox="0 0 18 18"
-                                className="shrink-0 max-sm:w-4 max-sm:h-4"
-                              >
-                                <g fill="none" fillRule="evenodd">
-                                  <path
-                                    fill="#4285F4"
-                                    d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
-                                  />
-                                  <path
-                                    fill="#34A853"
-                                    d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"
-                                  />
-                                  <path
-                                    fill="#FBBC05"
-                                    d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"
-                                  />
-                                  <path
-                                    fill="#EA4335"
-                                    d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"
-                                  />
-                                </g>
-                              </svg>
-                              <span className="font-bold tracking-wide text-gray-700 text-lg">
-                                Pay
-                              </span>
-                            </div>
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })()}
-              </StripeProvider>
             </div>
 
-            {/* Free Offer Banner */}
-            <div className="border rounded-3xl border-white/20 bg-white/5 backdrop-blur-sm overflow-hidden max-sm:rounded-2xl mt-6">
-              <div className="flex items-center gap-4 p-4 border-b border-white/10 max-sm:p-3 max-sm:gap-3">
-                <div
-                  className="h-4 w-4 rounded-full 
+
+            <StripeProvider>
+              {/* Hidden component that handles payment logic - buttons below trigger it */}
+              <ExpressPaymentRequestButton
+                ref={expressPaymentButtonRef}
+                amount={expressPaymentData.totalAmount}
+                currency="GBP"
+                email={userEmail}
+                travellers={travelers}
+                country={getCountryParam(selectedCountry) || "Germany"}
+                includeInsurance={expressPaymentData.includeInsurance}
+                insuranceCount={insuranceCount}
+                insurancePaymentAmount={expressPaymentData.insurancePaymentAmount}
+                visaTypeId={expressPaymentData.visaTypeId}
+                paymentType={expressPaymentData.includeGiftCard ? "application_creation,gift_card" : "application_creation"}
+                onBeforePayment={validateBeforeExpressPayment}
+                visaFees={expressPaymentData.visaFees}
+                insuranceFees={expressPaymentData.insuranceFees}
+                giftCardFees={expressPaymentData.giftCardFees}
+                includeGiftCard={expressPaymentData.includeGiftCard}
+                giftCardCount={expressPaymentData.giftCardCount}
+                hideUI={true} // Hide the Stripe button UI
+                // Pass all values needed for localStorage/Redux setup (same as handleProceedToCheckout)
+                subtotalGBP={expressPaymentData.subtotalGBP}
+                discountedInsuranceFeesGBP={expressPaymentData.discountedInsuranceFeesGBP}
+                visaFeesGBP={expressPaymentData.visaFeesGBP}
+                couponCode={expressPaymentData.couponCode}
+              />
+
+              {/* Simple buttons that use the same trigger method as radio button */}
+              {(() => {
+                const isApplePayAvailable =
+                  availablePaymentMethods.applePay ||
+                  process.env.NODE_ENV === "development" ||
+                  process.env.NEXT_PUBLIC_NODE_ENV === "development";
+                const isGooglePayAvailable =
+                  availablePaymentMethods.googlePay ||
+                  process.env.NODE_ENV === "development" ||
+                  process.env.NEXT_PUBLIC_NODE_ENV === "development";
+                const availableCount = (isApplePayAvailable ? 1 : 0) + (isGooglePayAvailable ? 1 : 0);
+                const gridCols = availableCount === 1 ? "grid-cols-1" : "grid-cols-2";
+
+                return (
+                  <div className={`flex flex-col sm:flex-row items-center justify-between gap-2`}>
+                    {/* Apple Pay Button */}
+                    {isApplePayAvailable && (
+                      <button
+                        onClick={() => {
+                          if (!expressPaymentButtonRef.current?.triggerPaymentRequest) {
+                            showError(
+                              "Payment system is not initialized. Please refresh and try again."
+                            );
+                            return;
+                          }
+
+                          const triggerResult =
+                            expressPaymentButtonRef.current.triggerPaymentRequest();
+                          if (!triggerResult?.success) {
+                            const fallbackMessage =
+                              triggerResult?.message ||
+                              "Apple Pay is not available on this device. Please select another payment method.";
+                            showError(fallbackMessage);
+                          }
+                        }}
+                        className="group relative flex items-center justify-center bg-black text-white rounded-full px-[20px] py-3.5 text-sm font-medium hover:opacity-90 transition-all duration-200 shadow-sm w-full max-sm:py-2.5"
+                        style={{
+                          backgroundColor: "#000",
+                          minHeight: "44px",
+                          border: "1px solid rgba(255,255,255,0.1)",
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <svg
+                            width="25"
+                            height="25"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            className="shrink-0 max-sm:w-4 max-sm:h-4"
+                          >
+                            <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
+                          </svg>
+                          <span className="font-bold tracking-wide text-white text-lg">
+                            Pay
+                          </span>
+                        </div>
+                      </button>
+                    )}
+
+                    {/* Google Pay Button */}
+                    {isGooglePayAvailable && (
+                      <button
+                        onClick={() => {
+                          if (!expressPaymentButtonRef.current?.triggerPaymentRequest) {
+                            showError(
+                              "Payment system is not initialized. Please refresh and try again."
+                            );
+                            return;
+                          }
+
+                          const triggerResult =
+                            expressPaymentButtonRef.current.triggerPaymentRequest();
+                          if (!triggerResult?.success) {
+                            const fallbackMessage =
+                              triggerResult?.message ||
+                              "Google Pay is not available on this device. Please select another payment method.";
+                            showError(fallbackMessage);
+                          }
+                        }}
+                        className="group relative flex items-center justify-center bg-white text-gray-800 rounded-full px-[20px] py-3.5 text-sm font-medium hover:shadow-md transition-all duration-200 shadow-sm border border-gray-200 w-full max-sm:py-2.5"
+                        style={{
+                          minHeight: "44px",
+                          maxHeight: "44px",
+                          background: "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)",
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 18 18"
+                            className="shrink-0 max-sm:w-4 max-sm:h-4"
+                          >
+                            <g fill="none" fillRule="evenodd">
+                              <path
+                                fill="#4285F4"
+                                d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
+                              />
+                              <path
+                                fill="#34A853"
+                                d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"
+                              />
+                              <path
+                                fill="#FBBC05"
+                                d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"
+                              />
+                              <path
+                                fill="#EA4335"
+                                d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"
+                              />
+                            </g>
+                          </svg>
+                          <span className="font-bold tracking-wide text-gray-700 text-lg">
+                            Pay
+                          </span>
+                        </div>
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
+            </StripeProvider>
+          </div>
+
+          {/* Free Offer Banner */}
+          <div className="border rounded-3xl border-white/20 bg-white/5 backdrop-blur-sm overflow-hidden max-sm:rounded-2xl mt-6">
+            <div className="flex items-center gap-4 p-4 border-b border-white/10 max-sm:p-3 max-sm:gap-3">
+              <div
+                className="h-4 w-4 rounded-full 
               bg-purple-500
                min-w-4 animate-pulse max-sm:h-3 max-sm:w-3"
-                ></div>
-                <div>
-                  <span className="text-sm font-medium text-white max-sm:text-xs">
-                    {sliderContent["free_offer_banner_text"]}
-                  </span>
-                </div>
+              ></div>
+              <div>
+                <span className="text-sm font-medium text-white max-sm:text-xs">
+                  {sliderContent["free_offer_banner_text"]}
+                </span>
               </div>
-              <div className="p-4 max-sm:p-3">
-                <div className="grid grid-cols-3 gap-3 max-sm:gap-2">
-                  {/* August slots */}
-                  <div className="text-center">
-                    <div className="text-xs text-white/70 mb-2 font-medium max-sm:text-xs max-sm:mb-1">
-                      {sliderContent["slot1_label"]}
-                    </div>
-                    <div className="bg-[#1e1e27] rounded-full p-2 max-sm:p-1.5">
-                      <div className="text-xs text-white font-semibold max-sm:text-xs">
-                        {sliderContent["slot1_status"]}
-                      </div>
+            </div>
+            <div className="p-4 max-sm:p-3">
+              <div className="grid grid-cols-3 gap-3 max-sm:gap-2">
+                {/* August slots */}
+                <div className="text-center">
+                  <div className="text-xs text-white/70 mb-2 font-medium max-sm:text-xs max-sm:mb-1">
+                    {sliderContent["slot1_label"]}
+                  </div>
+                  <div className="bg-[#1e1e27] rounded-full p-2 max-sm:p-1.5">
+                    <div className="text-xs text-white font-semibold max-sm:text-xs">
+                      {sliderContent["slot1_status"]}
                     </div>
                   </div>
+                </div>
 
-                  {/* September slots */}
-                  <div className="text-center">
-                    <div className="text-xs text-white/70 mb-2 font-medium max-sm:text-xs max-sm:mb-1">
-                      {sliderContent["slot2_label"]}
-                    </div>
-                    <div className="bg-[#5a3ddb] rounded-full p-2 max-sm:p-1.5">
-                      <div className="text-xs text-white font-semibold max-sm:text-xs">
-                        {sliderContent["slot2_status"]}
-                      </div>
+                {/* September slots */}
+                <div className="text-center">
+                  <div className="text-xs text-white/70 mb-2 font-medium max-sm:text-xs max-sm:mb-1">
+                    {sliderContent["slot2_label"]}
+                  </div>
+                  <div className="bg-[#5a3ddb] rounded-full p-2 max-sm:p-1.5">
+                    <div className="text-xs text-white font-semibold max-sm:text-xs">
+                      {sliderContent["slot2_status"]}
                     </div>
                   </div>
+                </div>
 
-                  {/* October slots */}
-                  <div className="text-center">
-                    <div className="text-xs text-white/70 mb-2 font-medium max-sm:text-xs max-sm:mb-1">
-                      {sliderContent["slot3_label"]}
-                    </div>
-                    <div className="bg-[#1e1e27] rounded-full p-2 max-sm:p-1.5">
-                      <div className="text-xs text-white font-semibold max-sm:text-xs">
-                        {sliderContent["slot3_status"]}
-                      </div>
+                {/* October slots */}
+                <div className="text-center">
+                  <div className="text-xs text-white/70 mb-2 font-medium max-sm:text-xs max-sm:mb-1">
+                    {sliderContent["slot3_label"]}
+                  </div>
+                  <div className="bg-[#1e1e27] rounded-full p-2 max-sm:p-1.5">
+                    <div className="text-xs text-white font-semibold max-sm:text-xs">
+                      {sliderContent["slot3_status"]}
                     </div>
                   </div>
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Discount Code Section */}
-            <div className="space-y-3 mt-6">
-              <h2 className="font-medium text-lg max-sm:text-base">
-                Discount Code
-              </h2>
-              <div className="space-y-2">
-                <div className="flex space-x-2 max-sm:flex-col max-sm:space-x-0 max-sm:space-y-2">
-                  <div className="flex-1 max-sm:w-full">
-                    <input
-                      type="text"
-                      value={couponCode}
-                      onChange={(e) =>
-                        setCouponCodeLocal(e.target.value.toUpperCase())
-                      }
-                      placeholder="Enter coupon code (e.g., STUDENT10)"
-                      className={`w-full border ${
-                        (giftCardRedeemed || appliedDiscount)
-                          ? "border-green-400"
-                          : couponError 
-                            ? "border-red-400" 
-                            : "border-gray-500"
-                      } bg-[#24242D] text-white rounded-md p-2 text-sm max-sm:text-xs ${
-                        (giftCardRedeemed || appliedDiscount)
-                          ? "outline-none ring-2 ring-green-400"
-                          : couponError
-                            ? "outline-none ring-2 ring-red-400"
-                            : "focus:outline-none focus:ring-2 focus:ring-purple-500"
+          {/* Discount Code Section */}
+          <div className="space-y-3 mt-6">
+            <h2 className="font-medium text-lg max-sm:text-base">
+              Discount Code
+            </h2>
+            <div className="space-y-2">
+              <div className="flex space-x-2 max-sm:flex-col max-sm:space-x-0 max-sm:space-y-2">
+                <div className="flex-1 max-sm:w-full">
+                  <input
+                    type="text"
+                    value={couponCode}
+                    onChange={(e) =>
+                      setCouponCodeLocal(e.target.value.toUpperCase())
+                    }
+                    placeholder="Enter coupon code (e.g., STUDENT10)"
+                    className={`w-full border ${(giftCardRedeemed || appliedDiscount)
+                        ? "border-green-400"
+                        : couponError
+                          ? "border-red-400"
+                          : "border-gray-500"
+                      } bg-[#24242D] text-white rounded-md p-2 text-sm max-sm:text-xs ${(giftCardRedeemed || appliedDiscount)
+                        ? "outline-none ring-2 ring-green-400"
+                        : couponError
+                          ? "outline-none ring-2 ring-red-400"
+                          : "focus:outline-none focus:ring-2 focus:ring-purple-500"
                       }`}
-                      disabled={appliedDiscount || isRedeemingGiftCard}
-                    />
-                  </div>
-                  
-                  {!appliedDiscount ? (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        applyCouponCode();
-                      }}
-                      disabled={isRedeemingGiftCard}
-                      className="px-4 py-2 bg-white text-black text-sm rounded-md hover:bg-gray-200 transition-colors font-medium max-sm:text-xs max-sm:px-3 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isRedeemingGiftCard ? "Processing..." : "Apply"}
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        removeCoupon();
-                      }}
-                      className="px-4 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors max-sm:text-xs max-sm:px-3"
-                    >
-                      Remove
-                    </button>
-                  )}
+                    disabled={appliedDiscount || isRedeemingGiftCard}
+                  />
                 </div>
 
-                {couponError && (
-                  <span className="text-sm text-red-400 max-sm:text-xs">
-                    {couponError}
-                  </span>
-                )}
-
-                {appliedDiscount && (
-                  <div className="flex items-center space-x-2 text-sm text-green-400 bg-green-600/20 p-2 rounded-md max-sm:text-xs max-sm:p-1.5">
-                    <span>
-                      ✓ {appliedDiscount.description} (
-                      {appliedDiscount.percentage}% off) applied!
-                    </span>
-                  </div>
-                )}
-                <div className="text-xs text-gray-400">
-                  <p>Available discounts:</p>
-                  <p>
-                    • <span className="font-semibold">STUDENT10</span> - 10%
-                    student discount
-                  </p>
-                  <p>
-                    • <span className="font-semibold">GROUP20</span> - 20% group
-                    discount (3 or more travellers)
-                  </p>
-                </div>
-                {redeemedGiftCards.length > 0 && (
-                  <div className="space-y-2">
-                    {redeemedGiftCards.map((card) => {
-                      const freeTravelerCount = card.benefits?.freeTraveler || 0;
-                      const freeInsuranceCount = card.benefits?.freeInsurance || 0;
-                      const travelerText = freeTravelerCount === 1 ? "traveller" : "travellers";
-                      const insuranceText = freeInsuranceCount === 1 ? "insurance" : "insurances";
-                      return (
-                        <div key={card.code} className="flex items-center justify-between text-sm text-green-400 bg-green-600/20 p-2 rounded-md max-sm:text-xs max-sm:p-1.5">
-                          <span>
-                            ✓ Gift card {card.code} applied! {freeTravelerCount} free {travelerText} and {freeInsuranceCount} free {insuranceText}.
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => removeGiftCard(card.code)}
-                            className="ml-2 text-red-400 hover:text-red-300 text-xs font-medium"
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-                {isRedeemingGiftCard && (
-                  <div className="flex items-center space-x-2 text-sm text-blue-400 bg-blue-600/20 p-2 rounded-md max-sm:text-xs max-sm:p-1.5">
-                    <span>Validating gift card code...</span>
-                  </div>
+                {!appliedDiscount ? (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      applyCouponCode();
+                    }}
+                    disabled={isRedeemingGiftCard}
+                    className="px-4 py-2 bg-white text-black text-sm rounded-md hover:bg-gray-200 transition-colors font-medium max-sm:text-xs max-sm:px-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isRedeemingGiftCard ? "Processing..." : "Apply"}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      removeCoupon();
+                    }}
+                    className="px-4 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors max-sm:text-xs max-sm:px-3"
+                  >
+                    Remove
+                  </button>
                 )}
               </div>
-            </div>
 
-            <div className="text-xs max-sm:text-xs mt-2">
-              Student? Add your student email, we'll send verification email
-              there.
+              {couponError && (
+                <span className="text-sm text-red-400 max-sm:text-xs">
+                  {couponError}
+                </span>
+              )}
+
+
+              <div className="text-xs text-gray-400 my-2">
+                <p>Available discounts:</p>
+                <p>
+                  • <span className="font-semibold">STUDENT10</span> - 10%
+                  student discount
+                </p>
+                <p>
+                  • <span className="font-semibold">GROUP20</span> - 20% group
+                  discount (3 or more travellers)
+                </p>
+              </div>
+
+              {appliedDiscount && (
+                <div className="flex items-center space-x-2 text-sm text-green-400 bg-green-600/20 p-2 rounded-md max-sm:text-xs max-sm:p-1.5">
+                  <span>
+                    ✓ {appliedDiscount.description} (
+                    {appliedDiscount.percentage}% off) applied!
+                  </span>
+                </div>
+              )}
+
+              {redeemedGiftCards.length > 0 && (
+                <div className="space-y-2">
+                  {redeemedGiftCards.map((card) => {
+                    const freeTravelerCount = card.benefits?.freeTraveler || 0;
+                    const freeInsuranceCount = card.benefits?.freeInsurance || 0;
+                    const travelerText = freeTravelerCount === 1 ? "traveller" : "travellers";
+                    const insuranceText = freeInsuranceCount === 1 ? "insurance" : "insurances";
+                    return (
+                      <div key={card.code} className="flex items-center justify-between text-sm text-green-400 bg-green-600/20 p-2 rounded-md max-sm:text-xs max-sm:p-1.5">
+                        <span>
+                          ✓ Gift card {card.code} applied! {freeTravelerCount} free {travelerText} and {freeInsuranceCount} free {insuranceText}.
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeGiftCard(card.code)}
+                          className="ml-2 text-red-400 hover:text-red-300 text-xs font-medium"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {isRedeemingGiftCard && (
+                <div className="flex items-center space-x-2 text-sm text-blue-400 bg-blue-600/20 p-2 rounded-md max-sm:text-xs max-sm:p-1.5">
+                  <span>Validating gift card code...</span>
+                </div>
+              )}
             </div>
+          </div>
 
           {/* Recommended Section */}
           <div className="mt-4">
@@ -3592,158 +3601,121 @@ useEffect(() => {
             </h2>
 
             {/* Insurance Certificate & Gift Card */}
-            <div className="shadow-xl shadow-black/10 rounded-xl mb-4 max-sm:mb-3">
-              <div className="flex gap-[10px] max-sm:gap-2">
-                {/* Insurance Certificate */}
-                <div className="flex flex-col items-center gap-2 mb-6 border-white/20 bg-white/5 border p-5 rounded-2xl text-white w-[270px] max-sm:w-1/2 max-sm:p-1.5 overflow-hidden">
-                  <div className="w-full flex items-center max-sm:justify-between">
-                    <div
-                      className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all self-start mt-2 cursor-pointer max-sm:mt-1 border flex-shrink-0 ${
-                        recommendedItems.insuranceCertificate
-                          ? "border-transparent bg-[#7350FF]"
-                          : "border-gray-400 bg-white"
-                      }`}
-                      onClick={() =>
-                        toggleRecommendedItem("insuranceCertificate")
-                      }
-                    >
-                      {recommendedItems.insuranceCertificate && (
-                        <Check className="w-3.5 h-3.5 text-white max-sm:w-3 max-sm:h-3" />
-                      )}
-                    </div>
+            {/* Insurance Certificate & Gift Card Section */}
+            <div className="w-full mb-4 max-sm:mb-3">
+              <div className="flex gap-[10px] max-sm:gap-2 items-stretch">
 
-                    <Image
-                      src="/image/certificatee.jpg"
-                      alt="Insurance Certificate"
-                      width={120}
-                      height={120}
-                      className="w-[120px] rounded-lg ml-2 max-sm:w-[60px] max-sm:ml-0.5 flex-shrink-0"
-                      priority
-                    />
-                    <div className="flex items-center space-x-4 max-sm:space-x-1 flex-shrink-0">
-                      <span className="mx-2 text-[12px] max-sm:text-[10px] max-sm:mx-1 whitespace-nowrap">
-                        {insuranceDays} Days
-                      </span>
-                    </div>
-                  </div>
-                  <div className="w-full flex flex-col items-center md:items-start min-w-0">
-                    <div className="cursor-pointer rounded transition-colors flex-1 mb-2 w-full">
-                      <div className="flex items-center space-x-2 max-sm:space-x-1">
-                        <div
-                          onClick={() =>
-                            toggleRecommendedItem("insuranceCertificate")
-                          }
-                          className="flex items-center space-x-2 cursor-pointer min-w-0"
-                        >
-                          <span className="font-semibold max-sm:text-xs break-words">
-                            Insurance certificate
-                          </span>
-                        </div>
-                      </div>
-                    </div>
+                {/* 1. Insurance Certificate Box */}
+                {/* Insurance Certificate & Gift Card Section */}
+<div className="w-full mb-4 max-sm:mb-3">
+  <div className="flex gap-[10px] max-sm:gap-2 items-stretch">
+    
+    {/* 1. Insurance Certificate Box */}
+    <div className={`flex-1 flex flex-col border px-4 pb-4 pt-3 max-sm:px-2 max-sm:pb-3 rounded-2xl text-white transition-all overflow-hidden bg-white/5 ${
+      recommendedItems.insuranceCertificate ? "border-[#7350FF] bg-white/10 ring-1 ring-[#7350FF]/50" : "border-white/20"
+    }`}>
+      
+      {/* Top Section: Checkbox (Left) & 15 Days Badge (Right) */}
+      <div className="w-full flex justify-between items-center mb-4 h-5">
+        <div
+          className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all cursor-pointer border flex-shrink-0 ${
+            recommendedItems.insuranceCertificate ? "border-transparent bg-[#7350FF]" : "border-gray-400 bg-white"
+          }`}
+          onClick={() => toggleRecommendedItem("insuranceCertificate")}
+        >
+          {recommendedItems.insuranceCertificate && <Check className="w-3 h-3 text-white" />}
+        </div>
+        {/* Aapka manga hua 15 Days Badge yahan hai */}
+        <span className="bg-[#7350FF]/20 border border-[#7350FF]/50 px-2 py-1 rounded-full text-[11px] text-purple-200 font-bold leading-none shadow-sm">
+          15 Days
+        </span>
+      </div>
 
-                    <div className="w-full">
-                      {selectedVisaType &&
-                        selectedVisaType.duration_permitted && (
-                          <div className="mb-2 p-2 bg-purple-600/20 rounded-lg max-sm:p-1.5 max-sm:mb-1">
-                            <p className="text-xs text-purple-200 max-sm:text-[10px] break-words">
-                              📅 Maximum stay:{" "}
-                              {selectedVisaType.duration_permitted}
-                              {selectedVisaType.validity_period &&
-                                ` | Visa valid for: ${selectedVisaType.validity_period}`}
-                            </p>
-                          </div>
-                        )}
+      {/* Center Content */}
+      <div className="flex flex-col items-center flex-grow justify-center py-1">
+        <div className="w-[50%] aspect-[16/9] mb-3 overflow-hidden rounded-lg shadow-lg">
+          <Image
+            src="/image/image1.png"
+            alt="Insurance"
+            width={100}
+            height={56}
+            className="w-full h-full object-cover"
+            priority
+          />
+        </div>
+        <h3 className="font-bold text-base max-sm:text-[14px] leading-tight text-center px-1">
+          Insurance certificate
+        </h3>
+      </div>
 
-                      <div className="flex flex-col gap-2 w-full">
-                        <div className="flex items-center justify-center md:justify-start">
-                          <QtyInput
-                            value={insuranceCount}
-                            onIncrement={() => handleInsuranceChange(1)}
-                            onDecrement={() => handleInsuranceChange(-1)}
-                            min={1}
-                          />
-                        </div>
-                        <div className="flex items-center justify-center md:justify-start space-x-2 max-sm:space-x-1 flex-wrap">
-                          <span className="text-base font-semibold line-through max-sm:text-sm whitespace-nowrap">
-                            £{originalInsuranceBase.toFixed(2)}
-                          </span>
-                          <span className="font-gilroy-bold text-xl max-sm:text-base whitespace-nowrap">
-                            £{discountedInsurancePrice.toFixed(2)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+      {/* Bottom: Qty & Price */}
+      <div className="mt-4 flex flex-col items-center gap-2">
+        <QtyInput
+          value={insuranceCount}
+          onIncrement={() => handleInsuranceChange(1)}
+          onDecrement={() => handleInsuranceChange(-1)}
+          min={1}
+        />
+        <div className="flex items-center gap-2 justify-center">
+          <span className="text-[15px] text-gray-400 line-through">£{originalInsuranceBase.toFixed(2)}</span>
+          <span className="font-bold text-base text-white">£{discountedInsurancePrice.toFixed(2)}</span>
+        </div>
+      </div>
+    </div>
 
-                {/* Gift Card */}
-                <div className="rounded-xl mb-6 flex flex-col gap-2 w-[270px] max-sm:w-1/2">
-                  <div className="flex flex-col items-center gap-2 border-white/20 bg-white/5 p-5 rounded-2xl text-white border max-sm:p-1.5 overflow-hidden">
-                    <div className="w-full flex items-center max-sm:justify-start">
-                      <div
-                        className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all self-start mt-2 cursor-pointer max-sm:mt-1 border flex-shrink-0 ${
-                          recommendedItems.giftCard
-                            ? "border-transparent bg-[#7350FF]"
-                            : "border-gray-400 bg-white"
-                        }`}
-                        onClick={() => toggleRecommendedItem("giftCard")}
-                      >
-                        {recommendedItems.giftCard && (
-                          <Check className="w-3.5 h-3.5 text-white max-sm:w-3 max-sm:h-3" />
-                        )}
-                      </div>
-                      <div className="max-sm:flex-1 max-sm:flex max-sm:justify-center">
-                        <Image
-                          src="/image/gitftnewcard.png"
-                          alt="Gift Card"
-                          width={120}
-                          height={120}
-                          className="w-[120px] rounded-lg ml-2 max-sm:w-[60px] max-sm:ml-0 flex-shrink-0"
-                          priority
-                        />
-                      </div>
-                    </div>
-                    <div className="w-full min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="cursor-pointer rounded transition-colors flex-1 mb-2 min-w-0">
-                          <div className="flex items-center space-x-2 max-sm:space-x-1">
-                            <div
-                              onClick={() => toggleRecommendedItem("giftCard")}
-                              className="flex items-center space-x-2 cursor-pointer min-w-0"
-                            >
-                              <span className="font-semibold max-sm:text-xs break-words">
-                                NUvisa digital gift card
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+    {/* 2. Gift Card Box */}
+    <div className={`flex-1 flex flex-col border px-4 pb-4 pt-3 max-sm:px-2 max-sm:pb-3 rounded-2xl text-white transition-all overflow-hidden bg-white/5 ${
+      recommendedItems.giftCard ? "border-[#7350FF] bg-white/10 ring-1 ring-[#7350FF]/50" : "border-white/20"
+    }`}>
+      
+      {/* Top Section: Checkbox Only (Matching Height) */}
+      <div className="w-full flex justify-start items-center mb-4 h-5">
+        <div
+          className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all cursor-pointer border flex-shrink-0 ${
+            recommendedItems.giftCard ? "border-transparent bg-[#7350FF]" : "border-gray-400 bg-white"
+          }`}
+          onClick={() => toggleRecommendedItem("giftCard")}
+        >
+          {recommendedItems.giftCard && <Check className="w-3 h-3 text-white" />}
+        </div>
+      </div>
 
-                      <div className="flex flex-col gap-2 w-full">
-                        <div className="flex items-center justify-center md:justify-start">
-                          <QtyInput
-                            value={giftCardCount}
-                            onIncrement={() => handleGiftCardChange(1)}
-                            onDecrement={() => handleGiftCardChange(-1)}
-                          />
-                        </div>
-                        <div className="flex items-center justify-center md:justify-start space-x-2 max-sm:space-x-1 flex-wrap">
-                          <span className="text-base font-semibold line-through max-sm:text-sm whitespace-nowrap">
-                            £{245 * giftCardCount}
-                          </span>
-                          <span className="font-gilroy-bold text-xl max-sm:text-base whitespace-nowrap">
-                            £{discountedGiftCardPrice.toFixed(2)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+      {/* Center Content */}
+      <div className="flex flex-col items-center flex-grow justify-center py-1">
+        <div className="w-[50%] aspect-[16/9] mb-3 overflow-hidden rounded-lg shadow-lg bg-white/5">
+          <Image
+            src="/image/gitftnewcard.png"
+            alt="Gift Card"
+            width={100}
+            height={56}
+            className="w-full h-full object-cover"
+            priority
+          />
+        </div>
+        <h3 className="font-bold text-base max-sm:text-[14px] leading-tight text-center px-1">
+          Digital gift card
+        </h3>
+      </div>
+
+      {/* Bottom: Qty & Price */}
+      <div className="mt-4 flex flex-col items-center gap-2">
+        <QtyInput
+          value={giftCardCount}
+          onIncrement={() => handleGiftCardChange(1)}
+          onDecrement={() => handleGiftCardChange(-1)}
+          min={1}
+        />
+        <div className="flex items-center gap-2 justify-center">
+          <span className="text-[15px] text-gray-400 line-through">£{(245 * giftCardCount).toFixed(2)}</span>
+          <span className="font-bold text-base text-white">£{discountedGiftCardPrice.toFixed(2)}</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
               </div>
-
-              {/* Free Services */}
-              
             </div>
 
             {/* Alert Message */}
@@ -3776,17 +3748,15 @@ useEffect(() => {
                           value={userEmail}
                           onChange={(e) => setUserEmailLocal(e.target.value)}
                           placeholder="Enter your student email (e.g., you@student.uni.ac.uk)"
-                          className={`w-full border ${
-                            emailError ? "border-red-400" : "border-gray-500"
-                          } bg-[#24242D] text-white rounded-md p-2 text-sm max-sm:text-xs ${
-                            emailError
+                          className={`w-full border ${emailError ? "border-red-400" : "border-gray-500"
+                            } bg-[#24242D] text-white rounded-md p-2 text-sm max-sm:text-xs ${emailError
                               ? "outline-none ring-2 ring-red-400"
                               : "focus:outline-none focus:ring-2 focus:ring-purple-500"
-                          }`}
+                            }`}
                           disabled={studentVerified}
                         />
                       </div>
-                      
+
                       {!studentVerified ? (
                         <button
                           onClick={() => sendStudentVerification(userEmail)}
@@ -3827,7 +3797,7 @@ useEffect(() => {
                 </div>
               )}
 
-            
+
 
             {/* Checkout Button */}
             <button
@@ -3838,8 +3808,8 @@ useEffect(() => {
                 {selectedPaymentMethod === "stripe"
                   ? "CONTINUE WITH CREDIT CARD"
                   : selectedPaymentMethod === "klarna"
-                  ? "CONTINUE WITH KLARNA"
-                  : "CONTINUE TO CHECKOUT"}
+                    ? "CONTINUE WITH KLARNA"
+                    : "CONTINUE TO CHECKOUT"}
               </span>
               <span className="bg-white rounded-full p-1.5 transition-transform duration-300 group-hover:rotate-45 group-hover:translate-x-1 group-hover:-translate-y-0 max-sm:p-1">
                 <ArrowUpRight className="w-5 h-5 text-[#6B4EFF] max-sm:w-4 max-sm:h-4" />

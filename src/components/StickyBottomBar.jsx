@@ -368,7 +368,7 @@ const StickyBottomBar = () => {
     dispatch(setRecommendedItems(recommendedItems));
 
     // Navigate to get the visa page instead of checkout
-    router.push('/get-the-visa');
+    router.push('/get-the-visa#add-to-cart');
   }, [discountedPrices, requiredDocuments, recommendedItems, dispatch, router]);
 
   // Optimize scroll handler using Intersection Observer for footer and throttled scroll for visibility
