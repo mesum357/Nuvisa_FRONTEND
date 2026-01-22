@@ -162,7 +162,7 @@ const AppDownloadPopup = () => {
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50 py-0 px-2 sm:px-4">
       <div className={`bg-[#23232B] rounded-t-3xl md:rounded-2xl max-w-5xl w-full relative shadow-2xl overflow-hidden flex flex-col md:flex-row h-[90vh] border-t border-x border-gray-700 
-      transition-all duration-1100 ease-out transform
+      transition-all duration-1500 ease-out transform
       ${isAnimating ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}`}>
         
         <div className="absolute top-3 left-3 z-30">
@@ -228,7 +228,7 @@ const AppDownloadPopup = () => {
                       value={answers[currentQuestion.id]} 
                       onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)} 
                       className="w-full bg-transparent border-b border-gray-600 py-2 mb-8 text-white text-[15px] outline-none focus:border-blue-500" 
-                      placeholder={currentQuestion.text.toLowerCase().includes('phone') ? "Enter your number" : "Type your answer..."} 
+                      placeholder={currentQuestion.text.toLowerCase().includes('phone') ? "Enter your number" : "e.g. Tourism, Business, Medical..."} 
                       disabled={isSubmitting} 
                     />
                   )}
