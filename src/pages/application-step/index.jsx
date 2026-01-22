@@ -4619,7 +4619,7 @@ const FullPaymentStep = ({
     const paymentWithoutInsurance = Number(parentVisaApplication?.paymentWithoutInsurance || 0);
     const baseVisaFeePerTraveler = initiallyPaidTraveler > 0 && paymentWithoutInsurance > 0
       ? paymentWithoutInsurance / initiallyPaidTraveler
-      : 149;
+      : 129;
 
     // If discount override is provided, recalculate with that discount
     const discountToUse = discountOverride || appliedDiscount;
@@ -4744,7 +4744,7 @@ const FullPaymentStep = ({
   const paymentWithoutInsurance = Number(parentVisaApplication?.paymentWithoutInsurance || 0);
   const baseVisaFeePerTraveler = initiallyPaidTraveler > 0 && paymentWithoutInsurance > 0
     ? paymentWithoutInsurance / initiallyPaidTraveler
-    : 149; // Default fallback
+    : 129; // Default fallback
 
   // Calculate price per traveler with discounts (matching Slider.jsx logic)
   const calculatePricePerTraveler = useMemo(() => {

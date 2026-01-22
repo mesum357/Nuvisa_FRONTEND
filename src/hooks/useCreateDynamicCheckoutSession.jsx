@@ -53,6 +53,31 @@ const useCreateDynamicCheckoutSession = () => {
       } else {
         successUrl = "/payment-success";
       }
+    } else if (normalizedPaymentType === "gift_card") {
+      // Gift card-only purchase - redirect to payment-success with payment_type parameter
+      successUrl = "/payment-success";
+      successUrl += `?payment_type=${encodeURIComponent(normalizedPaymentType)}`;
+      
+      // Store payment metadata in localStorage as backup
+      const paymentMetadata = {
+        paymentType: normalizedPaymentType,
+        applicationId: null,
+        travelerIndex: null,
+        timestamp: Date.now(),
+        travelData: travelData || null,
+        noOfInsurance: 0,
+        insurancePaymentAmount: 0,
+        paymentMethod: "stripe",
+        paymentDate: new Date().toISOString(),
+        simplePaymentType: paymentType,
+        email: email,
+        amount: amount,
+        quantity: quantity || noOfGiftCards || 1
+      };
+      localStorage.setItem(
+        "paymentMetadata",
+        JSON.stringify(paymentMetadata)
+      );
     } else if (
       normalizedPaymentType === "additional_traveler_insurance" ||
       normalizedPaymentType === "traveler_insurance" ||

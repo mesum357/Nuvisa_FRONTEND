@@ -106,6 +106,23 @@ const usePaymentData = () => {
       const amountWithDiscount = await localStorageGateway("paymentWithDiscount",
         localStorageEnums.GET
       )
+      
+      // Get paymentMetadata (used for gift card purchases and other payment types)
+      const paymentMetadataString = await localStorageGateway(
+        "paymentMetadata",
+        localStorageEnums.GET
+      );
+      let paymentMetadata = null;
+      try {
+        if (paymentMetadataString) {
+          paymentMetadata = JSON.parse(paymentMetadataString);
+        }
+      } catch (error) {
+        console.error("Error parsing paymentMetadata:", error);
+      }
+      
+      // Extract paymentType from paymentMetadata if available
+      const paymentType = paymentMetadata?.paymentType || null;
 
       return {
         email,
@@ -119,8 +136,10 @@ const usePaymentData = () => {
         selectedVisaType: visaState.selectedVisaType,
         visaTypeId: visaState.visaTypeId,
         paymentWithoutInsurance,
-        storedMetadata: JSON.parse(storedMetadata) || null,
-        amountWithDiscount
+        storedMetadata: storedMetadata ? JSON.parse(storedMetadata) : null,
+        amountWithDiscount,
+        paymentType, // Include paymentType from paymentMetadata
+        paymentMetadata // Include full paymentMetadata object
       };
     } catch (error) {
       console.error("Error getting current payment data:", error);

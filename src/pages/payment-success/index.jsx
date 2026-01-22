@@ -82,6 +82,21 @@ const PaymentSuccess = () => {
           }
         }
 
+        // If paymentTypeParam is still missing, check paymentMetadata (used for gift cards and other payment types)
+        if (!paymentTypeParam) {
+          try {
+            if (currentData.paymentMetadata) {
+              const metadata = currentData.paymentMetadata;
+              // Only use stored metadata if it's recent (within last 5 minutes)
+              if (Date.now() - (metadata.timestamp || 0) < 5 * 60 * 1000) {
+                paymentTypeParam = metadata.paymentType;
+              }
+            }
+          } catch (error) {
+            console.error("Error retrieving paymentMetadata:", error);
+          }
+        }
+
         // If URL parameters indicate insurance payment, use those values
         // Otherwise fallback to localStorage data for application creation
         const finalPaymentType =
