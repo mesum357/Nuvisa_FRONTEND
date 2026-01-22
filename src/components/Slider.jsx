@@ -2841,6 +2841,7 @@ useEffect(() => {
               Dates are required for visa processing only and can be changed
               later within visa validity period.
             </p>
+            
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 items-start max-sm:gap-3">
               <div className="w-full">
                 {(() => {
@@ -2952,7 +2953,7 @@ useEffect(() => {
 
           {/* Required Documents */}
           <ClientOnly>
-            <div className="my-6 max-sm:my-4" data-documents-section id="required-documents" ref={requiredDocumentRef}>
+            <div className="mt-6" data-documents-section id="required-documents" ref={requiredDocumentRef}>
               <div
                 className={`bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden transition-all duration-300 hover:bg-white/10 ${
                   validationErrors.size > 0
@@ -2973,7 +2974,7 @@ useEffect(() => {
                       <FileText className="w-3.5 h-3.5 text-white max-sm:w-3 max-sm:h-3" />
                     </div>
                     <span>Required Documents</span>
-                    <div className="ml-2 px-2 py-1 bg-white/10 rounded-full text-xs font-medium max-sm:ml-1 max-sm:px-1.5 max-sm:py-0.5">
+                    <div className="ml-2 px-2 py-1 sm:px-3 sm:py-2 bg-white/10 rounded-full text-xs font-medium text-center">
                       {Object.values(requiredDocuments).filter(Boolean).length}
                       /6 selected
                     </div>
@@ -3213,12 +3214,12 @@ useEffect(() => {
           </ClientOnly>
 
           {/* Express Checkout Section */}
-            <div className="space-y-3 mb-6 max-sm:mb-4">
+            <div className="space-y-3 mt-6">
               <div className="flex items-center justify-between">
-              <h2 className="font-medium text-lg pt-4 max-sm:text-base max-sm:pt-3">
+              <h2 className="font-medium text-lg max-sm:text-base  ">
                   Express checkout
               </h2>
-                <div className="flex items-center gap-2 text-xs text-gray-400">
+                <div className="flex items-center gap-2 text-xs text-gray-400 ">
                   <span className="flex items-center gap-1">
                     <svg
                       width="14"
@@ -3299,7 +3300,7 @@ useEffect(() => {
                     const gridCols = availableCount === 1 ? "grid-cols-1" : "grid-cols-2";
                     
                     return (
-                      <div className={`grid ${gridCols} gap-3 max-sm:grid-cols-1 max-sm:gap-2`}>
+                      <div className={`flex flex-col sm:flex-row items-center justify-between gap-2`}>
                         {/* Apple Pay Button */}
                         {isApplePayAvailable && (
                           <button
@@ -3369,7 +3370,6 @@ useEffect(() => {
                               minHeight: "44px",
                               maxHeight: "44px",
                               background: "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)",
-                              boxSizing: "border-box",
                             }}
                           >
                             <div className="flex items-center gap-2">
@@ -3411,7 +3411,7 @@ useEffect(() => {
             </div>
 
             {/* Free Offer Banner */}
-            <div className="border rounded-3xl border-white/20 bg-white/5 backdrop-blur-sm overflow-hidden max-sm:rounded-2xl">
+            <div className="border rounded-3xl border-white/20 bg-white/5 backdrop-blur-sm overflow-hidden max-sm:rounded-2xl mt-6">
               <div className="flex items-center gap-4 p-4 border-b border-white/10 max-sm:p-3 max-sm:gap-3">
                 <div
                   className="h-4 w-4 rounded-full 
@@ -3466,7 +3466,7 @@ useEffect(() => {
             </div>
 
             {/* Discount Code Section */}
-            <div className="space-y-3 mb-6 max-sm:mb-4 mt-10">
+            <div className="space-y-3 mt-6">
               <h2 className="font-medium text-lg max-sm:text-base">
                 Discount Code
               </h2>
@@ -3580,14 +3580,14 @@ useEffect(() => {
               </div>
             </div>
 
-            <div className="text-xs pb-4 max-sm:text-xs max-sm:pb-2">
+            <div className="text-xs max-sm:text-xs mt-2">
               Student? Add your student email, we'll send verification email
               there.
             </div>
 
           {/* Recommended Section */}
-          <div className="mb-6 max-sm:mb-4 mt-5">
-            <h2 className="text-xl font-gilroy-bold mb-4 max-sm:text-lg max-sm:mb-3">
+          <div className="mt-4">
+            <h2 className="text-xl font-gilroy-bold mb-4 max-sm:text-lg">
               Recommended
             </h2>
 
@@ -3595,7 +3595,7 @@ useEffect(() => {
             <div className="shadow-xl shadow-black/10 rounded-xl mb-4 max-sm:mb-3">
               <div className="flex gap-[10px] max-sm:gap-2">
                 {/* Insurance Certificate */}
-                <div className="flex flex-col items-center gap-2 mb-6 border-white/20 bg-white/5 border p-2 rounded-2xl text-white w-[220px] max-sm:w-1/2 max-sm:mb-3 max-sm:p-1.5 overflow-hidden">
+                <div className="flex flex-col items-center gap-2 mb-6 border-white/20 bg-white/5 border p-5 rounded-2xl text-white w-[270px] max-sm:w-1/2 max-sm:p-1.5 overflow-hidden">
                   <div className="w-full flex items-center max-sm:justify-between">
                     <div
                       className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all self-start mt-2 cursor-pointer max-sm:mt-1 border flex-shrink-0 ${
@@ -3642,7 +3642,7 @@ useEffect(() => {
                       </div>
                     </div>
 
-                    <div className="mb-2 w-full">
+                    <div className="w-full">
                       {selectedVisaType &&
                         selectedVisaType.duration_permitted && (
                           <div className="mb-2 p-2 bg-purple-600/20 rounded-lg max-sm:p-1.5 max-sm:mb-1">
@@ -3678,8 +3678,8 @@ useEffect(() => {
                 </div>
 
                 {/* Gift Card */}
-                <div className="rounded-xl mb-6 flex flex-col gap-2 w-[220px] max-sm:w-1/2 max-sm:mb-3">
-                  <div className="flex flex-col items-center gap-2 border-white/20 bg-white/5 p-2 rounded-2xl text-white border max-sm:p-1.5 overflow-hidden">
+                <div className="rounded-xl mb-6 flex flex-col gap-2 w-[270px] max-sm:w-1/2">
+                  <div className="flex flex-col items-center gap-2 border-white/20 bg-white/5 p-5 rounded-2xl text-white border max-sm:p-1.5 overflow-hidden">
                     <div className="w-full flex items-center max-sm:justify-start">
                       <div
                         className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all self-start mt-2 cursor-pointer max-sm:mt-1 border flex-shrink-0 ${
@@ -3847,7 +3847,7 @@ useEffect(() => {
             </button>
 
             {/* Footer Info */}
-            <div className="mt-4 space-y-2 max-sm:mt-3 max-sm:space-y-1.5">
+            <div className="mt-6 space-y-2 max-sm:space-y-1.5">
               <div className="flex items-center space-x-2 text-sm max-sm:text-xs">
                 <MedalIcon className="size-5 text-white/70 max-sm:w-4 max-sm:h-4" />
                 <span>99.3% Visa approval rate</span>
