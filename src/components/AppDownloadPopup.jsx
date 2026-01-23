@@ -161,7 +161,7 @@ const AppDownloadPopup = () => {
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50 py-0 px-2 sm:px-4">
-      <div className={`bg-[#23232B] rounded-t-3xl md:rounded-2xl max-w-5xl w-full relative shadow-2xl overflow-hidden flex flex-col md:flex-row h-fit max-h-[95vh] md:max-h-[600px] border-t border-x border-gray-700 
+      <div className={`bg-[#23232B] rounded-t-3xl md:rounded-2xl max-w-5xl w-full relative shadow-2xl overflow-hidden flex flex-col md:flex-row h-fit max-h-[95vh] md:max-h-[620px] border-t border-x border-gray-700 
       transition-all duration-1500 ease-out transform
       ${isAnimating ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}`}>
         
@@ -264,7 +264,7 @@ const AppDownloadPopup = () => {
               </button>
 
               <div className="text-center mt-5">
-                <p className="text-white text-[16px]">{dbContent.lastChanceText}</p>
+                <p className="text-white text-[18px]">{dbContent.lastChanceText}</p>
               </div>
             </div>
           </div>
