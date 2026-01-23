@@ -101,8 +101,8 @@ const VisaInformation = () => {
                 <div className="col-12 py-4">
                   <div className="pdp_media_el bg-purple p-3 pt-5 pb-5">
                     {/* Top Section */}
-                    <div className="w-full flex items-center gap-5 md:gap-10 max-md:flex-col max-md:text-center mb-10 overflow-hidden">
-                      <h2 className="text-3xl md:text-6xl font-gilroy-bold text-[#FFF] text-left flex-1 -ml-8">
+                    <div className="w-full flex gap-5 md:gap-10 max-md:flex-col mb-10 overflow-hidden">
+                      <h2 className="text-3xl md:text-6xl font-gilroy-bold text-[#FFF] text-start flex-1">
                         {processLoading ? (
                           "Loading..."
                         ) : (
