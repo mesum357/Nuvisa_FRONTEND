@@ -2468,8 +2468,9 @@ const CountrySlider = () => {
         type="info"
       />
 
+
       {/* Left Column */}
-      <div className="w-full gap-3 flex flex-col items-start lg:max-w-[60%] max-sm:gap-4">
+      <div className="w-full gap-3 flex flex-col items-start lg:max-w-[60%] max-sm:gap-4 mt-0 md:mt-4">
         {/* Badges Section */}
         <section className="text-center text-white rounded-2xl p-2 w-full max-sm:p-1">
           <div className="w-full hidden md:flex justify-start items-center gap-2 px-3 max-sm:gap-3 max-sm:px-1">
@@ -2723,7 +2724,7 @@ const CountrySlider = () => {
       </div>
 
       {/* Right Column */}
-      <div className="w-full gap-3 flex flex-col items-start lg:max-w-[60%] max-sm:gap-4">
+      <div className="w-full gap-3 flex flex-col items-start lg:max-w-[60%] max-sm:gap-4 mt-0 md:mt-4">
         {/* NRI Badge Section */}
         <section className="text-center text-white rounded-2xl p-2 w-full max-sm:p-1">
           <div className="flex justify-start items-center">
@@ -3540,6 +3541,15 @@ const CountrySlider = () => {
                 </span>
               )}
 
+              {appliedDiscount && (
+                <div className="flex items-center space-x-2 text-sm text-green-400 bg-green-600/20 p-2 rounded-md max-sm:text-xs max-sm:p-1.5">
+                  <span>
+                    ✓ {appliedDiscount.description} (
+                    {appliedDiscount.percentage}% off) applied!
+                  </span>
+                </div>
+              )}
+
 
               <div className="text-xs text-gray-400 my-2">
                 <p>Available discounts:</p>
@@ -3552,15 +3562,6 @@ const CountrySlider = () => {
                   discount (3 or more travellers)
                 </p>
               </div>
-
-              {appliedDiscount && (
-                <div className="flex items-center space-x-2 text-sm text-green-400 bg-green-600/20 p-2 rounded-md max-sm:text-xs max-sm:p-1.5">
-                  <span>
-                    ✓ {appliedDiscount.description} (
-                    {appliedDiscount.percentage}% off) applied!
-                  </span>
-                </div>
-              )}
 
               {redeemedGiftCards.length > 0 && (
                 <div className="space-y-2">
@@ -3594,13 +3595,83 @@ const CountrySlider = () => {
             </div>
           </div>
 
+           {/* Email Verification Section */}
+            {appliedDiscount &&
+              appliedDiscount.description.toLowerCase().includes("student") && (
+                <div className="space-y-3 mt-6">
+                  <h2 className="font-medium text-lg max-sm:text-base">
+                    Student Verification Required
+                  </h2>
+                  <div className="space-y-2">
+
+                    <div className="flex space-x-2 max-sm:flex-col max-sm:space-x-0 max-sm:space-y-2">
+                      <div className="flex-1 max-sm:w-full">
+                        <input
+                          type="email"
+                          value={userEmail}
+                          onChange={(e) => setUserEmailLocal(e.target.value)}
+                          placeholder="Enter your student email (e.g., you@student.uni.ac.uk)"
+                          className={`w-full border ${emailError ? "border-red-400" : "border-gray-500"
+                            } bg-[#24242D] text-white rounded-md p-2 text-sm max-sm:text-xs ${emailError
+                              ? "outline-none ring-2 ring-red-400"
+                              : "focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            }`}
+                          disabled={studentVerified}
+                        />
+                      </div>
+
+                      {!studentVerified ? (
+                        <button
+                          onClick={() => sendStudentVerification(userEmail)}
+                          disabled={isSendingVerification || !userEmail}
+                          className="px-4 py-2 bg-yellow-600 text-white text-sm rounded-md hover:bg-yellow-700 transition-colors font-medium disabled:bg-gray-600 disabled:cursor-not-allowed max-sm:text-xs max-sm:px-3"
+                        >
+                          {isSendingVerification
+                            ? "Sending..."
+                            : "Verify Email"}
+                        </button>
+                      ) : (
+                        <div className="px-4 py-2 bg-green-600 text-white text-sm rounded-md flex items-center max-sm:text-xs max-sm:px-3">
+                          ✓ Verified
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="text-sm text-yellow-300 mb-2 max-sm:text-xs">
+                      <span className="font-medium">📧 Email Verification</span>{" "}
+                      - Please verify your student email to continue with the
+                      discount
+                    </div>
+
+                    {emailError && (
+                      <span className="text-sm text-red-400 max-sm:text-xs">
+                        {emailError}
+                      </span>
+                    )}
+
+                    {studentVerificationSent && !studentVerified && (
+                      <div className="text-sm text-green-400 bg-green-600/20 p-2 rounded-md max-sm:text-xs max-sm:p-1.5">
+                        ✓ Verification email sent! Please check your inbox and
+                        click the verification link.
+                      </div>
+                    )}
+
+                    {studentVerified && (
+                      <div className="text-sm text-green-400 bg-green-600/20 p-2 rounded-md max-sm:text-xs max-sm:p-1.5">
+                        ✓ Student email verified! You can now proceed with the
+                        student discount.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
           {/* Recommended Section */}
           <div className="mt-4">
             <h2 className="text-xl font-gilroy-bold mb-4 max-sm:text-lg">
               Recommended
             </h2>
 
-            {/* Insurance Certificate & Gift Card */}
             {/* Insurance Certificate & Gift Card Section */}
             <div className="w-full mb-4 max-sm:mb-3">
               <div className="flex gap-[10px] max-sm:gap-2 items-stretch">
@@ -3625,9 +3696,8 @@ const CountrySlider = () => {
         >
           {recommendedItems.insuranceCertificate && <Check className="w-3 h-3 text-white" />}
         </div>
-        {/* Aapka manga hua 15 Days Badge yahan hai */}
         <span className="bg-[#7350FF]/20 border border-[#7350FF]/50 px-2 py-1 rounded-full text-[11px] text-purple-200 font-bold leading-none shadow-sm">
-          15 Days
+          {insuranceDays} Days
         </span>
       </div>
 
@@ -3725,77 +3795,7 @@ const CountrySlider = () => {
                   Confirm required documents
                 </p>
               </div>
-            )}
-
-            {/* Email Verification Section */}
-            {appliedDiscount &&
-              appliedDiscount.description.toLowerCase().includes("student") && (
-                <div className="space-y-3 mb-6 max-sm:mb-4">
-                  <h2 className="font-medium text-lg max-sm:text-base">
-                    Student Verification Required
-                  </h2>
-                  <div className="space-y-2">
-                    <div className="text-sm text-yellow-300 mb-2 max-sm:text-xs">
-                      <span className="font-medium">📧 Email Verification</span>{" "}
-                      - Please verify your student email to continue with the
-                      discount
-                    </div>
-
-                    <div className="flex space-x-2 max-sm:flex-col max-sm:space-x-0 max-sm:space-y-2">
-                      <div className="flex-1 max-sm:w-full">
-                        <input
-                          type="email"
-                          value={userEmail}
-                          onChange={(e) => setUserEmailLocal(e.target.value)}
-                          placeholder="Enter your student email (e.g., you@student.uni.ac.uk)"
-                          className={`w-full border ${emailError ? "border-red-400" : "border-gray-500"
-                            } bg-[#24242D] text-white rounded-md p-2 text-sm max-sm:text-xs ${emailError
-                              ? "outline-none ring-2 ring-red-400"
-                              : "focus:outline-none focus:ring-2 focus:ring-purple-500"
-                            }`}
-                          disabled={studentVerified}
-                        />
-                      </div>
-
-                      {!studentVerified ? (
-                        <button
-                          onClick={() => sendStudentVerification(userEmail)}
-                          disabled={isSendingVerification || !userEmail}
-                          className="px-4 py-2 bg-yellow-600 text-white text-sm rounded-md hover:bg-yellow-700 transition-colors font-medium disabled:bg-gray-600 disabled:cursor-not-allowed max-sm:text-xs max-sm:px-3"
-                        >
-                          {isSendingVerification
-                            ? "Sending..."
-                            : "Verify Email"}
-                        </button>
-                      ) : (
-                        <div className="px-4 py-2 bg-green-600 text-white text-sm rounded-md flex items-center max-sm:text-xs max-sm:px-3">
-                          ✓ Verified
-                        </div>
-                      )}
-                    </div>
-
-                    {emailError && (
-                      <span className="text-sm text-red-400 max-sm:text-xs">
-                        {emailError}
-                      </span>
-                    )}
-
-                    {studentVerificationSent && !studentVerified && (
-                      <div className="text-sm text-green-400 bg-green-600/20 p-2 rounded-md max-sm:text-xs max-sm:p-1.5">
-                        ✓ Verification email sent! Please check your inbox and
-                        click the verification link.
-                      </div>
-                    )}
-
-                    {studentVerified && (
-                      <div className="text-sm text-green-400 bg-green-600/20 p-2 rounded-md max-sm:text-xs max-sm:p-1.5">
-                        ✓ Student email verified! You can now proceed with the
-                        student discount.
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
+            )}    
 
 
 
