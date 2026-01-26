@@ -2251,7 +2251,7 @@ const MultiStepAccordion = () => {
           </div>
         )}
 
-        <div id="progress-header-top">
+        <div id="progress-header-top" className="w-full overflow-hidden -mx-4 px-4 sm:mx-0 sm:px-0">
           <ProgressHeader
             steps={getVisibleSteps()}
             stepInfo={

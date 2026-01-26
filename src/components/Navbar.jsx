@@ -46,9 +46,11 @@ const Navbar = () => {
     return getHeaderContentByKey(headerContent, key) || fallback;
   };
 
+
   return (
     <ClientOnly>
-      <div className="text-white">
+      {isAuthenticated && <div className="text-white">
+
         <div className="sec_bg md:px-10 px-5  py-2.5 border-[#423577] border-b text-sm rounded-b-[23px] flex md:flex-row flex-col items-center justify-between">
 
           {/* Left Content (Text + Button aligned LEFT) */}
@@ -81,6 +83,7 @@ const Navbar = () => {
           </div>
 
         </div>
+
 
         <div className="text-center mt-5 md:hidden block">
           <span className="text-xl sm:text-2xl font-gilroy-bold md:block ">
@@ -208,7 +211,7 @@ const Navbar = () => {
 
         </nav>
 
-      </div>
+      </div>}
     </ClientOnly>
   );
 };
