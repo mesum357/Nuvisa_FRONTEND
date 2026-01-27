@@ -51,7 +51,7 @@ const Navbar = () => {
     <ClientOnly>
       <div className="text-white">
         <div className="sec_bg md:px-10 px-5 py-2.5">
-          {!isAuthenticated && <div className="md:px-10 px-5 py-2.5 border-[#423577] border-b text-sm rounded-b-[23px] flex md:flex-row flex-col items-center justify-between">
+          {window.location.pathname !== '/dashboard' && <div className="md:px-10 px-5 py-2.5 border-[#423577] border-b text-sm rounded-b-[23px] flex md:flex-row flex-col items-center justify-between">
 
             {/* Left Content (Text + Button aligned LEFT) */}
             <div className="flex items-center gap-3 md:flex-row   ">
