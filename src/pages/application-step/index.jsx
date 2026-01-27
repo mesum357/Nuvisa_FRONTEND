@@ -4744,7 +4744,7 @@ const FullPaymentStep = ({
   const paymentWithoutInsurance = Number(parentVisaApplication?.paymentWithoutInsurance || 0);
   const baseVisaFeePerTraveler = initiallyPaidTraveler > 0 && paymentWithoutInsurance > 0
     ? paymentWithoutInsurance / initiallyPaidTraveler
-    : 129; // Default fallback
+    : 129; // Default fallback testing commit
 
   // Calculate price per traveler with discounts (matching Slider.jsx logic)
   const calculatePricePerTraveler = useMemo(() => {
