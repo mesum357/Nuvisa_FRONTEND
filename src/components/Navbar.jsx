@@ -7,12 +7,14 @@ import { FaEnvelope, FaWhatsapp, FaBars, FaTimes } from "react-icons/fa";
 
 import { useState, useEffect } from "react";
 import { fetchHeaderContent, getHeaderContentByKey } from "@/api/headerContent";
+import { usePathname } from "next/navigation";
 
 const Navbar = () => {
   const isAuthenticated = useAppSelector((state) => state.auth.authState);
   const [headerContent, setHeaderContent] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     const loadHeaderContent = async () => {
@@ -33,6 +35,8 @@ const Navbar = () => {
 
   // Close on Escape
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     const onKey = (e) => {
       if (e.key === "Escape") setIsMenuOpen(false);
     };
@@ -51,7 +55,7 @@ const Navbar = () => {
     <ClientOnly>
       <div className="text-white">
         <div className="sec_bg md:px-10 px-5 py-2.5">
-          {window.location.pathname !== '/dashboard' && <div className="md:px-10 px-5 py-2.5 border-[#423577] border-b text-sm rounded-b-[23px] flex md:flex-row flex-col items-center justify-between">
+          {pathname !== '/dashboard' && <div className="md:px-10 px-5 py-2.5 border-[#423577] border-b text-sm rounded-b-[23px] flex md:flex-row flex-col items-center justify-between">
 
             {/* Left Content (Text + Button aligned LEFT) */}
             <div className="flex items-center gap-3 md:flex-row   ">
