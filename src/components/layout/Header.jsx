@@ -54,20 +54,8 @@ export const Header = ({ href }) => {
 
   return (
     <div className="pri_bg text-white pb-5">
-      {/* Top Promotional Banner */}
-      <div className="sec_bg px-4 py-2.5 text-center border-[#423577] border-b text-sm rounded-b-[23px]">
-        <span className="font-medium md:font-semibold">
-          {getContent('banner_offer_text')}
-        </span>
-        <Link href={getContent('banner_button_link')}>
-          <button className="ml-4 underline decoration-[#7351ff] public_text_clr rounded-md text-white font-medium transition-colors">
-            {getContent('banner_button_text')}
-          </button>
-        </Link>
-      </div>
-
       {/* Main Navigation */}
-      <nav className="flex items-center mt-5 md:mt-[36px] border-[#423577] sec_bg rounded-[70px] border justify-between px-6 lg:px-4 py-3 md:py-4 mx-[20px]">
+      <nav className="flex items-center border-[#423577] sec_bg rounded-[70px] border justify-between px-6 lg:px-4 py-3 md:py-4 mx-[20px]">
         {/* Logo */}
         <div className="flex items-center">
           <Link href={href || "/"} className="">
@@ -168,8 +156,8 @@ export const Header = ({ href }) => {
                 exit={{ opacity: 0, y: 10 }}
                 className="absolute right-0 mt-2 w-48 bg-[#23232b] border border-[#423577] rounded-md shadow-lg py-1 z-50"
               >
-                 <div
-        onClick={openSidebar}
+                <div
+                  onClick={openSidebar}
                   className="block px-4 py-2 text-sm text-gray-300 hover:bg-[#1e1e27] hover:text-white transition-colors cursor-pointer"
                 >
                   <div className="flex items-center gap-2">
@@ -200,6 +188,6 @@ export const Header = ({ href }) => {
       </nav>
       <Sidebar isOpen={isSidebarOpen} onClose={closeSidebar} />
     </div>
-   
+
   );
 };
