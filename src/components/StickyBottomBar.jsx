@@ -8,7 +8,7 @@ import { useToast } from "@/contexts/ToastContext";
 import Drawer from "./Drawer";
 
 
-const StickyBottomBar = () => {
+const StickyBottomBar = ({ triggerElementId } ) => {
   const dispatch = useAppDispatch();
   const visaState = useAppSelector((state) => state.visa);
   const router = useRouter();
@@ -371,73 +371,79 @@ const StickyBottomBar = () => {
     router.push('/get-the-visa#add-to-cart');
   }, [discountedPrices, requiredDocuments, recommendedItems, dispatch, router]);
 
-  // Optimize scroll handler using Intersection Observer for footer and throttled scroll for visibility
-  useEffect(() => {
-    let ticking = false;
-    let lastScrollY = 0;
-    let footerObserver = null;
-    let isFooterVisible = false;
+useEffect(() => {
+  // If section-based trigger is provided, DO NOT run old logic
+  if (triggerElementId) return;
 
-    // Use Intersection Observer for footer visibility (more efficient than getBoundingClientRect)
-    const footerElement = document.querySelector('footer');
-    if (footerElement) {
-      footerObserver = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            isFooterVisible = entry.isIntersecting;
-            // Update visibility when footer visibility changes
-            if (ticking === false) {
-              updateVisibility();
-            }
-          });
-        },
-        {
-          root: null,
-          rootMargin: '0px',
-          threshold: 0.1, // Trigger when 10% of footer is visible
-        }
-      );
-      footerObserver.observe(footerElement);
+  let ticking = false;
+  let lastScrollY = 0;
+  let footerObserver = null;
+  let isFooterVisible = false;
+
+  const footerElement = document.querySelector('footer');
+  if (footerElement) {
+    footerObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        isFooterVisible = entry.isIntersecting;
+        updateVisibility();
+      });
+    }, { threshold: 0.1 });
+
+    footerObserver.observe(footerElement);
+  }
+
+  const updateVisibility = () => {
+    ticking = false;
+    const scrollPosition = window.scrollY;
+    lastScrollY = scrollPosition;
+
+    const hasScrolledEnough = scrollPosition > 1500;
+    const shouldBeVisible = hasScrolledEnough && !isFooterVisible;
+
+    setIsVisible(prev => prev !== shouldBeVisible ? shouldBeVisible : prev);
+  };
+
+  const handleScroll = () => {
+    if (!ticking) {
+      window.requestAnimationFrame(updateVisibility);
+      ticking = true;
     }
+  };
 
-    const updateVisibility = () => {
-      ticking = false;
-      const scrollPosition = window.scrollY;
-      
-      // Only update if scroll position changed significantly (reduces unnecessary updates)
-      if (Math.abs(scrollPosition - lastScrollY) < 50 && scrollPosition > 1500) {
-        return; // Skip if scroll change is minimal
-      }
-      lastScrollY = scrollPosition;
+  window.addEventListener('scroll', handleScroll, { passive: true });
+  updateVisibility();
 
-      // Show when scrolled enough (1500px from top)
-      const hasScrolledEnough = scrollPosition > 1500;
-      
-      // Update state only if visibility actually changed
-      const shouldBeVisible = hasScrolledEnough && !isFooterVisible;
-      setIsVisible(prev => prev !== shouldBeVisible ? shouldBeVisible : prev);
-    };
+  return () => {
+    window.removeEventListener('scroll', handleScroll);
+    footerObserver?.disconnect();
+  };
+}, [triggerElementId]);
 
-    const handleScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(updateVisibility);
-        ticking = true;
-      }
-    };
+useEffect(() => {
+  if (!triggerElementId) return;
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    
-    // Initial check
-    updateVisibility();
+  const triggerEl = document.getElementById(triggerElementId);
+  const footer = document.querySelector("footer");
 
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-      if (footerObserver && footerElement) {
-        footerObserver.unobserve(footerElement);
-        footerObserver.disconnect();
-      }
-    };
-  }, []);
+  if (!triggerEl) return;
+
+  const checkVisibility = () => {
+    const rect = triggerEl.getBoundingClientRect();
+    const footerRect = footer?.getBoundingClientRect();
+
+    const passedSection = rect.bottom < 0;
+    const footerVisible = footerRect && footerRect.top < window.innerHeight;
+
+    setIsVisible(passedSection && !footerVisible);
+  };
+
+  checkVisibility();
+  window.addEventListener("scroll", checkVisibility, { passive: true });
+
+  return () => window.removeEventListener("scroll", checkVisibility);
+}, [triggerElementId]);
+
+
 
   // Measure sticky bar height to offset drawer
   useEffect(() => {
