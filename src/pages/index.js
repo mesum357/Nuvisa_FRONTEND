@@ -88,7 +88,7 @@ const Index = () => {
         <OurMission />
         <Footer />
       </div>
-      <StickyBottomBar />
+      <StickyBottomBar key={'index-page'} />
       {/* App Download Popup */}
       <AppDownloadPopup />
     </div>
