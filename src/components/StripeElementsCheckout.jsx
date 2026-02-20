@@ -195,6 +195,12 @@ const StripeElementsCheckout = forwardRef(({
     try {
       setProcessing(true);
 
+      // Store the payment intent ID so payment-success can use it as the stripePaymentId
+      // idempotency key when creating the application (prevents double creation with webhook)
+      if (paymentIntent?.id && typeof window !== "undefined") {
+        try { sessionStorage.setItem("stripePaymentIntentId", paymentIntent.id); } catch {}
+      }
+
       // Store payment metadata
       const paymentMetadata = {
         paymentIntentId: paymentIntent.id,

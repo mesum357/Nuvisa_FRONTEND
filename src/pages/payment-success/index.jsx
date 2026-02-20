@@ -150,6 +150,20 @@ const PaymentSuccess = () => {
           return;
         }
 
+        // Resolve the Stripe payment ID to use as idempotency key.
+        // Hosted checkout:  session_id is in the URL (?session_id=cs_xxx)
+        // Embedded card:    paymentIntent.id was stored in sessionStorage by StripeElementsCheckout
+        const embeddedPaymentIntentId =
+          typeof window !== "undefined"
+            ? sessionStorage.getItem("stripePaymentIntentId") || null
+            : null;
+        const stripePaymentId = sessionId || embeddedPaymentIntentId || null;
+
+        // Clear the stored intent ID so it's not reused on a future visit
+        if (embeddedPaymentIntentId && typeof window !== "undefined") {
+          try { sessionStorage.removeItem("stripePaymentIntentId"); } catch {}
+        }
+
         // Original application creation payment flow
         const paymentInfo = {
           sessionId,
@@ -295,11 +309,9 @@ const PaymentSuccess = () => {
           travelStartDate: visaState.arrivalDate || "",
           travelEndDate: visaState.departureDate || "",
           insurancePaymentCompleted: hasInsurance,
-          initialInsurancePaidTotal: hasInsurance
-            ? (Number(currentData.insurancePayment) || 0).toString()
-            : "0",
           initialInsurancePaidTotal: hasInsurance ? (Number(currentData.insurancePayment) || 0).toString() : "0",
-
+          // Idempotency key: the webhook checks this column before creating; whichever runs first wins
+          stripePaymentId: stripePaymentId || undefined,
         };
 
         if (
