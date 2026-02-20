@@ -164,42 +164,76 @@ const PaymentSuccess = () => {
           try { sessionStorage.removeItem("stripePaymentIntentId"); } catch {}
         }
 
+        // Fetch session/payment-intent metadata from backend so we have country, travelers, etc.
+        // even when localStorage is empty after redirect (e.g. Apple Pay, new tab).
+        let sessionMetadata = {};
+        if (stripePaymentId && process.env.NEXT_PUBLIC_API_URL) {
+          try {
+            const res = await fetch(
+              `${process.env.NEXT_PUBLIC_API_URL}/stripe_payment/session-metadata?payment_id=${encodeURIComponent(stripePaymentId)}`
+            );
+            const json = await res.json();
+            const meta = json?.data?.results?.metadata || json?.results?.metadata || {};
+            if (meta && typeof meta === "object" && Object.keys(meta).length > 0) {
+              sessionMetadata = meta;
+            }
+          } catch (e) {
+            console.warn("Could not fetch session metadata:", e);
+          }
+        }
+
+        // Merge session metadata into currentData so application is created with full info.
+        // Metadata from Stripe (stored at checkout) is the source of truth when present.
+        const mergedData = {
+          ...currentData,
+          email: sessionMetadata.email || currentData.email,
+          selectedCountry: sessionMetadata.country || currentData.selectedCountry,
+          travelers: sessionMetadata.travellers ?? currentData.travelers,
+          totalAmount: sessionMetadata.amount || currentData.totalAmount,
+          insurancePayment: sessionMetadata.insurance !== undefined ? sessionMetadata.insurance : currentData.insurancePayment,
+          paymentWithoutInsurance: currentData.paymentWithoutInsurance,
+          visaTypeId: sessionMetadata.visaTypeId || currentData.selectedVisaType || visaState.visaTypeId,
+          amountWithDiscount: currentData.amountWithDiscount,
+          storedMetadata: currentData.storedMetadata,
+          paymentMetadata: currentData.paymentMetadata,
+        };
+
         // Original application creation payment flow
         const paymentInfo = {
           sessionId,
-          email: currentData.email,
-          selectedCountry: currentData.selectedCountry,
-          insurancePayment: currentData.insurancePayment,
-          travelers: currentData.travelers,
-          totalAmount: currentData.totalAmount,
+          email: mergedData.email,
+          selectedCountry: mergedData.selectedCountry,
+          insurancePayment: mergedData.insurancePayment,
+          travelers: mergedData.travelers,
+          totalAmount: mergedData.totalAmount,
           paymentDate: new Date().toISOString(),
         };
 
         // Add to payment history
         await addPaymentToHistory(paymentInfo);
 
-        // Update Redux store
-        if (currentData.selectedCountry) {
-          dispatch(setSelectedCountry(currentData.selectedCountry));
+        // Update Redux store (use mergedData so we have country etc. from session metadata when needed)
+        if (mergedData.selectedCountry) {
+          dispatch(setSelectedCountry(mergedData.selectedCountry));
         }
-        if (Number.isFinite(Number(currentData.insurancePayment))) {
-          dispatch(setInsuranceFees(Number(currentData.insurancePayment)));
+        if (Number.isFinite(Number(mergedData.insurancePayment))) {
+          dispatch(setInsuranceFees(Number(mergedData.insurancePayment)));
         }
-        if (Number.isFinite(Number(currentData.travelers))) {
-          dispatch(setTravelers(Number(currentData.travelers)));
+        if (Number.isFinite(Number(mergedData.travelers))) {
+          dispatch(setTravelers(Number(mergedData.travelers)));
         }
 
         // Create visa application
         setIsCreatingApplication(true);
 
         // Initialize travelers data with insurance set for each initial traveler
-        const numberOfTravelers = Number(currentData.travelers) || 1;
+        const numberOfTravelers = Number(mergedData.travelers) || 1;
 
         // Use the actual insurance selection boolean, fallback to fee check for backward compatibility
         const hasInsurance =
-          currentData.insuranceSelected === "true" ||
-            (currentData.insuranceSelected === undefined &&
-              Number(currentData.insurancePayment) > 0)
+          mergedData.insuranceSelected === "true" ||
+            (mergedData.insuranceSelected === undefined &&
+              Number(mergedData.insurancePayment) > 0)
             ? true
             : false;
 
@@ -208,13 +242,13 @@ const PaymentSuccess = () => {
           finalPaymentType === "application_creation" ||
           (!finalPaymentType && !applicationId); // No payment type means initial checkout
 
-        const insurancePayload = numberOfTravelers === currentData?.storedMetadata?.insuranceCount ? {
+        const insurancePayload = numberOfTravelers === mergedData?.storedMetadata?.insuranceCount ? {
           insurance: hasInsurance,
           insuranceDetails:
             hasInsurance ? { selected: true } : null,
           insuranceCertificate: null,
           orderId: null,
-          paymentAmount: hasInsurance ? Number(currentData.insurancePayment) || 0 : 0,
+          paymentAmount: hasInsurance ? Number(mergedData.insurancePayment) || 0 : 0,
           paidInCheckout: hasInsurance && isCheckoutPayment,
           insuranceSource: hasInsurance && isCheckoutPayment ? "checkout" : null,
           insurancePaymentCompleted: hasInsurance,
@@ -274,7 +308,7 @@ const PaymentSuccess = () => {
             fullPayment: {
               paymentStatus: "completed",
               paymentCompleted: true,
-              paymentAmount: Number((Number(currentData?.amountWithDiscount || 149) / numberOfTravelers).toFixed(2)) || 0,
+              paymentAmount: Number((Number(mergedData?.amountWithDiscount || 149) / numberOfTravelers).toFixed(2)) || 0,
               paymentDate: new Date().toISOString(),
               paymentMethod: "stripe",
               includeInsurance: hasInsurance,
@@ -287,29 +321,29 @@ const PaymentSuccess = () => {
 
         const applicationPayload = {
           type: "createApplication",
-          email: currentData.email,
-          insuranceDetails: numberOfTravelers === currentData?.storedMetadata?.insuranceCount ? null : {
+          email: mergedData.email,
+          insuranceDetails: numberOfTravelers === mergedData?.storedMetadata?.insuranceCount ? null : {
             paidInCheckout: {
-              noOfInsurance: currentData?.storedMetadata?.insuranceCount || 0,
-              paymentAmount: currentData?.storedMetadata?.insurancePaymentAmount || 0,
+              noOfInsurance: mergedData?.storedMetadata?.insuranceCount || 0,
+              paymentAmount: mergedData?.storedMetadata?.insurancePaymentAmount || 0,
             },
             certificateCount: 0,
             certificate: [],
           }, // Keep for backward compatibility during transition (string value)
-          country: currentData.selectedCountry,
-          amountPaid: currentData.totalAmount?.toString(),
-          paymentWithoutInsurance: Number(currentData?.paymentWithoutInsurance),
+          country: mergedData.selectedCountry,
+          amountPaid: mergedData.totalAmount?.toString(),
+          paymentWithoutInsurance: Number(mergedData?.paymentWithoutInsurance),
           numberOfTravellers: numberOfTravelers,
           travelersData: initialTravelersData, // Pass initialized travelers data
-          visaTypeId: "66755c9f11e8e79f4c31d9e4", // Add visa type ID from Redux or localStorage
-          selectedVisaType: "66755c9f11e8e79f4c31d9e4", // Add selected visa type from Redux or localStorage
+          visaTypeId: mergedData.visaTypeId || "66755c9f11e8e79f4c31d9e4",
+          selectedVisaType: mergedData.visaTypeId || "66755c9f11e8e79f4c31d9e4",
           // Add arrival and departure dates from Redux store for SMV order creation
           arrivalDate: visaState.arrivalDate,
           departureDate: visaState.departureDate,
           travelStartDate: visaState.arrivalDate || "",
           travelEndDate: visaState.departureDate || "",
           insurancePaymentCompleted: hasInsurance,
-          initialInsurancePaidTotal: hasInsurance ? (Number(currentData.insurancePayment) || 0).toString() : "0",
+          initialInsurancePaidTotal: hasInsurance ? (Number(mergedData.insurancePayment) || 0).toString() : "0",
           // Idempotency key: the webhook checks this column before creating; whichever runs first wins
           stripePaymentId: stripePaymentId || undefined,
         };
