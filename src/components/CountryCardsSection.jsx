@@ -12,6 +12,7 @@ import {
 import GetTheVisaButton from "./layout/GetTheVisaButton";
 import { getCountryConfig } from "@/constants/countryConfig";
 import { useCountriesWithAppointmentTexts } from "@/hooks/useCountriesWithAppointmentTexts";
+import { staticCountries } from "@/constants/staticCountries";
 
 const CountryCardsSection = () => {
   const [showAll, setShowAll] = useState(false);
@@ -49,99 +50,6 @@ const CountryCardsSection = () => {
     );
   }, [visaState.travelers, dispatch, router]);
 
-  const staticCountries = [
-    {
-      name: "Germany",
-      image: "/image/country/Germany.jpg",
-      landmark: "Brandenburg Gate",
-    },
-    {
-      name: "Netherlands",
-      image: "/image/country/Netherlands.jpg",
-      landmark: "Amsterdam Canal Houses",
-    },
-    {
-      name: "Belgium",
-      image: "/image/country/Belgium.jpg",
-      landmark: "Atomium Brussels",
-    },
-    {
-      name: "France",
-      image: "/image/country/France.jpg",
-      landmark: "Eiffel Tower",
-    },
-    {
-      name: "Italy",
-      image: "/image/country/Italy.jpg",
-      landmark: "Colosseum Rome",
-    },
-    {
-      name: "Bulgaria",
-      image: "/image/country/Bulgaria.jpg",
-      landmark: "Sagrada Familia",
-    },
-    {
-      name: "Estonia",
-      image: "/image/country/Estonia.jpg",
-      landmark: "Tallinn Old Town",
-    },
-    {
-      name: "Hungary",
-      image: "/image/country/Hungary.jpg",
-      landmark: "Parliament Building",
-    },
-    {
-      name: "Portugal",
-      image: "/image/country/Portugal.jpg",
-      landmark: "Pena Palace",
-    },
-    {
-      name: "Iceland",
-      image: "/image/country/Iceland.jpg",
-      landmark: "Blue Lagoon",
-    },
-    {
-      name: "Poland",
-      image: "/image/country/Poland.jpg",
-      landmark: "Warsaw Old Town",
-    },
-    {
-      name: "NORWAY",
-      image: "/image/country/Norway.jpg",
-      landmark: "Norwegian Fjords",
-    },
-    {
-      name: "Switzerland",
-      image: "/image/country/Switzerland.jpg",
-      landmark: "Matterhorn",
-    },
-    {
-      name: "Spain",
-      image: "/image/country/Spain.jpg",
-      landmark: "Sagrada Familia",
-    },
-    {
-      name: "Malta",
-      image: "/image/country/Malta.jpg",
-      landmark: "Valletta Harbor",
-    },
-    {
-      name: "Luxembourg",
-      image: "/image/country/Luxembourg.jpg",
-      landmark: "Grand Ducal Palace",
-    },
-    {
-      name: "Greece",
-      image: "/image/country/Greece.jpg",
-      landmark: "Parthenon",
-    },
-    {
-      name: "Finland",
-      image: "/image/country/Finland.jpg",
-      landmark: "Helsinki Cathedral",
-    },
-  ];
-
   const {
     countries,
     appointmentTexts,
@@ -151,6 +59,8 @@ const CountryCardsSection = () => {
     staticCountries,
     fallbackAppointmentText: "Appointment in 10 days or less",
     includeFees: true,
+    sortBy: "id",
+    limit: 18,
   });
 
   useEffect(() => {
@@ -178,9 +88,11 @@ const CountryCardsSection = () => {
     }
   }, [appointmentTexts, loading]);
 
+  const homepageCountries = countries;
+
   const displayedCountries = useMemo(() => {
-    return showAll ? countries : countries.slice(0, 6);
-  }, [countries, showAll]);
+    return showAll ? homepageCountries : homepageCountries.slice(0, 6);
+  }, [homepageCountries, showAll]);
 
   return (
     <div className="max-w-6xl mx-auto  px-6">
@@ -228,7 +140,7 @@ const CountryCardsSection = () => {
       </div>
 
       {/* See More Button */}
-      {!showAll && (
+      {!showAll && homepageCountries.length > 6 && (
         <div className="text-center mt-12">
           <button
             onClick={() => setShowAll(true)}
@@ -241,7 +153,7 @@ const CountryCardsSection = () => {
       )}
 
       {/* Show Less Button (when expanded) */}
-      {showAll && (
+      {showAll && homepageCountries.length > 6 && (
         <div className="text-center mt-12">
           <button
             onClick={() => setShowAll(false)}

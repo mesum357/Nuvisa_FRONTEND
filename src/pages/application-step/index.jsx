@@ -2078,13 +2078,13 @@ const MultiStepAccordion = () => {
       <div className="w-full max-w-4xl py-[25px] pri_bg mx-auto flex-col gap-3 flex items-center justify-center px-6">
         {/* Go Back Button */}
         <div className="w-full mb-4">
-          <button
-            onClick={() => router.replace("/dashboard")}
-            className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors duration-200"
+          <a
+            href="/dashboard"
+            className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors duration-200 cursor-pointer"
           >
             <ChevronLeft className="size-5" />
             <span className="text-sm font-medium">Go Back</span>
-          </button>
+          </a>
         </div>
 
         {/* Country Info */}
