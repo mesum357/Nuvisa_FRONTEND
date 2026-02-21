@@ -74,7 +74,24 @@ const CountrySlider = () => {
 
   const { content: sliderContent } = useSliderContent();
   const visaState = useAppSelector((state) => state.visa);
+ 
+  const nriBadgeText = sliderContent["nri_badge_text"] || "";
+  const dailyNriBadgeText = useMemo(() => {
+    const textOptions = nriBadgeText
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
 
+    if (textOptions.length === 0) return "";
+
+    const now = new Date();
+    const startOfYear = new Date(now.getFullYear(), 0, 0);
+    const dayOfYear = Math.floor((now - startOfYear) / 86400000);
+    const textIndex = (dayOfYear - 1) % textOptions.length;
+
+    return textOptions[textIndex];
+  }, [nriBadgeText]);
+  
   const staticCountries = [
     {
       id: 1,
@@ -2758,7 +2775,7 @@ const CountrySlider = () => {
                 className="relative z-10 leading-none text-center font-bold flex justify-center items-center pt-2 max-sm:text-[18px]"
                 style={{ fontSize: "17px" }}
               >
-                {sliderContent["nri_badge_text"] || ""}
+                {dailyNriBadgeText}
               </span>
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse"></div>
             </button>
