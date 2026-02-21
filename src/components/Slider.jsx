@@ -52,6 +52,7 @@ import SimpleAlert from "./SimpleAlert";
 import ConfirmationModal from "./ConfirmationModal";
 import StripeProvider from "./StripeProvider";
 import ExpressPaymentRequestButton from "./ExpressPaymentRequestButton";
+import ExpertSection from "./ExpertSection";
 import { validateGiftCardCode, redeemGiftCardCode } from "@/api/giftCard";
 
 const CountrySlider = () => {
@@ -3797,6 +3798,8 @@ const CountrySlider = () => {
               </div>
             )}    
 
+
+            <ExpertSection />
 
 
             {/* Checkout Button */}
