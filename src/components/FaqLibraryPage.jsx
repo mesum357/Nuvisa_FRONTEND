@@ -65,7 +65,7 @@ const FaqLibraryPage = () => {
       <div className="pri_bg text-white px-5 md:px-10 pb-12">
         <Navbar />
 
-        <section className="max-w-6xl mx-auto pt-10 md:pt-16 text-center">
+        <section className="max-w-6xl mx-auto mb-4 pt-10 md:pt-16 text-center">
           <p className="public_text_clr font-gilroy-bold tracking-[0.2em] text-xs md:text-sm uppercase mb-4">
             Knowledge Library
           </p>
@@ -122,15 +122,11 @@ const FaqLibraryPage = () => {
         </section>
 
         <section className="max-w-6xl mx-auto px-5 md:px-6 py-10 md:py-14 space-y-7 md:space-y-8">
-          {groupedFaqs.map((group, sectionIndex) => (
+          {groupedFaqs.map((group) => (
             <article
               id={group.id}
               key={group.id}
-              className={`rounded-2xl border px-5 md:px-8 py-6 md:py-8 ${
-                sectionIndex % 2 === 0
-                  ? "bg-[#f1f9f5] border-[#d9efe4]"
-                  : "bg-white border-[#ebe3ff]"
-              }`}
+              className='rounded-2xl border px-5 md:px-8 py-6 md:py-8 bg-white border-none'
             >
               <h2 className="font-gilroy-bold text-2xl md:text-3xl text-[#1E1E27] mb-5">{group.name}</h2>
 
@@ -145,7 +141,9 @@ const FaqLibraryPage = () => {
                         type="button"
                         onClick={() => setActiveItem(isOpen ? null : itemKey)}
                         aria-expanded={isOpen}
-                        className="w-full text-left px-4 md:px-5 py-4 flex items-center justify-between gap-3 hover:bg-[#f8f8fb] transition-colors"
+                        className={`w-full text-left px-4 md:px-5 py-4 flex items-center justify-between gap-3 transition-colors ${
+                          isOpen ? "bg-[#f1e8ff]" : "bg-white hover:bg-[#f8f8fb]"
+                        }`}
                       >
                         <span className="text-[#1E1E27] font-gilroy-medium text-[15px] md:text-base">
                           {item.question}
