@@ -1,10 +1,19 @@
+'use client'
+
 import { Check, CircleHelp } from "lucide-react";
 import Image from "next/image";
 import WhatsAppBadge from "./WhatsAppBadge";
+import { useState } from "react";
 
 const ExpertSection = () => {
+  const [isChecked, setIsChecked] = useState(false);
+
   return (
-    <section className="w-full mt-4 rounded-2xl overflow-hidden border border-white/15 bg-[#171A20] text-white">
+    <section
+      className={`w-full mt-4 rounded-2xl overflow-hidden border bg-[#171A20] text-white transition-colors duration-300 ${
+        isChecked ? "border-[#7350FF]" : "border-white/15"
+      }`}
+    >
       <div className="w-full bg-black/70 px-4 py-2 flex items-center justify-center text-sm font-semibold">
         <span className="h-2.5 w-2.5 rounded-full bg-[#6B4EFF] mr-2"></span>
         <span>Only 19 spots left</span>
@@ -17,10 +26,14 @@ const ExpertSection = () => {
               <input
                 id="expert-accountability-coach"
                 type="checkbox"
+                checked={isChecked}
+                onChange={(event) => setIsChecked(event.target.checked)}
                 aria-label="Select accountability coach add-on"
-                className="peer h-6 w-6 appearance-none rounded-md border border-white/25 bg-transparent cursor-pointer transition-all duration-200 checked:border-[#6B4EFF] checked:bg-[#6B4EFF]"
+                className="peer h-6 w-6 appearance-none rounded-md border border-white/25 bg-white cursor-pointer checked:border-[#6B4EFF] checked:bg-[#6B4EFF]"
               />
-              <Check className="pointer-events-none absolute inset-0 m-auto h-4 w-4 text-white opacity-0 scale-50 transition-all duration-200 ease-out peer-checked:opacity-100 peer-checked:scale-100" />
+              {isChecked && (
+                <Check className="pointer-events-none absolute inset-0 m-auto h-4 w-4 text-white" />
+              )}
             </div>
 
             <label htmlFor="expert-accountability-coach" className="flex-1 cursor-pointer">
