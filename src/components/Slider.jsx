@@ -63,11 +63,40 @@ const CountrySlider = () => {
   const { showError, showSuccess } = useToast();
   const MIN_SAFE_DAYS_BEFORE_TRAVEL = 15;
 
+  const currentWeekReservedText = useMemo(() => {
+    const now = new Date();
+    const dayOfMonth = now.getDate();
+    const weekOfMonth = Math.ceil(dayOfMonth / 7);
+
+    if (weekOfMonth === 1) return "40% reversed";
+    if (weekOfMonth === 2) return "75% reserved";
+    if (weekOfMonth === 3) return "95% reserved";
+    return "99% reserved";
+  }, []);
+
   const { content: sliderContent } = useSliderContent();
   const visaState = useAppSelector((state) => state.visa);
+ 
+  const nriBadgeText = sliderContent["nri_badge_text"] || "";
+  const dailyNriBadgeText = useMemo(() => {
+    const textOptions = nriBadgeText
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    if (textOptions.length === 0) return "";
+
+    const now = new Date();
+    const startOfYear = new Date(now.getFullYear(), 0, 0);
+    const dayOfYear = Math.floor((now - startOfYear) / 86400000);
+    const textIndex = (dayOfYear - 1) % textOptions.length;
+
+    return textOptions[textIndex];
+  }, [nriBadgeText]);
+  
 
   const [_isCountryOpen, setIsCountryOpen] = useState(false);
-  const [selectedCountry, setSelectedCountryLocal] = useState("France");
+  const [selectedCountry, setSelectedCountryLocal] = useState("Belgium");
   const [activeTooltip, setActiveTooltip] = useState(null);
   const [insuranceDays, setInsuranceDays] = useState(0);
   const [isHighlighted, setIsHighlighted] = useState(false);
@@ -787,6 +816,16 @@ const CountrySlider = () => {
     [countries]
   );
 
+  const carouselCountries = useMemo(
+    () => staticCountries.filter((country) => country?.name && country?.image),
+    []
+  );
+
+  const carouselLength = carouselCountries.length;
+
+  const activeCarouselCountry =
+    carouselCountries[currentIndex] || carouselCountries[0] || null;
+
   // Handle pre-selected country from URL parameters
   useEffect(() => {
     if (router.query.selectedCountry) {
@@ -812,10 +851,24 @@ const CountrySlider = () => {
     )?.appointmentText || "Appointment in 10 days or less";
 
   useEffect(() => {
+    if (!carouselLength) return;
+    if (currentIndex >= carouselLength) {
+      setCurrentIndex(0);
+    }
+  }, [carouselLength, currentIndex]);
+
+  useEffect(() => {
+    if (carouselLength <= 1) {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+      return;
+    }
+
     const startTimer = () => {
       return setInterval(() => {
         setCurrentIndex((prevIndex) => {
-          const isLastSlide = prevIndex === countries.length - 1;
+          const isLastSlide = prevIndex === carouselLength - 1;
           return isLastSlide ? 0 : prevIndex + 1;
         });
       }, 5000);
@@ -828,7 +881,7 @@ const CountrySlider = () => {
         clearInterval(timerRef.current);
       }
     };
-  }, [countries.length]);
+  }, [carouselLength]);
 
   // Auto-scroll thumbnail container to keep active thumbnail visible
   useEffect(() => {
@@ -914,17 +967,19 @@ const CountrySlider = () => {
     const timeoutId = setTimeout(() => scrollToActiveThumbnail(0), 100);
 
     return () => clearTimeout(timeoutId);
-  }, [currentIndex]);
+  }, [currentIndex, carouselLength]);
 
   const goToPrevious = () => {
+    if (!carouselLength) return;
     const isFirstSlide = currentIndex === 0;
-    const newIndex = isFirstSlide ? countries.length - 1 : currentIndex - 1;
+    const newIndex = isFirstSlide ? carouselLength - 1 : currentIndex - 1;
     setCurrentIndex(newIndex);
     resetTimer();
   };
 
   const goToNext = () => {
-    const isLastSlide = currentIndex === countries.length - 1;
+    if (!carouselLength) return;
+    const isLastSlide = currentIndex === carouselLength - 1;
     const newIndex = isLastSlide ? 0 : currentIndex + 1;
     setCurrentIndex(newIndex);
     resetTimer();
@@ -986,12 +1041,13 @@ const CountrySlider = () => {
   };
 
   const resetTimer = () => {
+    if (carouselLength <= 1) return;
     if (timerRef.current) {
       clearInterval(timerRef.current);
     }
     timerRef.current = setInterval(() => {
       setCurrentIndex((prevIndex) => {
-        const isLastSlide = prevIndex === countries.length - 1;
+        const isLastSlide = prevIndex === carouselLength - 1;
         return isLastSlide ? 0 : prevIndex + 1;
       });
     }, 5000);
@@ -2112,7 +2168,7 @@ const CountrySlider = () => {
   const validateBeforeExpressPayment = useCallback(() => {
     if (!isDocumentsValid) {
       dispatch(triggerDocumentValidation());
-      const message = "Please complete all required documents before proceeding with payment.";
+      const message = "Please confirm all required documents before proceeding with payment.";
       showError(message);
       return message;
     }
@@ -2543,8 +2599,8 @@ const CountrySlider = () => {
               <div className="overflow-hidden rounded-3xl shadow-lg max-sm:rounded-2xl">
                 <div className="relative h-full w-full">
                   <Image
-                    src={countries[currentIndex].image}
-                    alt={countries[currentIndex].name}
+                    src={activeCarouselCountry?.image || "/image/country/default.jpg"}
+                    alt={activeCarouselCountry?.name || "Country"}
                     width={800}
                     height={800}
                     className="w-full aspect-square object-cover"
@@ -2552,7 +2608,7 @@ const CountrySlider = () => {
                   />
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6 max-sm:p-4">
                     <h3 className="text-2xl font-gilroy-bold text-white max-sm:text-xl mb-5">
-                      {countries[currentIndex].name}
+                      {activeCarouselCountry?.name || ""}
                     </h3>
                   </div>
                 </div>
@@ -2575,7 +2631,7 @@ const CountrySlider = () => {
               </button>
 
               <div className="flex justify-center gap-2 absolute bottom-5 left-1/2 -translate-x-1/2 max-sm:bottom-3">
-                {countries.map((_, index) => (
+                {carouselCountries.map((_, index) => (
                   <button
                     key={index}
                     onClick={() => {
@@ -2598,7 +2654,7 @@ const CountrySlider = () => {
               className="flex justify-start gap-2 max-lg:hidden mt-8 overflow-x-auto overflow-y-hidden w-full max-sm:mt-4 px-4"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
             >
-              {countries.map((country, index) => (
+              {carouselCountries.map((country, index) => (
                 <Image
                   key={country.id}
                   src={country.image}
@@ -2635,7 +2691,7 @@ const CountrySlider = () => {
                 className="relative z-10 leading-none text-center font-bold flex justify-center items-center pt-2 max-sm:text-[18px]"
                 style={{ fontSize: "17px" }}
               >
-                {sliderContent["nri_badge_text"] || ""}
+                {dailyNriBadgeText}
               </span>
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse"></div>
             </button>
@@ -3368,7 +3424,7 @@ const CountrySlider = () => {
                   </div>
                   <div className="bg-[#5a3ddb] rounded-full p-2 max-sm:p-1.5">
                     <div className="text-xs text-white font-semibold max-sm:text-xs">
-                      {sliderContent["slot2_status"]}
+                      {currentWeekReservedText}
                     </div>
                   </div>
                 </div>
