@@ -7,7 +7,8 @@ export const useCountriesWithAppointmentTexts = ({
   staticCountries = [],
   fallbackAppointmentText = "Appointment in 10 days or less",
   includeFees = false,
-  includeDynamicCountries = true,
+  sortBy = "name",
+  limit,
 } = {}) => {
   const [appointmentTexts, setAppointmentTexts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -66,12 +67,16 @@ export const useCountriesWithAppointmentTexts = ({
       return acc;
     }, {});
 
-    const allCountryNames = includeDynamicCountries
-      ? new Set([
-          ...staticCountries.map((country) => country?.name).filter(Boolean),
-          ...appointmentTexts.map((item) => item?.countryName).filter(Boolean),
-        ])
-      : new Set(staticCountries.map((country) => country?.name).filter(Boolean));
+    const staticCountryNames = staticCountries
+      .map((country) => country?.name)
+      .filter(Boolean);
+    const apiCountryNames = appointmentTexts
+      .map((item) => item?.countryName)
+      .filter(Boolean);
+
+    const allCountryNames = staticCountryNames.length > 0
+      ? new Set(staticCountryNames)
+      : new Set(apiCountryNames);
 
     const merged = Array.from(allCountryNames).map((countryName, index) => {
       const normalizedCountryName = normalizeCountryName(countryName);
@@ -108,13 +113,41 @@ export const useCountriesWithAppointmentTexts = ({
       return mergedCountry;
     });
 
-    merged.sort((a, b) => a.name.localeCompare(b.name));
-    return merged;
+    const deduped = merged.filter((country, index, arr) => {
+      const normalized = normalizeCountryName(country?.name);
+      return (
+        arr.findIndex(
+          (item) => normalizeCountryName(item?.name) === normalized
+        ) === index
+      );
+    });
+
+    if (sortBy === "id") {
+      deduped.sort((a, b) => {
+        const aId = Number.isFinite(Number(a?.id)) ? Number(a.id) : Number.MAX_SAFE_INTEGER;
+        const bId = Number.isFinite(Number(b?.id)) ? Number(b.id) : Number.MAX_SAFE_INTEGER;
+
+        if (aId === bId) {
+          return String(a?.name || "").localeCompare(String(b?.name || ""));
+        }
+
+        return aId - bId;
+      });
+    } else {
+      deduped.sort((a, b) => String(a?.name || "").localeCompare(String(b?.name || "")));
+    }
+
+    if (typeof limit === "number" && limit > 0) {
+      return deduped.slice(0, limit);
+    }
+
+    return deduped;
   }, [
     appointmentTexts,
     fallbackAppointmentText,
     includeFees,
-    includeDynamicCountries,
+    sortBy,
+    limit,
     normalizeCountryName,
     staticCountries,
   ]);

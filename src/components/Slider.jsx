@@ -54,6 +54,7 @@ import StripeProvider from "./StripeProvider";
 import ExpressPaymentRequestButton from "./ExpressPaymentRequestButton";
 import { validateGiftCardCode, redeemGiftCardCode } from "@/api/giftCard";
 import { useCountriesWithAppointmentTexts } from "@/hooks/useCountriesWithAppointmentTexts";
+import { staticCountries } from "@/constants/staticCountries";
 
 const CountrySlider = () => {
   const router = useRouter();
@@ -63,100 +64,6 @@ const CountrySlider = () => {
 
   const { content: sliderContent } = useSliderContent();
   const visaState = useAppSelector((state) => state.visa);
-
-  const staticCountries = [
-    {
-      id: 1,
-      name: "Germany",
-      image: "/image/country/Germany.jpg",
-    },
-    {
-      id: 2,
-      name: "Netherlands",
-      image: "/image/country/Netherlands.jpg",
-    },
-    {
-      id: 3,
-      name: "Belgium",
-      image: "/image/country/Belgium.jpg",
-    },
-    {
-      id: 4,
-      name: "France",
-      image: "/image/country/France.jpg",
-    },
-    {
-      id: 5,
-      name: "Italy",
-      image: "/image/country/Italy.jpg",
-    },
-    {
-      id: 6,
-      name: "Bulgaria",
-      image: "/image/country/Bulgaria.jpg",
-    },
-    {
-      id: 7,
-      name: "Estonia",
-      image: "/image/country/Estonia.jpg",
-    },
-    {
-      id: 8,
-      name: "Hungary",
-      image: "/image/country/Hungary.jpg",
-
-    },
-    {
-      id: 9,
-      name: "Portugal",
-      image: "/image/country/Portugal.jpg",
-    },
-    {
-      id: 10,
-      name: "Iceland",
-      image: "/image/country/Iceland.jpg",
-    },
-    {
-      id: 11,
-      name: "Poland",
-      image: "/image/country/Poland.jpg",
-    },
-    {
-      id: 12,
-      name: "Norway",
-      image: "/image/country/Norway.jpg",
-    },
-    {
-      id: 13,
-      name: "Switzerland",
-      image: "/image/country/Switzerland.jpg",
-    },
-    {
-      id: 14,
-      name: "Spain",
-      image: "/image/country/Spain.jpg",
-    },
-    {
-      id: 15,
-      name: "Malta",
-      image: "/image/country/Malta.jpg",
-    },
-    {
-      id: 16,
-      name: "Luxembourg",
-      image: "/image/country/Luxembourg.jpg",
-    },
-    {
-      id: 17,
-      name: "Greece",
-      image: "/image/country/Greece.jpg",
-    },
-    {
-      id: 18,
-      name: "Finland",
-      image: "/image/country/Finland.jpg",
-    },
-  ];
 
   const [_isCountryOpen, setIsCountryOpen] = useState(false);
   const [selectedCountry, setSelectedCountryLocal] = useState("France");
@@ -871,10 +778,11 @@ const CountrySlider = () => {
   const { countries, normalizeCountryName } = useCountriesWithAppointmentTexts({
     staticCountries,
     fallbackAppointmentText: "Appointment in 10 days or less",
+    sortBy: "name",
   });
 
   const dropdownCountries = useMemo(
-    () => countries.map((country) => country.name),
+    () => countries.map((country) => country?.name).filter(Boolean),
     [countries]
   );
 
