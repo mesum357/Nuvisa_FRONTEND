@@ -3444,6 +3444,8 @@ const CountrySlider = () => {
             </StripeProvider>
           </div>
 
+          <ExpertSection />
+
           {/* Free Offer Banner */}
           <div className="border rounded-3xl border-white/20 bg-white/5 backdrop-blur-sm overflow-hidden max-sm:rounded-2xl mt-6">
             <div className="flex items-center gap-4 p-4 border-b border-white/10 max-sm:p-3 max-sm:gap-3">
@@ -3836,8 +3838,6 @@ const CountrySlider = () => {
                 <ArrowUpRight className="w-5 h-5 text-[#6B4EFF] max-sm:w-4 max-sm:h-4" />
               </span>
             </button>
-
-            <ExpertSection />
 
             {/* Footer Info */}
             <div className="mt-6 space-y-2 max-sm:space-y-1.5">

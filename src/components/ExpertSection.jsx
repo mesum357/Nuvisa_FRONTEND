@@ -6,7 +6,7 @@ const ExpertSection = () => {
   return (
     <section className="w-full mt-4 rounded-2xl overflow-hidden border border-white/15 bg-[#171A20] text-white">
       <div className="w-full bg-black/70 px-4 py-2 flex items-center justify-center text-sm font-semibold">
-        <span className="h-2.5 w-2.5 rounded-full bg-lime-400 mr-2"></span>
+        <span className="h-2.5 w-2.5 rounded-full bg-[#6B4EFF] mr-2"></span>
         <span>Only 19 spots left</span>
       </div>
 
