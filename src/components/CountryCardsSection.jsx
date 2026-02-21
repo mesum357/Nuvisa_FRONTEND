@@ -11,14 +11,10 @@ import {
 } from "@/store/visaSlice";
 import GetTheVisaButton from "./layout/GetTheVisaButton";
 import { getCountryConfig } from "@/constants/countryConfig";
-import { fetchAppointmentTexts } from "@/api/appointmentText";
-import { getAdminApiBase } from "@/utils/adminApiBase";
+import { useCountriesWithAppointmentTexts } from "@/hooks/useCountriesWithAppointmentTexts";
 
 const CountryCardsSection = () => {
   const [showAll, setShowAll] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [appointmentTexts, setAppointmentTexts] = useState([]);
   const [sectionContent, setSectionContent] = useState({
     title: "Choose Your Country",
     description: "We support 20 countries over all the visa centres in the UK",
@@ -53,80 +49,7 @@ const CountryCardsSection = () => {
     );
   }, [visaState.travelers, dispatch, router]);
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      // TEMPORARILY COMMENTED OUT - Fetch appointment texts which now includes section content
-      const appointmentTextsData = await fetchAppointmentTexts();
-      // const appointmentTextsData = []; // Use empty array as fallback
-      
-    
-
-      console.log("Frontend received appointment texts:", appointmentTextsData);
-
-      setAppointmentTexts(
-        Array.isArray(appointmentTextsData) ? appointmentTextsData : []
-      );
-
-      // Extract section content from appointment text records
-      if (appointmentTextsData && appointmentTextsData.length > 0) {
-        // Look for a record with section content (prefer DEFAULT record, then any record)
-        const recordWithSectionContent =
-          appointmentTextsData.find(
-            (record) => record.sectionTitle && record.sectionDescription
-          ) || appointmentTextsData[0];
-
-        console.log("Record with section content:", recordWithSectionContent);
-
-        const newSectionContent = {
-          title: recordWithSectionContent.sectionTitle || "Choose Your Country",
-          description:
-            recordWithSectionContent.sectionDescription ||
-            "We support 20 countries over all the visa centres in the UK",
-        };
-
-        console.log("Setting section content:", newSectionContent);
-        setSectionContent(newSectionContent);
-      } else {
-        // Set fallback values if no data
-        console.log("No appointment texts data, using fallback");
-        setSectionContent({
-          title: "Choose Your Country",
-          description:
-            "We support 20 countries over all the visa centres in the UK",
-        });
-      }
-
-      setError(null);
-    } catch (e) {
-      console.error("Error fetching data:", e);
-      setError("Failed to load data.");
-      // Set fallback values on error
-      setSectionContent({
-        title: "Choose Your Country",
-        description:
-          "We support 20 countries over all the visa centres in the UK",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    let active = true;
-
-    const loadData = async () => {
-      await fetchData();
-    };
-
-    loadData();
-
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  const countries = [
+  const staticCountries = [
     {
       name: "Germany",
       image: "/image/country/Germany.jpg",
@@ -219,66 +142,45 @@ const CountryCardsSection = () => {
     },
   ];
 
+  const {
+    countries,
+    appointmentTexts,
+    isLoading: loading,
+    error,
+  } = useCountriesWithAppointmentTexts({
+    staticCountries,
+    fallbackAppointmentText: "Appointment in 10 days or less",
+    includeFees: true,
+  });
+
+  useEffect(() => {
+    if (appointmentTexts && appointmentTexts.length > 0) {
+      const recordWithSectionContent =
+        appointmentTexts.find(
+          record => record.sectionTitle && record.sectionDescription
+        ) || appointmentTexts[0];
+
+      setSectionContent({
+        title: recordWithSectionContent.sectionTitle || "Choose Your Country",
+        description:
+          recordWithSectionContent.sectionDescription ||
+          "We support 20 countries over all the visa centres in the UK"
+      });
+      return;
+    }
+
+    if (!loading) {
+      setSectionContent({
+        title: "Choose Your Country",
+        description:
+          "We support 20 countries over all the visa centres in the UK"
+      });
+    }
+  }, [appointmentTexts, loading]);
+
   const displayedCountries = useMemo(() => {
-    // Create a map of appointment texts and images for quick lookup
-    const appointmentTextMap = appointmentTexts.reduce((acc, item) => {
-      acc[item.countryName] = {
-        appointmentText: item.appointmentText,
-        image: item.image || null,
-      };
-      return acc;
-    }, {});
-
-    // Create a map of static countries for quick lookup
-    const staticCountriesMap = countries.reduce((acc, country) => {
-      acc[country.name] = country;
-      return acc;
-    }, {});
-
-    // Get all unique country names (from both static list and database)
-    const allCountryNames = new Set([
-      ...countries.map(c => c.name),
-      ...appointmentTexts.map(item => item.countryName)
-    ]);
-
-    // Map all countries (static + database) with dynamic appointment text and image
-    const list = Array.from(allCountryNames).map((countryName) => {
-      const staticCountry = staticCountriesMap[countryName];
-      const countryData = appointmentTextMap[countryName] || {};
-      
-      // Use image from database if available, otherwise use static image or default
-      let countryImage;
-      if (countryData.image) {
-        // Image from database
-        countryImage = countryData.image.startsWith('http') 
-          ? countryData.image 
-          : countryData.image.startsWith('/')
-          ? `${getAdminApiBase()}${countryData.image}`
-          : countryData.image;
-      } else if (staticCountry?.image) {
-        // Use static image
-        countryImage = staticCountry.image;
-      } else {
-        // Default fallback image
-        countryImage = "/image/country/default.jpg";
-      }
-
-      return {
-        name: countryName,
-        image: countryImage,
-        landmark: staticCountry?.landmark || countryName,
-        visaFee: Number(getCountryConfig(countryName).visaFee),
-        insuranceFee: Number(getCountryConfig(countryName).insuranceFee),
-        appointmentText:
-          countryData.appointmentText || "Appointment in 10 days or less",
-      };
-    });
-
-    // Sort countries alphabetically
-    list.sort((a, b) => a.name.localeCompare(b.name));
-
-    return showAll ? list : list.slice(0, 6);
-  }, [appointmentTexts, showAll]);
+    return showAll ? countries : countries.slice(0, 6);
+  }, [countries, showAll]);
 
   return (
     <div className="max-w-6xl mx-auto  px-6">

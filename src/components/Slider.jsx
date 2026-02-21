@@ -53,6 +53,7 @@ import ConfirmationModal from "./ConfirmationModal";
 import StripeProvider from "./StripeProvider";
 import ExpressPaymentRequestButton from "./ExpressPaymentRequestButton";
 import { validateGiftCardCode, redeemGiftCardCode } from "@/api/giftCard";
+import { useCountriesWithAppointmentTexts } from "@/hooks/useCountriesWithAppointmentTexts";
 
 const CountrySlider = () => {
   const router = useRouter();
@@ -63,7 +64,7 @@ const CountrySlider = () => {
   const { content: sliderContent } = useSliderContent();
   const visaState = useAppSelector((state) => state.visa);
 
-  const countries = [
+  const staticCountries = [
     {
       id: 1,
       name: "Germany",
@@ -908,6 +909,19 @@ const CountrySlider = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const timerRef = useRef(null);
   const thumbnailContainerRef = useRef(null);
+
+  const { countries, normalizeCountryName } = useCountriesWithAppointmentTexts({
+    staticCountries,
+    fallbackAppointmentText: "Appointment in 10 days or less",
+  });
+
+  const currentCountryName = getCountryParam(selectedCountry) || "Germany";
+  const currentAppointmentText =
+    countries.find(
+      (country) =>
+        normalizeCountryName(country.name) ===
+        normalizeCountryName(currentCountryName)
+    )?.appointmentText || "Appointment in 10 days or less";
 
   useEffect(() => {
     const startTimer = () => {
@@ -2789,22 +2803,27 @@ const CountrySlider = () => {
                   <label htmlFor="country-select" className="sr-only">
                     Select Country
                   </label>
-                  <select
-                    id="country-select"
-                    value={selectedCountry}
-                    onChange={(e) => selectCountry(e.target.value)}
-                    className="px-2 py-2 font-semibold rounded-full shadow-black/20 shadow-lg cursor-pointer focus:outline-none max-sm:w-full max-sm:text-center"
-                  >
-                    {schengenCountries.map((country) => (
-                      <option
-                        key={country}
-                        value={country}
-                        className="bg-gray-400 text-gray-800"
+                  <div>
+                    <select
+                      id="country-select"
+                      value={selectedCountry}
+                      onChange={(e) => selectCountry(e.target.value)}
+                      className="px-2 py-2 font-semibold rounded-full shadow-black/20 shadow-lg cursor-pointer focus:outline-none max-sm:w-full max-sm:text-center"
                       >
-                        {country}
-                      </option>
-                    ))}
-                  </select>
+                        {schengenCountries.map((country) => (
+                          <option
+                          key={country}
+                          value={country}
+                          className="bg-gray-400 text-gray-800"
+                          >
+                            {country}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                  <span className="text-sm text-green-400 max-sm:text-xs">
+                    {currentAppointmentText}
+                  </span>
                 </div>
               </div>
             </div>
