@@ -20,11 +20,7 @@ const ExpertSection = () => {
 
           <label htmlFor="expert-accountability-coach" className="flex-1 cursor-pointer">
             <h3 className="text-md leading-tight font-gilroy-bold max-sm:text-base">
-              Guarantee Your Results with
-              <br />
-              Unlimited Access to a <WhatsAppBadge />
-              <br />
-              Accountability Coach
+              Guarantee Your Results with Unlimited Access to a <WhatsAppBadge /> Accountability Coach
             </h3>
 
             <p className="mt-3 text-base text-white/85 max-sm:text-sm">
