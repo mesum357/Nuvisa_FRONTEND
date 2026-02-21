@@ -54,6 +54,7 @@ import StripeProvider from "./StripeProvider";
 import ExpressPaymentRequestButton from "./ExpressPaymentRequestButton";
 import { validateGiftCardCode, redeemGiftCardCode } from "@/api/giftCard";
 import { useCountriesWithAppointmentTexts } from "@/hooks/useCountriesWithAppointmentTexts";
+import { staticCountries } from "@/constants/staticCountries";
 
 const CountrySlider = () => {
   const router = useRouter();
@@ -63,131 +64,6 @@ const CountrySlider = () => {
 
   const { content: sliderContent } = useSliderContent();
   const visaState = useAppSelector((state) => state.visa);
-
-  const staticCountries = [
-    {
-      id: 1,
-      name: "Germany",
-      image: "/image/country/Germany.jpg",
-    },
-    {
-      id: 2,
-      name: "Netherlands",
-      image: "/image/country/Netherlands.jpg",
-    },
-    {
-      id: 3,
-      name: "Belgium",
-      image: "/image/country/Belgium.jpg",
-    },
-    {
-      id: 4,
-      name: "France",
-      image: "/image/country/France.jpg",
-    },
-    {
-      id: 5,
-      name: "Italy",
-      image: "/image/country/Italy.jpg",
-    },
-    {
-      id: 6,
-      name: "Bulgaria",
-      image: "/image/country/Bulgaria.jpg",
-    },
-    {
-      id: 7,
-      name: "Estonia",
-      image: "/image/country/Estonia.jpg",
-    },
-    {
-      id: 8,
-      name: "Hungary",
-      image: "/image/country/Hungary.jpg",
-
-    },
-    {
-      id: 9,
-      name: "Portugal",
-      image: "/image/country/Portugal.jpg",
-    },
-    {
-      id: 10,
-      name: "Iceland",
-      image: "/image/country/Iceland.jpg",
-    },
-    {
-      id: 11,
-      name: "Poland",
-      image: "/image/country/Poland.jpg",
-    },
-    {
-      id: 12,
-      name: "Norway",
-      image: "/image/country/Norway.jpg",
-    },
-    {
-      id: 13,
-      name: "Switzerland",
-      image: "/image/country/Switzerland.jpg",
-    },
-    {
-      id: 14,
-      name: "Spain",
-      image: "/image/country/Spain.jpg",
-    },
-    {
-      id: 15,
-      name: "Malta",
-      image: "/image/country/Malta.jpg",
-    },
-    {
-      id: 16,
-      name: "Luxembourg",
-      image: "/image/country/Luxembourg.jpg",
-    },
-    {
-      id: 17,
-      name: "Greece",
-      image: "/image/country/Greece.jpg",
-    },
-    {
-      id: 18,
-      name: "Finland",
-      image: "/image/country/Finland.jpg",
-    },
-  ];
-
-  const schengenCountries = [
-    "Austria",
-    "Belgium",
-    "Bulgaria",
-    "Czech Republic",
-    "Denmark",
-    "Estonia",
-    "Finland",
-    "France",
-    "Germany",
-    "Greece",
-    "Hungary",
-    "Iceland",
-    "Italy",
-    "Latvia",
-    "Liechtenstein",
-    "Lithuania",
-    "Luxembourg",
-    "Malta",
-    "Netherlands",
-    "Norway",
-    "Poland",
-    "Portugal",
-    "Romania",
-    "Slovakia",
-    "Slovenia",
-    "Spain",
-    "Sweden",
-    "Switzerland",
-  ];
 
   const [_isCountryOpen, setIsCountryOpen] = useState(false);
   const [selectedCountry, setSelectedCountryLocal] = useState("France");
@@ -686,17 +562,6 @@ const CountrySlider = () => {
   // Use Redux state for recommendedItems
   const recommendedItems = visaState.recommendedItems;
 
-  // Handle pre-selected country from URL parameters
-  useEffect(() => {
-    if (router.query.selectedCountry) {
-      const countryFromUrl = router.query.selectedCountry;
-      if (schengenCountries.includes(countryFromUrl)) {
-        setSelectedCountryLocal(countryFromUrl);
-        dispatch(setReduxSelectedCountry(String(countryFromUrl)));
-      }
-    }
-  }, [router.query.selectedCountry, dispatch]);
-
   // Sync requiredDocuments to Redux whenever it changes
   useEffect(() => {
     dispatch(setRequiredDocuments(requiredDocuments));
@@ -913,7 +778,29 @@ const CountrySlider = () => {
   const { countries, normalizeCountryName } = useCountriesWithAppointmentTexts({
     staticCountries,
     fallbackAppointmentText: "Appointment in 10 days or less",
+    sortBy: "name",
   });
+
+  const dropdownCountries = useMemo(
+    () => countries.map((country) => country?.name).filter(Boolean),
+    [countries]
+  );
+
+  // Handle pre-selected country from URL parameters
+  useEffect(() => {
+    if (router.query.selectedCountry) {
+      const countryFromUrl = router.query.selectedCountry;
+      const isAvailableCountry = dropdownCountries.some(
+        (country) =>
+          normalizeCountryName(country) === normalizeCountryName(countryFromUrl)
+      );
+
+      if (isAvailableCountry) {
+        setSelectedCountryLocal(countryFromUrl);
+        dispatch(setReduxSelectedCountry(String(countryFromUrl)));
+      }
+    }
+  }, [router.query.selectedCountry, dropdownCountries, normalizeCountryName, dispatch]);
 
   const currentCountryName = getCountryParam(selectedCountry) || "Germany";
   const currentAppointmentText =
@@ -2810,7 +2697,7 @@ const CountrySlider = () => {
                       onChange={(e) => selectCountry(e.target.value)}
                       className="px-2 py-2 font-semibold rounded-full shadow-black/20 shadow-lg cursor-pointer focus:outline-none max-sm:w-full max-sm:text-center"
                       >
-                        {schengenCountries.map((country) => (
+                        {dropdownCountries.map((country) => (
                           <option
                           key={country}
                           value={country}
