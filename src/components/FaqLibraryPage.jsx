@@ -144,6 +144,7 @@ const FaqLibraryPage = () => {
                       <button
                         type="button"
                         onClick={() => setActiveItem(isOpen ? null : itemKey)}
+                        aria-expanded={isOpen}
                         className="w-full text-left px-4 md:px-5 py-4 flex items-center justify-between gap-3 hover:bg-[#f8f8fb] transition-colors"
                       >
                         <span className="text-[#1E1E27] font-gilroy-medium text-[15px] md:text-base">
@@ -156,11 +157,17 @@ const FaqLibraryPage = () => {
                         )}
                       </button>
 
-                      {isOpen && (
-                        <div className="px-4 md:px-5 pb-4 text-neutral-700 text-sm md:text-[15px] leading-relaxed">
-                          {item.answer}
+                      <div
+                        className={`grid transition-all duration-300 ease-in-out ${
+                          isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                        }`}
+                      >
+                        <div className="overflow-hidden">
+                          <div className="px-4 md:px-5 pt-2 pb-4 text-neutral-700 text-sm md:text-[15px] leading-relaxed">
+                            {item.answer}
+                          </div>
                         </div>
-                      )}
+                      </div>
                     </div>
                   );
                 })}
