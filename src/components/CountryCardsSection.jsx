@@ -151,6 +151,7 @@ const CountryCardsSection = () => {
     staticCountries,
     fallbackAppointmentText: "Appointment in 10 days or less",
     includeFees: true,
+    includeDynamicCountries: false,
   });
 
   useEffect(() => {

@@ -7,6 +7,7 @@ export const useCountriesWithAppointmentTexts = ({
   staticCountries = [],
   fallbackAppointmentText = "Appointment in 10 days or less",
   includeFees = false,
+  includeDynamicCountries = true,
 } = {}) => {
   const [appointmentTexts, setAppointmentTexts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -65,12 +66,12 @@ export const useCountriesWithAppointmentTexts = ({
       return acc;
     }, {});
 
-    const allCountryNames = new Set([
-      ...staticCountries.map((country) => country?.name).filter(Boolean),
-      ...appointmentTexts
-        .map((item) => item?.countryName)
-        .filter(Boolean),
-    ]);
+    const allCountryNames = includeDynamicCountries
+      ? new Set([
+          ...staticCountries.map((country) => country?.name).filter(Boolean),
+          ...appointmentTexts.map((item) => item?.countryName).filter(Boolean),
+        ])
+      : new Set(staticCountries.map((country) => country?.name).filter(Boolean));
 
     const merged = Array.from(allCountryNames).map((countryName, index) => {
       const normalizedCountryName = normalizeCountryName(countryName);
@@ -113,6 +114,7 @@ export const useCountriesWithAppointmentTexts = ({
     appointmentTexts,
     fallbackAppointmentText,
     includeFees,
+    includeDynamicCountries,
     normalizeCountryName,
     staticCountries,
   ]);
