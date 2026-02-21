@@ -816,6 +816,16 @@ const CountrySlider = () => {
     [countries]
   );
 
+  const carouselCountries = useMemo(
+    () => staticCountries.filter((country) => country?.name && country?.image),
+    []
+  );
+
+  const carouselLength = carouselCountries.length;
+
+  const activeCarouselCountry =
+    carouselCountries[currentIndex] || carouselCountries[0] || null;
+
   // Handle pre-selected country from URL parameters
   useEffect(() => {
     if (router.query.selectedCountry) {
@@ -841,10 +851,24 @@ const CountrySlider = () => {
     )?.appointmentText || "Appointment in 10 days or less";
 
   useEffect(() => {
+    if (!carouselLength) return;
+    if (currentIndex >= carouselLength) {
+      setCurrentIndex(0);
+    }
+  }, [carouselLength, currentIndex]);
+
+  useEffect(() => {
+    if (carouselLength <= 1) {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+      return;
+    }
+
     const startTimer = () => {
       return setInterval(() => {
         setCurrentIndex((prevIndex) => {
-          const isLastSlide = prevIndex === countries.length - 1;
+          const isLastSlide = prevIndex === carouselLength - 1;
           return isLastSlide ? 0 : prevIndex + 1;
         });
       }, 5000);
@@ -857,7 +881,7 @@ const CountrySlider = () => {
         clearInterval(timerRef.current);
       }
     };
-  }, [countries.length]);
+  }, [carouselLength]);
 
   // Auto-scroll thumbnail container to keep active thumbnail visible
   useEffect(() => {
@@ -943,17 +967,19 @@ const CountrySlider = () => {
     const timeoutId = setTimeout(() => scrollToActiveThumbnail(0), 100);
 
     return () => clearTimeout(timeoutId);
-  }, [currentIndex]);
+  }, [currentIndex, carouselLength]);
 
   const goToPrevious = () => {
+    if (!carouselLength) return;
     const isFirstSlide = currentIndex === 0;
-    const newIndex = isFirstSlide ? countries.length - 1 : currentIndex - 1;
+    const newIndex = isFirstSlide ? carouselLength - 1 : currentIndex - 1;
     setCurrentIndex(newIndex);
     resetTimer();
   };
 
   const goToNext = () => {
-    const isLastSlide = currentIndex === countries.length - 1;
+    if (!carouselLength) return;
+    const isLastSlide = currentIndex === carouselLength - 1;
     const newIndex = isLastSlide ? 0 : currentIndex + 1;
     setCurrentIndex(newIndex);
     resetTimer();
@@ -1015,12 +1041,13 @@ const CountrySlider = () => {
   };
 
   const resetTimer = () => {
+    if (carouselLength <= 1) return;
     if (timerRef.current) {
       clearInterval(timerRef.current);
     }
     timerRef.current = setInterval(() => {
       setCurrentIndex((prevIndex) => {
-        const isLastSlide = prevIndex === countries.length - 1;
+        const isLastSlide = prevIndex === carouselLength - 1;
         return isLastSlide ? 0 : prevIndex + 1;
       });
     }, 5000);
@@ -2572,8 +2599,8 @@ const CountrySlider = () => {
               <div className="overflow-hidden rounded-3xl shadow-lg max-sm:rounded-2xl">
                 <div className="relative h-full w-full">
                   <Image
-                    src={countries[currentIndex].image}
-                    alt={countries[currentIndex].name}
+                    src={activeCarouselCountry?.image || "/image/country/default.jpg"}
+                    alt={activeCarouselCountry?.name || "Country"}
                     width={800}
                     height={800}
                     className="w-full aspect-square object-cover"
@@ -2581,7 +2608,7 @@ const CountrySlider = () => {
                   />
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6 max-sm:p-4">
                     <h3 className="text-2xl font-gilroy-bold text-white max-sm:text-xl mb-5">
-                      {countries[currentIndex].name}
+                      {activeCarouselCountry?.name || ""}
                     </h3>
                   </div>
                 </div>
@@ -2604,7 +2631,7 @@ const CountrySlider = () => {
               </button>
 
               <div className="flex justify-center gap-2 absolute bottom-5 left-1/2 -translate-x-1/2 max-sm:bottom-3">
-                {countries.map((_, index) => (
+                {carouselCountries.map((_, index) => (
                   <button
                     key={index}
                     onClick={() => {
@@ -2627,7 +2654,7 @@ const CountrySlider = () => {
               className="flex justify-start gap-2 max-lg:hidden mt-8 overflow-x-auto overflow-y-hidden w-full max-sm:mt-4 px-4"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
             >
-              {countries.map((country, index) => (
+              {carouselCountries.map((country, index) => (
                 <Image
                   key={country.id}
                   src={country.image}
