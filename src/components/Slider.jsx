@@ -67,7 +67,7 @@ const CountrySlider = () => {
   const visaState = useAppSelector((state) => state.visa);
 
   const [_isCountryOpen, setIsCountryOpen] = useState(false);
-  const [selectedCountry, setSelectedCountryLocal] = useState("France");
+  const [selectedCountry, setSelectedCountryLocal] = useState("Belgium");
   const [activeTooltip, setActiveTooltip] = useState(null);
   const [insuranceDays, setInsuranceDays] = useState(0);
   const [isHighlighted, setIsHighlighted] = useState(false);
