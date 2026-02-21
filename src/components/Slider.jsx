@@ -2112,7 +2112,7 @@ const CountrySlider = () => {
   const validateBeforeExpressPayment = useCallback(() => {
     if (!isDocumentsValid) {
       dispatch(triggerDocumentValidation());
-      const message = "Please complete all required documents before proceeding with payment.";
+      const message = "Please confirm all required documents before proceeding with payment.";
       showError(message);
       return message;
     }
