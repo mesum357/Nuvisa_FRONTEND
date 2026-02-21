@@ -61,6 +61,17 @@ const CountrySlider = () => {
   const { showError, showSuccess } = useToast();
   const MIN_SAFE_DAYS_BEFORE_TRAVEL = 15;
 
+  const currentWeekReservedText = useMemo(() => {
+    const now = new Date();
+    const dayOfMonth = now.getDate();
+    const weekOfMonth = Math.ceil(dayOfMonth / 7);
+
+    if (weekOfMonth === 1) return "40% reversed";
+    if (weekOfMonth === 2) return "75% reserved";
+    if (weekOfMonth === 3) return "95% reserved";
+    return "99% reserved";
+  }, []);
+
   const { content: sliderContent } = useSliderContent();
   const visaState = useAppSelector((state) => state.visa);
 
@@ -3478,7 +3489,7 @@ const CountrySlider = () => {
                   </div>
                   <div className="bg-[#5a3ddb] rounded-full p-2 max-sm:p-1.5">
                     <div className="text-xs text-white font-semibold max-sm:text-xs">
-                      {sliderContent["slot2_status"]}
+                      {currentWeekReservedText}
                     </div>
                   </div>
                 </div>
