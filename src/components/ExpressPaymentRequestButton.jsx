@@ -506,8 +506,7 @@ const ExpressPaymentRequestButton = forwardRef(
       () => ({
         triggerPaymentRequest: () => {
           if (!paymentRequest || !isSupported) {
-            const message =
-              "Apple Pay / Google Pay is not available on this device. Please select another payment method.";
+            const message = "Add at least one traveller to enable checkout";
             setButtonError(message);
             return { success: false, message };
           }
@@ -522,8 +521,7 @@ const ExpressPaymentRequestButton = forwardRef(
           }
 
           if (typeof paymentRequest.show !== "function") {
-            const message =
-              "Apple Pay / Google Pay is not available on this device. Please select another payment method.";
+            const message = "Add at least one traveller to enable checkout";
             setButtonError(message);
             return { success: false, message };
           }
