@@ -65,6 +65,12 @@ const Footer = () => {
         {/* Policy Links */}
         <div className="flex flex-wrap gap-6 mb-12 font-medium text-sm max-md:items-center max-md:gap-3 max-md:gap-y-1 max-md:justify-center">
           <Link
+            href="/faq"
+            className="text-neutral-100 hover:text-white transition-colors duration-200"
+          >
+            FAQs
+          </Link>
+          <Link
             href="/terms-of-service"
             className="text-neutral-100 hover:text-white transition-colors duration-200"
           >
