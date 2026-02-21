@@ -1,4 +1,4 @@
-import { CircleHelp } from "lucide-react";
+import { Check, CircleHelp } from "lucide-react";
 import Image from "next/image";
 import WhatsAppBadge from "./WhatsAppBadge";
 
@@ -13,12 +13,15 @@ const ExpertSection = () => {
       <div className="p-4 max-sm:p-3">
         <div className="relative pr-30 max-md:pr-0">
           <div className="flex items-start gap-4">
-            <input
-              id="expert-accountability-coach"
-              type="checkbox"
-              aria-label="Select accountability coach add-on"
-              className="mt-1 h-6 w-6 rounded-md border border-white/25 bg-transparent accent-[#6B4EFF] cursor-pointer"
-            />
+            <div className="relative mt-1 h-6 w-6 shrink-0">
+              <input
+                id="expert-accountability-coach"
+                type="checkbox"
+                aria-label="Select accountability coach add-on"
+                className="peer h-6 w-6 appearance-none rounded-md border border-white/25 bg-transparent cursor-pointer transition-all duration-200 checked:border-[#6B4EFF] checked:bg-[#6B4EFF]"
+              />
+              <Check className="pointer-events-none absolute inset-0 m-auto h-4 w-4 text-white opacity-0 scale-50 transition-all duration-200 ease-out peer-checked:opacity-100 peer-checked:scale-100" />
+            </div>
 
             <label htmlFor="expert-accountability-coach" className="flex-1 cursor-pointer">
               <h3 className="text-md leading-tight font-gilroy-bold max-sm:text-base">
