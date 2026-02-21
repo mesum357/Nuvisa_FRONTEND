@@ -74,9 +74,7 @@ export const useCountriesWithAppointmentTexts = ({
       .map((item) => item?.countryName)
       .filter(Boolean);
 
-    const allCountryNames = staticCountryNames.length > 0
-      ? new Set(staticCountryNames)
-      : new Set(apiCountryNames);
+    const allCountryNames = new Set([...staticCountryNames, ...apiCountryNames]);
 
     const merged = Array.from(allCountryNames).map((countryName, index) => {
       const normalizedCountryName = normalizeCountryName(countryName);
