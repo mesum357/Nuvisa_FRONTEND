@@ -158,37 +158,6 @@ const CountrySlider = () => {
     },
   ];
 
-  const schengenCountries = [
-    "Austria",
-    "Belgium",
-    "Bulgaria",
-    "Czech Republic",
-    "Denmark",
-    "Estonia",
-    "Finland",
-    "France",
-    "Germany",
-    "Greece",
-    "Hungary",
-    "Iceland",
-    "Italy",
-    "Latvia",
-    "Liechtenstein",
-    "Lithuania",
-    "Luxembourg",
-    "Malta",
-    "Netherlands",
-    "Norway",
-    "Poland",
-    "Portugal",
-    "Romania",
-    "Slovakia",
-    "Slovenia",
-    "Spain",
-    "Sweden",
-    "Switzerland",
-  ];
-
   const [_isCountryOpen, setIsCountryOpen] = useState(false);
   const [selectedCountry, setSelectedCountryLocal] = useState("France");
   const [activeTooltip, setActiveTooltip] = useState(null);
@@ -686,17 +655,6 @@ const CountrySlider = () => {
   // Use Redux state for recommendedItems
   const recommendedItems = visaState.recommendedItems;
 
-  // Handle pre-selected country from URL parameters
-  useEffect(() => {
-    if (router.query.selectedCountry) {
-      const countryFromUrl = router.query.selectedCountry;
-      if (schengenCountries.includes(countryFromUrl)) {
-        setSelectedCountryLocal(countryFromUrl);
-        dispatch(setReduxSelectedCountry(String(countryFromUrl)));
-      }
-    }
-  }, [router.query.selectedCountry, dispatch]);
-
   // Sync requiredDocuments to Redux whenever it changes
   useEffect(() => {
     dispatch(setRequiredDocuments(requiredDocuments));
@@ -914,6 +872,27 @@ const CountrySlider = () => {
     staticCountries,
     fallbackAppointmentText: "Appointment in 10 days or less",
   });
+
+  const dropdownCountries = useMemo(
+    () => countries.map((country) => country.name),
+    [countries]
+  );
+
+  // Handle pre-selected country from URL parameters
+  useEffect(() => {
+    if (router.query.selectedCountry) {
+      const countryFromUrl = router.query.selectedCountry;
+      const isAvailableCountry = dropdownCountries.some(
+        (country) =>
+          normalizeCountryName(country) === normalizeCountryName(countryFromUrl)
+      );
+
+      if (isAvailableCountry) {
+        setSelectedCountryLocal(countryFromUrl);
+        dispatch(setReduxSelectedCountry(String(countryFromUrl)));
+      }
+    }
+  }, [router.query.selectedCountry, dropdownCountries, normalizeCountryName, dispatch]);
 
   const currentCountryName = getCountryParam(selectedCountry) || "Germany";
   const currentAppointmentText =
@@ -2810,7 +2789,7 @@ const CountrySlider = () => {
                       onChange={(e) => selectCountry(e.target.value)}
                       className="px-2 py-2 font-semibold rounded-full shadow-black/20 shadow-lg cursor-pointer focus:outline-none max-sm:w-full max-sm:text-center"
                       >
-                        {schengenCountries.map((country) => (
+                        {dropdownCountries.map((country) => (
                           <option
                           key={country}
                           value={country}
