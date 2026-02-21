@@ -3818,7 +3818,6 @@ const CountrySlider = () => {
             )}    
 
 
-            <ExpertSection />
 
 
             {/* Checkout Button */}
@@ -3837,6 +3836,8 @@ const CountrySlider = () => {
                 <ArrowUpRight className="w-5 h-5 text-[#6B4EFF] max-sm:w-4 max-sm:h-4" />
               </span>
             </button>
+
+            <ExpertSection />
 
             {/* Footer Info */}
             <div className="mt-6 space-y-2 max-sm:space-y-1.5">
