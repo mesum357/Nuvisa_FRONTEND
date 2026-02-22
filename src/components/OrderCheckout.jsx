@@ -898,7 +898,10 @@ const VisaCheckout = () => {
   const originalGiftCardFees = includeGiftCard ? 245 * giftCardCount : 0; // £245 per gift card
   const eVisaFees = 0; // Currently free
   const subtotal =
-    originalVisaFees + originalInsuranceFees + originalGiftCardFees + eVisaFees;
+    originalVisaFees +
+    originalInsuranceFees +
+    originalGiftCardFees +
+    eVisaFees;
 
   // TOTAL: Start with discounted base prices
   // Apply gift card benefits: 1 free traveller and 1 free insurance
@@ -979,7 +982,10 @@ const VisaCheckout = () => {
   }
 
   const total =
-    finalVisaFees + finalInsuranceFees + finalGiftCardFees + eVisaFees;
+    finalVisaFees +
+    finalInsuranceFees +
+    finalGiftCardFees +
+    eVisaFees;
 
   // YOU SAVE: Subtotal minus Total
   const totalSavingsAmount = subtotal - total;

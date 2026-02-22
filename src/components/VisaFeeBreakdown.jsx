@@ -40,6 +40,14 @@ const VisaFeeBreakdown = ({ pricingDetails, priceSummary }) => {
   const giftCardDetails = priceSummary?.recommended?.giftCard || {};
   const expertDetails = priceSummary?.expert || {};
   const discountDetails = priceSummary?.discount || {};
+  const embassyDetails = priceSummary?.embassy || {};
+  const embassyReference = Array.isArray(embassyDetails?.reference)
+    ? embassyDetails.reference
+    : [
+        { amount: 78, label: "12+ yrs" },
+        { amount: 40, label: "6 - 11 yrs" },
+        { amount: 0, label: "0 - 5 yrs" },
+      ];
 
   return (
     <div className="w-full">
@@ -78,6 +86,24 @@ const VisaFeeBreakdown = ({ pricingDetails, priceSummary }) => {
             <div className="mt-2 flex items-center justify-between text-sm max-sm:text-xs">
               <span className="text-white/75">Bundled extras value</span>
               <span className="font-semibold">{formatFeeAmount(computedIncludedValue)}</span>
+            </div>
+
+            <div className="mt-4 border-t border-white/10 pt-4 text-sm max-sm:text-xs">
+              <div className="text-white/75">Embassy fee (reference)</div>
+
+              <div className="mt-2 space-y-2">
+                {embassyReference.map((item) => (
+                  <div key={item.label} className="flex items-center justify-between">
+                    <span className="text-white/70">{item.label}</span>
+                    <span className="font-semibold">{formatFeeAmount(Number(item.amount || 0))}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-3 flex items-center justify-between">
+                <span className="text-white/70">Applied embassy total</span>
+                <span className="font-semibold">{formatFeeAmount(Number(embassyDetails?.total || 0))}</span>
+              </div>
             </div>
 
             <div className="mt-4 border-t border-white/10 pt-4 text-sm max-sm:text-xs">

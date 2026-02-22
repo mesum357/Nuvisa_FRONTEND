@@ -723,6 +723,13 @@ const CountrySlider = () => {
   const originalPerDayInsurancePrice = 3;
   const expertPricePerMonth = 35;
   const expertAccessMonths = 3;
+  const EMBASSY_FEE_GBP = {
+    age12Plus: 78,
+    age6To11: 40,
+    age0To5: 0,
+  };
+  const embassyFeePerTravelerGBP = EMBASSY_FEE_GBP.age12Plus;
+  const embassyFeeTotalGBP = embassyFeePerTravelerGBP * Number(travelers || 0);
 
   // Memoize expensive calculations
   const currentVisaFeePerTraveler = useMemo(() => {
@@ -1155,7 +1162,7 @@ const CountrySlider = () => {
     giftCardRedeemed,
     giftCardBenefits,
     perDayInsurancePrice,
-    effectiveInsuranceDays
+    effectiveInsuranceDays,
   ]);
 
   // Memoize calculateVisaAndInsurancePrice
@@ -1235,7 +1242,7 @@ const CountrySlider = () => {
     giftCardRedeemed,
     giftCardBenefits,
     perDayInsurancePrice,
-    effectiveInsuranceDays
+    effectiveInsuranceDays,
   ]);
 
   // Memoize visa-only price (without insurance) for traveller card display
@@ -2212,7 +2219,10 @@ const CountrySlider = () => {
     const originalGiftCardFees = recommendedItems.giftCard
       ? 245 * giftCardCount
       : 0; // £245 per gift card
-    const subtotalGBP = originalVisaFees + originalInsuranceFees + originalGiftCardFees;
+    const subtotalGBP =
+      originalVisaFees +
+      originalInsuranceFees +
+      originalGiftCardFees;
 
     // Base discounted prices (matching OrderCheckout.jsx and calculateFinalPrice)
     const baseDiscountedVisaFees =
@@ -2283,7 +2293,8 @@ const CountrySlider = () => {
       }
     }
 
-    const totalAmount = finalVisaFees + finalInsuranceFees + finalGiftCardFees;
+    const totalAmount =
+      finalVisaFees + finalInsuranceFees + finalGiftCardFees;
 
     return {
       totalAmount: totalAmount, // Already in GBP, no conversion needed
@@ -2375,6 +2386,15 @@ const CountrySlider = () => {
         description: String(appliedDiscount?.description || ""),
         percentage: Number(appliedDiscount?.percentage || 0),
       },
+      embassy: {
+        total: embassyFeeTotalGBP,
+        perTravelerApplied: embassyFeePerTravelerGBP,
+        reference: [
+          { amount: EMBASSY_FEE_GBP.age12Plus, label: "12+ yrs" },
+          { amount: EMBASSY_FEE_GBP.age6To11, label: "6 - 11 yrs" },
+          { amount: EMBASSY_FEE_GBP.age0To5, label: "0 - 5 yrs" },
+        ],
+      },
     };
   }, [
     visaOnlyPrice,
@@ -2390,6 +2410,8 @@ const CountrySlider = () => {
     isExpertSelected,
     appliedDiscount,
     couponCode,
+    embassyFeeTotalGBP,
+    embassyFeePerTravelerGBP,
     baseFee,
     strikeOutPrice,
     selectedVisaType,
