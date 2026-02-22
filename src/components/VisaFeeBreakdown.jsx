@@ -147,8 +147,8 @@ const VisaFeeBreakdown = ({
           isOpen ? "max-h-300 opacity-100 mt-2" : "max-h-0 opacity-0"
         }`}
       >
-        <div className="rounded-2xl border border-white/15 bg-[#24242D] p-4 max-sm:p-3 text-white">
-          <div className="space-y-4 max-sm:space-y-3">
+        <div className="rounded-2xl border border-white/15 bg-[#24242D] p-4 max-sm:px-0 max-sm:border-x-0 max-sm:rounded-none text-white">
+          <div className="space-y-4 max-sm:space-y-2.5">
             <div className="flex items-center space-x-2">
               <input
                 type="checkbox"
@@ -159,12 +159,12 @@ const VisaFeeBreakdown = ({
               <span className="text-sm">Add additional travellers</span>
             </div>
 
-            <div className="flex items-center justify-between max-sm:flex-col max-sm:items-start max-sm:gap-2">
-              <div className="flex items-center space-x-2">
+            <div className="flex items-start justify-between max-sm:gap-2">
+              <div className="flex items-center space-x-2 min-w-0">
                 <FaUser className="text-sm" />
                 <span className="text-sm">Travellers</span>
               </div>
-              <div className="flex items-center gap-3 max-sm:w-full max-sm:justify-end max-sm:gap-2">
+              <div className="flex items-center gap-3 max-sm:gap-2 shrink-0">
                 <QtyControl
                   value={travelersCount}
                   onIncrement={onTravelersIncrement}
@@ -225,8 +225,8 @@ const VisaFeeBreakdown = ({
               </div>
             </div>
 
-            <div className="flex items-center justify-between max-sm:flex-col max-sm:items-start max-sm:gap-2">
-              <div className="flex items-center space-x-2">
+            <div className="flex items-start justify-between max-sm:gap-2">
+              <div className="flex items-center space-x-2 min-w-0">
                 <input
                   type="checkbox"
                   checked={isInsuranceChecked}
@@ -236,7 +236,7 @@ const VisaFeeBreakdown = ({
                 <FaShieldAlt className="text-sm" />
                 <span className="text-sm">Travel insurance</span>
               </div>
-              <div className="flex items-center gap-3 max-sm:w-full max-sm:justify-end max-sm:gap-2">
+              <div className="flex items-center gap-3 max-sm:gap-2 shrink-0">
                 <QtyControl
                   value={insuranceCount}
                   onIncrement={onInsuranceIncrement}
@@ -253,12 +253,12 @@ const VisaFeeBreakdown = ({
               </div>
             </div>
             {insuranceCount > 0 ? (
-              <p className="text-xs text-gray-400 -mt-2">
+              <p className="text-xs text-gray-400 -mt-1">
                 (Included for {insuranceCount} traveler{insuranceCount > 1 ? "s" : ""})
               </p>
             ) : null}
 
-            <div className="pt-1 space-y-2">
+            <div className="pt-0.5 space-y-1.5">
               <div className="flex items-center space-x-2">
                 <FaBuildingColumns className="text-sm" />
                 <span className="text-sm">Embassy fee</span>
@@ -276,8 +276,8 @@ const VisaFeeBreakdown = ({
               </div>
             </div>
 
-            <div className="flex items-center justify-between max-sm:flex-col max-sm:items-start max-sm:gap-2">
-              <div className="flex items-center space-x-2">
+            <div className="flex items-start justify-between max-sm:gap-2">
+              <div className="flex items-center space-x-2 min-w-0">
                 <input
                   type="checkbox"
                   checked={isGiftCardChecked}
@@ -287,7 +287,7 @@ const VisaFeeBreakdown = ({
                 <HiOutlineDeviceMobile className="rotate-90 text-base" />
                 <span className="text-sm">Digital gift card</span>
               </div>
-              <div className="flex items-center gap-3 max-sm:w-full max-sm:justify-end max-sm:gap-2">
+              <div className="flex items-center gap-3 max-sm:gap-2 shrink-0">
                 <QtyControl
                   value={giftCardCount}
                   onIncrement={onGiftCardIncrement}
@@ -304,7 +304,7 @@ const VisaFeeBreakdown = ({
               </div>
             </div>
             {giftCardCount > 0 ? (
-              <p className="text-xs text-gray-400 -mt-2">
+              <p className="text-xs text-gray-400 -mt-1">
                 Digital gift card for {giftCardCount}
               </p>
             ) : null}
