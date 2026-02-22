@@ -3501,6 +3501,12 @@ const CountrySlider = () => {
                       <VisaFeeBreakdown
                         pricingDetails={pricingDetails}
                         priceSummary={computedPriceSummary}
+                        onTravelersIncrement={() => _handleTravelerChange(1)}
+                        onTravelersDecrement={() => _handleTravelerChange(-1)}
+                        onInsuranceIncrement={() => handleInsuranceChange(1)}
+                        onInsuranceDecrement={() => handleInsuranceChange(-1)}
+                        onGiftCardIncrement={() => handleGiftCardChange(1)}
+                        onGiftCardDecrement={() => handleGiftCardChange(-1)}
                       />
                   </div>
                 );

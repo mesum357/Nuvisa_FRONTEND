@@ -6,7 +6,36 @@ import { FaUser, FaShieldAlt, FaRegCalendarAlt } from "react-icons/fa";
 import { FaBuildingColumns } from "react-icons/fa6";
 import { HiOutlineDeviceMobile } from "react-icons/hi";
 
-const VisaFeeBreakdown = ({ pricingDetails, priceSummary }) => {
+const QtyControl = ({ value, onDecrement, onIncrement }) => (
+  <div className="flex items-center gap-2">
+    <button
+      type="button"
+      onClick={onDecrement}
+      className="h-8 w-8 rounded bg-white/20 text-white text-sm font-semibold hover:bg-white/30 transition-colors"
+    >
+      -
+    </button>
+    <span className="text-sm min-w-3 text-center">{Number(value || 0)}</span>
+    <button
+      type="button"
+      onClick={onIncrement}
+      className="h-8 w-8 rounded bg-white text-black text-sm font-semibold hover:bg-gray-200 transition-colors"
+    >
+      +
+    </button>
+  </div>
+);
+
+const VisaFeeBreakdown = ({
+  pricingDetails,
+  priceSummary,
+  onTravelersIncrement,
+  onTravelersDecrement,
+  onInsuranceIncrement,
+  onInsuranceDecrement,
+  onGiftCardIncrement,
+  onGiftCardDecrement,
+}) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const feeCurrency =
@@ -38,6 +67,7 @@ const VisaFeeBreakdown = ({ pricingDetails, priceSummary }) => {
   const computedPerTravelerCurrent = Number(priceSummary?.perTravelerCurrent || 0);
   const computedPerTravelerOriginal = Number(priceSummary?.perTravelerOriginal || 0);
   const travelersCount = Number(priceSummary?.travelers || 0);
+
   const insuranceDetails = priceSummary?.recommended?.insurance || {};
   const giftCardDetails = priceSummary?.recommended?.giftCard || {};
   const embassyDetails = priceSummary?.embassy || {};
@@ -109,15 +139,23 @@ const VisaFeeBreakdown = ({ pricingDetails, priceSummary }) => {
                 <FaUser className="text-sm" />
                 <span className="text-sm">Travellers</span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="line-through text-white/80 text-sm">
-                  {formatFeeAmount(travelersOriginalTotal)}
-                </span>
-                <span className="text-sm font-medium">
-                  {formatFeeAmount(travelersCurrentTotal)}
-                </span>
+              <div className="flex items-center gap-3">
+                <QtyControl
+                  value={travelersCount}
+                  onIncrement={onTravelersIncrement}
+                  onDecrement={onTravelersDecrement}
+                />
+                <div className="flex items-center gap-2">
+                  <span className="line-through text-white/80 text-sm">
+                    {formatFeeAmount(travelersOriginalTotal)}
+                  </span>
+                  <span className="text-sm font-medium">
+                    {formatFeeAmount(travelersCurrentTotal)}
+                  </span>
+                </div>
               </div>
             </div>
+
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <FaRegCalendarAlt className="text-sm" />
@@ -160,13 +198,20 @@ const VisaFeeBreakdown = ({ pricingDetails, priceSummary }) => {
                 <FaShieldAlt className="text-sm" />
                 <span className="text-sm">Travel insurance</span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="line-through text-white/80 text-sm">
-                  {formatFeeAmount(insuranceOriginalTotal)}
-                </span>
-                <span className="text-sm font-medium">
-                  {formatFeeAmount(insuranceCurrentTotal)}
-                </span>
+              <div className="flex items-center gap-3">
+                <QtyControl
+                  value={insuranceCount}
+                  onIncrement={onInsuranceIncrement}
+                  onDecrement={onInsuranceDecrement}
+                />
+                <div className="flex items-center gap-2">
+                  <span className="line-through text-white/80 text-sm">
+                    {formatFeeAmount(insuranceOriginalTotal)}
+                  </span>
+                  <span className="text-sm font-medium">
+                    {formatFeeAmount(insuranceCurrentTotal)}
+                  </span>
+                </div>
               </div>
             </div>
             {insuranceCount > 0 ? (
@@ -198,13 +243,20 @@ const VisaFeeBreakdown = ({ pricingDetails, priceSummary }) => {
                 <HiOutlineDeviceMobile className="rotate-90 text-base" />
                 <span className="text-sm">Digital gift card</span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="line-through text-white/80 text-sm">
-                  {formatFeeAmount(giftCardOriginalTotal)}
-                </span>
-                <span className="text-sm font-medium">
-                  {formatFeeAmount(giftCardCurrentTotal)}
-                </span>
+              <div className="flex items-center gap-3">
+                <QtyControl
+                  value={giftCardCount}
+                  onIncrement={onGiftCardIncrement}
+                  onDecrement={onGiftCardDecrement}
+                />
+                <div className="flex items-center gap-2">
+                  <span className="line-through text-white/80 text-sm">
+                    {formatFeeAmount(giftCardOriginalTotal)}
+                  </span>
+                  <span className="text-sm font-medium">
+                    {formatFeeAmount(giftCardCurrentTotal)}
+                  </span>
+                </div>
               </div>
             </div>
             {giftCardCount > 0 ? (
@@ -227,7 +279,6 @@ const VisaFeeBreakdown = ({ pricingDetails, priceSummary }) => {
               <span>Total</span>
               <span>{formatFeeAmount(totalAmount)}</span>
             </div>
-
           </div>
         </div>
       </div>
