@@ -2909,7 +2909,7 @@ const CountrySlider = () => {
                     </span>
                   </div>
                 </div>
-                <span className="ml-13 text-xs text-green-400 font-medium max-sm:text-[11px]">
+                <span className="relative -top-3 ml-13 text-xs text-green-400 font-medium max-sm:text-[11px]">
                   {currentAppointmentText}
                 </span>
               </div>
