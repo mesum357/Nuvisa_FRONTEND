@@ -2909,7 +2909,7 @@ const CountrySlider = () => {
                     </span>
                   </div>
                 </div>
-                <span className="text-sm text-green-400 max-sm:text-xs">
+                <span className="ml-13 text-xs text-green-400 font-medium max-sm:text-[11px]">
                   {currentAppointmentText}
                 </span>
               </div>
@@ -2942,7 +2942,7 @@ const CountrySlider = () => {
           </div>
 
           <div className="w-full">
-            <p className="text-sm mb-4 max-sm:text-xs max-sm:mb-3">
+            <p className="text-xs mb-4 max-sm:text-[11px] max-sm:mb-3 whitespace-nowrap overflow-hidden text-ellipsis">
               Dates are required for visa processing only and can be changed
               later within visa validity period.
             </p>
