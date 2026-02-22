@@ -1,7 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import { useMemo, useState, useCallback } from "react";
-import { FaUser, FaShieldAlt, FaRegCalendarAlt, FaConciergeBell } from "react-icons/fa";
+import { FaUser, FaShieldAlt, FaRegCalendarAlt } from "react-icons/fa";
 import { FaBuildingColumns } from "react-icons/fa6";
 import { HiOutlineDeviceMobile } from "react-icons/hi";
 
@@ -117,12 +118,6 @@ const VisaFeeBreakdown = ({ pricingDetails, priceSummary }) => {
                 </span>
               </div>
             </div>
-            {travelersCount > 0 ? (
-              <p className="text-xs text-gray-400 -mt-2">
-                {travelersCount} traveller(s)
-              </p>
-            ) : null}
-
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <FaRegCalendarAlt className="text-sm" />
@@ -140,7 +135,14 @@ const VisaFeeBreakdown = ({ pricingDetails, priceSummary }) => {
 
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <FaConciergeBell className="text-sm" />
+                <Image
+                  src="/image/flights.jpg"
+                  alt="Flights"
+                  width={16}
+                  height={16}
+                  className="w-4 h-4 rounded-sm object-cover"
+                  priority
+                />
                 <span className="text-sm">Concierge assistance</span>
               </div>
               <div className="flex items-center gap-2">
@@ -178,6 +180,9 @@ const VisaFeeBreakdown = ({ pricingDetails, priceSummary }) => {
                 <FaBuildingColumns className="text-sm" />
                 <span className="text-sm">Embassy fee</span>
               </div>
+              <p className="text-xs text-gray-400 leading-relaxed">
+                Pay in person to a government official during appointment
+              </p>
               <div className="space-y-1">
                 {embassyReference.map((item) => (
                   <div key={item.label} className="flex items-center justify-between text-xs max-sm:text-[11px]">
