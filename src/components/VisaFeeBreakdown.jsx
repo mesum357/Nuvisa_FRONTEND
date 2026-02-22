@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useMemo, useState, useCallback } from "react";
-import { FaUser, FaShieldAlt, FaRegCalendarAlt } from "react-icons/fa";
+import { FaUser, FaShieldAlt } from "react-icons/fa";
 import { FaBuildingColumns } from "react-icons/fa6";
 import { HiOutlineDeviceMobile } from "react-icons/hi";
 
@@ -29,6 +29,12 @@ const QtyControl = ({ value, onDecrement, onIncrement }) => (
 const VisaFeeBreakdown = ({
   pricingDetails,
   priceSummary,
+  hasAdditionalTravellers,
+  includeInsurance,
+  includeGiftCard,
+  onToggleAdditionalTravellers,
+  onToggleInsurance,
+  onToggleGiftCard,
   onTravelersIncrement,
   onTravelersDecrement,
   onInsuranceIncrement,
@@ -101,6 +107,19 @@ const VisaFeeBreakdown = ({
   const giftCardCurrentTotal = Number(giftCardDetails?.current || 0);
   const giftCardCount = Number(giftCardDetails?.count || 0);
 
+  const isAdditionalTravellersChecked =
+    typeof hasAdditionalTravellers === "boolean"
+      ? hasAdditionalTravellers
+      : travelersCount > 1;
+  const isInsuranceChecked =
+    typeof includeInsurance === "boolean"
+      ? includeInsurance
+      : Boolean(insuranceDetails?.selected);
+  const isGiftCardChecked =
+    typeof includeGiftCard === "boolean"
+      ? includeGiftCard
+      : Boolean(giftCardDetails?.selected);
+
   const subtotalAmount =
     travelersOriginalTotal +
     insuranceOriginalTotal +
@@ -130,6 +149,16 @@ const VisaFeeBreakdown = ({
       >
         <div className="rounded-2xl border border-white/15 bg-[#24242D] p-4 max-sm:p-3 text-white">
           <div className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={isAdditionalTravellersChecked}
+                onChange={(event) => onToggleAdditionalTravellers?.(event.target.checked)}
+                className="h-4 w-4 border-gray-300 rounded"
+              />
+              <span className="text-sm">Add additional travellers</span>
+            </div>
+
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <FaUser className="text-sm" />
@@ -154,7 +183,14 @@ const VisaFeeBreakdown = ({
 
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <FaRegCalendarAlt className="text-sm" />
+                <Image
+                  src="/image/calendar.jpg"
+                  alt="Calendar"
+                  width={16}
+                  height={16}
+                  className="w-4 h-4 object-cover"
+                  priority
+                />
                 <span className="text-sm">Appointment fee</span>
               </div>
               <div className="flex items-center gap-2">
@@ -191,6 +227,12 @@ const VisaFeeBreakdown = ({
 
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={isInsuranceChecked}
+                  onChange={() => onToggleInsurance?.()}
+                  className="h-4 w-4 border-gray-300 rounded"
+                />
                 <FaShieldAlt className="text-sm" />
                 <span className="text-sm">Travel insurance</span>
               </div>
@@ -236,6 +278,12 @@ const VisaFeeBreakdown = ({
 
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={isGiftCardChecked}
+                  onChange={() => onToggleGiftCard?.()}
+                  className="h-4 w-4 border-gray-300 rounded"
+                />
                 <HiOutlineDeviceMobile className="rotate-90 text-base" />
                 <span className="text-sm">Digital gift card</span>
               </div>

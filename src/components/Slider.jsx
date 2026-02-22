@@ -3501,6 +3501,18 @@ const CountrySlider = () => {
                       <VisaFeeBreakdown
                         pricingDetails={pricingDetails}
                         priceSummary={computedPriceSummary}
+                        hasAdditionalTravellers={travelers > 1}
+                        includeInsurance={Boolean(recommendedItems.insuranceCertificate)}
+                        includeGiftCard={Boolean(recommendedItems.giftCard)}
+                        onToggleAdditionalTravellers={(checked) => {
+                          const nextTravelers = checked ? 2 : 1;
+                          if (insuranceCount > nextTravelers) {
+                            dispatch(setReduxInsuranceCount(Number(nextTravelers)));
+                          }
+                          dispatch(setReduxTravelers(Number(nextTravelers)));
+                        }}
+                        onToggleInsurance={() => toggleRecommendedItem("insuranceCertificate")}
+                        onToggleGiftCard={() => toggleRecommendedItem("giftCard")}
                         onTravelersIncrement={() => _handleTravelerChange(1)}
                         onTravelersDecrement={() => _handleTravelerChange(-1)}
                         onInsuranceIncrement={() => handleInsuranceChange(1)}
