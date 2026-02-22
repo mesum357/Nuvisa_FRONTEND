@@ -7,19 +7,19 @@ import { FaBuildingColumns } from "react-icons/fa6";
 import { HiOutlineDeviceMobile } from "react-icons/hi";
 
 const QtyControl = ({ value, onDecrement, onIncrement }) => (
-  <div className="flex items-center gap-2">
+  <div className="flex items-center gap-2 max-sm:gap-1">
     <button
       type="button"
       onClick={onDecrement}
-      className="h-8 w-8 rounded bg-white/20 text-white text-sm font-semibold hover:bg-white/30 transition-colors"
+      className="h-8 w-8 rounded bg-white/20 text-white text-sm font-semibold hover:bg-white/30 transition-colors max-sm:h-7 max-sm:w-7 max-sm:text-xs"
     >
       -
     </button>
-    <span className="text-sm min-w-3 text-center">{Number(value || 0)}</span>
+    <span className="text-sm min-w-3 text-center max-sm:text-xs">{Number(value || 0)}</span>
     <button
       type="button"
       onClick={onIncrement}
-      className="h-8 w-8 rounded bg-white text-black text-sm font-semibold hover:bg-gray-200 transition-colors"
+      className="h-8 w-8 rounded bg-white text-black text-sm font-semibold hover:bg-gray-200 transition-colors max-sm:h-7 max-sm:w-7 max-sm:text-xs"
     >
       +
     </button>
@@ -148,7 +148,7 @@ const VisaFeeBreakdown = ({
         }`}
       >
         <div className="rounded-2xl border border-white/15 bg-[#24242D] p-4 max-sm:p-3 text-white">
-          <div className="space-y-4">
+          <div className="space-y-4 max-sm:space-y-3">
             <div className="flex items-center space-x-2">
               <input
                 type="checkbox"
@@ -159,29 +159,29 @@ const VisaFeeBreakdown = ({
               <span className="text-sm">Add additional travellers</span>
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between max-sm:flex-col max-sm:items-start max-sm:gap-2">
               <div className="flex items-center space-x-2">
                 <FaUser className="text-sm" />
                 <span className="text-sm">Travellers</span>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 max-sm:w-full max-sm:justify-end max-sm:gap-2">
                 <QtyControl
                   value={travelersCount}
                   onIncrement={onTravelersIncrement}
                   onDecrement={onTravelersDecrement}
                 />
                 <div className="flex items-center gap-2">
-                  <span className="line-through text-white/80 text-sm">
+                  <span className="line-through text-white/80 text-sm max-sm:text-xs">
                     {formatFeeAmount(travelersOriginalTotal)}
                   </span>
-                  <span className="text-sm font-medium">
+                  <span className="text-sm font-medium max-sm:text-xs">
                     {formatFeeAmount(travelersCurrentTotal)}
                   </span>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between max-sm:gap-2">
               <div className="flex items-center space-x-2">
                 <Image
                   src="/image/calendar.jpg"
@@ -194,16 +194,16 @@ const VisaFeeBreakdown = ({
                 <span className="text-sm">Appointment fee</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="line-through text-white/80 text-sm">
+                <span className="line-through text-white/80 text-sm max-sm:text-xs">
                   {formatFeeAmount(appointmentOriginal)}
                 </span>
-                <span className="text-sm font-medium">
+                <span className="text-sm font-medium max-sm:text-xs">
                   {formatFeeAmount(appointmentCurrent)}
                 </span>
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between max-sm:gap-2">
               <div className="flex items-center space-x-2">
                 <Image
                   src="/image/flights.jpg"
@@ -216,16 +216,16 @@ const VisaFeeBreakdown = ({
                 <span className="text-sm">Concierge assistance</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="line-through text-white/80 text-sm">
+                <span className="line-through text-white/80 text-sm max-sm:text-xs">
                   {formatFeeAmount(conciergeOriginal)}
                 </span>
-                <span className="text-sm font-medium">
+                <span className="text-sm font-medium max-sm:text-xs">
                   {formatFeeAmount(conciergeCurrent)}
                 </span>
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between max-sm:flex-col max-sm:items-start max-sm:gap-2">
               <div className="flex items-center space-x-2">
                 <input
                   type="checkbox"
@@ -236,17 +236,17 @@ const VisaFeeBreakdown = ({
                 <FaShieldAlt className="text-sm" />
                 <span className="text-sm">Travel insurance</span>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 max-sm:w-full max-sm:justify-end max-sm:gap-2">
                 <QtyControl
                   value={insuranceCount}
                   onIncrement={onInsuranceIncrement}
                   onDecrement={onInsuranceDecrement}
                 />
                 <div className="flex items-center gap-2">
-                  <span className="line-through text-white/80 text-sm">
+                  <span className="line-through text-white/80 text-sm max-sm:text-xs">
                     {formatFeeAmount(insuranceOriginalTotal)}
                   </span>
-                  <span className="text-sm font-medium">
+                  <span className="text-sm font-medium max-sm:text-xs">
                     {formatFeeAmount(insuranceCurrentTotal)}
                   </span>
                 </div>
@@ -276,7 +276,7 @@ const VisaFeeBreakdown = ({
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between max-sm:flex-col max-sm:items-start max-sm:gap-2">
               <div className="flex items-center space-x-2">
                 <input
                   type="checkbox"
@@ -287,17 +287,17 @@ const VisaFeeBreakdown = ({
                 <HiOutlineDeviceMobile className="rotate-90 text-base" />
                 <span className="text-sm">Digital gift card</span>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 max-sm:w-full max-sm:justify-end max-sm:gap-2">
                 <QtyControl
                   value={giftCardCount}
                   onIncrement={onGiftCardIncrement}
                   onDecrement={onGiftCardDecrement}
                 />
                 <div className="flex items-center gap-2">
-                  <span className="line-through text-white/80 text-sm">
+                  <span className="line-through text-white/80 text-sm max-sm:text-xs">
                     {formatFeeAmount(giftCardOriginalTotal)}
                   </span>
-                  <span className="text-sm font-medium">
+                  <span className="text-sm font-medium max-sm:text-xs">
                     {formatFeeAmount(giftCardCurrentTotal)}
                   </span>
                 </div>
