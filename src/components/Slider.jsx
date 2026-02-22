@@ -78,8 +78,6 @@ const CountrySlider = () => {
   const { content: sliderContent } = useSliderContent();
   const visaState = useAppSelector((state) => state.visa);
 
-  console.log({visaState})
- 
   const nriBadgeText = sliderContent["nri_badge_text"] || "";
   const dailyNriBadgeText = useMemo(() => {
     const textOptions = nriBadgeText
@@ -646,7 +644,6 @@ const CountrySlider = () => {
       });
     }
   };
-  console.log({visaState})
 
   const toggleRecommendedItem = (itemKey) => {
     const isCurrentlyChecked = recommendedItems[itemKey];
@@ -721,8 +718,6 @@ const CountrySlider = () => {
     const num = typeof v === "string" ? parseFloat(v) : Number(v);
     return Number.isFinite(num) ? num : 200;
   })();
-
-  console.log({sliderContent})
 
   const perDayInsurancePrice = 2;
   const originalPerDayInsurancePrice = 3;
@@ -1417,8 +1412,6 @@ const CountrySlider = () => {
     // If a visa type is selected with a specific price, calculate proportional strike-out price
     // Otherwise use the base strike-out price
     let currentStrikeOutPrice = strikeOutPrice;
-
-    console.log({selectedVisaType,baseFee})
 
     if (baseFee > 0 && selectedVisaType) {
       if (selectedVisaType.priceGBP) {
@@ -2322,11 +2315,8 @@ const CountrySlider = () => {
 
   const selectedVisaTypeDetails = useMemo(() => {
     const candidates = [selectedVisaType, visaState.selectedVisaType].filter(Boolean);
-    console.log({candidates});
     return candidates.find((visaType) => visaType?.pricing) || candidates[0] || null;
   }, [selectedVisaType, visaState.selectedVisaType]);
-
-  console.log({visaState,selectedVisaType});
 
   const pricingDetails = selectedVisaTypeDetails?.pricing || null;
   const canShowVisaFeeBreakdown = Boolean(selectedVisaTypeDetails?.id && pricingDetails);
