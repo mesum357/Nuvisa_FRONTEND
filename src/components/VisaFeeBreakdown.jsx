@@ -1,6 +1,9 @@
 "use client";
 
 import { useMemo, useState, useCallback } from "react";
+import { FaUser, FaShieldAlt, FaRegCalendarAlt, FaConciergeBell } from "react-icons/fa";
+import { FaBuildingColumns } from "react-icons/fa6";
+import { HiOutlineDeviceMobile } from "react-icons/hi";
 
 const VisaFeeBreakdown = ({ pricingDetails, priceSummary }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -30,16 +33,12 @@ const VisaFeeBreakdown = ({ pricingDetails, priceSummary }) => {
   );
 
   const computedVisaOnlyTotal = Number(priceSummary?.visaOnlyTotal || 0);
-  const computedCurrentTotal = Number(priceSummary?.currentTotal || 0);
   const computedOriginalTotal = Number(priceSummary?.originalTotal || 0);
-  const computedIncludedValue = Number(priceSummary?.includedValue || 0);
   const computedPerTravelerCurrent = Number(priceSummary?.perTravelerCurrent || 0);
   const computedPerTravelerOriginal = Number(priceSummary?.perTravelerOriginal || 0);
   const travelersCount = Number(priceSummary?.travelers || 0);
   const insuranceDetails = priceSummary?.recommended?.insurance || {};
   const giftCardDetails = priceSummary?.recommended?.giftCard || {};
-  const expertDetails = priceSummary?.expert || {};
-  const discountDetails = priceSummary?.discount || {};
   const embassyDetails = priceSummary?.embassy || {};
   const embassyReference = Array.isArray(embassyDetails?.reference)
     ? embassyDetails.reference
@@ -48,6 +47,44 @@ const VisaFeeBreakdown = ({ pricingDetails, priceSummary }) => {
         { amount: 40, label: "6 - 11 yrs" },
         { amount: 0, label: "0 - 5 yrs" },
       ];
+
+  const travelersOriginalTotal =
+    travelersCount > 0
+      ? computedPerTravelerOriginal * travelersCount
+      : computedOriginalTotal;
+  const travelersCurrentTotal =
+    travelersCount > 0
+      ? computedPerTravelerCurrent * travelersCount
+      : computedVisaOnlyTotal;
+
+  const appointmentOriginal = 100;
+  const appointmentCurrent = 0;
+  const conciergeOriginal = 35;
+  const conciergeCurrent = 0;
+
+  const insuranceOriginalTotal = Number(insuranceDetails?.original || 0);
+  const insuranceCurrentTotal = Number(insuranceDetails?.current || 0);
+  const insuranceCount = Number(insuranceDetails?.count || 0);
+
+  const giftCardOriginalTotal = Number(giftCardDetails?.original || 0);
+  const giftCardCurrentTotal = Number(giftCardDetails?.current || 0);
+  const giftCardCount = Number(giftCardDetails?.count || 0);
+
+  const subtotalAmount =
+    travelersOriginalTotal +
+    appointmentOriginal +
+    conciergeOriginal +
+    insuranceOriginalTotal +
+    giftCardOriginalTotal;
+
+  const totalAmount =
+    travelersCurrentTotal +
+    appointmentCurrent +
+    conciergeCurrent +
+    insuranceCurrentTotal +
+    giftCardCurrentTotal;
+
+  const totalSaveAmount = subtotalAmount - totalAmount;
 
   return (
     <div className="w-full">
@@ -65,108 +102,127 @@ const VisaFeeBreakdown = ({ pricingDetails, priceSummary }) => {
         }`}
       >
         <div className="rounded-2xl border border-white/15 bg-[#24242D] p-4 max-sm:p-3 text-white">
-          <div>
-            <div className="text-sm text-white/75 max-sm:text-xs">Computed totals</div>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <FaUser className="text-sm" />
+                <span className="text-sm">Travellers</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="line-through text-white/80 text-sm">
+                  {formatFeeAmount(travelersOriginalTotal)}
+                </span>
+                <span className="text-sm font-medium">
+                  {formatFeeAmount(travelersCurrentTotal)}
+                </span>
+              </div>
+            </div>
+            {travelersCount > 0 ? (
+              <p className="text-xs text-gray-400 -mt-2">
+                {travelersCount} traveller(s)
+              </p>
+            ) : null}
 
-            <div className="mt-2 flex items-center justify-between text-sm max-sm:text-xs">
-              <span className="text-white/75">Current total</span>
-              <span className="font-semibold">{formatFeeAmount(computedCurrentTotal)}</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <FaRegCalendarAlt className="text-sm" />
+                <span className="text-sm">Appointment fee</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="line-through text-white/80 text-sm">
+                  {formatFeeAmount(appointmentOriginal)}
+                </span>
+                <span className="text-sm font-medium">
+                  {formatFeeAmount(appointmentCurrent)}
+                </span>
+              </div>
             </div>
 
-            <div className="mt-2 flex items-center justify-between text-sm max-sm:text-xs">
-              <span className="text-white/75">Visa-only total</span>
-              <span className="font-semibold">{formatFeeAmount(computedVisaOnlyTotal)}</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <FaConciergeBell className="text-sm" />
+                <span className="text-sm">Concierge assistance</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="line-through text-white/80 text-sm">
+                  {formatFeeAmount(conciergeOriginal)}
+                </span>
+                <span className="text-sm font-medium">
+                  {formatFeeAmount(conciergeCurrent)}
+                </span>
+              </div>
             </div>
 
-            <div className="mt-2 flex items-center justify-between text-sm max-sm:text-xs">
-              <span className="text-white/75">Original listed total</span>
-              <span className="font-semibold">{formatFeeAmount(computedOriginalTotal)}</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <FaShieldAlt className="text-sm" />
+                <span className="text-sm">Travel insurance</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="line-through text-white/80 text-sm">
+                  {formatFeeAmount(insuranceOriginalTotal)}
+                </span>
+                <span className="text-sm font-medium">
+                  {formatFeeAmount(insuranceCurrentTotal)}
+                </span>
+              </div>
             </div>
+            {insuranceCount > 0 ? (
+              <p className="text-xs text-gray-400 -mt-2">
+                (Included for {insuranceCount} traveler{insuranceCount > 1 ? "s" : ""})
+              </p>
+            ) : null}
 
-            <div className="mt-2 flex items-center justify-between text-sm max-sm:text-xs">
-              <span className="text-white/75">Bundled extras value</span>
-              <span className="font-semibold">{formatFeeAmount(computedIncludedValue)}</span>
-            </div>
-
-            <div className="mt-4 border-t border-white/10 pt-4 text-sm max-sm:text-xs">
-              <div className="text-white/75">Embassy fee (reference)</div>
-
-              <div className="mt-2 space-y-2">
+            <div className="pt-1 space-y-2">
+              <div className="flex items-center space-x-2">
+                <FaBuildingColumns className="text-sm" />
+                <span className="text-sm">Embassy fee</span>
+              </div>
+              <div className="space-y-1">
                 {embassyReference.map((item) => (
-                  <div key={item.label} className="flex items-center justify-between">
-                    <span className="text-white/70">{item.label}</span>
+                  <div key={item.label} className="flex items-center justify-between text-xs max-sm:text-[11px]">
+                    <span className="text-gray-400">{item.label}</span>
                     <span className="font-semibold">{formatFeeAmount(Number(item.amount || 0))}</span>
                   </div>
                 ))}
               </div>
-
-              <div className="mt-3 flex items-center justify-between">
-                <span className="text-white/70">Applied embassy total</span>
-                <span className="font-semibold">{formatFeeAmount(Number(embassyDetails?.total || 0))}</span>
-              </div>
             </div>
 
-            <div className="mt-4 border-t border-white/10 pt-4 text-sm max-sm:text-xs">
-              <div className="text-white/75">Recommended selections</div>
-
-              <div className="mt-2 flex items-center justify-between">
-                <span className="text-white/70">
-                  Insurance {insuranceDetails?.selected ? `(${Number(insuranceDetails?.count || 0)} travellers, ${Number(insuranceDetails?.days || 0)} days)` : "(not selected)"}
-                </span>
-                <span className="font-semibold">
-                  {insuranceDetails?.selected
-                    ? `${formatFeeAmount(Number(insuranceDetails?.current || 0))} (was ${formatFeeAmount(Number(insuranceDetails?.original || 0))})`
-                    : formatFeeAmount(0)}
-                </span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <HiOutlineDeviceMobile className="rotate-90 text-base" />
+                <span className="text-sm">Digital gift card</span>
               </div>
-
-              <div className="mt-2 flex items-center justify-between">
-                <span className="text-white/70">
-                  Gift card {giftCardDetails?.selected ? `(${Number(giftCardDetails?.count || 0)} qty)` : "(not selected)"}
+              <div className="flex items-center gap-2">
+                <span className="line-through text-white/80 text-sm">
+                  {formatFeeAmount(giftCardOriginalTotal)}
                 </span>
-                <span className="font-semibold">
-                  {giftCardDetails?.selected
-                    ? `${formatFeeAmount(Number(giftCardDetails?.current || 0))} (was ${formatFeeAmount(Number(giftCardDetails?.original || 0))})`
-                    : formatFeeAmount(0)}
+                <span className="text-sm font-medium">
+                  {formatFeeAmount(giftCardCurrentTotal)}
                 </span>
               </div>
             </div>
-
-            <div className="mt-4 border-t border-white/10 pt-4 text-sm max-sm:text-xs">
-              <div className="text-white/75">Expert add-on</div>
-              <div className="mt-2 flex items-center justify-between">
-                <span className="text-white/70">
-                  Accountability expert {expertDetails?.selected ? "(selected)" : "(not selected)"}
-                </span>
-                <span className="font-semibold">
-                  {expertDetails?.selected
-                    ? `${formatFeeAmount(Number(expertDetails?.current || 0))} (was ${formatFeeAmount(Number(expertDetails?.original || 0))})`
-                    : formatFeeAmount(0)}
-                </span>
-              </div>
-            </div>
-
-            <div className="mt-4 border-t border-white/10 pt-4 text-sm max-sm:text-xs">
-              <div className="text-white/75">Discount code</div>
-              <div className="mt-2 flex items-center justify-between">
-                <span className="text-white/70">
-                  {discountDetails?.applied
-                    ? `${String(discountDetails?.code || "").toUpperCase()}${discountDetails?.percentage ? ` (${Number(discountDetails?.percentage)}% off)` : ""}`
-                    : "No discount applied"}
-                </span>
-                <span className="font-semibold">
-                  {discountDetails?.applied && discountDetails?.description
-                    ? discountDetails.description
-                    : "-"}
-                </span>
-              </div>
-            </div>
-
-            {travelersCount > 0 ? (
-              <div className="mt-3 text-xs text-white/60 max-sm:text-[11px]">
-                {travelersCount} traveller(s): {formatFeeAmount(computedPerTravelerCurrent)} current each, {formatFeeAmount(computedPerTravelerOriginal)} original each
-              </div>
+            {giftCardCount > 0 ? (
+              <p className="text-xs text-gray-400 -mt-2">
+                Digital gift card for {giftCardCount}
+              </p>
             ) : null}
+
+            <div className="flex justify-between text-sm pt-2 border-t border-white/15">
+              <span>Subtotal</span>
+              <span>{formatFeeAmount(subtotalAmount)}</span>
+            </div>
+
+            <div className="flex justify-between text-sm text-green-400">
+              <span>You save</span>
+              <span>{formatFeeAmount(totalSaveAmount)}</span>
+            </div>
+
+            <div className="flex justify-between font-gilroy-bold text-xl pt-2 border-t border-white/15">
+              <span>Total</span>
+              <span>{formatFeeAmount(totalAmount)}</span>
+            </div>
+
           </div>
         </div>
       </div>
