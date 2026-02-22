@@ -2875,9 +2875,6 @@ const CountrySlider = () => {
                         ))}
                     </select>
                   </div>
-                  <span className="text-sm text-green-400 max-sm:text-xs">
-                    {currentAppointmentText}
-                  </span>
                 </div>
               </div>
             </div>
@@ -2886,30 +2883,35 @@ const CountrySlider = () => {
           <div className="mb-6 max-sm:mb-4">
             <div className="space-y-4 font-gilroy-medium !font-semibold max-sm:space-y-3">
               {/* Auto-booking */}
-              <div className="flex items-center justify-between max-sm:items-start max-sm:gap-2">
-                <div className="flex items-center space-x-3 max-sm:space-x-2">
-                  <div className="w-10 aspect-square rounded-lg flex items-center justify-center max-sm:w-8 overflow-hidden">
-                    <Image
-                      src="/image/calendar.jpg"
-                      alt="Calendar"
-                      width={40}
-                      height={40}
-                      className="max-sm:w-6 max-sm:h-6"
-                      priority
-                    />
+              <div>
+                <div className="flex items-center justify-between max-sm:items-start max-sm:gap-2">
+                  <div className="flex items-center space-x-3 max-sm:space-x-2">
+                    <div className="w-10 aspect-square rounded-lg flex items-center justify-center max-sm:w-8 overflow-hidden">
+                      <Image
+                        src="/image/calendar.jpg"
+                        alt="Calendar"
+                        width={40}
+                        height={40}
+                        className="max-sm:w-6 max-sm:h-6"
+                        priority
+                      />
+                    </div>
+                    <div>
+                      <h3 className="max-sm:text-sm">
+                        Auto-booking appointment
+                      </h3>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="max-sm:text-sm">
-                      Auto-booking appointment
-                    </h3>
+                  <div className="flex gap-[2px] items-center max-sm:flex-shrink-0">
+                    <span className="line-through max-sm:text-sm">£100</span>
+                    <span className="ml-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium max-sm:ml-1 max-sm:px-2 max-sm:py-0.5 max-sm:text-xs">
+                      Free
+                    </span>
                   </div>
                 </div>
-                <div className="flex gap-[2px] items-center max-sm:flex-shrink-0">
-                  <span className="line-through max-sm:text-sm">£100</span>
-                  <span className="ml-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium max-sm:ml-1 max-sm:px-2 max-sm:py-0.5 max-sm:text-xs">
-                    Free
-                  </span>
-                </div>
+                <span className="text-sm text-green-400 max-sm:text-xs">
+                  {currentAppointmentText}
+                </span>
               </div>
 
               {/* Concierge assistance */}
