@@ -10,6 +10,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { FaUser, FaShieldAlt } from "react-icons/fa";
+import { FaBuildingColumns } from "react-icons/fa6";
 import { HiOutlineDeviceMobile } from "react-icons/hi";
 import { SiKlarna } from "react-icons/si";
 import { formatCurrency } from "@/utils/currency";
@@ -116,6 +117,11 @@ const VisaCheckout = () => {
 
   const perDayInsurancePrice = 2; // GBP per day per traveller
   const originalPerDayInsurancePrice = 3; // Historical price for strike-throughs
+  const EMBASSY_FEE_REFERENCE = [
+    { label: "12+ yrs", amount: 78 },
+    { label: "6 - 11 yrs", amount: 40 },
+    { label: "0 - 5 yrs", amount: 0 },
+  ];
   const insuranceFeesPerTraveller = perDayInsurancePrice * travelDays; // GBP per traveller
   const insuranceFeesTotal = insuranceFeesPerTraveller * insuranceCount; // total GBP
   const [includeInsurance, setIncludeInsurance] = useState(
@@ -898,7 +904,10 @@ const VisaCheckout = () => {
   const originalGiftCardFees = includeGiftCard ? 245 * giftCardCount : 0; // £245 per gift card
   const eVisaFees = 0; // Currently free
   const subtotal =
-    originalVisaFees + originalInsuranceFees + originalGiftCardFees + eVisaFees;
+    originalVisaFees +
+    originalInsuranceFees +
+    originalGiftCardFees +
+    eVisaFees;
 
   // TOTAL: Start with discounted base prices
   // Apply gift card benefits: 1 free traveller and 1 free insurance
@@ -979,7 +988,10 @@ const VisaCheckout = () => {
   }
 
   const total =
-    finalVisaFees + finalInsuranceFees + finalGiftCardFees + eVisaFees;
+    finalVisaFees +
+    finalInsuranceFees +
+    finalGiftCardFees +
+    eVisaFees;
 
   // YOU SAVE: Subtotal minus Total
   const totalSavingsAmount = subtotal - total;
@@ -2199,7 +2211,7 @@ const VisaCheckout = () => {
             </div>
           </div>
 
-          <div className="bg-black text-white p-6 md:p-10 md:pr-10 xl:pr-40 space-y-4">
+          <div className="bg-black text-white p-6 md:p-10 md:pr-10 xl:pr-40 space-y-5">
             <h2 className="font-semibold text-lg" suppressHydrationWarning>
               Schengen visa from the UK
             </h2>
@@ -2242,7 +2254,7 @@ const VisaCheckout = () => {
               </label>
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between py-1">
               <div className="flex items-center space-x-2">
                 <FaUser className="text-lg" />
                 <span className="text-sm">Travellers</span>
@@ -2265,8 +2277,44 @@ const VisaCheckout = () => {
               </span>
             </div>
 
+            <div className="flex items-center justify-between py-1">
+              <div className="flex items-center space-x-2">
+                <Image
+                  src="/image/calendar.jpg"
+                  alt="Calendar"
+                  width={16}
+                  height={16}
+                  className="w-4 h-4 object-cover"
+                  priority
+                />
+                <span className="text-sm">Appointment fee</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="line-through">{formatCurrency(100, "GBP")}</span>
+                <span className="text-sm font-medium">{formatCurrency(0, "GBP")}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between py-1">
+              <div className="flex items-center space-x-2">
+                <Image
+                  src="/image/flights.jpg"
+                  alt="Flights"
+                  width={16}
+                  height={16}
+                  className="w-4 h-4 rounded-sm object-cover"
+                  priority
+                />
+                <span className="text-sm">Concierge assistance</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="line-through">{formatCurrency(35, "GBP")}</span>
+                <span className="text-sm font-medium">{formatCurrency(0, "GBP")}</span>
+              </div>
+            </div>
+
             {/* Insurance */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between py-1">
               <div
                 className="flex items-center space-x-2 cursor-pointer"
                 onClick={() => {
@@ -2305,15 +2353,33 @@ const VisaCheckout = () => {
               </div>
             </div>
             {includeInsurance && (
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-gray-400 -mt-2">
                 (Included for {insuranceCount} traveler
                 {travelers > 1 ? "s" : ""})
               </p>
             )}
 
+            <div className="pt-2 space-y-2">
+              <div className="flex items-center space-x-2">
+                <FaBuildingColumns className="text-sm" />
+                <span className="text-sm">Embassy fee</span>
+              </div>
+              <p className="text-xs text-gray-400 leading-relaxed">
+                Pay in person to a government official during appointment
+              </p>
+              <div className="space-y-1">
+                {EMBASSY_FEE_REFERENCE.map((item) => (
+                  <div key={item.label} className="flex items-center justify-between text-xs">
+                    <span className="text-gray-400">{item.label}</span>
+                    <span className="font-semibold">{formatCurrency(item.amount, "GBP")}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {/* E visa card */}
             {/* Digital Gift Card */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between py-1">
               <div
                 className="flex items-center space-x-2 cursor-pointer"
                 onClick={() => {
@@ -2362,7 +2428,7 @@ const VisaCheckout = () => {
               </div>
             </div>
             {includeGiftCard && (
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-gray-400 -mt-2">
                 Digital gift card for {giftCardCount}
               </p>
             )}
