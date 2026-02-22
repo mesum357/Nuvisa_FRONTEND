@@ -103,15 +103,11 @@ const VisaFeeBreakdown = ({
 
   const subtotalAmount =
     travelersOriginalTotal +
-    appointmentOriginal +
-    conciergeOriginal +
     insuranceOriginalTotal +
     giftCardOriginalTotal;
 
   const totalAmount =
     travelersCurrentTotal +
-    appointmentCurrent +
-    conciergeCurrent +
     insuranceCurrentTotal +
     giftCardCurrentTotal;
 
