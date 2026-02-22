@@ -77,6 +77,8 @@ const CountrySlider = () => {
 
   const { content: sliderContent } = useSliderContent();
   const visaState = useAppSelector((state) => state.visa);
+
+  console.log({visaState})
  
   const nriBadgeText = sliderContent["nri_badge_text"] || "";
   const dailyNriBadgeText = useMemo(() => {
@@ -153,6 +155,7 @@ const CountrySlider = () => {
   const [validationErrors, setValidationErrors] = useState(new Set());
   const [selectedVisaType, _setSelectedVisaType] = useState(null);
   const [selectedPaymentMethod, setSelectedLocalPaymentMethod] = useState("");
+  const [isExpertSelected, setIsExpertSelected] = useState(false);
 
   const [couponCode, setCouponCodeLocal] = useState("");
   const [couponError, setCouponError] = useState("");
@@ -643,6 +646,7 @@ const CountrySlider = () => {
       });
     }
   };
+  console.log({visaState})
 
   const toggleRecommendedItem = (itemKey) => {
     const isCurrentlyChecked = recommendedItems[itemKey];
@@ -718,8 +722,12 @@ const CountrySlider = () => {
     return Number.isFinite(num) ? num : 200;
   })();
 
+  console.log({sliderContent})
+
   const perDayInsurancePrice = 2;
   const originalPerDayInsurancePrice = 3;
+  const expertPricePerMonth = 35;
+  const expertAccessMonths = 3;
 
   // Memoize expensive calculations
   const currentVisaFeePerTraveler = useMemo(() => {
@@ -1409,6 +1417,8 @@ const CountrySlider = () => {
     // If a visa type is selected with a specific price, calculate proportional strike-out price
     // Otherwise use the base strike-out price
     let currentStrikeOutPrice = strikeOutPrice;
+
+    console.log({selectedVisaType,baseFee})
 
     if (baseFee > 0 && selectedVisaType) {
       if (selectedVisaType.priceGBP) {
@@ -2312,11 +2322,88 @@ const CountrySlider = () => {
 
   const selectedVisaTypeDetails = useMemo(() => {
     const candidates = [selectedVisaType, visaState.selectedVisaType].filter(Boolean);
+    console.log({candidates});
     return candidates.find((visaType) => visaType?.pricing) || candidates[0] || null;
   }, [selectedVisaType, visaState.selectedVisaType]);
 
+  console.log({visaState,selectedVisaType});
+
   const pricingDetails = selectedVisaTypeDetails?.pricing || null;
   const canShowVisaFeeBreakdown = Boolean(selectedVisaTypeDetails?.id && pricingDetails);
+  const computedPriceSummary = useMemo(() => {
+    const originalTotal = Number(calculateOriginalPrice() || 0);
+    const visaOnlyTotal = Number(visaOnlyPrice || 0);
+    const currentTotal = Number(finalPrice || 0);
+    const safeTravelers = Number(travelers || 0);
+    const perTravelerCurrent =
+      safeTravelers > 0 ? visaOnlyTotal / safeTravelers : visaOnlyTotal;
+    const perTravelerOriginal =
+      safeTravelers > 0 ? originalTotal / safeTravelers : originalTotal;
+    const expertOriginalValue = isExpertSelected
+      ? expertPricePerMonth * expertAccessMonths
+      : 0;
+    const insuranceOriginal = Number(originalInsuranceBase || 0);
+    const insuranceCurrent = Number(discountedInsurancePrice || 0);
+    const giftCardOriginal = Number((245 * giftCardCount) || 0);
+    const giftCardCurrent = Number(discountedGiftCardPrice || 0);
+    const discountCode = String(appliedDiscount?.code || couponCode || "").trim();
+
+    return {
+      currency: "GBP",
+      travelers: safeTravelers,
+      visaOnlyTotal,
+      currentTotal,
+      originalTotal,
+      includedValue: Math.max(0, originalTotal - visaOnlyTotal),
+      perTravelerCurrent,
+      perTravelerOriginal,
+      recommended: {
+        insurance: {
+          selected: Boolean(recommendedItems.insuranceCertificate),
+          count: Number(insuranceCount || 0),
+          days: Number(effectiveInsuranceDays || 0),
+          current: insuranceCurrent,
+          original: insuranceOriginal,
+        },
+        giftCard: {
+          selected: Boolean(recommendedItems.giftCard),
+          count: Number(giftCardCount || 0),
+          current: giftCardCurrent,
+          original: giftCardOriginal,
+        },
+      },
+      expert: {
+        selected: Boolean(isExpertSelected),
+        current: 0,
+        original: expertOriginalValue,
+        monthly: expertPricePerMonth,
+        months: expertAccessMonths,
+      },
+      discount: {
+        applied: Boolean(appliedDiscount || discountCode),
+        code: discountCode,
+        description: String(appliedDiscount?.description || ""),
+        percentage: Number(appliedDiscount?.percentage || 0),
+      },
+    };
+  }, [
+    visaOnlyPrice,
+    finalPrice,
+    travelers,
+    originalInsuranceBase,
+    discountedInsurancePrice,
+    discountedGiftCardPrice,
+    giftCardCount,
+    recommendedItems,
+    insuranceCount,
+    effectiveInsuranceDays,
+    isExpertSelected,
+    appliedDiscount,
+    couponCode,
+    baseFee,
+    strikeOutPrice,
+    selectedVisaType,
+  ]);
 
   // Check available payment methods from ExpressPaymentRequestButton
   useEffect(() => {
@@ -3395,16 +3482,19 @@ const CountrySlider = () => {
                       )}
                     </div>
 
-                    {canShowVisaFeeBreakdown ? (
-                      <VisaFeeBreakdown pricingDetails={pricingDetails} />
-                    ) : null}
+                    {/* {canShowVisaFeeBreakdown ? (
+                    ) : null} */}
+                      <VisaFeeBreakdown
+                        pricingDetails={pricingDetails}
+                        priceSummary={computedPriceSummary}
+                      />
                   </div>
                 );
               })()}
             </StripeProvider>
           </div>
 
-          <ExpertSection />
+          <ExpertSection checked={isExpertSelected} onChange={setIsExpertSelected} />
 
           {/* Free Offer Banner */}
           <div className="border rounded-3xl border-white/20 bg-white/5 backdrop-blur-sm overflow-hidden max-sm:rounded-2xl mt-6">

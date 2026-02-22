@@ -2,13 +2,14 @@
 
 import { useMemo, useState, useCallback } from "react";
 
-const VisaFeeBreakdown = ({ pricingDetails }) => {
+const VisaFeeBreakdown = ({ pricingDetails, priceSummary }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const feeCurrency =
     pricingDetails?.visa_fee?.currency ||
     pricingDetails?.vfs_fee?.currency ||
     pricingDetails?.service_fee?.currency ||
+    priceSummary?.currency ||
     "INR";
 
   const currencySymbol = useMemo(() => {
@@ -28,48 +29,17 @@ const VisaFeeBreakdown = ({ pricingDetails }) => {
     [currencySymbol]
   );
 
-  const teleportFee = Number(pricingDetails?.service_fee?.amount || 0);
-  const appointmentFee = Number(pricingDetails?.vfs_fee?.amount || 0);
-
-  const embassyFeeEntries = useMemo(() => {
-    const visaFee = pricingDetails?.visa_fee;
-    if (!visaFee || typeof visaFee !== "object") return [];
-
-    if (Array.isArray(visaFee.breakdown) && visaFee.breakdown.length > 0) {
-      return visaFee.breakdown
-        .map((entry) => ({
-          label: entry?.label || entry?.name || "",
-          amount: Number(entry?.amount || 0),
-        }))
-        .filter((entry) => Number.isFinite(entry.amount));
-    }
-
-    const ageKeyMap = [
-      ["age_0_5", "(0 - 5 yrs)"],
-      ["child_0_5", "(0 - 5 yrs)"],
-      ["age_6_12", "(6 - 12 yrs)"],
-      ["child_6_12", "(6 - 12 yrs)"],
-      ["age_13_plus", "(13+ yrs)"],
-      ["adult", "(13+ yrs)"],
-    ];
-
-    const ageEntries = ageKeyMap
-      .filter(([key]) => visaFee[key] !== undefined && visaFee[key] !== null)
-      .map(([key, label]) => ({ label, amount: Number(visaFee[key]) }))
-      .filter((entry) => Number.isFinite(entry.amount));
-
-    if (ageEntries.length > 0) {
-      return ageEntries;
-    }
-
-    if (visaFee.amount !== undefined && visaFee.amount !== null) {
-      return [{ label: "", amount: Number(visaFee.amount) }].filter((entry) =>
-        Number.isFinite(entry.amount)
-      );
-    }
-
-    return [];
-  }, [pricingDetails]);
+  const computedVisaOnlyTotal = Number(priceSummary?.visaOnlyTotal || 0);
+  const computedCurrentTotal = Number(priceSummary?.currentTotal || 0);
+  const computedOriginalTotal = Number(priceSummary?.originalTotal || 0);
+  const computedIncludedValue = Number(priceSummary?.includedValue || 0);
+  const computedPerTravelerCurrent = Number(priceSummary?.perTravelerCurrent || 0);
+  const computedPerTravelerOriginal = Number(priceSummary?.perTravelerOriginal || 0);
+  const travelersCount = Number(priceSummary?.travelers || 0);
+  const insuranceDetails = priceSummary?.recommended?.insurance || {};
+  const giftCardDetails = priceSummary?.recommended?.giftCard || {};
+  const expertDetails = priceSummary?.expert || {};
+  const discountDetails = priceSummary?.discount || {};
 
   return (
     <div className="w-full">
@@ -83,45 +53,94 @@ const VisaFeeBreakdown = ({ pricingDetails }) => {
 
       <div
         className={`overflow-hidden transition-all duration-300 ease-in-out ${
-          isOpen ? "max-h-96 opacity-100 mt-2" : "max-h-0 opacity-0"
+          isOpen ? "max-h-300 opacity-100 mt-2" : "max-h-0 opacity-0"
         }`}
       >
         <div className="rounded-2xl border border-white/15 bg-[#24242D] p-4 max-sm:p-3 text-white">
-          <div className="flex items-center justify-between text-sm max-sm:text-xs">
-            <span className="text-white/75">Teleport fees</span>
-            <span className="font-semibold">{formatFeeAmount(teleportFee)}</span>
-          </div>
+          <div>
+            <div className="text-sm text-white/75 max-sm:text-xs">Computed totals</div>
 
-          <div className="mt-3 flex items-start justify-between gap-2 text-sm max-sm:text-xs">
-            <div>
-              <div className="text-white/75">Appointment fee</div>
-              <div className="text-white/50">Pay online</div>
-            </div>
-            <span className="font-semibold">{formatFeeAmount(appointmentFee)}</span>
-          </div>
-
-          <div className="mt-4 flex items-start justify-between gap-2">
-            <div className="text-sm max-sm:text-xs">
-              <div className="text-white/75">Embassy fees</div>
-              <div className="text-white/50">Pay at embassy during appointment</div>
+            <div className="mt-2 flex items-center justify-between text-sm max-sm:text-xs">
+              <span className="text-white/75">Current total</span>
+              <span className="font-semibold">{formatFeeAmount(computedCurrentTotal)}</span>
             </div>
 
-            <div className="text-right">
-              {embassyFeeEntries.length > 0 ? (
-                embassyFeeEntries.map((entry, index) => (
-                  <div key={`${entry.label || "embassy"}-${index}`} className={index > 0 ? "mt-2" : ""}>
-                    <div className="text-sm font-semibold max-sm:text-xs">
-                      {formatFeeAmount(entry.amount)}
-                    </div>
-                    {entry.label ? (
-                      <div className="text-xs text-white/65">{entry.label}</div>
-                    ) : null}
-                  </div>
-                ))
-              ) : (
-                <div className="text-sm font-semibold max-sm:text-xs">{formatFeeAmount(0)}</div>
-              )}
+            <div className="mt-2 flex items-center justify-between text-sm max-sm:text-xs">
+              <span className="text-white/75">Visa-only total</span>
+              <span className="font-semibold">{formatFeeAmount(computedVisaOnlyTotal)}</span>
             </div>
+
+            <div className="mt-2 flex items-center justify-between text-sm max-sm:text-xs">
+              <span className="text-white/75">Original listed total</span>
+              <span className="font-semibold">{formatFeeAmount(computedOriginalTotal)}</span>
+            </div>
+
+            <div className="mt-2 flex items-center justify-between text-sm max-sm:text-xs">
+              <span className="text-white/75">Bundled extras value</span>
+              <span className="font-semibold">{formatFeeAmount(computedIncludedValue)}</span>
+            </div>
+
+            <div className="mt-4 border-t border-white/10 pt-4 text-sm max-sm:text-xs">
+              <div className="text-white/75">Recommended selections</div>
+
+              <div className="mt-2 flex items-center justify-between">
+                <span className="text-white/70">
+                  Insurance {insuranceDetails?.selected ? `(${Number(insuranceDetails?.count || 0)} travellers, ${Number(insuranceDetails?.days || 0)} days)` : "(not selected)"}
+                </span>
+                <span className="font-semibold">
+                  {insuranceDetails?.selected
+                    ? `${formatFeeAmount(Number(insuranceDetails?.current || 0))} (was ${formatFeeAmount(Number(insuranceDetails?.original || 0))})`
+                    : formatFeeAmount(0)}
+                </span>
+              </div>
+
+              <div className="mt-2 flex items-center justify-between">
+                <span className="text-white/70">
+                  Gift card {giftCardDetails?.selected ? `(${Number(giftCardDetails?.count || 0)} qty)` : "(not selected)"}
+                </span>
+                <span className="font-semibold">
+                  {giftCardDetails?.selected
+                    ? `${formatFeeAmount(Number(giftCardDetails?.current || 0))} (was ${formatFeeAmount(Number(giftCardDetails?.original || 0))})`
+                    : formatFeeAmount(0)}
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-4 border-t border-white/10 pt-4 text-sm max-sm:text-xs">
+              <div className="text-white/75">Expert add-on</div>
+              <div className="mt-2 flex items-center justify-between">
+                <span className="text-white/70">
+                  Accountability expert {expertDetails?.selected ? "(selected)" : "(not selected)"}
+                </span>
+                <span className="font-semibold">
+                  {expertDetails?.selected
+                    ? `${formatFeeAmount(Number(expertDetails?.current || 0))} (was ${formatFeeAmount(Number(expertDetails?.original || 0))})`
+                    : formatFeeAmount(0)}
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-4 border-t border-white/10 pt-4 text-sm max-sm:text-xs">
+              <div className="text-white/75">Discount code</div>
+              <div className="mt-2 flex items-center justify-between">
+                <span className="text-white/70">
+                  {discountDetails?.applied
+                    ? `${String(discountDetails?.code || "").toUpperCase()}${discountDetails?.percentage ? ` (${Number(discountDetails?.percentage)}% off)` : ""}`
+                    : "No discount applied"}
+                </span>
+                <span className="font-semibold">
+                  {discountDetails?.applied && discountDetails?.description
+                    ? discountDetails.description
+                    : "-"}
+                </span>
+              </div>
+            </div>
+
+            {travelersCount > 0 ? (
+              <div className="mt-3 text-xs text-white/60 max-sm:text-[11px]">
+                {travelersCount} traveller(s): {formatFeeAmount(computedPerTravelerCurrent)} current each, {formatFeeAmount(computedPerTravelerOriginal)} original each
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

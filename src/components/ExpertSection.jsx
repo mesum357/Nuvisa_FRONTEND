@@ -3,15 +3,13 @@
 import { Check } from "lucide-react";
 import Image from "next/image";
 import WhatsAppBadge from "./WhatsAppBadge";
-import { useState } from "react";
 
-const ExpertSection = () => {
-  const [isChecked, setIsChecked] = useState(false);
+const ExpertSection = ({ checked = false, onChange = () => {} }) => {
 
   return (
     <section
       className={`w-full mt-4 rounded-2xl overflow-hidden border bg-[#171A20] text-white transition-colors duration-300 ${
-        isChecked ? "border-[#7350FF]" : "border-white/15"
+        checked ? "border-[#7350FF]" : "border-white/15"
       }`}
     >
       <div className="pt-4 px-4 max-sm:pt-3 max-sm:px-3">
@@ -21,12 +19,12 @@ const ExpertSection = () => {
               <input
                 id="expert-accountability-coach"
                 type="checkbox"
-                checked={isChecked}
-                onChange={(event) => setIsChecked(event.target.checked)}
+                checked={checked}
+                onChange={(event) => onChange(event.target.checked)}
                 aria-label="Select accountability coach add-on"
                 className="peer h-6 w-6 appearance-none rounded-md border border-white/25 bg-white cursor-pointer checked:border-[#6B4EFF] checked:bg-[#6B4EFF]"
               />
-              {isChecked && (
+              {checked && (
                 <Check className="pointer-events-none absolute inset-0 m-auto h-4 w-4 text-white" />
               )}
             </div>
