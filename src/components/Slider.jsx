@@ -94,6 +94,31 @@ const CountrySlider = () => {
 
     return textOptions[textIndex];
   }, [nriBadgeText]);
+
+  const renderedNriBadgeText = useMemo(() => {
+    if (!dailyNriBadgeText?.includes("🇪🇺")) {
+      return dailyNriBadgeText;
+    }
+
+    const parts = dailyNriBadgeText.split("🇪🇺");
+
+    return parts.map((part, index) => (
+      <span key={`nri-badge-part-${index}`}>
+        {part}
+        {index < parts.length - 1 ? (
+          <span className="inline-flex items-center align-middle mx-1">
+            <Image
+              src="/image/eu-flag.png"
+              alt="EU"
+              width={18}
+              height={18}
+              className="inline-block rounded-full"
+            />
+          </span>
+        ) : null}
+      </span>
+    ));
+  }, [dailyNriBadgeText]);
   
 
   const [_isCountryOpen, setIsCountryOpen] = useState(false);
@@ -2796,12 +2821,12 @@ const CountrySlider = () => {
         {/* NRI Badge Section */}
         <section className="text-center text-white rounded-2xl p-2 w-full max-sm:p-1">
           <div className="flex justify-start items-center">
-            <button className="bg-[#24242D] border border-white px-4 py-[7px] pb-[18px] rounded-full font-medium text-sm text-white select-none transition-colors relative overflow-hidden text-center max-sm:w-full max-sm:px-3 max-sm:py-2">
+            <button className="bg-[#24242D] border border-white px-4 py-[7px] pb-[14px] rounded-full font-medium text-sm text-white select-none transition-colors relative overflow-hidden text-center max-sm:w-full max-sm:px-3 max-sm:py-2">
               <span
                 className="relative z-10 leading-none text-center font-bold flex justify-center items-center pt-2 max-sm:text-[18px]"
                 style={{ fontSize: "17px" }}
               >
-                {dailyNriBadgeText}
+                {renderedNriBadgeText}
               </span>
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse"></div>
             </button>
