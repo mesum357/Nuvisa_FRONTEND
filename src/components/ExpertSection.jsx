@@ -38,7 +38,9 @@ const ExpertSection = () => {
 
             <label htmlFor="expert-accountability-coach" className="flex-1 cursor-pointer">
               <h3 className="text-md leading-tight font-gilroy-bold max-sm:text-base">
-                Unlock your visa success with unlimited access to a <WhatsAppBadge /> Accountability expert.
+                <span className="block">Unlock your visa success</span>
+                <span className="block">with unlimited access to a <WhatsAppBadge /></span>
+                <span className="block">Accountability expert.</span>
               </h3>
 
               <div className="my-3 flex items-center gap-3 max-sm:gap-2">
@@ -55,7 +57,7 @@ const ExpertSection = () => {
             </label>
           </div>
 
-          <div className="absolute right-0 bottom-0 w-24 h-24 shrink-0 max-md:hidden">
+          <div className="absolute right-0 bottom-0 w-32 h-32 shrink-0 max-md:hidden">
             <Image
               src="/image/expert.png"
               alt="Expert coach"
