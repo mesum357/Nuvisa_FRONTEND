@@ -63,11 +63,40 @@ const CountrySlider = () => {
   const { showError, showSuccess } = useToast();
   const MIN_SAFE_DAYS_BEFORE_TRAVEL = 15;
 
+  const currentWeekReservedText = useMemo(() => {
+    const now = new Date();
+    const dayOfMonth = now.getDate();
+    const weekOfMonth = Math.ceil(dayOfMonth / 7);
+
+    if (weekOfMonth === 1) return "40% reversed";
+    if (weekOfMonth === 2) return "75% reserved";
+    if (weekOfMonth === 3) return "95% reserved";
+    return "99% reserved";
+  }, []);
+
   const { content: sliderContent } = useSliderContent();
   const visaState = useAppSelector((state) => state.visa);
+ 
+  const nriBadgeText = sliderContent["nri_badge_text"] || "";
+  const dailyNriBadgeText = useMemo(() => {
+    const textOptions = nriBadgeText
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    if (textOptions.length === 0) return "";
+
+    const now = new Date();
+    const startOfYear = new Date(now.getFullYear(), 0, 0);
+    const dayOfYear = Math.floor((now - startOfYear) / 86400000);
+    const textIndex = (dayOfYear - 1) % textOptions.length;
+
+    return textOptions[textIndex];
+  }, [nriBadgeText]);
+  
 
   const [_isCountryOpen, setIsCountryOpen] = useState(false);
-  const [selectedCountry, setSelectedCountryLocal] = useState("France");
+  const [selectedCountry, setSelectedCountryLocal] = useState("Belgium");
   const [activeTooltip, setActiveTooltip] = useState(null);
   const [insuranceDays, setInsuranceDays] = useState(0);
   const [isHighlighted, setIsHighlighted] = useState(false);
@@ -2139,7 +2168,7 @@ const CountrySlider = () => {
   const validateBeforeExpressPayment = useCallback(() => {
     if (!isDocumentsValid) {
       dispatch(triggerDocumentValidation());
-      const message = "Please complete all required documents before proceeding with payment.";
+      const message = "Please confirm all required documents before proceeding with payment.";
       showError(message);
       return message;
     }
@@ -2662,7 +2691,7 @@ const CountrySlider = () => {
                 className="relative z-10 leading-none text-center font-bold flex justify-center items-center pt-2 max-sm:text-[18px]"
                 style={{ fontSize: "17px" }}
               >
-                {sliderContent["nri_badge_text"] || ""}
+                {dailyNriBadgeText}
               </span>
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse"></div>
             </button>
@@ -3360,6 +3389,8 @@ const CountrySlider = () => {
             </StripeProvider>
           </div>
 
+          <ExpertSection />
+
           {/* Free Offer Banner */}
           <div className="border rounded-3xl border-white/20 bg-white/5 backdrop-blur-sm overflow-hidden max-sm:rounded-2xl mt-6">
             <div className="flex items-center gap-4 p-4 border-b border-white/10 max-sm:p-3 max-sm:gap-3">
@@ -3395,7 +3426,7 @@ const CountrySlider = () => {
                   </div>
                   <div className="bg-[#5a3ddb] rounded-full p-2 max-sm:p-1.5">
                     <div className="text-xs text-white font-semibold max-sm:text-xs">
-                      {sliderContent["slot2_status"]}
+                      {currentWeekReservedText}
                     </div>
                   </div>
                 </div>
@@ -3752,8 +3783,6 @@ const CountrySlider = () => {
                 <ArrowUpRight className="w-5 h-5 text-[#6B4EFF] max-sm:w-4 max-sm:h-4" />
               </span>
             </button>
-
-            <ExpertSection />
 
             {/* Footer Info */}
             <div className="mt-6 space-y-2 max-sm:space-y-1.5">
