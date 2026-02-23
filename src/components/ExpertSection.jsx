@@ -35,7 +35,7 @@ const ExpertSection = ({ checked = false, onChange = () => {} }) => {
             </div>
 
             <label htmlFor="expert-accountability-coach" className="flex-1 cursor-pointer">
-              <h3 className="text-[17px] leading-tight font-gilroy-bold max-sm:text-[15px]">
+              <h3 className="text-base leading-normal font-gilroy-bold max-sm:text-sm">
                 <span className="block">Unlock Your Visa Success with</span>
                 <span className="block">Unlimited Access to a <WhatsAppBadge /></span>
                 <span className="block">Accountability Expert</span>
