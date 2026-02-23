@@ -95,8 +95,10 @@ const CountrySlider = () => {
     return textOptions[textIndex];
   }, [nriBadgeText]);
 
+  const hasEuFlagBadge = dailyNriBadgeText?.includes("🇪🇺");
+
   const renderedNriBadgeText = useMemo(() => {
-    if (!dailyNriBadgeText?.includes("🇪🇺")) {
+    if (!hasEuFlagBadge) {
       return dailyNriBadgeText;
     }
 
@@ -118,7 +120,7 @@ const CountrySlider = () => {
         ) : null}
       </span>
     ));
-  }, [dailyNriBadgeText]);
+  }, [dailyNriBadgeText, hasEuFlagBadge]);
   
 
   const [_isCountryOpen, setIsCountryOpen] = useState(false);
@@ -2821,9 +2823,9 @@ const CountrySlider = () => {
         {/* NRI Badge Section */}
         <section className="text-center text-white rounded-2xl p-2 w-full max-sm:p-1">
           <div className="flex justify-start items-center">
-            <button className="bg-[#24242D] border border-white px-4 py-[7px] pb-[14px] rounded-full font-medium text-sm text-white select-none transition-colors relative overflow-hidden text-center max-sm:w-full max-sm:px-3 max-sm:py-2">
+            <button className={`bg-[#24242D] border border-white px-4 ${hasEuFlagBadge ? "py-2.25" : "py-1.75  pb-3.5"} rounded-full font-medium text-sm text-white select-none transition-colors relative overflow-hidden text-center max-sm:w-full max-sm:px-3 max-sm:py-2`}>
               <span
-                className="relative z-10 leading-none text-center font-bold flex justify-center items-center pt-2 max-sm:text-[18px]"
+                className={`relative z-10 leading-none text-center font-bold flex justify-center items-center ${hasEuFlagBadge ? "" : "pt-2"} max-sm:text-[18px]`}
                 style={{ fontSize: "17px" }}
               >
                 {renderedNriBadgeText}
