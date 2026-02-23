@@ -563,8 +563,12 @@ function ApplicationCard({
 
           <p className="text-sm text-white/60">
             <ClientOnly>
-              {Math.floor(
-                (new Date() - new Date(app.createdAt)) / (1000 * 60 * 60 * 24)
+              {Math.max(
+                0,
+                Math.floor(
+                  (new Date() - new Date(app.createdAt)) /
+                    (1000 * 60 * 60 * 24)
+                )
               )}{" "}
               day ago
             </ClientOnly>
