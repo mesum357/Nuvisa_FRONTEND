@@ -187,7 +187,7 @@ const PaymentSuccess = () => {
         const mergedData = {
           ...currentData,
           email: sessionMetadata.email || currentData.email,
-          selectedCountry: sessionMetadata.country || currentData.selectedCountry,
+          selectedCountry: sessionMetadata.country || currentData.selectedCountry || currentData.paymentMetadata?.country,
           travelers: sessionMetadata.travellers ?? currentData.travelers,
           totalAmount: sessionMetadata.amount || currentData.totalAmount,
           insurancePayment: sessionMetadata.insurance !== undefined ? sessionMetadata.insurance : currentData.insurancePayment,
