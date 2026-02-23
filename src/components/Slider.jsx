@@ -110,8 +110,8 @@ const CountrySlider = () => {
             <Image
               src="/image/eu-flag.png"
               alt="EU"
-              width={18}
-              height={18}
+              width={28}
+              height={28}
               className="inline-block rounded-full"
             />
           </span>
