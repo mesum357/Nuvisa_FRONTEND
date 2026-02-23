@@ -10,7 +10,7 @@ const getLocalDateString = (date) => {
   return `${year}-${month}-${day}`;
 };
 
-const MIN_SAFE_DAYS_BEFORE_TRAVEL = 15;
+const MIN_SAFE_DAYS_BEFORE_TRAVEL = 28;
 
 const getDayClassName = (date) => {
   const today = new Date();
@@ -20,13 +20,12 @@ const getDayClassName = (date) => {
   safeDateThreshold.setHours(0, 0, 0, 0);
   safeDateThreshold.setDate(today.getDate() + MIN_SAFE_DAYS_BEFORE_TRAVEL);
 
-  if (date < safeDateThreshold && date >= today) {
-    return "dangerous-date";
-  }
-  if (date >= today) {
-    return "comfortable-date";
-  }
-  return undefined;
+  if (date < today) return "!text-gray-400 !bg-transparent !important";
+  if (date >= today && date < safeDateThreshold)
+    return "!text-red-400 !bg-transparent !important";
+  if (date >= safeDateThreshold)
+    return "!text-green-400 !bg-transparent !important";
+  return "!bg-transparent !text-white";
 };
 
 export const TravelDates = ({
@@ -48,8 +47,8 @@ export const TravelDates = ({
         const endDate = new Date(travelEndDate + "T00:00:00");
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const fifteenDaysFromToday = new Date(today);
-        fifteenDaysFromToday.setDate(today.getDate() + 15);
+        const safeTravelDate = new Date(today);
+        safeTravelDate.setDate(today.getDate() + MIN_SAFE_DAYS_BEFORE_TRAVEL);
 
         if (travelEndDate && selectedDate >= endDate) {
           setTravelEndDate("");
@@ -59,11 +58,11 @@ export const TravelDates = ({
         } else {
           handleChangeDates(name, value);
           setTravelStartDate(value);
-          if (selectedDate < fifteenDaysFromToday) {
+          if (selectedDate < safeTravelDate) {
             setErrors((prev) => ({
               ...prev,
               travelStartDateWarning:
-                " Your travel date is within 15 days. Embassy processing typically takes up to 15 days after your appointment. Consider if your dates are flexible.",
+                "Your travel dates are too close. Embassies take up to 15 days after your visa appointment, ideal gap between applying and travel date is 4-6 weeks. You can still proceed if your travel dates are flexible",
             }));
             if (
               travelEndDate &&
