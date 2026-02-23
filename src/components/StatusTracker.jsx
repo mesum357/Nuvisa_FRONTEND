@@ -98,21 +98,21 @@ const StatusTracker = ({ applicationId, className = "", initialStatus = null, on
       {
         id: 'review',
         title: 'Under review',
-        description: 'Application is being reviewed by our team',
+        description: 'Documents are being reviewed by our team',
         completed: progress >= 50,
         current: progress >= 25 && progress < 75
       },
       {
         id: 'appointment',
         title: 'Appointment booked',
-        description: 'Schedule and attend your visa appointment',
+        description: 'Visa appointment has been successfully scheduled',
         completed: progress >= 75,
         current: progress >= 50 && progress < 100
       },
       {
         title: "At Embassy",
         id: "at_embassy",
-        description: "Your documents are with the embassy",
+        description: "Application is currently at the embassy",
         completed: progress >= 90,
         current: progress >= 75 && progress < 100
       },
