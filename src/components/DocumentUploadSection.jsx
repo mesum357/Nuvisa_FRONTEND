@@ -370,12 +370,12 @@ const DocumentUploadSection = ({
             : !!isUploaded;
 
           return (
-            <div key={docType.id} className="p-6 border   border-gray-700">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4 ">
-                  <div className="flex items-center gap-4 ">
+            <div key={docType.id} className="p-4 sm:p-6 border border-gray-700 rounded-lg">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="flex flex-col gap-3 min-w-0 flex-1">
+                  <div className="flex items-start gap-3 sm:gap-4 min-w-0">
                     <div
-                      className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${isComplete
+                      className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${isComplete
                         ? "bg-green-900/50"
                         : "bg-gray-600"
                         }`}
@@ -386,9 +386,9 @@ const DocumentUploadSection = ({
                         <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
                       )}
                     </div>
-                    <div className="text-base font-semibold text-gray-100  flex items-center gap-2 w-full">
-                      <div className="flex items-center gap-2">
-                        <span className="max-w-40 min-w-40">
+                    <div className="text-base font-semibold text-gray-100 w-full min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="block min-w-0 wrap-break-word leading-snug">
                           {docType.title}
                         </span>
 
@@ -409,7 +409,7 @@ const DocumentUploadSection = ({
                       </div>
                     </div>
                   </div>
-                  <p className="text-sm :text-gray-400 mt-1 ">
+                  <p className="text-sm text-gray-400 mt-1 wrap-break-word">
                     {docType.description}
                   </p>
                   <div className="flex-1">
@@ -421,7 +421,7 @@ const DocumentUploadSection = ({
                   </div>
                 </div>
 
-                <div className="self-start min-w-30">
+                <div className="w-full lg:w-auto lg:self-start">
                   {(!isUploaded || canUploadMore) && (
                     <>
                       <input
@@ -439,7 +439,7 @@ const DocumentUploadSection = ({
                         className={`${disabled || !isOwner || loadingPart === docType.field
                           ? "bg-gray-600 cursor-not-allowed text-white"
                           : "bg-purple-600 text-white cursor-pointer hover:bg-purple-700"
-                          } font-semibold px-6 py-2.5 rounded-lg transition-colors min-w-32 `}
+                          } inline-flex items-center justify-center w-full sm:w-auto font-semibold px-6 py-2.5 rounded-lg transition-colors min-w-32`}
                       >
                         {!isOwner ? "View Only" : (isUploaded && canUploadMore ? "Add More" : loadingPart === docType.field ? "Uploading..." : "Upload")}
                       </label>
