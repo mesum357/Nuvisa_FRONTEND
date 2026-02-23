@@ -353,6 +353,9 @@ const ApplicationCompletedSection = ({
                   year: 'numeric'
                 })}
               </p>
+              <p className="text-xs text-gray-400 mt-1">
+                We review applications within 24 working hours
+              </p>
             </div>
             <div>
               <label className="text-sm text-gray-400">Status</label>
@@ -362,12 +365,6 @@ const ApplicationCompletedSection = ({
                   {currentStatus?.status?.replace('_', ' ')?.toUpperCase()}
                 </p>
               </div>
-            </div>
-            <div>
-              <label className="text-sm text-gray-400">Estimated Processing</label>
-              <p className="text-white font-medium">
-                {currentStatus?.estimatedProcessingTime || "We review applications within 24 working hours"}
-              </p>
             </div>
           </div>
 
