@@ -108,7 +108,7 @@ const FaqLibraryPage = () => {
                           {group.items.length} question{group.items.length > 1 ? "s" : ""}
                         </p>
                       </div>
-                      <group.Icon className="w-5 h-5 text-[#7350FF] shrink-0 group-hover:scale-110 transition-transform" />
+                      <group.Icon className="w-7 h-7 md:w-8 md:h-8 text-[#7350FF] shrink-0 group-hover:scale-110 transition-transform" />
                     </div>
                   </a>
                 ))}
