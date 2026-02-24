@@ -13,7 +13,7 @@ const ExpertSection = ({ checked = false, onChange = () => {} }) => {
       }`}
     >
       <div className="pt-4 px-4 max-sm:pt-3 max-sm:px-3">
-        <div className="relative pr-30 max-md:pr-0">
+        <div className="relative pr-30 max-sm:pr-24">
           <div className="flex items-start gap-4">
             <div className="relative mt-1 h-4 w-4 shrink-0">
               <input
@@ -41,26 +41,26 @@ const ExpertSection = ({ checked = false, onChange = () => {} }) => {
                 <span className="block">Accountability Expert</span>
               </h3>
 
-              <div className="my-3 flex items-center gap-3 max-sm:gap-2">
-                <span className="text-white/50 line-through text-base max-sm:text-sm">
+              <div className="my-3 flex items-center gap-3 max-sm:gap-2 whitespace-nowrap">
+                <span className="text-white/50 line-through text-base max-sm:text-sm whitespace-nowrap">
                   £35/ Month
                 </span>
-                <span className="text-base leading-none font-gilroy-bold max-sm:text-sm">
+                <span className="text-base leading-none font-gilroy-bold max-sm:text-sm whitespace-nowrap">
                   Free
                 </span>
-                <span className="text-base text-white/75 max-sm:text-sm">
+                <span className="text-base text-white/75 max-sm:text-sm whitespace-nowrap">
                   3 month access
                 </span>
               </div>
             </label>
           </div>
 
-          <div className="absolute right-0 bottom-0 w-32 h-32 shrink-0 max-md:hidden">
+          <div className="absolute right-0 bottom-0 w-28 h-28 sm:w-32 sm:h-32 shrink-0">
             <Image
               src="/image/expert.png"
               alt="Expert coach"
               fill
-              sizes="180px"
+              sizes="(max-width: 640px) 112px, 128px"
               className="object-contain object-bottom"
               priority
             />
