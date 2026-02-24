@@ -13,9 +13,9 @@ const ExpertSection = ({ checked = false, onChange = () => {} }) => {
       }`}
     >
       <div className="pt-4 px-4 max-sm:pt-3 max-sm:px-3">
-        <div className="relative pr-30 max-sm:pr-24">
-          <div className="flex items-start gap-4">
-            <div className="relative mt-1 h-4 w-4 shrink-0">
+        <div className="relative pr-40 max-sm:pr-28 min-h-36">
+          <div className="flex items-start gap-3 min-h-36">
+            <div className="relative mt-2 h-4 w-4 shrink-0">
               <input
                 id="expert-accountability-coach"
                 type="checkbox"
@@ -34,14 +34,14 @@ const ExpertSection = ({ checked = false, onChange = () => {} }) => {
               </span>
             </div>
 
-            <label htmlFor="expert-accountability-coach" className="flex-1 cursor-pointer">
+            <label htmlFor="expert-accountability-coach" className="flex-1 cursor-pointer flex flex-col justify-start min-h-36">
               <h3 className="text-base leading-normal font-gilroy-bold max-sm:text-sm">
                 <span className="block">Unlock Your Visa Success with</span>
                 <span className="block">Unlimited Access to a <WhatsAppBadge /></span>
                 <span className="block">Accountability Expert</span>
               </h3>
 
-              <div className="my-3 flex items-center gap-3 max-sm:gap-2 whitespace-nowrap">
+              <div className="mt-6 flex items-center gap-3 max-sm:gap-2 whitespace-nowrap">
                 <span className="text-white/50 line-through text-base max-sm:text-sm whitespace-nowrap">
                   £35/ Month
                 </span>
@@ -55,12 +55,12 @@ const ExpertSection = ({ checked = false, onChange = () => {} }) => {
             </label>
           </div>
 
-          <div className="absolute right-0 bottom-0 w-28 h-28 sm:w-32 sm:h-32 shrink-0">
+          <div className="absolute right-0 max-sm:-right-5 bottom-0 w-40 h-40 max-sm:w-32 max-sm:h-32 shrink-0">
             <Image
               src="/image/expert.png"
               alt="Expert coach"
               fill
-              sizes="(max-width: 640px) 112px, 128px"
+              sizes="(max-width: 640px) 128px, 160px"
               className="object-contain object-bottom"
               priority
             />
