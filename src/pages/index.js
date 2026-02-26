@@ -16,6 +16,8 @@ import Link from "next/link";
 import Image from "next/image";
 import StickyBottomBar from "@/components/StickyBottomBar";
 import Reviews from "@/components/Reviews";
+import VisaProcessSection from "@/components/home/VisaProcessSection";
+
 const Index = () => {
   const { heroContent, loading } = useHeroContent();
   const { klarnaContent, loading: klarnaLoading } = useKlarnaContent();
@@ -85,6 +87,11 @@ const Index = () => {
             </div>
           </div>
         </div>
+      </div>
+      <div className="bg-[#1E1E27] text-white w-full overflow-x-hidden pb-16">
+        <VisaProcessSection />
+      </div>
+      <div className="bg-gradient-to-br from-purple-100 to-[#f3e6ff]">
         <OurMission />
         <Footer />
       </div>
