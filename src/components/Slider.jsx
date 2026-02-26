@@ -2565,7 +2565,7 @@ const CountrySlider = () => {
 
 
       {/* Left Column */}
-      <div className="w-full gap-3 flex flex-col items-start lg:max-w-[60%] max-sm:gap-4 mt-0 md:mt-4 lg:sticky lg:top-24 lg:self-start">
+      <div className="w-full gap-3 flex flex-col items-start lg:max-w-[60%] max-sm:gap-4 mt-0 md:mt-4 lg:sticky lg:top-5 lg:self-start">
         {/* Badges Section */}
         <section className="text-center text-white rounded-2xl p-2 w-full max-sm:p-1">
           <div className="w-full hidden md:flex justify-start items-center gap-2 px-3 max-sm:gap-3 max-sm:px-1">
