@@ -6,6 +6,7 @@ import axios from "axios";
 import CalendarIcon from '../../assets/calendar.png';
 import flightsIcon from '../../assets/flights.png';
 import Image from "next/image";
+import { getDynamicMonthText } from "@/utils/getDynamicMonthText";
 
 const Images = {
   CalenderIcon: CalendarIcon,
@@ -264,7 +265,9 @@ const AppDownloadPopup = () => {
               </button>
 
               <div className="text-center mt-5">
-                <p className="text-white text-[18px]">{dbContent.lastChanceText}</p>
+                <p className="text-white text-[18px]">
+                  {getDynamicMonthText(dbContent.lastChanceText)}
+                </p>
               </div>
             </div>
           </div>

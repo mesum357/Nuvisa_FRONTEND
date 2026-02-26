@@ -39,6 +39,7 @@ import ExpressPaymentRequestButton from "./ExpressPaymentRequestButton";
 import KlarnaForm from "./KlarnaForm";
 import { useRouter } from "next/router";
 import { validateGiftCardCode, redeemGiftCardCode } from "@/api/giftCard";
+import { getDynamicMonthText } from "@/utils/getDynamicMonthText";
 
 const DEFAULT_REQUIRED_DOCUMENTS = {
   passport: false,
@@ -2490,8 +2491,10 @@ const VisaCheckout = () => {
                   <div className="h-4 w-4 rounded-full bg-purple-500 min-w-4 animate-pulse max-sm:h-3 max-sm:w-3"></div>
                   <div>
                     <span className="text-sm font-medium text-white max-sm:text-xs">
-                      {sliderContent["free_offer_banner_text"] ||
-                        "Free Auto-booking appointment and concierge assistance ends soon - Until Jan 2026."}
+                      {getDynamicMonthText(
+                        sliderContent["free_offer_banner_text"] ||
+                          "Free Auto-booking appointment and concierge assistance ends soon - Until {month} {year}."
+                      )}
                     </span>
                   </div>
                 </div>

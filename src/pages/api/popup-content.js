@@ -29,7 +29,7 @@ export default async function handler(req, res) {
             conciergeTitle: 'Concierge Assistance',
             conciergePrice: '£35',
             conciergeOfferPrice: 'Free',
-            lastChanceText: 'Last chance (ends soon) Until Jan 2026!',
+            lastChanceText: 'Last chance (ends soon) Until {month} {year}!',
             questions: {
               create: [
                 { text: 'Status in United Kingdom', type: 'OPTIONS', options: ['UK BRP', 'UK ILR', 'UK BRC', 'UK Citizen'], order: 0 },
