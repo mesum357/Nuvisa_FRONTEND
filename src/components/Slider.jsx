@@ -57,6 +57,7 @@ import VisaFeeBreakdown from "./VisaFeeBreakdown";
 import { validateGiftCardCode, redeemGiftCardCode } from "@/api/giftCard";
 import { useCountriesWithAppointmentTexts } from "@/hooks/useCountriesWithAppointmentTexts";
 import { staticCountries } from "@/constants/staticCountries";
+import { getDynamicMonthText } from "@/utils/getDynamicMonthText";
 
 const CountrySlider = () => {
   const router = useRouter();
@@ -77,6 +78,17 @@ const CountrySlider = () => {
 
   const { content: sliderContent } = useSliderContent();
   const visaState = useAppSelector((state) => state.visa);
+
+  const freeOfferBannerText = useMemo(() => {
+    const rawText =
+      sliderContent["free_offer_banner_text"] ||
+      "Free Auto-booking appointment and concierge assistance ends soon - Until {month} {year}.";
+
+    const normalizedText =
+      typeof rawText === "string" ? rawText.replace(/\s+/g, " ").trim() : rawText;
+
+    return getDynamicMonthText(normalizedText);
+  }, [sliderContent]);
 
   const nriBadgeText = sliderContent["nri_badge_text"] || "";
   const dailyNriBadgeText = useMemo(() => {
@@ -2908,7 +2920,7 @@ const CountrySlider = () => {
           </div>
 
           <div className="mb-6 max-sm:mb-4">
-            <div className="space-y-4 font-gilroy-medium !font-semibold max-sm:space-y-3">
+            <div className="space-y-2.5 font-gilroy-medium !font-semibold max-sm:space-y-2">
               {/* Auto-booking */}
               <div>
                 <div className="flex items-center justify-between max-sm:items-start max-sm:gap-2">
@@ -2936,7 +2948,7 @@ const CountrySlider = () => {
                     </span>
                   </div>
                 </div>
-                <span className="relative -top-3 ml-13 text-xs text-green-400 font-medium max-sm:text-[11px]">
+                <span className="block -mt-2 ml-13 text-xs text-green-400 font-medium max-sm:text-[11px]">
                   {currentAppointmentText}
                 </span>
               </div>
@@ -3565,7 +3577,7 @@ const CountrySlider = () => {
               ></div>
               <div>
                 <span className="text-sm font-medium text-white max-sm:text-xs">
-                  {sliderContent["free_offer_banner_text"]}
+                  {freeOfferBannerText}
                 </span>
               </div>
             </div>
