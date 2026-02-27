@@ -12,7 +12,7 @@ export async function seedSliderContent() {
     // Notices
     { key: 'embassy_notice_text', value: 'Please note that embassy require you to pay £78 in person to a government official, either by cash or card.', type: 'text', section: 'notices', order: 1 },
     { key: 'urgent_note_text', value: '*If require urgent appointment in 4-5 days kindly email support@nuvisa.co.uk do not follow the standard visa process.', type: 'text', section: 'notices', order: 2 },
-    { key: 'free_offer_banner_text', value: 'Free Auto-booking appointment and concierge assistance ends soon - Until Jan 2026.', type: 'text', section: 'notices', order: 3 },
+    { key: 'free_offer_banner_text', value: 'Free Auto-booking appointment and concierge assistance ends soon - Until {month} {year}.', type: 'text', section: 'notices', order: 3 },
 
     // Slots (match frontend keys)
     { key: 'slot1_label', value: 'Sep slots', type: 'text', section: 'slider', order: 1 },

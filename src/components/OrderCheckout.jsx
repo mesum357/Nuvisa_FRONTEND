@@ -2519,8 +2519,12 @@ const VisaCheckout = () => {
                   <div>
                     <span className="text-sm font-medium text-white max-sm:text-xs">
                       {getDynamicMonthText(
-                        sliderContent["free_offer_banner_text"] ||
+                        (
+                          sliderContent["free_offer_banner_text"] ||
                           "Free Auto-booking appointment and concierge assistance ends soon - Until {month} {year}."
+                        )
+                          .replace(/\s+/g, " ")
+                          .trim()
                       )}
                     </span>
                   </div>

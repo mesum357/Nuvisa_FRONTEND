@@ -421,7 +421,7 @@ model PopupContent {
   conciergeTitle         String   @default("Concierge Assistance")
   conciergePrice         String   @default("£35")
   conciergeOfferPrice    String   @default("Free")
-  lastChanceText         String   @default("Last chance (ends soon) Until Jan 2026!")
+  lastChanceText         String   @default("Last chance (ends soon) Until {month} {year}!")
   updatedAt              DateTime @updatedAt
   questions              PopupQuestion[]
 
