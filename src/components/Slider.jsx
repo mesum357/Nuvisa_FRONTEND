@@ -2361,6 +2361,10 @@ const CountrySlider = () => {
     appliedDiscount,
     insuranceCount,
     giftCardCount,
+    currentVisaFeePerTraveler,
+    discountedInsuranceBase,
+    originalInsuranceBase,
+    couponCode,
   ]);
 
   const selectedVisaTypeDetails = useMemo(() => {
