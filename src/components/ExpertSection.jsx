@@ -1,10 +1,70 @@
 'use client'
 
+import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
 import Image from "next/image";
 import WhatsAppBadge from "./WhatsAppBadge";
 
+const DEFAULT_SPOTS_LEFT = 12;
+const SPOTS_LEFT_STORAGE_KEY = "expertSpotsLeft";
+const LAST_RESET_DAY_STORAGE_KEY = "expertSpotsLastResetDayUk";
+
+const getUkDateParts = () => {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/London",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date());
+
+  const getPart = (type) => parts.find((item) => item.type === type)?.value;
+  const year = getPart("year") || "";
+  const month = getPart("month") || "";
+  const day = getPart("day") || "";
+  const hour = Number(getPart("hour") || "0");
+
+  return {
+    dayKey: `${year}-${month}-${day}`,
+    hour,
+  };
+};
+
+const normalizeSpotsLeft = (value) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return DEFAULT_SPOTS_LEFT;
+  return Math.max(0, Math.min(DEFAULT_SPOTS_LEFT, Math.floor(parsed)));
+};
+
 const ExpertSection = ({ checked = false, onChange = () => {} }) => {
+  const [spotsLeft, setSpotsLeft] = useState(DEFAULT_SPOTS_LEFT);
+
+  useEffect(() => {
+    const syncSpots = () => {
+      const storedSpots = localStorage.getItem(SPOTS_LEFT_STORAGE_KEY);
+      const lastResetDay = localStorage.getItem(LAST_RESET_DAY_STORAGE_KEY);
+      const { dayKey, hour } = getUkDateParts();
+
+      let nextSpots = normalizeSpotsLeft(storedSpots);
+      const shouldReset = nextSpots <= 5 && hour >= 2 && lastResetDay !== dayKey;
+
+      if (shouldReset) {
+        nextSpots = DEFAULT_SPOTS_LEFT;
+        localStorage.setItem(SPOTS_LEFT_STORAGE_KEY, String(nextSpots));
+        localStorage.setItem(LAST_RESET_DAY_STORAGE_KEY, dayKey);
+      } else if (storedSpots === null) {
+        localStorage.setItem(SPOTS_LEFT_STORAGE_KEY, String(nextSpots));
+      }
+
+      setSpotsLeft(nextSpots);
+    };
+
+    syncSpots();
+    const intervalId = setInterval(syncSpots, 60 * 1000);
+
+    return () => clearInterval(intervalId);
+  }, []);
 
   return (
     <section
@@ -12,6 +72,15 @@ const ExpertSection = ({ checked = false, onChange = () => {} }) => {
         checked ? "border-[#7350FF]" : "border-white/15"
       }`}
     >
+      <div className="border-b border-white/10 bg-black/80 px-4 py-2 max-sm:px-3">
+        <div className="flex items-center justify-center gap-2">
+          <span className="h-2 w-2 rounded-full bg-lime-400" />
+          <span className="text-sm font-gilroy-medium max-sm:text-xs">
+            Only {spotsLeft} left
+          </span>
+        </div>
+      </div>
+
       <div className="pt-4 px-4 max-sm:pt-3 max-sm:px-3">
         <div className="relative pr-40 max-sm:pr-28 min-h-36">
           <div className="flex items-start gap-3 min-h-36">
@@ -49,7 +118,7 @@ const ExpertSection = ({ checked = false, onChange = () => {} }) => {
                   Free
                 </span>
                 <span className="text-base text-white/75 max-sm:text-sm whitespace-nowrap">
-                  3 month access
+                  with next 100 visa applications!
                 </span>
               </div>
             </label>
