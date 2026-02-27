@@ -58,6 +58,7 @@ import { validateGiftCardCode, redeemGiftCardCode } from "@/api/giftCard";
 import { useCountriesWithAppointmentTexts } from "@/hooks/useCountriesWithAppointmentTexts";
 import { staticCountries } from "@/constants/staticCountries";
 import { getDynamicMonthText } from "@/utils/getDynamicMonthText";
+import { getCurrentWeekSlotPercentage } from "@/utils/getCurrentWeekSlotPercentage";
 
 const CountrySlider = () => {
   const router = useRouter();
@@ -65,16 +66,10 @@ const CountrySlider = () => {
   const { showError, showSuccess } = useToast();
   const MIN_SAFE_DAYS_BEFORE_TRAVEL = 15;
 
-  const currentWeekReservedText = useMemo(() => {
-    const now = new Date();
-    const dayOfMonth = now.getDate();
-    const weekOfMonth = Math.ceil(dayOfMonth / 7);
-
-    if (weekOfMonth === 1) return "40% reversed";
-    if (weekOfMonth === 2) return "75% reserved";
-    if (weekOfMonth === 3) return "95% reserved";
-    return "99% reserved";
-  }, []);
+  const currentWeekReservedText = useMemo(
+    () => getCurrentWeekSlotPercentage(new Date()),
+    []
+  );
 
   const { content: sliderContent } = useSliderContent();
   const visaState = useAppSelector((state) => state.visa);

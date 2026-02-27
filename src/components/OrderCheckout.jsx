@@ -40,6 +40,7 @@ import KlarnaForm from "./KlarnaForm";
 import { useRouter } from "next/router";
 import { validateGiftCardCode, redeemGiftCardCode } from "@/api/giftCard";
 import { getDynamicMonthText } from "@/utils/getDynamicMonthText";
+import { getCurrentWeekSlotPercentage } from "@/utils/getCurrentWeekSlotPercentage";
 
 const DEFAULT_REQUIRED_DOCUMENTS = {
   passport: false,
@@ -56,6 +57,10 @@ const VisaCheckout = () => {
   const { handleCreateDynamicCheckoutSession, cretingDynamicCheckout } =
     useCreateDynamicCheckoutSession();
   const { content: sliderContent, loading: sliderLoading } = useSliderContent();
+  const currentWeekReservedText = useMemo(
+    () => getCurrentWeekSlotPercentage(new Date()),
+    []
+  );
 
   // Get data from Redux store first, fallback to URL params if not available
   const visaState = useAppSelector((state) => state.visa);
@@ -2550,7 +2555,7 @@ const VisaCheckout = () => {
                       </div>
                       <div className="bg-[#5a3ddb] rounded-full p-2 max-sm:p-1.5">
                         <div className="text-xs text-white font-semibold max-sm:text-xs">
-                          {sliderContent["slot2_status"] || "< 10 left!"}
+                          {currentWeekReservedText}
                         </div>
                       </div>
                     </div>
