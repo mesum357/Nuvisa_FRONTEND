@@ -77,6 +77,7 @@ const ExpressPaymentRequestButton = forwardRef(
     const [buttonError, setButtonError] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSupported, setIsSupported] = useState(false);
+    const [isRefreshingRequest, setIsRefreshingRequest] = useState(false);
     const [availableMethods, setAvailableMethods] = useState({
       applePay: false,
       googlePay: false,
@@ -93,8 +94,15 @@ const ExpressPaymentRequestButton = forwardRef(
       if (!stripe || !elements || !normalizedAmount) {
         setPaymentRequest(null);
         setIsSupported(false);
+        setIsRefreshingRequest(false);
         return;
       }
+
+      // Invalidate any previous request immediately so stale totals cannot be used
+      // while Stripe initializes a new PaymentRequest for the latest amount.
+      setIsRefreshingRequest(true);
+      setPaymentRequest(null);
+      setIsSupported(false);
 
       const request = stripe.paymentRequest({
         country: "GB",
@@ -176,6 +184,7 @@ const ExpressPaymentRequestButton = forwardRef(
             applePay: applePayAvailable,
             googlePay: googlePayAvailable,
           });
+          setIsRefreshingRequest(false);
 
           // Log for debugging (can be removed in production)
           console.log("[ExpressPayment] Detected payment methods:", {
@@ -190,11 +199,19 @@ const ExpressPaymentRequestButton = forwardRef(
             applePay: false,
             googlePay: false,
           });
+          setIsRefreshingRequest(false);
         }
+      }).catch(() => {
+        if (!isMounted) return;
+        setPaymentRequest(null);
+        setIsSupported(false);
+        setAvailableMethods({ applePay: false, googlePay: false });
+        setIsRefreshingRequest(false);
       });
 
       return () => {
         isMounted = false;
+        setIsRefreshingRequest(false);
         if (request && request.off) {
           request.off("paymentmethod");
         }
@@ -375,6 +392,8 @@ const ExpressPaymentRequestButton = forwardRef(
             );
 
           if (confirmError) {
+            alert(`[Debug] Stripe confirmCardPayment error: ${JSON.stringify(confirmError, null, 2)}`);
+
             event.complete("fail");
             // Provide user-friendly error messages based on error type
             const errorMessage = confirmError.decline_code
@@ -505,6 +524,12 @@ const ExpressPaymentRequestButton = forwardRef(
       ref,
       () => ({
         triggerPaymentRequest: () => {
+          if (isRefreshingRequest) {
+            const message = "Updating checkout total. Please try again in a moment.";
+            setButtonError(message);
+            return { success: false, message };
+          }
+
           if (!paymentRequest || !isSupported) {
             const message = "Add at least one traveller to enable checkout";
             setButtonError(message);
@@ -549,8 +574,9 @@ const ExpressPaymentRequestButton = forwardRef(
           }
         },
         getAvailableMethods: () => availableMethods,
+        getIsRefreshingRequest: () => isRefreshingRequest,
       }),
-      [paymentRequest, isSupported, onBeforePayment, availableMethods]
+      [paymentRequest, isSupported, onBeforePayment, availableMethods, isRefreshingRequest]
     );
 
     if (disabled) {

@@ -177,6 +177,7 @@ const VisaCheckout = () => {
     applePay: false,
     googlePay: false,
   });
+  const [isExpressCheckoutRefreshing, setIsExpressCheckoutRefreshing] = useState(false);
   const hasCheckedAvailabilityRef = useRef(false);
   const selectedPaymentMethodRef = useRef(selectedPaymentMethod);
   const userClosedStripeFormRef = useRef(false);
@@ -1050,6 +1051,11 @@ const VisaCheckout = () => {
   // Check available payment methods from ExpressPaymentRequestButton
   useEffect(() => {
     const checkAvailableMethods = () => {
+      if (expressPaymentButtonRef.current?.getIsRefreshingRequest) {
+        const refreshing = expressPaymentButtonRef.current.getIsRefreshingRequest();
+        setIsExpressCheckoutRefreshing(!!refreshing);
+      }
+
       if (expressPaymentButtonRef.current?.getAvailableMethods) {
         const methods = expressPaymentButtonRef.current.getAvailableMethods();
         if (methods) {
@@ -1488,13 +1494,20 @@ const VisaCheckout = () => {
                       process.env.NEXT_PUBLIC_NODE_ENV === "development";
                     const availableCount = (isApplePayAvailable ? 1 : 0) + (isGooglePayAvailable ? 1 : 0);
                     const gridCols = availableCount === 1 ? "grid-cols-1" : "grid-cols-2";
+                    const isExpressPayDisabled = isExpressCheckoutRefreshing;
                     
                     return (
                       <div className={`grid ${gridCols} gap-3 max-sm:grid-cols-1 max-sm:gap-2`}>
                         {/* Apple Pay Button */}
                         {isApplePayAvailable && (
                           <button
+                            disabled={isExpressPayDisabled}
                             onClick={() => {
+                              if (isExpressPayDisabled) {
+                                showError("Updating checkout total. Please try again in a moment.");
+                                return;
+                              }
+
                               if (!expressPaymentButtonRef.current?.triggerPaymentRequest) {
                                 showError(
                                   "Payment system is not initialized. Please refresh and try again."
@@ -1511,7 +1524,11 @@ const VisaCheckout = () => {
                                 showError(fallbackMessage);
                               }
                             }}
-                            className="group relative flex items-center justify-center bg-black text-white rounded-full px-6 py-3 text-sm font-medium hover:opacity-90 transition-all duration-200 shadow-sm w-full max-sm:py-2.5"
+                            className={`group relative flex items-center justify-center bg-black text-white rounded-full px-6 py-3 text-sm font-medium transition-all duration-200 shadow-sm w-full max-sm:py-2.5 ${
+                              isExpressPayDisabled
+                                ? "opacity-60 cursor-not-allowed"
+                                : "hover:opacity-90"
+                            }`}
                             style={{
                               backgroundColor: "#000",
                               minHeight: "44px",
@@ -1538,7 +1555,13 @@ const VisaCheckout = () => {
                         {/* Google Pay Button */}
                         {isGooglePayAvailable && (
                           <button
+                            disabled={isExpressPayDisabled}
                             onClick={() => {
+                              if (isExpressPayDisabled) {
+                                showError("Updating checkout total. Please try again in a moment.");
+                                return;
+                              }
+
                               if (!expressPaymentButtonRef.current?.triggerPaymentRequest) {
                                 showError(
                                   "Payment system is not initialized. Please refresh and try again."
@@ -1555,7 +1578,11 @@ const VisaCheckout = () => {
                                 showError(fallbackMessage);
                               }
                             }}
-                            className="group relative flex items-center justify-center bg-white text-gray-800 rounded-full px-6 py-3 text-sm font-medium hover:shadow-md transition-all duration-200 shadow-sm border border-gray-200 w-full max-sm:py-2.5"
+                            className={`group relative flex items-center justify-center bg-white text-gray-800 rounded-full px-6 py-3 text-sm font-medium transition-all duration-200 shadow-sm border border-gray-200 w-full max-sm:py-2.5 ${
+                              isExpressPayDisabled
+                                ? "opacity-60 cursor-not-allowed"
+                                : "hover:shadow-md"
+                            }`}
                             style={{
                               minHeight: "44px",
                               background: "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)",
