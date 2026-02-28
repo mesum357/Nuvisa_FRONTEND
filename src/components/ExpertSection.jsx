@@ -72,9 +72,9 @@ const ExpertSection = ({ checked = false, onChange = () => {} }) => {
         checked ? "border-[#7350FF]" : "border-white/15"
       }`}
     >
-      <div className="border-b border-white/10 bg-black/80 px-4 py-2 max-sm:px-3">
+      <div className="border-b border-white/10 bg-[#1e1e27] px-4 py-2 max-sm:px-3">
         <div className="flex items-center justify-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-lime-400" />
+          <span className="h-2 w-2 rounded-full bg-purple-500" />
           <span className="text-sm font-gilroy-medium max-sm:text-xs">
             Only {spotsLeft} left
           </span>
@@ -110,21 +110,21 @@ const ExpertSection = ({ checked = false, onChange = () => {} }) => {
                 <span className="block">Accountability Expert</span>
               </h3>
 
-              <div className="mt-6 flex items-center gap-3 max-sm:gap-2 whitespace-nowrap">
+              <div className="mt-6 flex items-center gap-3 max-sm:gap-2 whitespace-nowrap max-sm:flex-wrap">
                 <span className="text-white/50 line-through text-base max-sm:text-sm whitespace-nowrap">
                   £35/ Month
                 </span>
                 <span className="text-base leading-none font-gilroy-bold max-sm:text-sm whitespace-nowrap">
                   Free
                 </span>
-                <span className="text-base text-white/75 max-sm:text-sm whitespace-nowrap">
+                <span className="text-base text-white/75 max-sm:text-sm whitespace-nowrap max-sm:basis-full">
                   with next 100 visa applications!
                 </span>
               </div>
             </label>
           </div>
 
-          <div className="absolute right-0 max-sm:-right-5 bottom-0 w-40 h-40 max-sm:w-32 max-sm:h-32 shrink-0">
+          <div className="absolute right-0 max-sm:-right-9 bottom-0 w-40 h-40 max-sm:w-32 max-sm:h-32 shrink-0">
             <Image
               src="/image/expert.png"
               alt="Expert coach"
