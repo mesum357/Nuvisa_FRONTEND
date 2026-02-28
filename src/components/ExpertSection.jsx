@@ -72,9 +72,9 @@ const ExpertSection = ({ checked = false, onChange = () => {} }) => {
         checked ? "border-[#7350FF]" : "border-white/15"
       }`}
     >
-      <div className="border-b border-white/10 bg-black/80 px-4 py-2 max-sm:px-3">
+      <div className="border-b border-white/10 bg-[#1e1e27] px-4 py-2 max-sm:px-3">
         <div className="flex items-center justify-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-lime-400" />
+          <span className="h-2 w-2 rounded-full bg-purple-500" />
           <span className="text-sm font-gilroy-medium max-sm:text-xs">
             Only {spotsLeft} left
           </span>

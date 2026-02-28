@@ -80,7 +80,9 @@ const CountrySlider = () => {
       "Free Auto-booking appointment and concierge assistance ends soon - Until {month} {year}.";
 
     const normalizedText =
-      typeof rawText === "string" ? rawText.replace(/\s+/g, " ").trim() : rawText;
+      typeof rawText === "string"
+        ? rawText.replace(/\s+/g, " ").trim().replace(/Free Auto-booking/gi, "Free\u00A0Auto-booking")
+        : rawText;
 
     return getDynamicMonthText(normalizedText);
   }, [sliderContent]);
@@ -2980,7 +2982,7 @@ const CountrySlider = () => {
           </div>
 
           <div className="w-full">
-            <p className="text-xs mb-4 max-sm:text-[11px] max-sm:mb-3 whitespace-nowrap overflow-hidden text-ellipsis">
+            <p className="text-xs mb-4 max-sm:text-[11px] max-sm:mb-3 leading-relaxed">
               Dates are required for visa processing only and can be changed
               later within visa validity period.
             </p>
