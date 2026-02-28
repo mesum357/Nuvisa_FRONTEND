@@ -2202,13 +2202,7 @@ const CountrySlider = () => {
       (field) => !requiredDocuments[field]
     );
 
-    // Check if it's an insurance-only checkout (allowed even if required docs missing)
-    const hasOnlyInsurance =
-      recommendedItems.insuranceCertificate &&
-      !recommendedItems.giftCard &&
-      missingDocs.length === requiredFields.length;
-
-    return missingDocs.length === 0 || hasOnlyInsurance;
+    return missingDocs.length === 0;
   }, [requiredDocuments, recommendedItems]);
 
   // Validation function to check before payment (called when user clicks Apple Pay/Google Pay)

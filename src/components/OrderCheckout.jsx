@@ -793,16 +793,7 @@ const VisaCheckout = () => {
       (field) => !requiredDocuments[field]
     );
 
-    if (missingDocs.length === 0) {
-      return true;
-    }
-
-    const insuranceOnlyCheckout =
-      (recommendedItems.insuranceCertificate || includeInsurance) &&
-      !(recommendedItems.giftCard || includeGiftCard) &&
-      missingDocs.length === REQUIRED_DOCUMENT_FIELDS.length;
-
-    return insuranceOnlyCheckout;
+    return missingDocs.length === 0;
   }, [requiredDocuments, recommendedItems, includeInsurance, includeGiftCard]);
 
   const validateBeforeExpressPayment = useCallback(() => {
