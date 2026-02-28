@@ -110,21 +110,21 @@ const ExpertSection = ({ checked = false, onChange = () => {} }) => {
                 <span className="block">Accountability Expert</span>
               </h3>
 
-              <div className="mt-6 flex items-center gap-3 max-sm:gap-2 whitespace-nowrap">
+              <div className="mt-6 flex items-center gap-3 max-sm:gap-2 whitespace-nowrap max-sm:flex-wrap">
                 <span className="text-white/50 line-through text-base max-sm:text-sm whitespace-nowrap">
                   £35/ Month
                 </span>
                 <span className="text-base leading-none font-gilroy-bold max-sm:text-sm whitespace-nowrap">
                   Free
                 </span>
-                <span className="text-base text-white/75 max-sm:text-sm whitespace-nowrap">
+                <span className="text-base text-white/75 max-sm:text-sm whitespace-nowrap max-sm:basis-full">
                   with next 100 visa applications!
                 </span>
               </div>
             </label>
           </div>
 
-          <div className="absolute right-0 max-sm:-right-5 bottom-0 w-40 h-40 max-sm:w-32 max-sm:h-32 shrink-0">
+          <div className="absolute right-0 max-sm:-right-9 bottom-0 w-40 h-40 max-sm:w-32 max-sm:h-32 shrink-0">
             <Image
               src="/image/expert.png"
               alt="Expert coach"
