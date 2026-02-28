@@ -2856,7 +2856,7 @@ const CountrySlider = () => {
               <h1 className="text-3xl font-gilroy-bold mb-4 max-sm:text-2xl max-sm:mb-3">
                 Schengen visa from the UK
               </h1>
-              <div className="flex items-center justify-between gap-3 mb-4 max-sm:flex-col max-sm:items-start max-sm:gap-3">
+              <div className="flex items-center justify-between gap-3 mb-4 max-sm:flex-col max-sm:items-start max-sm:gap-1">
                 <div className="flex gap-3 max-sm:w-full max-sm:justify-between items-center">
                   <span className="text-lg font-semibold max-sm:text-base line-through decoration-2 decoration-neutral-400">
                     £{calculateOriginalPrice()}
