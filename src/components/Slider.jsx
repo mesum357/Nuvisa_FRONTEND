@@ -2940,6 +2940,9 @@ const CountrySlider = () => {
                       <h3 className="max-sm:text-sm">
                         Auto-booking appointment
                       </h3>
+                      <span className="text-xs text-green-400 font-medium max-sm:text-[11px]">
+                        {currentAppointmentText}
+                      </span>
                     </div>
                   </div>
                   <div className="flex gap-[2px] items-center max-sm:flex-shrink-0">
@@ -2949,9 +2952,6 @@ const CountrySlider = () => {
                     </span>
                   </div>
                 </div>
-                <span className="block -mt-2 ml-13 text-xs text-green-400 font-medium max-sm:text-[11px]">
-                  {currentAppointmentText}
-                </span>
               </div>
 
               {/* Concierge assistance */}
