@@ -1820,8 +1820,10 @@ const CountrySlider = () => {
       !recommendedItems.giftCard &&
       missingDocs.length === requiredFields.length;
 
-    // If there are missing required docs and it's not insurance-only checkout, block and highlight
-    if (missingDocs.length > 0) {
+    const hasOnlyInsuranceNoTravelers =
+      hasOnlyInsurance && Number(travelers) < 1;
+
+    if (missingDocs.length > 0 && !hasOnlyInsuranceNoTravelers) {
       dispatch(triggerDocumentValidation());
       return;
     }
