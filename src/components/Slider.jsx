@@ -1820,8 +1820,12 @@ const CountrySlider = () => {
       !recommendedItems.giftCard &&
       missingDocs.length === requiredFields.length;
 
-    // If there are missing required docs and it's not insurance-only checkout, block and highlight
-    if (missingDocs.length > 0) {
+    const hasOnlyInsuranceNoTravelers =
+      hasOnlyInsurance && Number(travelers) < 1;
+
+    // Keep behavior aligned with Apple Pay / Google Pay validation
+    // Require documents when travelers are present; allow only true insurance-only (no travelers)
+    if (missingDocs.length > 0 && !hasOnlyInsuranceNoTravelers) {
       dispatch(triggerDocumentValidation());
       return;
     }
