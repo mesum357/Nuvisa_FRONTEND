@@ -2202,8 +2202,19 @@ const CountrySlider = () => {
       (field) => !requiredDocuments[field]
     );
 
-    return missingDocs.length === 0;
-  }, [requiredDocuments, recommendedItems]);
+    if (missingDocs.length === 0) {
+      return true;
+    }
+
+    const hasTravelers = Number(travelers) >= 1;
+    const insuranceOnlyNoTravelers =
+      recommendedItems.insuranceCertificate &&
+      !recommendedItems.giftCard &&
+      !hasTravelers &&
+      missingDocs.length === requiredFields.length;
+
+    return insuranceOnlyNoTravelers;
+  }, [requiredDocuments, recommendedItems, travelers]);
 
   // Validation function to check before payment (called when user clicks Apple Pay/Google Pay)
   const validateBeforeExpressPayment = useCallback(() => {
