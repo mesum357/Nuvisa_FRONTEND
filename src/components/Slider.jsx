@@ -826,7 +826,7 @@ const CountrySlider = () => {
     const newValue = travelers + increment;
     if (newValue >= 0) {
       // If traveler count decreases, adjust insurance count if needed
-      if (insuranceCount > newValue) {
+      if (newValue >= 1 && insuranceCount > newValue) {
         dispatch(setReduxInsuranceCount(Number(newValue)));
       }
       dispatch(setReduxTravelers(Number(newValue)));
@@ -2888,7 +2888,7 @@ const CountrySlider = () => {
                     onChange={(next) => {
                       const n = Number(next);
                       // If traveler count decreases, adjust insurance count if needed
-                      if (insuranceCount > n) {
+                      if (n >= 1 && insuranceCount > n) {
                         dispatch(setReduxInsuranceCount(Number(n)));
                       }
                       dispatch(setReduxTravelers(Number(n)));
@@ -3551,7 +3551,7 @@ const CountrySlider = () => {
                         includeGiftCard={Boolean(recommendedItems.giftCard)}
                         onToggleAdditionalTravellers={(checked) => {
                           const nextTravelers = checked ? 2 : 1;
-                          if (insuranceCount > nextTravelers) {
+                          if (nextTravelers >= 1 && insuranceCount > nextTravelers) {
                             dispatch(setReduxInsuranceCount(Number(nextTravelers)));
                           }
                           dispatch(setReduxTravelers(Number(nextTravelers)));

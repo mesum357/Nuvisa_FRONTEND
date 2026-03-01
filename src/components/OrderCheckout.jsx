@@ -88,7 +88,7 @@ const VisaCheckout = () => {
   );
 
   const handleTravelersChange = (newCount) => {
-    if (insuranceCount > newCount) {
+    if (newCount >= 1 && insuranceCount > newCount) {
       setInsuranceCount(newCount);
       dispatch(setReduxInsuranceCount(Number(newCount)));
     }
