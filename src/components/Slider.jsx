@@ -133,7 +133,9 @@ const CountrySlider = () => {
   
 
   const [_isCountryOpen, setIsCountryOpen] = useState(false);
-  const [selectedCountry, setSelectedCountryLocal] = useState("Belgium");
+  const [selectedCountry, setSelectedCountryLocal] = useState(
+    visaState.selectedCountry || "Belgium"
+  );
   const [activeTooltip, setActiveTooltip] = useState(null);
   const [insuranceDays, setInsuranceDays] = useState(0);
   const [isHighlighted, setIsHighlighted] = useState(false);
@@ -863,6 +865,13 @@ const CountrySlider = () => {
     [countries]
   );
 
+  const adminDefaultCountry = useMemo(() => {
+    const value =
+      sliderContent["default_country"] ||
+      "";
+    return typeof value === "string" ? value.trim() : "";
+  }, [sliderContent]);
+
   const carouselCountries = useMemo(
     () => staticCountries.filter((country) => country?.name && country?.image),
     []
@@ -889,7 +898,30 @@ const CountrySlider = () => {
     }
   }, [router.query.selectedCountry, dropdownCountries, normalizeCountryName, dispatch]);
 
-  const currentCountryName = getCountryParam(selectedCountry) || "Germany";
+  // Apply admin-configured default country when URL does not force one
+  useEffect(() => {
+    if (router.query.selectedCountry) return;
+    if (!adminDefaultCountry || !dropdownCountries.length) return;
+
+    const matchedCountry = dropdownCountries.find(
+      (country) =>
+        normalizeCountryName(country) ===
+        normalizeCountryName(adminDefaultCountry)
+    );
+
+    if (!matchedCountry) return;
+
+    setSelectedCountryLocal(matchedCountry);
+    dispatch(setReduxSelectedCountry(String(matchedCountry)));
+  }, [
+    router.query.selectedCountry,
+    adminDefaultCountry,
+    dropdownCountries,
+    normalizeCountryName,
+    dispatch,
+  ]);
+
+  const currentCountryName = getCountryParam(selectedCountry) || "Belgium";
   const currentAppointmentText =
     countries.find(
       (country) =>

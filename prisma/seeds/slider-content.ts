@@ -8,6 +8,7 @@ export async function seedSliderContent() {
     { key: 'badge_1_text', value: '99.7% Visa approval', type: 'text', section: 'badges', order: 1 },
     { key: 'badge_2_text', value: '100% Risk free', type: 'text', section: 'badges', order: 2 },
     { key: 'nri_badge_text', value: '765+ NRIs applied their Schengen visa today on NUvisa', type: 'text', section: 'badges', order: 3 },
+    { key: 'default_country', value: 'Belgium', type: 'text', section: 'badges', order: 4 },
 
     // Notices
     { key: 'embassy_notice_text', value: 'Please note that embassy require you to pay £78 in person to a government official, either by cash or card.', type: 'text', section: 'notices', order: 1 },
