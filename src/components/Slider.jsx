@@ -1823,8 +1823,6 @@ const CountrySlider = () => {
     const hasOnlyInsuranceNoTravelers =
       hasOnlyInsurance && Number(travelers) < 1;
 
-    // Keep behavior aligned with Apple Pay / Google Pay validation
-    // Require documents when travelers are present; allow only true insurance-only (no travelers)
     if (missingDocs.length > 0 && !hasOnlyInsuranceNoTravelers) {
       dispatch(triggerDocumentValidation());
       return;
