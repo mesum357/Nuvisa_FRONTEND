@@ -80,7 +80,9 @@ const CountrySlider = () => {
       "Free Auto-booking appointment and concierge assistance ends soon - Until {month} {year}.";
 
     const normalizedText =
-      typeof rawText === "string" ? rawText.replace(/\s+/g, " ").trim() : rawText;
+      typeof rawText === "string"
+        ? rawText.replace(/\s+/g, " ").trim().replace(/Free Auto-booking/gi, "Free\u00A0Auto-booking")
+        : rawText;
 
     return getDynamicMonthText(normalizedText);
   }, [sliderContent]);
@@ -2859,7 +2861,7 @@ const CountrySlider = () => {
               <h1 className="text-3xl font-gilroy-bold mb-4 max-sm:text-2xl max-sm:mb-3">
                 Schengen visa from the UK
               </h1>
-              <div className="flex items-center justify-between gap-3 mb-4 max-sm:flex-col max-sm:items-start max-sm:gap-3">
+              <div className="flex items-center justify-between gap-3 mb-4 max-sm:flex-col max-sm:items-start max-sm:gap-1">
                 <div className="flex gap-3 max-sm:w-full max-sm:justify-between items-center">
                   <span className="text-lg font-semibold max-sm:text-base line-through decoration-2 decoration-neutral-400">
                     £{calculateOriginalPrice()}
@@ -2943,6 +2945,9 @@ const CountrySlider = () => {
                       <h3 className="max-sm:text-sm">
                         Auto-booking appointment
                       </h3>
+                      <span className="text-xs text-green-400 font-medium max-sm:text-[11px]">
+                        {currentAppointmentText}
+                      </span>
                     </div>
                   </div>
                   <div className="flex gap-[2px] items-center max-sm:flex-shrink-0">
@@ -2952,9 +2957,6 @@ const CountrySlider = () => {
                     </span>
                   </div>
                 </div>
-                <span className="block -mt-2 ml-13 text-xs text-green-400 font-medium max-sm:text-[11px]">
-                  {currentAppointmentText}
-                </span>
               </div>
 
               {/* Concierge assistance */}
@@ -2985,7 +2987,7 @@ const CountrySlider = () => {
           </div>
 
           <div className="w-full">
-            <p className="text-xs mb-4 max-sm:text-[11px] max-sm:mb-3 whitespace-nowrap overflow-hidden text-ellipsis">
+            <p className="text-xs mb-4 max-sm:text-[11px] max-sm:mb-3 leading-relaxed">
               Dates are required for visa processing only and can be changed
               later within visa validity period.
             </p>
