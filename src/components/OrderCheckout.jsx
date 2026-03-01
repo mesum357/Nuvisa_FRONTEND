@@ -793,8 +793,19 @@ const VisaCheckout = () => {
       (field) => !requiredDocuments[field]
     );
 
-    return missingDocs.length === 0;
-  }, [requiredDocuments, recommendedItems, includeInsurance, includeGiftCard]);
+    if (missingDocs.length === 0) {
+      return true;
+    }
+
+    const hasTravelers = Number(travelers) >= 1;
+    const insuranceOnlyNoTravelers =
+      (recommendedItems.insuranceCertificate || includeInsurance) &&
+      !(recommendedItems.giftCard || includeGiftCard) &&
+      !hasTravelers &&
+      missingDocs.length === REQUIRED_DOCUMENT_FIELDS.length;
+
+    return insuranceOnlyNoTravelers;
+  }, [requiredDocuments, recommendedItems, includeInsurance, includeGiftCard, travelers]);
 
   const validateBeforeExpressPayment = useCallback(() => {
     // Check for required documents first
