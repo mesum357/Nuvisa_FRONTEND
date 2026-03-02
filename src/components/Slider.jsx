@@ -3453,7 +3453,13 @@ const CountrySlider = () => {
                 insuranceCount={insuranceCount}
                 insurancePaymentAmount={expressPaymentData.insurancePaymentAmount}
                 visaTypeId={expressPaymentData.visaTypeId}
-                paymentType={expressPaymentData.includeGiftCard ? "application_creation,gift_card" : "application_creation"}
+                paymentType={
+                  expressPaymentData.includeGiftCard && expressPaymentData.visaFees > 0
+                    ? "application_creation,gift_card"
+                    : expressPaymentData.includeGiftCard && expressPaymentData.visaFees === 0
+                    ? "gift_card"
+                    : "application_creation"
+                }
                 onBeforePayment={validateBeforeExpressPayment}
                 visaFees={expressPaymentData.visaFees}
                 insuranceFees={expressPaymentData.insuranceFees}
