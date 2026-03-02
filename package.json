@@ -33,6 +33,7 @@
     "react-redux": "^9.2.0",
     "react-use": "^17.6.0",
     "redux-persist": "^6.0.0",
+    "styled-jsx": "^5.1.7",
     "sweetalert2": "^11.22.3",
     "tesseract.js": "^6.0.1",
     "world-countries": "^5.1.0"
@@ -45,5 +46,6 @@
     "eslint": "^9",
     "eslint-config-next": "15.4.6",
     "tailwindcss": "^4"
-  }
+  },
+  "packageManager": "pnpm@10.30.3+sha512.c961d1e0a2d8e354ecaa5166b822516668b7f44cb5bd95122d590dd81922f606f5473b6d23ec4a5be05e7fcd18e8488d47d978bbe981872f1145d06e9a740017"
 }
