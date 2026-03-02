@@ -860,17 +860,31 @@ const CountrySlider = () => {
     sortBy: "name",
   });
 
+  const defaultCountryMarker = "default_country";
+
   const dropdownCountries = useMemo(
-    () => countries.map((country) => country?.name).filter(Boolean),
-    [countries]
+    () =>
+      countries
+        .map((country) => country?.name)
+        .filter(Boolean)
+        .filter(
+          (countryName) =>
+            normalizeCountryName(countryName) !==
+            normalizeCountryName(defaultCountryMarker)
+        ),
+    [countries, normalizeCountryName]
   );
 
   const adminDefaultCountry = useMemo(() => {
-    const value =
-      sliderContent["default_country"] ||
-      "";
+    const markerCountry = countries.find(
+      (country) =>
+        normalizeCountryName(country?.name) ===
+        normalizeCountryName(defaultCountryMarker)
+    );
+
+    const value = markerCountry?.appointmentText || "";
     return typeof value === "string" ? value.trim() : "";
-  }, [sliderContent]);
+  }, [countries, normalizeCountryName]);
 
   const carouselCountries = useMemo(
     () => staticCountries.filter((country) => country?.name && country?.image),
