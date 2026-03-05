@@ -17,7 +17,6 @@
     "@stripe/react-stripe-js": "^5.4.1",
     "@stripe/stripe-js": "^8.5.3",
     "axios": "^1.11.0",
-    "bcryptjs": "^2.4.3",
     "formidable": "^3.5.4",
     "framer-motion": "^12.23.12",
     "js-cookie": "^3.0.5",
@@ -46,13 +45,7 @@
     "@types/react": "19.1.13",
     "eslint": "^9",
     "eslint-config-next": "15.4.6",
-    "tailwindcss": "^4",
-    "@types/bcryptjs": "^2.4.6",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.7.2"
-  },
-  "prisma": {
-    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
+    "tailwindcss": "^4"
   },
   "packageManager": "pnpm@10.30.3+sha512.c961d1e0a2d8e354ecaa5166b822516668b7f44cb5bd95122d590dd81922f606f5473b6d23ec4a5be05e7fcd18e8488d47d978bbe981872f1145d06e9a740017"
 }
