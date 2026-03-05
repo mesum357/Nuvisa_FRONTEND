@@ -62,6 +62,20 @@ export async function seedHeroContent() {
       },
     });
 
+    // Task 1: Student discount badge label on hero
+    await prisma.heroContent.upsert({
+      where: { key: 'hero_student_badge' },
+      update: {},
+      create: {
+        key: 'hero_student_badge',
+        value: 'Students! Get 10% off',
+        type: 'text',
+        section: 'badge',
+        isActive: true,
+        order: 5,
+      },
+    });
+
     console.log('✅ Hero content seeded successfully!');
   } catch (error) {
     console.error('❌ Error seeding hero content:', error);

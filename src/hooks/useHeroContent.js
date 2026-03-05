@@ -7,6 +7,7 @@ export const useHeroContent = () => {
     description: 'Flat £200 fee, faster processing, dedicated support',
     ctaText: 'Get the Visa',
     ctaLink: '/get-the-visa',
+    studentBadgeText: 'Students! Get 10% off',
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -34,6 +35,7 @@ export const useHeroContent = () => {
               description: contentMap['hero_description'] || prevContent.description,
               ctaText: contentMap['hero_cta_text'] || prevContent.ctaText,
               ctaLink: contentMap['hero_cta_link'] || prevContent.ctaLink,
+              studentBadgeText: contentMap['hero_student_badge'] || prevContent.studentBadgeText,
             }));
           }
         } else {

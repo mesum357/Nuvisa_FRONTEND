@@ -11,7 +11,7 @@ import VisaSolution from "@/components/VisaSolution";
 import AppDownloadPopup from "@/components/AppDownloadPopup";
 import { useHeroContent } from "@/hooks/useHeroContent";
 import { useKlarnaContent } from "@/hooks/useKlarnaContent";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, GraduationCap } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import StickyBottomBar from "@/components/StickyBottomBar";
@@ -29,19 +29,22 @@ const Index = () => {
         <Navbar />
 
         <main className="flex items-center justify-center flex-col pb-[45px] mt-16 md:mt-24 md:min-h-[calc(100vh-200px)]  px-8 md:px-6">
-          <div className="text-left sm:text-center max-w-5xl">
-
-            <div className="hidden lg:block">
-              {/* <span className="text-[28px] font-gilroy-bold">
-              Schengen visa for Indians from the UK
-            </span> */}
+          <div className="w-full max-w-5xl text-left">
+            {/* Student badge: first line, left-aligned, clickable (same as Mars The Label promo link) */}
+            <div className="mb-5 sm:mb-6">
+              <Link
+                href={heroContent.ctaLink || "/get-the-visa"}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-white font-gilroy-medium text-sm sm:text-base tracking-wide hover:bg-white/15 hover:border-white/30 transition-colors duration-200 no-underline"
+                aria-label="Student discount - Get 10% off"
+              >
+                <GraduationCap className="w-5 h-5 flex-shrink-0 text-[#a78bfa]" aria-hidden />
+                {loading ? "Students! Get 10% off" : heroContent.studentBadgeText}
+              </Link>
             </div>
+            {/* Headline + description */}
             <h1 className="text-4xl sm:text-4xl md:text-[4.5rem] font-gilroy-bold leading-tight mb-2 max-sm:mb-2 sm:mb-8 max-sm:tracking-tighter">
               {loading ? "Don't Postpone Your Happiness!" : heroContent.title}
-              {/* <br /> */}
-              {/* <span className="text-white"></span> */}
             </h1>
-
             <p className="text-[25px] md:text-[28px] public_text_clr font-extrabold leading-tight">
               {loading ? "Flat £200 fee, faster processing, dedicated support" : heroContent.description}
             </p>
