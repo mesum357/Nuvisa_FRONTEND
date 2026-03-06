@@ -60,6 +60,43 @@ import { staticCountries } from "@/constants/staticCountries";
 import { getDynamicMonthText } from "@/utils/getDynamicMonthText";
 import { getCurrentWeekSlotPercentage } from "@/utils/getCurrentWeekSlotPercentage";
 
+const normalizeCountryKey = (value) => String(value || "").trim().toLowerCase();
+
+const COUNTRY_PRICING_STATIC = [
+  { name: "Austria", basePrice: 169, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Belgium", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Bulgaria", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Croatia", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Czechia", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Denmark", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Estonia", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Finland", basePrice: 149, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "France", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Germany", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Greece", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Hungary", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Iceland", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Italy", basePrice: 149, strikeOutPrice: 200, reason: "Due to Global Crisis", showReason: true },
+  { name: "Latvia", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Lithuania", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Luxembourg", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Malta", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "NORWAY", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Netherlands", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Poland", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Portugal", basePrice: 149, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Romania", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Slovenia", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Spain", basePrice: 149, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Sweden", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Switzerland", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+];
+
+const COUNTRY_PRICING_STATIC_LOOKUP = COUNTRY_PRICING_STATIC.reduce((acc, item) => {
+  acc[normalizeCountryKey(item.name)] = item;
+  return acc;
+}, {});
+
 const CountrySlider = () => {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -288,6 +325,11 @@ const CountrySlider = () => {
     return raw.includes(",") ? raw.split(", ")[1] : raw;
   };
 
+  const selectedCountryPricing = useMemo(() => {
+    const countryName = getCountryParam(selectedCountry) || "Belgium";
+    return COUNTRY_PRICING_STATIC_LOOKUP[normalizeCountryKey(countryName)] || null;
+  }, [selectedCountry]);
+
   const tripDaysInclusive = (start, end) => {
     if (!start || !end) return 0;
     const startDate = new Date(start);
@@ -346,11 +388,6 @@ const CountrySlider = () => {
     // Priority 2: Check date order (only if arrival date is valid)
     if (departure) {
       const departureDate = new Date(departure);
-
-      if (arrivalDate > departureDate) {
-        errors.dateOrder = "Departure date must be after arrival date";
-        return errors; // Early return - second priority
-      }
 
       // Priority 3: Check trip duration limits (only if dates are in correct order)
       const tripDuration = Math.ceil(
@@ -737,6 +774,11 @@ const CountrySlider = () => {
   };
 
   const baseFee = (() => {
+    const staticBasePrice = Number(selectedCountryPricing?.basePrice);
+    if (Number.isFinite(staticBasePrice) && staticBasePrice > 0) {
+      return staticBasePrice;
+    }
+
     const v =
       sliderContent?.visa_base_price_gbp ??
       sliderContent?.base_fee_gbp ??
@@ -748,6 +790,11 @@ const CountrySlider = () => {
   })();
 
   const strikeOutPrice = (() => {
+    const staticStrikeOutPrice = Number(selectedCountryPricing?.strikeOutPrice);
+    if (Number.isFinite(staticStrikeOutPrice) && staticStrikeOutPrice > 0) {
+      return staticStrikeOutPrice;
+    }
+
     const v =
       sliderContent?.strike_out_price_gbp ??
       sliderContent?.strike_out_price ??
@@ -841,12 +888,14 @@ const CountrySlider = () => {
 
     // Update Redux state without redirecting
     const countryName = typeof country === "object" ? country.name : country;
+    const staticPricing =
+      COUNTRY_PRICING_STATIC_LOOKUP[normalizeCountryKey(countryName)] || null;
 
     // Get dynamic fees based on selected country
     const countryConfig = getCountryConfig(countryName);
 
     dispatch(setReduxSelectedCountry(String(countryName)));
-    dispatch(setVisaFees(Number(countryConfig.visaFee)));
+    dispatch(setVisaFees(Number(staticPricing?.basePrice ?? countryConfig.visaFee)));
     dispatch(setInsuranceFees(Number(countryConfig.insuranceFee)));
   };
 
@@ -864,7 +913,7 @@ const CountrySlider = () => {
 
   const dropdownCountries = useMemo(
     () =>
-      countries
+      COUNTRY_PRICING_STATIC
         .map((country) => country?.name)
         .filter(Boolean)
         .filter(
@@ -2968,30 +3017,34 @@ const CountrySlider = () => {
                       ))}
                     </select>
                   </div>
-                  <div
-                    className="relative mt-2 border-b border-dashed border-white/40 w-fit font-semibold max-sm:w-full"
-                    onMouseEnter={() => setActiveTooltip("priorityAppointment")}
-                    onMouseLeave={() => setActiveTooltip(null)}
-                  >
-                    <button
-                      type="button"
-                      className="text-xs text-white/80 hover:text-white transition-colors max-sm:text-[11px]"
-                      onClick={() =>
-                        setActiveTooltip((prev) =>
-                          prev === "priorityAppointment" ? null : "priorityAppointment"
-                        )
-                      }
-                    >
-                      Priority appointment text
-                    </button>
+                  {selectedCountryPricing?.showReason && selectedCountryPricing?.reason && (
+                    <div className="mt-2 flex justify-end max-sm:justify-start">
+                      <div
+                        className="relative border-b border-dashed border-white/40 w-fit font-semibold"
+                        onMouseEnter={() => setActiveTooltip("priorityAppointment")}
+                        onMouseLeave={() => setActiveTooltip(null)}
+                      >
+                        <button
+                          type="button"
+                          className="text-xs text-white/80 hover:text-white transition-colors max-sm:text-[11px]"
+                          onClick={() =>
+                            setActiveTooltip((prev) =>
+                              prev === "priorityAppointment" ? null : "priorityAppointment"
+                            )
+                          }
+                        >
+                          Reason
+                        </button>
 
-                    {activeTooltip === "priorityAppointment" && (
-                      <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200 max-sm:w-56 max-sm:-left-8">
-                        <p className="text-sm max-sm:text-xs">{currentAppointmentText}</p>
-                        <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200 max-sm:left-10"></div>
+                        {activeTooltip === "priorityAppointment" && (
+                          <div className="absolute z-10 bottom-full right-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200 max-sm:w-56 max-sm:left-0 max-sm:right-auto">
+                            <p className="text-sm max-sm:text-xs">{selectedCountryPricing?.reason}</p>
+                            <div className="absolute -bottom-1 right-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200 max-sm:left-10 max-sm:right-auto"></div>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -3002,7 +3055,7 @@ const CountrySlider = () => {
               {/* Auto-booking */}
               <div>
                 <div className="flex items-center justify-between max-sm:items-start max-sm:gap-2">
-                  <div className="flex items-center space-x-3 max-sm:space-x-2">
+                  <div className="flex items-end space-x-3 max-sm:space-x-2">
                     <div className="w-10 aspect-square rounded-lg flex items-center justify-center max-sm:w-8 overflow-hidden">
                       <Image
                         src="/image/calendar.jpg"
@@ -3013,11 +3066,11 @@ const CountrySlider = () => {
                         priority
                       />
                     </div>
-                    <div>
+                    <div className="flex flex-col gap-0 justify-end leading-tight">
                       <h3 className="max-sm:text-sm">
                         Auto-booking appointment
                       </h3>
-                      <span className="text-xs text-green-400 font-medium max-sm:text-[11px]">
+                      <span className="text-[12px] text-green-400 font-medium max-sm:text-[11px]">
                         {currentAppointmentText}
                       </span>
                     </div>
@@ -3033,7 +3086,7 @@ const CountrySlider = () => {
 
               {/* Concierge assistance */}
               <div className="flex items-center justify-between max-sm:items-start max-sm:gap-2">
-                <div className="flex items-center space-x-3 max-sm:space-x-2">
+                <div className="flex items-end space-x-3 max-sm:space-x-2">
                   <div className="w-10 aspect-square rounded-lg flex items-center justify-center max-sm:w-8 overflow-hidden">
                     <Image
                       src="/image/flights.jpg"
@@ -3044,8 +3097,11 @@ const CountrySlider = () => {
                       priority
                     />
                   </div>
-                  <div>
+                  <div className="flex flex-col gap-0 justify-end leading-tight">
                     <h3 className="max-sm:text-sm">Concierge assistance</h3>
+                    <span className="text-[12px] text-green-400 font-medium max-sm:text-[11px]">
+                      Your travel itinerary | Form filing
+                    </span>
                   </div>
                 </div>
                 <div className="flex gap-[2px] items-center max-sm:flex-shrink-0">
@@ -4077,5 +4133,3 @@ const CountrySlider = () => {
 };
 
 export default CountrySlider;
-
-

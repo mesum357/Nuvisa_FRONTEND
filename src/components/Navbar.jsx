@@ -110,53 +110,55 @@ const Navbar = () => {
             </Link>
           </div>
 
-          {/* Center Text */}
-          <div className="absolute left-1/2 transform -translate-x-1/2 md:block hidden">
-            <span className="text-[22px] font-gilroy-bold text-center">
-              {getContent('nav_tagline') || 'Schengen visa for Indians from the UK'}
-            </span>
-          </div>
-
-
-          {/* Right Section */}
-          {/* Desktop actions */}
-          <div className="flex items-center gap-2 max-[1302px]:hidden">
-            <div className="relative inline-block">
-              {/* Coming Soon badge */}
-              <span className="absolute -top-4 right-3 bg-[#c2b1eb] text-[#7A4FFF] text-[10px] font-bold px-2 py-1 rounded-full transition-all duration-300 hover:bg-[#6247D3] cursor-pointer">
-                Coming Soon
+          <div className="flex gap-15 items-center">
+            {/* Center Text */}
+            <div className="md:block hidden">
+              <span className="text-[22px] font-gilroy-bold text-center">
+                {getContent('nav_tagline') || 'Schengen visa for Indians from the UK'}
               </span>
+            </div>
 
-              {/* Button */}
-              <div className="hidden md:block">
-                <button className="bg-green-600/20 border border-green-500/30 px-4 py-[7px] rounded-full font-medium text-sm text-white flex items-center">
-                  <img
-                    src="/icons/holiday.png"
-                    alt="Holiday Packages"
-                    className="inline-block mr-2 w-8"
-                  />
-                  {getContent('nav_holiday_packages_text', 'Holiday Packages')}
-                </button>
+
+            {/* Right Section */}
+            {/* Desktop actions */}
+            <div className="flex items-center gap-2 max-[1302px]:hidden">
+              <div className="relative inline-block">
+                {/* Coming Soon badge */}
+                <span className="absolute -top-4 right-3 bg-[#c2b1eb] text-[#7A4FFF] text-[10px] font-bold px-2 py-1 rounded-full transition-all duration-300 hover:bg-[#6247D3] cursor-pointer">
+                  Coming Soon
+                </span>
+
+                {/* Button */}
+                <div className="hidden md:block">
+                  <button className="bg-green-600/20 border border-green-500/30 px-4 py-[7px] rounded-full font-medium text-sm text-white flex items-center">
+                    <img
+                      src="/icons/holiday.png"
+                      alt="Holiday Packages"
+                      className="inline-block mr-2 w-8"
+                    />
+                    {getContent('nav_holiday_packages_text', 'Holiday Packages')}
+                  </button>
+                </div>
               </div>
-            </div>
 
-            <div className="max-sm:hidden">
-              <GetTheVisaButton removeArrow={true} />
-            </div>
+              <div className="max-sm:hidden">
+                <GetTheVisaButton removeArrow={true} />
+              </div>
 
-            {isAuthenticated ? (
-              <Link href="/dashboard" className="cursor-pointer">
-                <button className="border border-white hover:border-neutral-500 px-[16px] py-[7px] rounded-full font-medium transition-colors cursor-pointer">
-                  My Applications
-                </button>
-              </Link>
-            ) : (
-              <Link href="/dashboard" className="cursor-pointer">
-                <button className="border border-white hover:border-neutral-500 px-[16px] py-[7px] rounded-full font-medium transition-colors cursor-pointer">
-                  {getContent('nav_login_text', 'Login')}
-                </button>
-              </Link>
-            )}
+              {isAuthenticated ? (
+                <Link href="/dashboard" className="cursor-pointer">
+                  <button className="border border-white hover:border-neutral-500 px-[16px] py-[7px] rounded-full font-medium transition-colors cursor-pointer">
+                    My Applications
+                  </button>
+                </Link>
+              ) : (
+                <Link href="/dashboard" className="cursor-pointer">
+                  <button className="border border-white hover:border-neutral-500 px-[16px] py-[7px] rounded-full font-medium transition-colors cursor-pointer">
+                    {getContent('nav_login_text', 'Login')}
+                  </button>
+                </Link>
+              )}
+            </div>
           </div>
 
           {/* Mobile hamburger (<=1302px) */}

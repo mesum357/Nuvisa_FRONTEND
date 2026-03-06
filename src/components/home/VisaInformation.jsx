@@ -200,7 +200,7 @@ const VisaInformation = () => {
           </div>
           <ComparisonSection />
 
-          <VisaSolution />
+          <VisaSolution video={true} />
           <FAQSection />
           <div className="w-full bg-white h-[1px]"></div>
 
