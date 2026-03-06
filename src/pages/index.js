@@ -17,6 +17,7 @@ import Image from "next/image";
 import StickyBottomBar from "@/components/StickyBottomBar";
 import Reviews from "@/components/Reviews";
 import VisaProcessSection from "@/components/home/VisaProcessSection";
+import DiscountTicket from "@/components/DiscountTicket";
 
 const Index = () => {
   const { heroContent, loading } = useHeroContent();
@@ -29,8 +30,8 @@ const Index = () => {
         <Navbar />
 
         <main className="flex items-center justify-center flex-col pb-[45px] mt-16 md:mt-24 md:min-h-[calc(100vh-200px)]  px-8 md:px-6">
+          <DiscountTicket loading={loading} content={heroContent} />
           <div className="text-left sm:text-center max-w-5xl">
-
             <div className="hidden lg:block">
               {/* <span className="text-[28px] font-gilroy-bold">
               Schengen visa for Indians from the UK
@@ -75,7 +76,7 @@ const Index = () => {
 
               {/* Subheading with Details */}
               <div className=" flex items-center gap-2 max-md:flex-col text-white justify-center font-gilroy-medium">
-                <p className="text-sm md:text-[16px] font-semibold"> 
+                <p className="text-sm md:text-[16px] font-semibold">
                   {klarnaLoading ? "Loading..." : klarnaContent.subtitle}
                 </p>
                 <p className="font-gilroy-bold text-lg md:text-[20px] ">

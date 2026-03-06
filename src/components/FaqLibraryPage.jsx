@@ -99,17 +99,20 @@ const FaqLibraryPage = () => {
                   <a
                     key={group.id}
                     href={`#${group.id}`}
-                    className="group rounded-xl border border-[#ebe3ff] bg-[#f6f0ff] px-5 py-4 hover:bg-[#ede3ff] transition-colors"
+                    className="group rounded-xl border border-[#ebe3ff] bg-[#f6f0ff] px-6 py-8 hover:bg-[#7350FF] transition-all duration-300 flex flex-col items-center text-center gap-4 min-h-[200px] justify-between"
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <h3 className="font-gilroy-bold text-lg text-[#1E1E27]">{group.name}</h3>
-                        <p className="text-sm text-neutral-600 mt-1">
-                          {group.items.length} question{group.items.length > 1 ? "s" : ""}
-                        </p>
-                      </div>
-                      <group.Icon className="w-7 h-7 md:w-8 md:h-8 text-[#7350FF] shrink-0 group-hover:scale-110 transition-transform" />
-                    </div>
+                    {/* Title */}
+                    <h3 className="font-gilroy-bold text-lg text-[#1E1E27] group-hover:text-white transition-colors">
+                      {group.name}
+                    </h3>
+
+                    {/* Icon */}
+                    <group.Icon className="w-10 h-10 text-[#7350FF] group-hover:text-white shrink-0 group-hover:scale-110 transition-all duration-300" />
+
+                    {/* Description / question count */}
+                    <p className="text-sm text-neutral-500 group-hover:text-purple-100 transition-colors leading-snug">
+                      {group.description ?? `${group.items.length} question${group.items.length > 1 ? "s" : ""}`}
+                    </p>
                   </a>
                 ))}
               </div>
@@ -141,9 +144,8 @@ const FaqLibraryPage = () => {
                         type="button"
                         onClick={() => setActiveItem(isOpen ? null : itemKey)}
                         aria-expanded={isOpen}
-                        className={`w-full text-left px-4 md:px-5 py-4 flex items-center justify-between gap-3 transition-colors ${
-                          isOpen ? "bg-[#f1e8ff]" : "bg-white hover:bg-[#f8f8fb]"
-                        }`}
+                        className={`w-full text-left px-4 md:px-5 py-4 flex items-center justify-between gap-3 transition-colors ${isOpen ? "bg-[#f1e8ff]" : "bg-white hover:bg-[#f8f8fb]"
+                          }`}
                       >
                         <span className="text-[#1E1E27] font-gilroy-medium text-[15px] md:text-base">
                           {item.question}
@@ -156,9 +158,8 @@ const FaqLibraryPage = () => {
                       </button>
 
                       <div
-                        className={`grid transition-all duration-300 ease-in-out ${
-                          isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-                        }`}
+                        className={`grid transition-all duration-300 ease-in-out ${isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                          }`}
                       >
                         <div className="overflow-hidden">
                           <div className="px-4 md:px-5 pt-2 pb-4 text-neutral-700 text-sm md:text-[15px] leading-relaxed">

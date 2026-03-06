@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/router";
-import { useSearchParams } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/store";
+import { useSearchParams } from "next/navigation";
 import {
   setSelectedCountry,
   setInsuranceFees,
@@ -14,12 +14,12 @@ import { createApplication } from "@/api/visa";
 import { createOrUpdateApplication } from "@/api/visaApplications";
 import { localStorageEnums } from "@/enums/localstorage.enums";
 import { localStorageGateway } from "@/gateways/localStoragegateway";
-
+import { decrementExpertSpotsOnSuccessfulCheckout } from "@/utils/expertSpots";
 
 const PaymentSuccess = () => {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const dispatch = useAppDispatch();
+  const searchParams = useSearchParams();
   const visaState = useAppSelector((state) => state.visa);
   const { getCurrentPaymentData, addPaymentToHistory } = usePaymentData();
   const [isCreatingApplication, setIsCreatingApplication] = useState(false);
@@ -36,11 +36,12 @@ const PaymentSuccess = () => {
       hasProcessedPayment.current = true;
 
       try {
+
         // Get payment data from current session
         const currentData = await getCurrentPaymentData();
 
 
-        const sessionId = searchParams.get("session_id");
+        const sessionId = searchParams?.get("session_id") || null;
         if (
           !sessionId &&
           (!currentData ||
@@ -52,9 +53,9 @@ const PaymentSuccess = () => {
 
         // Check if this is a traveler insurance payment (both regular and additional)
         // Prioritize URL parameters over localStorage data for insurance payments
-        let paymentTypeParam = searchParams.get("payment_type");
-        let applicationId = searchParams.get("application_id");
-        let travelerIndex = searchParams.get("traveler_index");
+        let paymentTypeParam = searchParams?.get("payment_type") || null;
+        let applicationId = searchParams?.get("application_id") || null;
+        let travelerIndex = searchParams?.get("traveler_index") || null;
 
         // If URL parameters are missing, check for stored insurance payment metadata
         // Keep a copy of the used stored metadata so we can include orderId/paymentAmount
@@ -158,10 +159,19 @@ const PaymentSuccess = () => {
             ? sessionStorage.getItem("stripePaymentIntentId") || null
             : null;
         const stripePaymentId = sessionId || embeddedPaymentIntentId || null;
+        const dedupePaymentId =
+          stripePaymentId ||
+          currentData?.paymentMetadata?.paymentIntentId ||
+          null;
 
         // Clear the stored intent ID so it's not reused on a future visit
         if (embeddedPaymentIntentId && typeof window !== "undefined") {
           try { sessionStorage.removeItem("stripePaymentIntentId"); } catch {}
+        }
+
+        // Successful checkout should reduce "spots left" once per unique payment.
+        if (dedupePaymentId) {
+          decrementExpertSpotsOnSuccessfulCheckout(dedupePaymentId);
         }
 
         // Fetch session/payment-intent metadata from backend so we have country, travelers, etc.
