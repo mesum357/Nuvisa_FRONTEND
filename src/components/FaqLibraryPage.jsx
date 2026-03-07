@@ -2,24 +2,24 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { BookOpenText, ChevronDown, ChevronUp, CircleHelp, FileText } from "lucide-react";
+import Image from "next/image";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import GetTheVisaButton from "@/components/layout/GetTheVisaButton";
 import { fetchFAQs as fetchFAQsFromAPI } from "@/api/faqs";
 import { toSlug } from "@/utils/toSlug";
 
-const CATEGORY_ICONS = [BookOpenText, CircleHelp, FileText];
 const FAQ_CARD_ICON_MAP = {
-  general_information: BookOpenText,
-  eligibility_requirements: CircleHelp,
-  application_process: FileText,
-  travel_insurance: FileText,
-  embassy_appointment: CircleHelp,
-  digital_gift_card: BookOpenText,
-  partner_and_children: CircleHelp,
-  extend_visa: FileText,
-  approval_rejection_reapply: CircleHelp,
+  general_information: "/icons/faq/icon-1-general-information.svg",
+  eligibility_requirements: "/icons/faq/icon-2-eligibility-requirements.svg",
+  application_process: "/icons/faq/icon-3-application-process.svg",
+  travel_insurance: "/icons/faq/icon-4-travel-insurance.svg",
+  embassy_appointment: "/icons/faq/icon-5-embassy-appointment.svg",
+  digital_gift_card: "/icons/faq/icon-6-digital-gift-card.svg",
+  partner_and_children: "/icons/faq/icon-7-partner-children.svg",
+  extend_visa: "/icons/faq/icon-8-extend-visa.svg",
+  approval_rejection_reapply: "/icons/faq/icon-9-approval-rejections.svg",
 };
 
 const FAQ_CARD_CONTENT = [
@@ -120,12 +120,32 @@ const FaqLibraryPage = () => {
         groups.get(category).push(item);
       });
 
-    return Array.from(groups.entries()).map(([name, items], index) => ({
-      name,
-      id: toSlug(name) || `category-${index + 1}`,
-      items,
-      Icon: CATEGORY_ICONS[index % CATEGORY_ICONS.length],
-    }));
+    const groupsBySlug = new Map(
+      Array.from(groups.entries()).map(([name, items], index) => [
+        toSlug(name) || `category-${index + 1}`,
+        {
+          name,
+          id: toSlug(name) || `category-${index + 1}`,
+          items,
+        },
+      ])
+    );
+
+    const ordered = [];
+
+    FAQ_CARD_CONTENT.forEach((card) => {
+      const slug = toSlug(card.title);
+      const matched = groupsBySlug.get(slug);
+      if (matched) {
+        ordered.push(matched);
+        groupsBySlug.delete(slug);
+      }
+    });
+
+    // Append any categories not present in FAQ_CARD_CONTENT at the end
+    ordered.push(...Array.from(groupsBySlug.values()));
+
+    return ordered;
   }, [faqs]);
 
   const faqCategoryCards = useMemo(() => {
@@ -137,7 +157,9 @@ const FaqLibraryPage = () => {
         id: matchedGroup?.id || toSlug(card.title),
         title: card.title,
         description: card.description,
-        Icon: FAQ_CARD_ICON_MAP[card.icon] || CircleHelp,
+        iconPath:
+          FAQ_CARD_ICON_MAP[card.icon] ||
+          "/icons/faq/icon-1-general-information.svg",
       };
     });
   }, [groupedFaqs]);
@@ -146,7 +168,7 @@ const FaqLibraryPage = () => {
 
   return (
     <div className="min-h-screen bg-[#f7f3ff]">
-      <div className="pri_bg text-white px-5 md:px-10 pb-12">
+      <div className="pri_bg text-white pb-12">
         <Navbar />
 
         <section className="max-w-6xl mx-auto mb-4 pt-10 md:pt-16 text-center">
@@ -191,7 +213,13 @@ const FaqLibraryPage = () => {
                     </h3>
 
                     {/* Icon */}
-                    <group.Icon className="w-10 h-10 text-[#7350FF] group-hover:text-white shrink-0 group-hover:scale-110 transition-all duration-300" />
+                    <Image
+                      src={group.iconPath}
+                      alt={group.title}
+                      width={40}
+                      height={40}
+                      className="w-10 h-10 shrink-0 group-hover:scale-110 transition-all duration-300"
+                    />
 
                     {/* Description / question count */}
                     <p className="text-sm text-neutral-500 group-hover:text-purple-100 transition-colors leading-snug">

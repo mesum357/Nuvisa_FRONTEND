@@ -16,7 +16,7 @@ const DiscountTicket = ({ loading, content }) => {
 
     return (
         <div
-            className="fixed left-0 top-[62.5%]  -translate-y-[62.5%] z-50 flex items-center transition-transform duration-700 ease-out"
+            className="fixed left-0 top-[110%] -translate-y-[110%] sm:top-[62.5%] sm:-translate-y-[62.5%] z-50 flex items-center transition-transform duration-700 ease-out"
             style={{
                 transform: `translateY(-62.5%) translateX(${animateIn ? "0%" : "-100%"})`,
             }}

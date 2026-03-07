@@ -31,7 +31,7 @@ const Index = () => {
 
         <main className="flex items-center justify-center flex-col pb-[45px] mt-4 md:min-h-[calc(100vh-200px)] px-5 md:px-6">
           <DiscountTicket loading={loading} content={heroContent} />
-          <div className="relative flex flex-col items-center justify-center text-left sm:text-center max-w-6xl min-h-[480px] w-full overflow-hidden rounded-[30px] px-4 sm:px-8 pt-3 sm:pt-8 pb-12 sm:pb-20">
+          <div className="relative flex flex-col items-center justify-center text-left sm:text-center max-w-[1200px] min-h-[350px] sm:min-h-[500px] w-full overflow-hidden rounded-[30px] px-4 sm:px-8 pt-3 sm:pt-8 pb-12 sm:pb-20">
             <div className="absolute inset-0 -z-0">
               <video
                 className="w-full h-full object-cover scale-[1.2]"
@@ -52,13 +52,13 @@ const Index = () => {
                 Schengen visa for Indians from the UK
               </span> */}
               </div>
-              <h1 className="text-4xl sm:text-4xl md:text-[4.5rem] font-gilroy-bold leading-tight mb-2 max-sm:mb-2 sm:mb-8 max-sm:tracking-tighter">
+              <h1 className="text-4xl sm:text-4xl md:text-[5.5rem] font-gilroy-bold leading-tight mb-2 max-sm:mb-2 sm:mb-8 max-sm:tracking-tighter">
                 {loading ? "Don't Postpone Your Happiness!" : heroContent.title}
                 {/* <br /> */}
                 {/* <span className="text-white"></span> */}
               </h1>
 
-              <p className="text-[25px] md:text-[28px] public_text_clr font-extrabold leading-tight">
+              <p className="text-[25px] md:text-[28px] font-extrabold leading-tight">
                 {loading ? "Flat £200 fee, faster processing, dedicated support" : heroContent.description}
               </p>
             </div>

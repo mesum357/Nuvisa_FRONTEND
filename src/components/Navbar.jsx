@@ -54,7 +54,7 @@ const Navbar = () => {
   return (
     <ClientOnly>
       <div className="text-white">
-        {pathname !== "/dashboard" && <div className="mb-5 md:mb-[36px] md:px-10 px-5 py-2.5 border-[#423577] border-b text-sm rounded-b-[23px] flex md:flex-row flex-col items-center justify-between">
+        {pathname !== "/dashboard" && <div className="md:mb-[15px] md:px-10 px-5 py-2.5 border-[#423577] border-b text-sm rounded-b-[23px] flex md:flex-row flex-col items-center justify-between">
 
           {/* Left Content (Text + Button aligned LEFT) */}
           <div className="flex items-center gap-3 md:flex-row   ">
@@ -88,7 +88,7 @@ const Navbar = () => {
         </div>}
 
 
-        <div className="text-center mt-5 md:hidden block">
+        <div className="text-center my-2.5 md:hidden block">
           <span className="text-xl sm:text-2xl font-gilroy-bold md:block ">
             {getContent('nav_tagline', 'Schengen visa for Indians from the UK')}
           </span>
