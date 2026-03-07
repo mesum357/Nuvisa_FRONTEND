@@ -17,6 +17,7 @@ import Image from "next/image";
 import StickyBottomBar from "@/components/StickyBottomBar";
 import Reviews from "@/components/Reviews";
 import VisaProcessSection from "@/components/home/VisaProcessSection";
+import DiscountTicket from "@/components/DiscountTicket";
 
 const Index = () => {
   const { heroContent, loading } = useHeroContent();
@@ -28,32 +29,43 @@ const Index = () => {
         {/* Top Banner */}
         <Navbar />
 
-        <main className="flex items-center justify-center flex-col pb-[45px] mt-16 md:mt-24 md:min-h-[calc(100vh-200px)]  px-8 md:px-6">
-          <div className="text-left sm:text-center max-w-5xl">
-
-            <div className="hidden lg:block">
-              {/* <span className="text-[28px] font-gilroy-bold">
-              Schengen visa for Indians from the UK
-            </span> */}
+        <main className="flex items-center justify-center flex-col pb-[45px] mt-4 md:min-h-[calc(100vh-200px)] px-5 md:px-6">
+          <DiscountTicket loading={loading} content={heroContent} />
+          <div className="relative flex flex-col items-center justify-center text-left sm:text-center max-w-6xl min-h-[480px] w-full overflow-hidden rounded-[30px] px-4 sm:px-8 pt-3 sm:pt-8 pb-12 sm:pb-20">
+            <div className="absolute inset-0 -z-0">
+              <video
+                className="w-full h-full object-cover scale-[1.2]"
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="auto"
+              >
+                <source src="/video/nuvisa.mp4" type="video/mp4" />
+              </video>
+              <div className="absolute inset-0 bg-black/45" />
             </div>
-            <h1 className="text-4xl sm:text-4xl md:text-[4.5rem] font-gilroy-bold leading-tight mb-2 max-sm:mb-2 sm:mb-8 max-sm:tracking-tighter">
-              {loading ? "Don't Postpone Your Happiness!" : heroContent.title}
-              {/* <br /> */}
-              {/* <span className="text-white"></span> */}
-            </h1>
 
-            <p className="text-[25px] md:text-[28px] public_text_clr font-extrabold leading-tight">
-              {loading ? "Flat £200 fee, faster processing, dedicated support" : heroContent.description}
-            </p>
+            <div className="relative z-10 max-w-4xl">
+              <div className="hidden lg:block">
+                {/* <span className="text-[28px] font-gilroy-bold">
+                Schengen visa for Indians from the UK
+              </span> */}
+              </div>
+              <h1 className="text-4xl sm:text-4xl md:text-[4.5rem] font-gilroy-bold leading-tight mb-2 max-sm:mb-2 sm:mb-8 max-sm:tracking-tighter">
+                {loading ? "Don't Postpone Your Happiness!" : heroContent.title}
+                {/* <br /> */}
+                {/* <span className="text-white"></span> */}
+              </h1>
+
+              <p className="text-[25px] md:text-[28px] public_text_clr font-extrabold leading-tight">
+                {loading ? "Flat £200 fee, faster processing, dedicated support" : heroContent.description}
+              </p>
+            </div>
           </div>
-          <div className="my-14 sm:mt-12 sm:mb-0 max-sm:w-full">
-            <GetTheVisaButton
-              btnClassName={
-                "max-sm:w-full flex items-center justify-center text-xl tracking-widest"
-              }
-            />
+          <div className="relative z-20 -mt-2 md:-mt-12">
+            <VisaHeroSection />
           </div>
-          <VisaHeroSection />
           <Reviews />
         </main>
         <CountryCardsSection />
@@ -75,7 +87,7 @@ const Index = () => {
 
               {/* Subheading with Details */}
               <div className=" flex items-center gap-2 max-md:flex-col text-white justify-center font-gilroy-medium">
-                <p className="text-sm md:text-[16px] font-semibold"> 
+                <p className="text-sm md:text-[16px] font-semibold">
                   {klarnaLoading ? "Loading..." : klarnaContent.subtitle}
                 </p>
                 <p className="font-gilroy-bold text-lg md:text-[20px] ">

@@ -12,7 +12,7 @@ import {
 import { getCountryConfig } from "@/constants/countryConfig";
 import GetTheVisaButton from "./layout/GetTheVisaButton";
 
-const VisaSolution = () => {
+const VisaSolution = ({ video = false }) => {
   const router = useRouter();
   const dispatch = useAppDispatch();
 
@@ -157,18 +157,20 @@ const VisaSolution = () => {
             If you're frustrated with travel agencies that have substantial fees, confusing conditions, and slow appointments - Meet the next generation peace of mind complete visa solution you've been looking for.
           </p>
         </div>
-        <div className="relative w-[85%] md:w-[60%] min-h-[180px] overflow-hidden rounded-[30px]">
-          <video
-            className="w-full h-full object-cover scale-[1.2]"
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="auto"
-          >
-            <source src="/video/nuvisa.mp4" type="video/mp4" />
-          </video>
-        </div>
+        {
+          video &&
+          <div className="relative w-[85%] md:w-[60%] min-h-[180px] overflow-hidden rounded-[30px]">
+            <video
+              className="w-full h-full object-cover scale-[1.2]"
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="auto"
+            >
+              <source src="/video/nuvisa.mp4" type="video/mp4" />
+            </video>
+          </div>}
       </div>
 
       <div className="w-full overflow-hidden mt-20 mb-5">

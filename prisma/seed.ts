@@ -242,22 +242,24 @@ async function main() {
   console.log('Database seeded successfully');
 
 
-  const popupContentData = [
-  { key: 'popup_main_heading', value: '❤️ NEW CUSTOMER OFFER - £129 fee for your first visa', type: 'text', section: 'popup', order: 1 },
-  { key: 'popup_sub_heading', value: 'Auto-booking appointment', type: 'text', section: 'popup', order: 2 },
-  { key: 'popup_offer_price', value: '£129', type: 'text', section: 'popup', order: 3 },
-  { key: 'popup_original_price', value: '£100', type: 'text', section: 'popup', order: 4 },
-  { key: 'popup_button_text', value: 'Continue', type: 'text', section: 'popup', order: 5 },
-  { key: 'popup_image_url', value: '/image/popupnew.png', type: 'image', section: 'popup', order: 6 },
-];
-
-for (const content of popupContentData) {
   await prisma.popupContent.upsert({
-    where: { key: content.key },
+    where: { id: 'current' },
     update: {},
-    create: { ...content },
+    create: {
+      id: 'current',
+      mainHeading: '❤️ NEW CUSTOMER OFFER - £129 fee for your first visa',
+      subHeading: 'Auto-booking appointment',
+      offerPrice: '£129',
+      originalPrice: '£100',
+      continueButtonText: 'Continue',
+      lastQuestionButtonText: 'Check Required Documents',
+      imageUrl: '/image/popupnew.png',
+      conciergeTitle: 'Concierge Assistance',
+      conciergePrice: '£35',
+      conciergeOfferPrice: 'Free',
+      lastChanceText: 'Last chance (ends soon) Until {month} {year}!',
+    },
   });
-}
 
 }
 
@@ -272,4 +274,3 @@ main()
     await prisma.$disconnect();
     process.exit(1);
   });
-

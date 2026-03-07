@@ -1,3 +1,5 @@
+//FaqLibraryPage.jsx
+
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { BookOpenText, ChevronDown, ChevronUp, CircleHelp, FileText } from "lucide-react";
@@ -8,6 +10,74 @@ import { fetchFAQs as fetchFAQsFromAPI } from "@/api/faqs";
 import { toSlug } from "@/utils/toSlug";
 
 const CATEGORY_ICONS = [BookOpenText, CircleHelp, FileText];
+const FAQ_CARD_ICON_MAP = {
+  general_information: BookOpenText,
+  eligibility_requirements: CircleHelp,
+  application_process: FileText,
+  travel_insurance: FileText,
+  embassy_appointment: CircleHelp,
+  digital_gift_card: BookOpenText,
+  partner_and_children: CircleHelp,
+  extend_visa: FileText,
+  approval_rejection_reapply: CircleHelp,
+};
+
+const FAQ_CARD_CONTENT = [
+  {
+    title: "General information",
+    description:
+      "Everything you need to know about Schengen visas — what they are, how they work, and which countries they cover",
+    icon: "general_information",
+  },
+  {
+    title: "Eligibility & requirements",
+    description:
+      "Find out who can apply, what documents you'll need, and whether you meet the criteria for a Schengen visa",
+    icon: "eligibility_requirements",
+  },
+  {
+    title: "The application process",
+    description:
+      "A step-by-step guide to completing your Schengen visa application with confidence",
+    icon: "application_process",
+  },
+  {
+    title: "Travel insurance",
+    description:
+      "Understand the travel insurance requirements for your Schengen visa and make sure your policy meets them",
+    icon: "travel_insurance",
+  },
+  {
+    title: "Embassy appointment",
+    description:
+      "Everything you need to know about availability, preparing for, and attending your appointment at the embassy",
+    icon: "embassy_appointment",
+  },
+  {
+    title: "Digital gift card",
+    description:
+      "Discover how our digital gift card works and how it can be used as a gift of unforgettable memories",
+    icon: "digital_gift_card",
+  },
+  {
+    title: "Your partner and children",
+    description:
+      "Guidance on including your spouse, partner, or children in your visa application or applying on their behalf",
+    icon: "partner_and_children",
+  },
+  {
+    title: "Extend your visa",
+    description:
+      "Find out if you can extend your stay beyond your current Schengen visa validity",
+    icon: "extend_visa",
+  },
+  {
+    title: "Approval, rejections & reapplication",
+    description:
+      "Understand what happens after a decision is made — including what to do if your application is refused and how to reapply",
+    icon: "approval_rejection_reapply",
+  },
+];
 
 const FaqLibraryPage = () => {
   const [faqs, setFaqs] = useState([]);
@@ -58,6 +128,20 @@ const FaqLibraryPage = () => {
     }));
   }, [faqs]);
 
+  const faqCategoryCards = useMemo(() => {
+    const groupsBySlug = new Map(groupedFaqs.map((group) => [toSlug(group.name), group]));
+
+    return FAQ_CARD_CONTENT.map((card) => {
+      const matchedGroup = groupsBySlug.get(toSlug(card.title));
+      return {
+        id: matchedGroup?.id || toSlug(card.title),
+        title: card.title,
+        description: card.description,
+        Icon: FAQ_CARD_ICON_MAP[card.icon] || CircleHelp,
+      };
+    });
+  }, [groupedFaqs]);
+
   const hasFaqs = groupedFaqs.length > 0;
 
   return (
@@ -95,21 +179,24 @@ const FaqLibraryPage = () => {
               </div>
             ) : hasFaqs ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {groupedFaqs.map((group) => (
+                {faqCategoryCards.map((group) => (
                   <a
                     key={group.id}
                     href={`#${group.id}`}
-                    className="group rounded-xl border border-[#ebe3ff] bg-[#f6f0ff] px-5 py-4 hover:bg-[#ede3ff] transition-colors"
+                    className="group rounded-xl border border-[#ebe3ff] bg-[#f6f0ff] px-6 py-8 hover:bg-[#7350FF] transition-all duration-300 flex flex-col items-center text-center gap-4 min-h-[200px] justify-between"
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <h3 className="font-gilroy-bold text-lg text-[#1E1E27]">{group.name}</h3>
-                        <p className="text-sm text-neutral-600 mt-1">
-                          {group.items.length} question{group.items.length > 1 ? "s" : ""}
-                        </p>
-                      </div>
-                      <group.Icon className="w-7 h-7 md:w-8 md:h-8 text-[#7350FF] shrink-0 group-hover:scale-110 transition-transform" />
-                    </div>
+                    {/* Title */}
+                    <h3 className="font-gilroy-bold text-lg text-[#1E1E27] group-hover:text-white transition-colors">
+                      {group.title}
+                    </h3>
+
+                    {/* Icon */}
+                    <group.Icon className="w-10 h-10 text-[#7350FF] group-hover:text-white shrink-0 group-hover:scale-110 transition-all duration-300" />
+
+                    {/* Description / question count */}
+                    <p className="text-sm text-neutral-500 group-hover:text-purple-100 transition-colors leading-snug">
+                      {group.description}
+                    </p>
                   </a>
                 ))}
               </div>
@@ -141,9 +228,8 @@ const FaqLibraryPage = () => {
                         type="button"
                         onClick={() => setActiveItem(isOpen ? null : itemKey)}
                         aria-expanded={isOpen}
-                        className={`w-full text-left px-4 md:px-5 py-4 flex items-center justify-between gap-3 transition-colors ${
-                          isOpen ? "bg-[#f1e8ff]" : "bg-white hover:bg-[#f8f8fb]"
-                        }`}
+                        className={`w-full text-left px-4 md:px-5 py-4 flex items-center justify-between gap-3 transition-colors ${isOpen ? "bg-[#f1e8ff]" : "bg-white hover:bg-[#f8f8fb]"
+                          }`}
                       >
                         <span className="text-[#1E1E27] font-gilroy-medium text-[15px] md:text-base">
                           {item.question}
@@ -156,9 +242,8 @@ const FaqLibraryPage = () => {
                       </button>
 
                       <div
-                        className={`grid transition-all duration-300 ease-in-out ${
-                          isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-                        }`}
+                        className={`grid transition-all duration-300 ease-in-out ${isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                          }`}
                       >
                         <div className="overflow-hidden">
                           <div className="px-4 md:px-5 pt-2 pb-4 text-neutral-700 text-sm md:text-[15px] leading-relaxed">

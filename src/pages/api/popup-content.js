@@ -73,7 +73,11 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, data: content });
     } catch (error) {
       console.error("Error fetching popup content:", error);
-      return res.status(500).json({ success: false, error: 'Failed to fetch content' });
+      const message = error instanceof Error ? error.message : 'Failed to fetch content';
+      return res.status(500).json({
+        success: false,
+        error: process.env.NODE_ENV === 'development' ? message : 'Failed to fetch content',
+      });
     }
   } else {
     res.setHeader('Allow', ['GET']);

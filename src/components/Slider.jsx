@@ -60,6 +60,43 @@ import { staticCountries } from "@/constants/staticCountries";
 import { getDynamicMonthText } from "@/utils/getDynamicMonthText";
 import { getCurrentWeekSlotPercentage } from "@/utils/getCurrentWeekSlotPercentage";
 
+const normalizeCountryKey = (value) => String(value || "").trim().toLowerCase();
+
+const COUNTRY_PRICING_STATIC = [
+  { name: "Austria", basePrice: 169, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Belgium", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Bulgaria", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Croatia", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Czechia", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Denmark", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Estonia", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Finland", basePrice: 149, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "France", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Germany", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Greece", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Hungary", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Iceland", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Italy", basePrice: 149, strikeOutPrice: 200, reason: "Due to Global Crisis", showReason: true },
+  { name: "Latvia", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Lithuania", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Luxembourg", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Malta", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "NORWAY", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Netherlands", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Poland", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Portugal", basePrice: 149, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Romania", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Slovenia", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Spain", basePrice: 149, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Sweden", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+  { name: "Switzerland", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
+];
+
+const COUNTRY_PRICING_STATIC_LOOKUP = COUNTRY_PRICING_STATIC.reduce((acc, item) => {
+  acc[normalizeCountryKey(item.name)] = item;
+  return acc;
+}, {});
+
 const CountrySlider = () => {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -130,7 +167,7 @@ const CountrySlider = () => {
       </span>
     ));
   }, [dailyNriBadgeText, hasEuFlagBadge]);
-  
+
 
   const [_isCountryOpen, setIsCountryOpen] = useState(false);
   const [selectedCountry, setSelectedCountryLocal] = useState(
@@ -288,6 +325,11 @@ const CountrySlider = () => {
     return raw.includes(",") ? raw.split(", ")[1] : raw;
   };
 
+  const selectedCountryPricing = useMemo(() => {
+    const countryName = getCountryParam(selectedCountry) || "Belgium";
+    return COUNTRY_PRICING_STATIC_LOOKUP[normalizeCountryKey(countryName)] || null;
+  }, [selectedCountry]);
+
   const tripDaysInclusive = (start, end) => {
     if (!start || !end) return 0;
     const startDate = new Date(start);
@@ -346,11 +388,6 @@ const CountrySlider = () => {
     // Priority 2: Check date order (only if arrival date is valid)
     if (departure) {
       const departureDate = new Date(departure);
-
-      if (arrivalDate > departureDate) {
-        errors.dateOrder = "Departure date must be after arrival date";
-        return errors; // Early return - second priority
-      }
 
       // Priority 3: Check trip duration limits (only if dates are in correct order)
       const tripDuration = Math.ceil(
@@ -737,6 +774,11 @@ const CountrySlider = () => {
   };
 
   const baseFee = (() => {
+    const staticBasePrice = Number(selectedCountryPricing?.basePrice);
+    if (Number.isFinite(staticBasePrice) && staticBasePrice > 0) {
+      return staticBasePrice;
+    }
+
     const v =
       sliderContent?.visa_base_price_gbp ??
       sliderContent?.base_fee_gbp ??
@@ -748,6 +790,11 @@ const CountrySlider = () => {
   })();
 
   const strikeOutPrice = (() => {
+    const staticStrikeOutPrice = Number(selectedCountryPricing?.strikeOutPrice);
+    if (Number.isFinite(staticStrikeOutPrice) && staticStrikeOutPrice > 0) {
+      return staticStrikeOutPrice;
+    }
+
     const v =
       sliderContent?.strike_out_price_gbp ??
       sliderContent?.strike_out_price ??
@@ -841,12 +888,14 @@ const CountrySlider = () => {
 
     // Update Redux state without redirecting
     const countryName = typeof country === "object" ? country.name : country;
+    const staticPricing =
+      COUNTRY_PRICING_STATIC_LOOKUP[normalizeCountryKey(countryName)] || null;
 
     // Get dynamic fees based on selected country
     const countryConfig = getCountryConfig(countryName);
 
     dispatch(setReduxSelectedCountry(String(countryName)));
-    dispatch(setVisaFees(Number(countryConfig.visaFee)));
+    dispatch(setVisaFees(Number(staticPricing?.basePrice ?? countryConfig.visaFee)));
     dispatch(setInsuranceFees(Number(countryConfig.insuranceFee)));
   };
 
@@ -864,7 +913,7 @@ const CountrySlider = () => {
 
   const dropdownCountries = useMemo(
     () =>
-      countries
+      COUNTRY_PRICING_STATIC
         .map((country) => country?.name)
         .filter(Boolean)
         .filter(
@@ -2662,25 +2711,25 @@ const CountrySlider = () => {
                     {/* Visa Types */}
                     <div className="flex items-center max-sm:text-sm">
                       <FileText className="h-5 w-5 text-[#24242D] stroke-[#24242D] mr-3 fill-white max-sm:mr-2 max-sm:h-4 max-sm:w-4" />
-                      <span className="">Visa Types</span>
+                      <span className="whitespace-nowrap">Visa Types</span>
                     </div>
 
                     {/* Stay Duration */}
                     <div className="flex items-center max-sm:text-sm">
                       <Home className="h-5 w-5 mr-3 text-white max-sm:mr-2 max-sm:h-4 max-sm:w-4" />
-                      <span className="">Stay Duration</span>
+                      <span className="whitespace-nowrap">Stay Duration</span>
                     </div>
 
                     {/* Term Type */}
                     <div className="flex items-center max-sm:text-sm">
                       <ClipboardList className="h-5 w-5 text-[#24242D] stroke-[#24242D] mr-3 fill-white max-sm:mr-2 max-sm:h-4 max-sm:w-4" />
-                      <span className="">Term Type</span>
+                      <span className="whitespace-nowrap">Term Type</span>
                     </div>
 
                     {/* Entry */}
                     <div className="flex items-center max-sm:text-sm">
                       <Clock className="h-5 w-5 mr-3 text-white max-sm:mr-2 max-sm:h-4 max-sm:w-4" />
-                      <span className="">Entry</span>
+                      <span className="whitespace-nowrap">Entry</span>
                     </div>
                   </div>
 
@@ -2693,7 +2742,7 @@ const CountrySlider = () => {
                         onMouseLeave={() => setActiveTooltip(null)}
                       >
                         <div className="flex items-center max-sm:justify-between">
-                          <span className="max-sm:text-sm">Sticker</span>
+                          <span className="max-sm:text-sm whitespace-nowrap">Sticker</span>
                         </div>
 
                         {activeTooltip === "sticker" && (
@@ -2713,7 +2762,7 @@ const CountrySlider = () => {
                         onMouseLeave={() => setActiveTooltip(null)}
                       >
                         <div className="flex items-center max-sm:justify-between">
-                          <span className="max-sm:text-sm">90 Days</span>
+                          <span className="max-sm:text-sm whitespace-nowrap">90 Days</span>
                         </div>
 
                         {activeTooltip === "duration" && (
@@ -2742,7 +2791,7 @@ const CountrySlider = () => {
                         onMouseLeave={() => setActiveTooltip(null)}
                       >
                         <div className="flex items-center max-sm:justify-between">
-                          <span className="max-sm:text-sm">Short Term</span>
+                          <span className="max-sm:text-sm whitespace-nowrap">Short Term</span>
                         </div>
 
                         {activeTooltip === "term" && (
@@ -2762,7 +2811,7 @@ const CountrySlider = () => {
                         onMouseLeave={() => setActiveTooltip(null)}
                       >
                         <div className="flex items-center max-sm:justify-between">
-                          <span className="max-sm:text-sm">Multiple</span>
+                          <span className="max-sm:text-sm whitespace-nowrap">Multiple</span>
                         </div>
 
                         {activeTooltip === "entry" && (
@@ -2842,8 +2891,8 @@ const CountrySlider = () => {
                       resetTimer();
                     }}
                     className={`w-2.5 h-2.5 cursor-pointer rounded-full transition-all max-sm:w-2 max-sm:h-2 ${index === currentIndex
-                        ? "bg-white w-6 max-sm:w-4"
-                        : "bg-white/50"
+                      ? "bg-white w-6 max-sm:w-4"
+                      : "bg-white/50"
                       }`}
                     aria-label={`Go to slide ${index + 1}`}
                   />
@@ -2869,8 +2918,8 @@ const CountrySlider = () => {
                     resetTimer();
                   }}
                   className={`w-20 aspect-square object-cover cursor-pointer rounded-xl border-2 transition-all max-sm:w-12 max-sm:rounded-lg ${index === currentIndex
-                      ? "border-[#7350FF]"
-                      : "border-white opacity-70 hover:opacity-100"
+                    ? "border-[#7350FF]"
+                    : "border-white opacity-70 hover:opacity-100"
                     }`}
                   priority
                   style={{ boxSizing: "border-box" }}
@@ -2956,18 +3005,46 @@ const CountrySlider = () => {
                       value={selectedCountry}
                       onChange={(e) => selectCountry(e.target.value)}
                       className="px-2 py-2 font-semibold rounded-full shadow-black/20 shadow-lg cursor-pointer focus:outline-none max-sm:w-full max-sm:text-center"
-                      >
-                        {dropdownCountries.map((country) => (
-                          <option
+                    >
+                      {dropdownCountries.map((country) => (
+                        <option
                           key={country}
                           value={country}
                           className="bg-gray-400 text-gray-800"
-                          >
-                            {country}
-                          </option>
-                        ))}
+                        >
+                          {country}
+                        </option>
+                      ))}
                     </select>
                   </div>
+                  {selectedCountryPricing?.showReason && selectedCountryPricing?.reason && (
+                    <div className="mt-2 flex justify-end max-sm:justify-start">
+                      <div
+                        className="relative border-b border-dashed border-white/40 w-fit font-semibold"
+                        onMouseEnter={() => setActiveTooltip("priorityAppointment")}
+                        onMouseLeave={() => setActiveTooltip(null)}
+                      >
+                        <button
+                          type="button"
+                          className="text-xs text-white/80 hover:text-white transition-colors max-sm:text-[11px]"
+                          onClick={() =>
+                            setActiveTooltip((prev) =>
+                              prev === "priorityAppointment" ? null : "priorityAppointment"
+                            )
+                          }
+                        >
+                          Reason
+                        </button>
+
+                        {activeTooltip === "priorityAppointment" && (
+                          <div className="absolute z-10 bottom-full right-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200 max-sm:w-56 max-sm:left-0 max-sm:right-auto">
+                            <p className="text-sm max-sm:text-xs">{selectedCountryPricing?.reason}</p>
+                            <div className="absolute -bottom-1 right-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200 max-sm:left-10 max-sm:right-auto"></div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -2978,7 +3055,7 @@ const CountrySlider = () => {
               {/* Auto-booking */}
               <div>
                 <div className="flex items-center justify-between max-sm:items-start max-sm:gap-2">
-                  <div className="flex items-center space-x-3 max-sm:space-x-2">
+                  <div className="flex items-end space-x-3 max-sm:space-x-2">
                     <div className="w-10 aspect-square rounded-lg flex items-center justify-center max-sm:w-8 overflow-hidden">
                       <Image
                         src="/image/calendar.jpg"
@@ -2989,11 +3066,11 @@ const CountrySlider = () => {
                         priority
                       />
                     </div>
-                    <div>
+                    <div className="flex flex-col gap-0 justify-end leading-tight">
                       <h3 className="max-sm:text-sm">
                         Auto-booking appointment
                       </h3>
-                      <span className="text-xs text-green-400 font-medium max-sm:text-[11px]">
+                      <span className="text-[12px] text-green-400 font-medium max-sm:text-[11px]">
                         {currentAppointmentText}
                       </span>
                     </div>
@@ -3009,7 +3086,7 @@ const CountrySlider = () => {
 
               {/* Concierge assistance */}
               <div className="flex items-center justify-between max-sm:items-start max-sm:gap-2">
-                <div className="flex items-center space-x-3 max-sm:space-x-2">
+                <div className="flex items-end space-x-3 max-sm:space-x-2">
                   <div className="w-10 aspect-square rounded-lg flex items-center justify-center max-sm:w-8 overflow-hidden">
                     <Image
                       src="/image/flights.jpg"
@@ -3020,8 +3097,11 @@ const CountrySlider = () => {
                       priority
                     />
                   </div>
-                  <div>
+                  <div className="flex flex-col gap-0 justify-end leading-tight">
                     <h3 className="max-sm:text-sm">Concierge assistance</h3>
+                    <span className="text-[12px] text-green-400 font-medium max-sm:text-[11px]">
+                      Your travel itinerary | Form filing
+                    </span>
                   </div>
                 </div>
                 <div className="flex gap-[2px] items-center max-sm:flex-shrink-0">
@@ -3154,8 +3234,8 @@ const CountrySlider = () => {
             <div className="mt-6" data-documents-section id="required-documents" ref={requiredDocumentRef}>
               <div
                 className={`bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden transition-all duration-300 hover:bg-white/10 ${validationErrors.size > 0
-                    ? "!bg-red-500/10 border !border-red-500 shadow-lg"
-                    : ""
+                  ? "!bg-red-500/10 border !border-red-500 shadow-lg"
+                  : ""
                   } ${isHighlighted ? "bg-white/80 border-white" : ""
                   }`}
               >
@@ -3200,8 +3280,8 @@ const CountrySlider = () => {
 
                 <div
                   className={`transition-all duration-300 ease-in-out ${documentsAccordionOpen
-                      ? "max-h-[600px] opacity-100"
-                      : "max-h-0 opacity-0"
+                    ? "max-h-[600px] opacity-100"
+                    : "max-h-0 opacity-0"
                     }`}
                 >
                   <div className="px-4 pb-4 max-sm:px-3 max-sm:pb-3">
@@ -3210,17 +3290,17 @@ const CountrySlider = () => {
                       {/* Passport */}
                       <div
                         className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border max-sm:p-2 ${requiredDocuments.passport
-                            ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
-                            : validationErrors.has("passport")
-                              ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
-                              : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
+                          ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
+                          : validationErrors.has("passport")
+                            ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
+                            : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
                           }`}
                         onClick={() => toggleRequiredDocument("passport")}
                       >
                         <div
                           className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all max-sm:w-4 max-sm:h-4 ${requiredDocuments.passport
-                              ? "bg-[#7350FF] border-2 border-[#7350FF]"
-                              : "bg-transparent border-2 border-white/40"
+                            ? "bg-[#7350FF] border-2 border-[#7350FF]"
+                            : "bg-transparent border-2 border-white/40"
                             }`}
                         >
                           {requiredDocuments.passport && (
@@ -3240,17 +3320,17 @@ const CountrySlider = () => {
                       {/* UK Visa */}
                       <div
                         className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border max-sm:p-2 ${requiredDocuments.ukVisa
-                            ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
-                            : validationErrors.has("ukVisa")
-                              ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
-                              : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
+                          ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
+                          : validationErrors.has("ukVisa")
+                            ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
+                            : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
                           }`}
                         onClick={() => toggleRequiredDocument("ukVisa")}
                       >
                         <div
                           className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all max-sm:w-4 max-sm:h-4 ${requiredDocuments.ukVisa
-                              ? "bg-[#7350FF] border-2 border-[#7350FF]"
-                              : "bg-transparent border-2 border-white/40"
+                            ? "bg-[#7350FF] border-2 border-[#7350FF]"
+                            : "bg-transparent border-2 border-white/40"
                             }`}
                         >
                           {requiredDocuments.ukVisa && (
@@ -3270,17 +3350,17 @@ const CountrySlider = () => {
                       {/* Photos */}
                       <div
                         className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border max-sm:p-2 ${requiredDocuments.photos
-                            ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
-                            : validationErrors.has("photos")
-                              ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
-                              : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
+                          ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
+                          : validationErrors.has("photos")
+                            ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
+                            : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
                           }`}
                         onClick={() => toggleRequiredDocument("photos")}
                       >
                         <div
                           className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all max-sm:w-4 max-sm:h-4 ${requiredDocuments.photos
-                              ? "bg-[#7350FF] border-2 border-[#7350FF]"
-                              : "bg-transparent border-2 border-white/40"
+                            ? "bg-[#7350FF] border-2 border-[#7350FF]"
+                            : "bg-transparent border-2 border-white/40"
                             }`}
                         >
                           {requiredDocuments.photos && (
@@ -3300,17 +3380,17 @@ const CountrySlider = () => {
                       {/* Bank Statements */}
                       <div
                         className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border max-sm:p-2 ${requiredDocuments.bankStatements
-                            ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
-                            : validationErrors.has("bankStatements")
-                              ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
-                              : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
+                          ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
+                          : validationErrors.has("bankStatements")
+                            ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
+                            : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
                           }`}
                         onClick={() => toggleRequiredDocument("bankStatements")}
                       >
                         <div
                           className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all max-sm:w-4 max-sm:h-4 ${requiredDocuments.bankStatements
-                              ? "bg-[#7350FF] border-2 border-[#7350FF]"
-                              : "bg-transparent border-2 border-white/40"
+                            ? "bg-[#7350FF] border-2 border-[#7350FF]"
+                            : "bg-transparent border-2 border-white/40"
                             }`}
                         >
                           {requiredDocuments.bankStatements && (
@@ -3331,10 +3411,10 @@ const CountrySlider = () => {
                       {/* Employment Proof */}
                       <div
                         className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border max-sm:p-2 ${requiredDocuments.employmentProof
-                            ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
-                            : validationErrors.has("employmentProof")
-                              ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
-                              : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
+                          ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
+                          : validationErrors.has("employmentProof")
+                            ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
+                            : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
                           }`}
                         onClick={() =>
                           toggleRequiredDocument("employmentProof")
@@ -3342,8 +3422,8 @@ const CountrySlider = () => {
                       >
                         <div
                           className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all max-sm:w-4 max-sm:h-4 ${requiredDocuments.employmentProof
-                              ? "bg-[#7350FF] border-2 border-[#7350FF]"
-                              : "bg-transparent border-2 border-white/40"
+                            ? "bg-[#7350FF] border-2 border-[#7350FF]"
+                            : "bg-transparent border-2 border-white/40"
                             }`}
                         >
                           {requiredDocuments.employmentProof && (
@@ -3364,15 +3444,15 @@ const CountrySlider = () => {
                       {/* Insurance */}
                       <div
                         className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border max-sm:p-2 ${requiredDocuments.insurance
-                            ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
-                            : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
+                          ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
+                          : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
                           }`}
                         onClick={() => toggleRequiredDocument("insurance")}
                       >
                         <div
                           className={`w-5 h-5 rounded-full mt-0.5 flex items-center justify-center transition-all max-sm:w-4 max-sm:h-4 ${requiredDocuments.insurance
-                              ? "bg-[#7350FF] border-2 border-[#7350FF]"
-                              : "bg-transparent border-2 border-white/40"
+                            ? "bg-[#7350FF] border-2 border-[#7350FF]"
+                            : "bg-transparent border-2 border-white/40"
                             }`}
                         >
                           {requiredDocuments.insurance && (
@@ -3457,8 +3537,8 @@ const CountrySlider = () => {
                   expressPaymentData.includeGiftCard && expressPaymentData.visaFees > 0
                     ? "application_creation,gift_card"
                     : expressPaymentData.includeGiftCard && expressPaymentData.visaFees === 0
-                    ? "gift_card"
-                    : "application_creation"
+                      ? "gift_card"
+                      : "application_creation"
                 }
                 onBeforePayment={validateBeforeExpressPayment}
                 visaFees={expressPaymentData.visaFees}
@@ -3597,28 +3677,28 @@ const CountrySlider = () => {
 
                     {/* {canShowVisaFeeBreakdown ? (
                     ) : null} */}
-                      <VisaFeeBreakdown
-                        pricingDetails={pricingDetails}
-                        priceSummary={computedPriceSummary}
-                        hasAdditionalTravellers={travelers > 1}
-                        includeInsurance={Boolean(recommendedItems.insuranceCertificate)}
-                        includeGiftCard={Boolean(recommendedItems.giftCard)}
-                        onToggleAdditionalTravellers={(checked) => {
-                          const nextTravelers = checked ? 2 : 1;
-                          if (nextTravelers >= 1 && insuranceCount > nextTravelers) {
-                            dispatch(setReduxInsuranceCount(Number(nextTravelers)));
-                          }
-                          dispatch(setReduxTravelers(Number(nextTravelers)));
-                        }}
-                        onToggleInsurance={() => toggleRecommendedItem("insuranceCertificate")}
-                        onToggleGiftCard={() => toggleRecommendedItem("giftCard")}
-                        onTravelersIncrement={() => _handleTravelerChange(1)}
-                        onTravelersDecrement={() => _handleTravelerChange(-1)}
-                        onInsuranceIncrement={() => handleInsuranceChange(1)}
-                        onInsuranceDecrement={() => handleInsuranceChange(-1)}
-                        onGiftCardIncrement={() => handleGiftCardChange(1)}
-                        onGiftCardDecrement={() => handleGiftCardChange(-1)}
-                      />
+                    <VisaFeeBreakdown
+                      pricingDetails={pricingDetails}
+                      priceSummary={computedPriceSummary}
+                      hasAdditionalTravellers={travelers > 1}
+                      includeInsurance={Boolean(recommendedItems.insuranceCertificate)}
+                      includeGiftCard={Boolean(recommendedItems.giftCard)}
+                      onToggleAdditionalTravellers={(checked) => {
+                        const nextTravelers = checked ? 2 : 1;
+                        if (nextTravelers >= 1 && insuranceCount > nextTravelers) {
+                          dispatch(setReduxInsuranceCount(Number(nextTravelers)));
+                        }
+                        dispatch(setReduxTravelers(Number(nextTravelers)));
+                      }}
+                      onToggleInsurance={() => toggleRecommendedItem("insuranceCertificate")}
+                      onToggleGiftCard={() => toggleRecommendedItem("giftCard")}
+                      onTravelersIncrement={() => _handleTravelerChange(1)}
+                      onTravelersDecrement={() => _handleTravelerChange(-1)}
+                      onInsuranceIncrement={() => handleInsuranceChange(1)}
+                      onInsuranceDecrement={() => handleInsuranceChange(-1)}
+                      onGiftCardIncrement={() => handleGiftCardChange(1)}
+                      onGiftCardDecrement={() => handleGiftCardChange(-1)}
+                    />
                   </div>
                 );
               })()}
@@ -3698,10 +3778,10 @@ const CountrySlider = () => {
                     }
                     placeholder="Enter coupon code (e.g., STUDENT10)"
                     className={`w-full border ${(giftCardRedeemed || appliedDiscount)
-                        ? "border-green-400"
-                        : couponError
-                          ? "border-red-400"
-                          : "border-gray-500"
+                      ? "border-green-400"
+                      : couponError
+                        ? "border-red-400"
+                        : "border-gray-500"
                       } bg-[#24242D] text-white rounded-md p-2 text-sm max-sm:text-xs ${(giftCardRedeemed || appliedDiscount)
                         ? "outline-none ring-2 ring-green-400"
                         : couponError
@@ -3798,76 +3878,76 @@ const CountrySlider = () => {
             </div>
           </div>
 
-           {/* Email Verification Section */}
-            {appliedDiscount &&
-              appliedDiscount.description.toLowerCase().includes("student") && (
-                <div className="space-y-3 mt-6">
-                  <h2 className="font-medium text-lg max-sm:text-base">
-                    Student Verification Required
-                  </h2>
-                  <div className="space-y-2">
+          {/* Email Verification Section */}
+          {appliedDiscount &&
+            appliedDiscount.description.toLowerCase().includes("student") && (
+              <div className="space-y-3 mt-6">
+                <h2 className="font-medium text-lg max-sm:text-base">
+                  Student Verification Required
+                </h2>
+                <div className="space-y-2">
 
-                    <div className="flex space-x-2 max-sm:flex-col max-sm:space-x-0 max-sm:space-y-2">
-                      <div className="flex-1 max-sm:w-full">
-                        <input
-                          type="email"
-                          value={userEmail}
-                          onChange={(e) => setUserEmailLocal(e.target.value)}
-                          placeholder="Enter your student email (e.g., you@student.uni.ac.uk)"
-                          className={`w-full border ${emailError ? "border-red-400" : "border-gray-500"
-                            } bg-[#24242D] text-white rounded-md p-2 text-sm max-sm:text-xs ${emailError
-                              ? "outline-none ring-2 ring-red-400"
-                              : "focus:outline-none focus:ring-2 focus:ring-purple-500"
-                            }`}
-                          disabled={studentVerified}
-                        />
-                      </div>
-
-                      {!studentVerified ? (
-                        <button
-                          onClick={() => sendStudentVerification(userEmail)}
-                          disabled={isSendingVerification || !userEmail}
-                          className="px-4 py-2 bg-yellow-600 text-white text-sm rounded-md hover:bg-yellow-700 transition-colors font-medium disabled:bg-gray-600 disabled:cursor-not-allowed max-sm:text-xs max-sm:px-3"
-                        >
-                          {isSendingVerification
-                            ? "Sending..."
-                            : "Verify Email"}
-                        </button>
-                      ) : (
-                        <div className="px-4 py-2 bg-green-600 text-white text-sm rounded-md flex items-center max-sm:text-xs max-sm:px-3">
-                          ✓ Verified
-                        </div>
-                      )}
+                  <div className="flex space-x-2 max-sm:flex-col max-sm:space-x-0 max-sm:space-y-2">
+                    <div className="flex-1 max-sm:w-full">
+                      <input
+                        type="email"
+                        value={userEmail}
+                        onChange={(e) => setUserEmailLocal(e.target.value)}
+                        placeholder="Enter your student email (e.g., you@student.uni.ac.uk)"
+                        className={`w-full border ${emailError ? "border-red-400" : "border-gray-500"
+                          } bg-[#24242D] text-white rounded-md p-2 text-sm max-sm:text-xs ${emailError
+                            ? "outline-none ring-2 ring-red-400"
+                            : "focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          }`}
+                        disabled={studentVerified}
+                      />
                     </div>
 
-                    <div className="text-sm text-yellow-300 mb-2 max-sm:text-xs">
-                      <span className="font-medium">📧 Email Verification</span>{" "}
-                      - Please verify your student email to continue with the
-                      discount
-                    </div>
-
-                    {emailError && (
-                      <span className="text-sm text-red-400 max-sm:text-xs">
-                        {emailError}
-                      </span>
-                    )}
-
-                    {studentVerificationSent && !studentVerified && (
-                      <div className="text-sm text-green-400 bg-green-600/20 p-2 rounded-md max-sm:text-xs max-sm:p-1.5">
-                        ✓ Verification email sent! Please check your inbox and
-                        click the verification link.
-                      </div>
-                    )}
-
-                    {studentVerified && (
-                      <div className="text-sm text-green-400 bg-green-600/20 p-2 rounded-md max-sm:text-xs max-sm:p-1.5">
-                        ✓ Student email verified! You can now proceed with the
-                        student discount.
+                    {!studentVerified ? (
+                      <button
+                        onClick={() => sendStudentVerification(userEmail)}
+                        disabled={isSendingVerification || !userEmail}
+                        className="px-4 py-2 bg-yellow-600 text-white text-sm rounded-md hover:bg-yellow-700 transition-colors font-medium disabled:bg-gray-600 disabled:cursor-not-allowed max-sm:text-xs max-sm:px-3"
+                      >
+                        {isSendingVerification
+                          ? "Sending..."
+                          : "Verify Email"}
+                      </button>
+                    ) : (
+                      <div className="px-4 py-2 bg-green-600 text-white text-sm rounded-md flex items-center max-sm:text-xs max-sm:px-3">
+                        ✓ Verified
                       </div>
                     )}
                   </div>
+
+                  <div className="text-sm text-yellow-300 mb-2 max-sm:text-xs">
+                    <span className="font-medium">📧 Email Verification</span>{" "}
+                    - Please verify your student email to continue with the
+                    discount
+                  </div>
+
+                  {emailError && (
+                    <span className="text-sm text-red-400 max-sm:text-xs">
+                      {emailError}
+                    </span>
+                  )}
+
+                  {studentVerificationSent && !studentVerified && (
+                    <div className="text-sm text-green-400 bg-green-600/20 p-2 rounded-md max-sm:text-xs max-sm:p-1.5">
+                      ✓ Verification email sent! Please check your inbox and
+                      click the verification link.
+                    </div>
+                  )}
+
+                  {studentVerified && (
+                    <div className="text-sm text-green-400 bg-green-600/20 p-2 rounded-md max-sm:text-xs max-sm:p-1.5">
+                      ✓ Student email verified! You can now proceed with the
+                      student discount.
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
+            )}
 
           {/* Recommended Section */}
           <div className="mt-4">
@@ -3881,112 +3961,108 @@ const CountrySlider = () => {
 
                 {/* 1. Insurance Certificate Box */}
                 {/* Insurance Certificate & Gift Card Section */}
-<div className="w-full mb-4 max-sm:mb-3">
-  <div className="flex gap-[10px] max-sm:gap-2 items-stretch">
-    
-    {/* 1. Insurance Certificate Box */}
-    <div className={`flex-1 flex flex-col border px-4 pb-4 pt-3 max-sm:px-2 max-sm:pb-3 rounded-2xl text-white transition-all overflow-hidden bg-white/5 ${
-      recommendedItems.insuranceCertificate ? "border-[#7350FF] bg-white/10 ring-1 ring-[#7350FF]/50" : "border-white/20"
-    }`}>
-      
-      {/* Top Section: Checkbox (Left) & 15 Days Badge (Right) */}
-      <div className="w-full flex justify-between items-center mb-4 h-5">
-        <div
-          className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all cursor-pointer border flex-shrink-0 ${
-            recommendedItems.insuranceCertificate ? "border-transparent bg-[#7350FF]" : "border-gray-400 bg-white"
-          }`}
-          onClick={() => toggleRecommendedItem("insuranceCertificate")}
-        >
-          {recommendedItems.insuranceCertificate && <Check className="w-3 h-3 text-white" />}
-        </div>
-        <span className="bg-[#7350FF]/20 border border-[#7350FF]/50 px-2 py-1 rounded-full text-[11px] text-purple-200 font-bold leading-none shadow-sm">
-          {insuranceDays} Days
-        </span>
-      </div>
+                <div className="w-full mb-4 max-sm:mb-3">
+                  <div className="flex gap-[10px] max-sm:gap-2 items-stretch">
 
-      {/* Center Content */}
-      <div className="flex flex-col items-center flex-grow justify-center py-1">
-        <div className="w-[50%] aspect-[16/9] mb-3 overflow-hidden rounded-lg shadow-lg">
-          <Image
-            src="/image/image1.png"
-            alt="Insurance"
-            width={100}
-            height={56}
-            className="w-full h-full object-cover"
-            priority
-          />
-        </div>
-        <h3 className="font-bold text-base max-sm:text-[14px] leading-tight text-center px-1">
-          Insurance certificate
-        </h3>
-      </div>
+                    {/* 1. Insurance Certificate Box */}
+                    <div className={`flex-1 flex flex-col border px-4 pb-4 pt-3 max-sm:px-2 max-sm:pb-3 rounded-2xl text-white transition-all overflow-hidden bg-white/5 ${recommendedItems.insuranceCertificate ? "border-[#7350FF] bg-white/10 ring-1 ring-[#7350FF]/50" : "border-white/20"
+                      }`}>
 
-      {/* Bottom: Qty & Price */}
-      <div className="mt-4 flex flex-col items-center gap-2">
-        <QtyInput
-          value={insuranceCount}
-          onIncrement={() => handleInsuranceChange(1)}
-          onDecrement={() => handleInsuranceChange(-1)}
-          min={1}
-        />
-        <div className="flex items-center gap-2 justify-center">
-          <span className="text-[15px] text-gray-400 line-through">£{originalInsuranceBase.toFixed(2)}</span>
-          <span className="font-bold text-base text-white">£{discountedInsurancePrice.toFixed(2)}</span>
-        </div>
-      </div>
-    </div>
+                      {/* Top Section: Checkbox (Left) & 15 Days Badge (Right) */}
+                      <div className="w-full flex justify-between items-center mb-4 h-5">
+                        <div
+                          className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all cursor-pointer border flex-shrink-0 ${recommendedItems.insuranceCertificate ? "border-transparent bg-[#7350FF]" : "border-gray-400 bg-white"
+                            }`}
+                          onClick={() => toggleRecommendedItem("insuranceCertificate")}
+                        >
+                          {recommendedItems.insuranceCertificate && <Check className="w-3 h-3 text-white" />}
+                        </div>
+                        <span className="bg-[#7350FF]/20 border border-[#7350FF]/50 px-2 py-1 rounded-full text-[11px] text-purple-200 font-bold leading-none shadow-sm">
+                          {insuranceDays} Days
+                        </span>
+                      </div>
 
-    {/* 2. Gift Card Box */}
-    <div className={`flex-1 flex flex-col border px-4 pb-4 pt-3 max-sm:px-2 max-sm:pb-3 rounded-2xl text-white transition-all overflow-hidden bg-white/5 ${
-      recommendedItems.giftCard ? "border-[#7350FF] bg-white/10 ring-1 ring-[#7350FF]/50" : "border-white/20"
-    }`}>
-      
-      {/* Top Section: Checkbox Only (Matching Height) */}
-      <div className="w-full flex justify-start items-center mb-4 h-5">
-        <div
-          className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all cursor-pointer border flex-shrink-0 ${
-            recommendedItems.giftCard ? "border-transparent bg-[#7350FF]" : "border-gray-400 bg-white"
-          }`}
-          onClick={() => toggleRecommendedItem("giftCard")}
-        >
-          {recommendedItems.giftCard && <Check className="w-3 h-3 text-white" />}
-        </div>
-      </div>
+                      {/* Center Content */}
+                      <div className="flex flex-col items-center flex-grow justify-center py-1">
+                        <div className="w-[50%] aspect-[16/9] mb-3 overflow-hidden rounded-lg shadow-lg">
+                          <Image
+                            src="/image/image1.png"
+                            alt="Insurance"
+                            width={100}
+                            height={56}
+                            className="w-full h-full object-cover"
+                            priority
+                          />
+                        </div>
+                        <h3 className="font-bold text-base max-sm:text-[14px] leading-tight text-center px-1">
+                          Insurance certificate
+                        </h3>
+                      </div>
 
-      {/* Center Content */}
-      <div className="flex flex-col items-center flex-grow justify-center py-1">
-        <div className="w-[50%] aspect-[16/9] mb-3 overflow-hidden rounded-lg shadow-lg bg-white/5">
-          <Image
-            src="/image/gitftnewcard.png"
-            alt="Gift Card"
-            width={100}
-            height={56}
-            className="w-full h-full object-cover"
-            priority
-          />
-        </div>
-        <h3 className="font-bold text-base max-sm:text-[14px] leading-tight text-center px-1">
-          Digital gift card
-        </h3>
-      </div>
+                      {/* Bottom: Qty & Price */}
+                      <div className="mt-4 flex flex-col items-center gap-2">
+                        <QtyInput
+                          value={insuranceCount}
+                          onIncrement={() => handleInsuranceChange(1)}
+                          onDecrement={() => handleInsuranceChange(-1)}
+                          min={1}
+                        />
+                        <div className="flex items-center gap-2 justify-center">
+                          <span className="text-[15px] text-gray-400 line-through">£{originalInsuranceBase.toFixed(2)}</span>
+                          <span className="font-bold text-base text-white">£{discountedInsurancePrice.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </div>
 
-      {/* Bottom: Qty & Price */}
-      <div className="mt-4 flex flex-col items-center gap-2">
-        <QtyInput
-          value={giftCardCount}
-          onIncrement={() => handleGiftCardChange(1)}
-          onDecrement={() => handleGiftCardChange(-1)}
-          min={1}
-        />
-        <div className="flex items-center gap-2 justify-center">
-          <span className="text-[15px] text-gray-400 line-through">£{(245 * giftCardCount).toFixed(2)}</span>
-          <span className="font-bold text-base text-white">£{discountedGiftCardPrice.toFixed(2)}</span>
-        </div>
-      </div>
-    </div>
+                    {/* 2. Gift Card Box */}
+                    <div className={`flex-1 flex flex-col border px-4 pb-4 pt-3 max-sm:px-2 max-sm:pb-3 rounded-2xl text-white transition-all overflow-hidden bg-white/5 ${recommendedItems.giftCard ? "border-[#7350FF] bg-white/10 ring-1 ring-[#7350FF]/50" : "border-white/20"
+                      }`}>
 
-  </div>
-</div>
+                      {/* Top Section: Checkbox Only (Matching Height) */}
+                      <div className="w-full flex justify-start items-center mb-4 h-5">
+                        <div
+                          className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all cursor-pointer border flex-shrink-0 ${recommendedItems.giftCard ? "border-transparent bg-[#7350FF]" : "border-gray-400 bg-white"
+                            }`}
+                          onClick={() => toggleRecommendedItem("giftCard")}
+                        >
+                          {recommendedItems.giftCard && <Check className="w-3 h-3 text-white" />}
+                        </div>
+                      </div>
+
+                      {/* Center Content */}
+                      <div className="flex flex-col items-center flex-grow justify-center py-1">
+                        <div className="w-[50%] aspect-[16/9] mb-3 overflow-hidden rounded-lg shadow-lg bg-white/5">
+                          <Image
+                            src="/image/gitftnewcard.png"
+                            alt="Gift Card"
+                            width={100}
+                            height={56}
+                            className="w-full h-full object-cover"
+                            priority
+                          />
+                        </div>
+                        <h3 className="font-bold text-base max-sm:text-[14px] leading-tight text-center px-1">
+                          Digital gift card
+                        </h3>
+                      </div>
+
+                      {/* Bottom: Qty & Price */}
+                      <div className="mt-4 flex flex-col items-center gap-2">
+                        <QtyInput
+                          value={giftCardCount}
+                          onIncrement={() => handleGiftCardChange(1)}
+                          onDecrement={() => handleGiftCardChange(-1)}
+                          min={1}
+                        />
+                        <div className="flex items-center gap-2 justify-center">
+                          <span className="text-[15px] text-gray-400 line-through">£{(245 * giftCardCount).toFixed(2)}</span>
+                          <span className="font-bold text-base text-white">£{discountedGiftCardPrice.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
 
               </div>
             </div>
@@ -3998,7 +4074,7 @@ const CountrySlider = () => {
                   Confirm required documents
                 </p>
               </div>
-            )}    
+            )}
 
 
 
@@ -4057,5 +4133,3 @@ const CountrySlider = () => {
 };
 
 export default CountrySlider;
-
-

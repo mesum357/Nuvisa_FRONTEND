@@ -4,60 +4,16 @@ import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
 import Image from "next/image";
 import WhatsAppBadge from "./WhatsAppBadge";
+import { expertSpotsConstants, syncExpertSpots } from "@/utils/expertSpots";
 
-const DEFAULT_SPOTS_LEFT = 12;
-const SPOTS_LEFT_STORAGE_KEY = "expertSpotsLeft";
-const LAST_RESET_DAY_STORAGE_KEY = "expertSpotsLastResetDayUk";
-
-const getUkDateParts = () => {
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Europe/London",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(new Date());
-
-  const getPart = (type) => parts.find((item) => item.type === type)?.value;
-  const year = getPart("year") || "";
-  const month = getPart("month") || "";
-  const day = getPart("day") || "";
-  const hour = Number(getPart("hour") || "0");
-
-  return {
-    dayKey: `${year}-${month}-${day}`,
-    hour,
-  };
-};
-
-const normalizeSpotsLeft = (value) => {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) return DEFAULT_SPOTS_LEFT;
-  return Math.max(0, Math.min(DEFAULT_SPOTS_LEFT, Math.floor(parsed)));
-};
+const { DEFAULT_SPOTS_LEFT } = expertSpotsConstants;
 
 const ExpertSection = ({ checked = false, onChange = () => {} }) => {
   const [spotsLeft, setSpotsLeft] = useState(DEFAULT_SPOTS_LEFT);
 
   useEffect(() => {
     const syncSpots = () => {
-      const storedSpots = localStorage.getItem(SPOTS_LEFT_STORAGE_KEY);
-      const lastResetDay = localStorage.getItem(LAST_RESET_DAY_STORAGE_KEY);
-      const { dayKey, hour } = getUkDateParts();
-
-      let nextSpots = normalizeSpotsLeft(storedSpots);
-      const shouldReset = nextSpots <= 5 && hour >= 2 && lastResetDay !== dayKey;
-
-      if (shouldReset) {
-        nextSpots = DEFAULT_SPOTS_LEFT;
-        localStorage.setItem(SPOTS_LEFT_STORAGE_KEY, String(nextSpots));
-        localStorage.setItem(LAST_RESET_DAY_STORAGE_KEY, dayKey);
-      } else if (storedSpots === null) {
-        localStorage.setItem(SPOTS_LEFT_STORAGE_KEY, String(nextSpots));
-      }
-
-      setSpotsLeft(nextSpots);
+      setSpotsLeft(syncExpertSpots());
     };
 
     syncSpots();

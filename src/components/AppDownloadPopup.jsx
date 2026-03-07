@@ -13,6 +13,26 @@ const Images = {
   FlightsIcon: flightsIcon,
 };
 
+const getFallbackPopupContent = () => ({
+  mainHeading: '❤️ NEW CUSTOMER OFFER - £129 fee for your first visa',
+  subHeading: 'Auto-booking appointment',
+  offerPrice: '£129',
+  originalPrice: '£100',
+  continueButtonText: 'Continue',
+  lastQuestionButtonText: 'Check Required Documents',
+  imageUrl: '/image/popupnew.png',
+  conciergeTitle: 'Concierge Assistance',
+  conciergePrice: '£35',
+  conciergeOfferPrice: 'Free',
+  lastChanceText: 'Last chance (ends soon) Until {month} {year}!',
+  questions: [
+    { id: 'q1', text: 'Status in United Kingdom', type: 'OPTIONS', options: ['UK BRP', 'UK ILR', 'UK BRC', 'UK Citizen'] },
+    { id: 'q2', text: 'Schengen visa refused during the past three years?', type: 'OPTIONS', options: ['Yes', 'No'] },
+    { id: 'q3', text: 'Main purpose of the journey', type: 'TEXT', options: [] },
+    { id: 'q4', text: 'Help us with your Phone Number', type: 'TEXT', options: [] },
+  ],
+});
+
 const AppDownloadPopup = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
@@ -32,16 +52,31 @@ const AppDownloadPopup = () => {
     const fetchPopupContent = async () => {
       try {
         const response = await axios.get('/api/popup-content');
-        if (response.data.success) {
+        if (response.data?.success && response.data?.data) {
           setDbContent(response.data.data);
           const initialAnswers = {};
           response.data.data.questions.forEach((q) => {
             initialAnswers[q.id] = '';
           });
           setAnswers(initialAnswers);
+        } else {
+          const fallback = getFallbackPopupContent();
+          setDbContent(fallback);
+          const initialAnswers = {};
+          fallback.questions.forEach((q) => {
+            initialAnswers[q.id] = '';
+          });
+          setAnswers(initialAnswers);
         }
       } catch (err) {
         console.error("Error fetching popup content:", err);
+        const fallback = getFallbackPopupContent();
+        setDbContent(fallback);
+        const initialAnswers = {};
+        fallback.questions.forEach((q) => {
+          initialAnswers[q.id] = '';
+        });
+        setAnswers(initialAnswers);
       } finally {
         setIsLoadingContent(false);
       }
