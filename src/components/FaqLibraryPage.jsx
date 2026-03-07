@@ -120,10 +120,33 @@ const FaqLibraryPage = () => {
         groups.get(category).push(item);
       });
 
-    return Array.from(groups.entries()).map(([name, items], index) => ({
-      name,
-      id: toSlug(name) || `category-${index + 1}`,
-      items,
+    const groupsBySlug = new Map(
+      Array.from(groups.entries()).map(([name, items], index) => [
+        toSlug(name) || `category-${index + 1}`,
+        {
+          name,
+          id: toSlug(name) || `category-${index + 1}`,
+          items,
+        },
+      ])
+    );
+
+    const ordered = [];
+
+    FAQ_CARD_CONTENT.forEach((card) => {
+      const slug = toSlug(card.title);
+      const matched = groupsBySlug.get(slug);
+      if (matched) {
+        ordered.push(matched);
+        groupsBySlug.delete(slug);
+      }
+    });
+
+    // Append any categories not present in FAQ_CARD_CONTENT at the end
+    ordered.push(...Array.from(groupsBySlug.values()));
+
+    return ordered.map((group, index) => ({
+      ...group,
       Icon: CATEGORY_ICONS[index % CATEGORY_ICONS.length],
     }));
   }, [faqs]);

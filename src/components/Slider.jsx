@@ -59,43 +59,9 @@ import { useCountriesWithAppointmentTexts } from "@/hooks/useCountriesWithAppoin
 import { staticCountries } from "@/constants/staticCountries";
 import { getDynamicMonthText } from "@/utils/getDynamicMonthText";
 import { getCurrentWeekSlotPercentage } from "@/utils/getCurrentWeekSlotPercentage";
+import { getAdminApiBase } from "@/utils/adminApiBase";
 
 const normalizeCountryKey = (value) => String(value || "").trim().toLowerCase();
-
-const COUNTRY_PRICING_STATIC = [
-  { name: "Austria", basePrice: 169, strikeOutPrice: 200, reason: "", showReason: false },
-  { name: "Belgium", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
-  { name: "Bulgaria", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
-  { name: "Croatia", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
-  { name: "Czechia", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
-  { name: "Denmark", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
-  { name: "Estonia", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
-  { name: "Finland", basePrice: 149, strikeOutPrice: 200, reason: "", showReason: false },
-  { name: "France", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
-  { name: "Germany", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
-  { name: "Greece", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
-  { name: "Hungary", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
-  { name: "Iceland", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
-  { name: "Italy", basePrice: 149, strikeOutPrice: 200, reason: "Due to Global Crisis", showReason: true },
-  { name: "Latvia", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
-  { name: "Lithuania", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
-  { name: "Luxembourg", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
-  { name: "Malta", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
-  { name: "NORWAY", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
-  { name: "Netherlands", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
-  { name: "Poland", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
-  { name: "Portugal", basePrice: 149, strikeOutPrice: 200, reason: "", showReason: false },
-  { name: "Romania", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
-  { name: "Slovenia", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
-  { name: "Spain", basePrice: 149, strikeOutPrice: 200, reason: "", showReason: false },
-  { name: "Sweden", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
-  { name: "Switzerland", basePrice: 129, strikeOutPrice: 200, reason: "", showReason: false },
-];
-
-const COUNTRY_PRICING_STATIC_LOOKUP = COUNTRY_PRICING_STATIC.reduce((acc, item) => {
-  acc[normalizeCountryKey(item.name)] = item;
-  return acc;
-}, {});
 
 const CountrySlider = () => {
   const router = useRouter();
@@ -110,6 +76,9 @@ const CountrySlider = () => {
 
   const { content: sliderContent } = useSliderContent();
   const visaState = useAppSelector((state) => state.visa);
+  const [countryPricingList, setCountryPricingList] = useState([]);
+  const [isVisaPricingLoading, setIsVisaPricingLoading] = useState(true);
+  const [visaPricingError, setVisaPricingError] = useState("");
 
   const freeOfferBannerText = useMemo(() => {
     const rawText =
@@ -168,6 +137,106 @@ const CountrySlider = () => {
     ));
   }, [dailyNriBadgeText, hasEuFlagBadge]);
 
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchVisaPricing = async () => {
+      try {
+        setIsVisaPricingLoading(true);
+        setVisaPricingError("");
+        const apiBase = String(process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+        const adminBase = getAdminApiBase();
+        const candidates = [
+          `/api/visa-pricing`,
+          `${apiBase}/visa_pricing`,
+          `${apiBase}/api/visa_pricing`,
+          `${apiBase}/api/public/visa_pricing`,
+          `${apiBase}/api/public/visa-pricing`,
+          `${adminBase}/api/visa_pricing`,
+          `${adminBase}/visa_pricing`,
+          `${adminBase}/api/public/visa_pricing`,
+          `${adminBase}/api/public/visa-pricing`,
+        ].filter((url) => /^https?:\/\//i.test(url) || url.startsWith("/"));
+
+        let payload = null;
+        let hasSuccessfulResponse = false;
+        for (const endpoint of candidates) {
+          try {
+            const res = await fetch(endpoint, { method: "GET" });
+            if (!res.ok) continue;
+            hasSuccessfulResponse = true;
+            const json = await res.json();
+            const status = String(json?.status || "").toUpperCase();
+            if (status === "ERROR") continue;
+            payload =
+              json?.data?.results || [];
+            if (Array.isArray(payload)) break;
+          } catch {
+            // Try next endpoint
+          }
+        }
+
+        if (!mounted) return;
+        if (!hasSuccessfulResponse) {
+          setVisaPricingError("Visa pricing is temporarily unavailable. Please try again shortly.");
+          setCountryPricingList([]);
+          return;
+        }
+
+        if (!Array.isArray(payload) || payload.length === 0) {
+          setCountryPricingList([]);
+          return;
+        }
+
+        const normalized = payload
+          .map((item) => ({
+            id: String(item?.id || ""),
+            name: String(item?.name || "").trim(),
+            basePrice: Number(item?.basePrice),
+            strikeOutPrice: Number(item?.strikeOutPrice),
+            reason: String(item?.reason || ""),
+            showReason: Boolean(item?.showReason),
+          }))
+          .filter(
+            (item) =>
+              item.id &&
+              item.name &&
+              Number.isFinite(item.basePrice) &&
+              Number.isFinite(item.strikeOutPrice)
+          );
+
+        if (normalized.length === 0) {
+          setCountryPricingList([]);
+          setVisaPricingError("Visa pricing data is unavailable right now.");
+          return;
+        }
+
+        setCountryPricingList(normalized);
+      } catch {
+        if (!mounted) return;
+        setCountryPricingList([]);
+        setVisaPricingError("Visa pricing is temporarily unavailable. Please try again shortly.");
+      } finally {
+        if (mounted) setIsVisaPricingLoading(false);
+      }
+    };
+
+    fetchVisaPricing();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const countryPricingLookup = useMemo(() => {
+    return countryPricingList.reduce((acc, item) => {
+      acc[normalizeCountryKey(item.name)] = item;
+      return acc;
+    }, {});
+  }, [countryPricingList]);
+
+  const isVisaPricingEmpty =
+    !isVisaPricingLoading && !visaPricingError && countryPricingList.length === 0;
+
 
   const [_isCountryOpen, setIsCountryOpen] = useState(false);
   const [selectedCountry, setSelectedCountryLocal] = useState(
@@ -179,6 +248,7 @@ const CountrySlider = () => {
 
   const requiredDocumentRef = useRef(null);
   const mainSectionRef = useRef(null);
+  const reasonTooltipRef = useRef(null);
 
   // Use Redux state instead of local state
   const travelers = visaState.travelers ?? 0;
@@ -327,8 +397,8 @@ const CountrySlider = () => {
 
   const selectedCountryPricing = useMemo(() => {
     const countryName = getCountryParam(selectedCountry) || "Belgium";
-    return COUNTRY_PRICING_STATIC_LOOKUP[normalizeCountryKey(countryName)] || null;
-  }, [selectedCountry]);
+    return countryPricingLookup[normalizeCountryKey(countryName)] || null;
+  }, [selectedCountry, countryPricingLookup]);
 
   const tripDaysInclusive = (start, end) => {
     if (!start || !end) return 0;
@@ -525,6 +595,19 @@ const CountrySlider = () => {
       }
     }
   }, [selectedVisaType, arrivalDate, departureDate]);
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (activeTooltip !== "priorityAppointment") return;
+      if (!reasonTooltipRef.current) return;
+      if (!reasonTooltipRef.current.contains(event.target)) {
+        setActiveTooltip(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [activeTooltip]);
 
   const getLocalDateString = (date) => {
     const year = date.getFullYear();
@@ -888,14 +971,14 @@ const CountrySlider = () => {
 
     // Update Redux state without redirecting
     const countryName = typeof country === "object" ? country.name : country;
-    const staticPricing =
-      COUNTRY_PRICING_STATIC_LOOKUP[normalizeCountryKey(countryName)] || null;
+    const dynamicPricing =
+      countryPricingLookup[normalizeCountryKey(countryName)] || null;
 
     // Get dynamic fees based on selected country
     const countryConfig = getCountryConfig(countryName);
 
     dispatch(setReduxSelectedCountry(String(countryName)));
-    dispatch(setVisaFees(Number(staticPricing?.basePrice ?? countryConfig.visaFee)));
+    dispatch(setVisaFees(Number(dynamicPricing?.basePrice ?? countryConfig.visaFee)));
     dispatch(setInsuranceFees(Number(countryConfig.insuranceFee)));
   };
 
@@ -913,7 +996,7 @@ const CountrySlider = () => {
 
   const dropdownCountries = useMemo(
     () =>
-      COUNTRY_PRICING_STATIC
+      countryPricingList
         .map((country) => country?.name)
         .filter(Boolean)
         .filter(
@@ -921,8 +1004,21 @@ const CountrySlider = () => {
             normalizeCountryName(countryName) !==
             normalizeCountryName(defaultCountryMarker)
         ),
-    [countries, normalizeCountryName]
+    [countryPricingList, normalizeCountryName]
   );
+
+  useEffect(() => {
+    if (!dropdownCountries.length) return;
+    const current = normalizeCountryName(getCountryParam(selectedCountry));
+    const hasCurrent = dropdownCountries.some(
+      (country) => normalizeCountryName(country) === current
+    );
+    if (!hasCurrent) {
+      const first = dropdownCountries[0];
+      setSelectedCountryLocal(first);
+      dispatch(setReduxSelectedCountry(String(first)));
+    }
+  }, [dropdownCountries, selectedCountry, dispatch, normalizeCountryName]);
 
   const adminDefaultCountry = useMemo(() => {
     const markerCountry = countries.find(
@@ -3004,25 +3100,40 @@ const CountrySlider = () => {
                       id="country-select"
                       value={selectedCountry}
                       onChange={(e) => selectCountry(e.target.value)}
+                      disabled={isVisaPricingLoading || !dropdownCountries.length}
                       className="px-2 py-2 font-semibold rounded-full shadow-black/20 shadow-lg cursor-pointer focus:outline-none max-sm:w-full max-sm:text-center"
                     >
-                      {dropdownCountries.map((country) => (
-                        <option
-                          key={country}
-                          value={country}
-                          className="bg-gray-400 text-gray-800"
-                        >
-                          {country}
+                      {isVisaPricingLoading ? (
+                        <option value="" className="bg-gray-400 text-gray-800">
+                          Loading countries...
                         </option>
-                      ))}
+                      ) : !dropdownCountries.length ? (
+                        <option value="" className="bg-gray-400 text-gray-800">
+                          Pricing unavailable
+                        </option>
+                      ) : (
+                        dropdownCountries.map((country) => (
+                          <option
+                            key={country}
+                            value={country}
+                            className="bg-gray-400 text-gray-800"
+                          >
+                            {country}
+                          </option>
+                        ))
+                      )}
                     </select>
                   </div>
+                  {(visaPricingError || isVisaPricingEmpty) && (
+                    <p className="text-[11px] mt-2 text-red-300 max-sm:text-[10px]">
+                      {visaPricingError || "No visa pricing available right now."}
+                    </p>
+                  )}
                   {selectedCountryPricing?.showReason && selectedCountryPricing?.reason && (
                     <div className="mt-2 flex justify-end max-sm:justify-start">
                       <div
+                        ref={reasonTooltipRef}
                         className="relative border-b border-dashed border-white/40 w-fit font-semibold"
-                        onMouseEnter={() => setActiveTooltip("priorityAppointment")}
-                        onMouseLeave={() => setActiveTooltip(null)}
                       >
                         <button
                           type="button"
