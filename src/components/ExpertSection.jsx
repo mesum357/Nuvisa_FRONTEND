@@ -18,8 +18,13 @@ const ExpertSection = ({ checked = false, onChange = () => {} }) => {
 
     syncSpots();
     const intervalId = setInterval(syncSpots, 60 * 1000);
+    const onSpotsUpdated = () => syncSpots();
+    window.addEventListener("expert-spots-updated", onSpotsUpdated);
 
-    return () => clearInterval(intervalId);
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener("expert-spots-updated", onSpotsUpdated);
+    };
   }, []);
 
   return (

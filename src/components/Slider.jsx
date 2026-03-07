@@ -60,6 +60,7 @@ import { staticCountries } from "@/constants/staticCountries";
 import { getDynamicMonthText } from "@/utils/getDynamicMonthText";
 import { getCurrentWeekSlotPercentage } from "@/utils/getCurrentWeekSlotPercentage";
 import { getAdminApiBase } from "@/utils/adminApiBase";
+import { setExpertSpotsDefaultFromApi } from "@/utils/expertSpots";
 
 const normalizeCountryKey = (value) => String(value || "").trim().toLowerCase();
 
@@ -91,6 +92,10 @@ const CountrySlider = () => {
         : rawText;
 
     return getDynamicMonthText(normalizedText);
+  }, [sliderContent]);
+
+  useEffect(() => {
+    setExpertSpotsDefaultFromApi(sliderContent["slots_left"]);
   }, [sliderContent]);
 
   const nriBadgeText = sliderContent["nri_badge_text"] || "";
@@ -3051,9 +3056,12 @@ const CountrySlider = () => {
           <div className="w-full">
             {/* Header with pricing */}
             <div className="mb-6 max-sm:mb-4">
-              <h1 className="text-3xl font-gilroy-bold mb-4 max-sm:text-2xl max-sm:mb-3">
+              <h1 className="text-3xl font-gilroy-bold max-sm:text-2xl">
                 Schengen visa from the UK
               </h1>
+              <p className="text-xs mb-4 max-sm:text-[11px] max-sm:mb-3 leading-relaxed">
+                Complete Schengen visa end-to-end
+              </p>
               <div className="flex items-center justify-between gap-3 mb-4 max-sm:flex-col max-sm:items-start max-sm:gap-1">
                 <div className="flex gap-3 max-sm:w-full max-sm:justify-between items-center">
                   <span className="text-lg font-semibold max-sm:text-base line-through decoration-2 decoration-neutral-400">
@@ -3144,7 +3152,7 @@ const CountrySlider = () => {
                             )
                           }
                         >
-                          Reason
+                          {sliderContent["appointment_reason"] || "Priority appointment notice"}
                         </button>
 
                         {activeTooltip === "priorityAppointment" && (
@@ -3587,7 +3595,7 @@ const CountrySlider = () => {
           </ClientOnly>
 
           {/* Express Checkout Section */}
-          <div className="space-y-3 mt-6">
+          <div className="space-y-3 mt-6" id="discount-code">
             <div className="flex items-center justify-between">
               <h2 className="font-medium text-lg max-sm:text-base  ">
                 Express checkout
@@ -3827,9 +3835,10 @@ const CountrySlider = () => {
                min-w-4 animate-pulse max-sm:h-3 max-sm:w-3"
               ></div>
               <div>
-                <span className="text-sm font-medium text-white max-sm:text-xs">
-                  {freeOfferBannerText}
-                </span>
+                <div
+                  className="text-sm font-medium text-white max-sm:text-xs"
+                  dangerouslySetInnerHTML={{ __html: freeOfferBannerText }}
+                />
               </div>
             </div>
             <div className="p-4 max-sm:p-3">
