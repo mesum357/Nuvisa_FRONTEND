@@ -183,7 +183,7 @@ const VisaSolution = ({ video = false }) => {
           {destinations.map((destination, index) => (
             <div
               key={`${destination.name}-${index}`}
-              onClick={() => handleCountrySelect(destination.name)}
+              onClick={() => router.push("/get-the-visa")}
               className="relative flex-shrink-0 w-[384px] h-[200px]  mx-4 group overflow-hidden rounded-xl cursor-pointer"
             >
               <Image
