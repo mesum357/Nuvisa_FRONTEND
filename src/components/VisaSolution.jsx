@@ -22,16 +22,13 @@ const VisaSolution = ({ video = false }) => {
 
     // Store the selected country and dynamic fees in Redux
     dispatch(setSelectedCountry(countryName));
-    dispatch(setVisaFees(countryConfig.visaFee));
-    dispatch(setInsuranceFees(countryConfig.insuranceFee));
     dispatch(setTravelers(1));
 
     // Redirect to checkout with dynamic country information
     router.push(
-      `/visa-checkout?selectedCountry=${encodeURIComponent(
+      `/get-the-visa?selectedCountry=${encodeURIComponent(
         countryName
-      )}&visaFees=${countryConfig.visaFee}&insuranceFees=${countryConfig.insuranceFee
-      }&travelers=1`
+      )}&travelers=1`
     );
   };
 
@@ -183,7 +180,7 @@ const VisaSolution = ({ video = false }) => {
           {destinations.map((destination, index) => (
             <div
               key={`${destination.name}-${index}`}
-              onClick={() => router.push("/get-the-visa")}
+              onClick={() => handleCountrySelect(destination.name)}
               className="relative flex-shrink-0 w-[384px] h-[200px]  mx-4 group overflow-hidden rounded-xl cursor-pointer"
             >
               <Image
