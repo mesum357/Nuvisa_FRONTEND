@@ -104,7 +104,7 @@ export const Header = ({ href }) => {
           </motion.a> */}
 
           <a
-            href="https://wa.me/447388120901"
+            href="https://wa.me/447388120901?text=Hello%20NUvisa!%20I%20would%20like%20assistance."
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center space-x-2 bg-green-600/20 border border-green-500/30 rounded-full px-3 py-1.5 hover:bg-green-600/30 transition-colors"
