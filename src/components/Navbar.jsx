@@ -72,17 +72,26 @@ const Navbar = () => {
 
           {/* Right Content (WhatsApp + Email aligned RIGHT) */}
           <div className=" items-center gap-4  hidden md:flex  ">
+            <a 
+            href="https://wa.me/447388120901?text=Hello%20NUvisa!%20I%20would%20like%20assistance."
+            target="_blank"
+            rel="noopener noreferrer"
+            >
             <div className="flex items-center gap-2">
               <FaWhatsapp className="text-green-400 size-4" />
               <span className="text-sm font-medium text-gray-300 hidden md:inline">
                 {getContent('contact_phone', '+44 7876505800')}
               </span>
             </div>
+            </a>
 
+              <a href="mailto:support@nuvisa.co.uk?subject=Schengen%20Visa%20Assistance&body=Hello%20NUvisa,%0A%0AI%20would%20like%20assistance%20with%20a%20Schengen%20visa%20application.">
             <div className="flex items-center gap-2">
+
               <FaEnvelope className="size-4" />
               <span>{getContent('contact_email', 'support@nuvisa.co.uk')}</span>
             </div>
+              </a>
           </div>
 
         </div>}

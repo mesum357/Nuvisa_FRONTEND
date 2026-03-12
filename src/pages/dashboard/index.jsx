@@ -453,7 +453,7 @@ function ApplicationCard({
   };
 
   //const waHref = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER}`;
-  const waHref = `https://wa.me/447388120901`;
+  const waHref = `https://wa.me/447388120901?text=Hello%20NUvisa!%20I%20would%20like%20assistance.`;
 
   return (
     <motion.div
