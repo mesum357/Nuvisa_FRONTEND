@@ -3,6 +3,7 @@ import Image from "next/image";
 import { ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/store";
+import { ArrowUpRight } from "lucide-react";
 import {
   setSelectedCountry,
   setVisaFees,
@@ -13,6 +14,7 @@ import GetTheVisaButton from "./layout/GetTheVisaButton";
 import { getCountryConfig } from "@/constants/countryConfig";
 import { useCountriesWithAppointmentTexts } from "@/hooks/useCountriesWithAppointmentTexts";
 import { staticCountries } from "@/constants/staticCountries";
+import Link from "next/link";
 
 const CountryCardsSection = () => {
   const [showAll, setShowAll] = useState(false);
@@ -170,11 +172,18 @@ const CountryCardsSection = () => {
           *If require urgent appointment in 4-5 days kindly email
           support@nuvisa.co.uk do not follow the standard visa process.
         </p>
-        <GetTheVisaButton
-          btnClassName={
-            "max-sm:w-full flex items-center justify-center text-xl tracking-widest"
-          }
-        />
+        <div className="mb-10 md:mb-20">
+
+        <Link href={"/get-the-visa#required-documents"}>
+          <button className="group flex items-center bg-[#6B4EFF] text-white  gap-[16px] font-medium px-[24px] py-3 rounded-3xl cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb]">
+            <span className="mr-3 text-2xl">Check Required Documents</span>
+            <span className="bg-white rounded-full p-1.5 transition-transform duration-300 group-hover:rotate-45 group-hover:translate-x-1 group-hover:-translate-y-0">
+              <ArrowUpRight className="w-5 h-5 text-[#6B4EFF]" />
+            </span>
+          </button>
+        </Link>
+        {/* <GetTheVisaButton /> */}
+      </div>
       </div>
     </div>
   );
