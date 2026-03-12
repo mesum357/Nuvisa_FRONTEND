@@ -2687,6 +2687,7 @@ const CountrySlider = () => {
 
         setTimeout(() => {
           setIsHighlighted(true);
+          setDocumentsAccordionOpen(true)
           console.log("Highlighting ON");
 
           setTimeout(() => {
