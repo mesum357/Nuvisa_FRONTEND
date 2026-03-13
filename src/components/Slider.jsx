@@ -3061,7 +3061,7 @@ const CountrySlider = () => {
                 Schengen visa from the UK
               </h1>
               <p className="text-xs mb-4 max-sm:text-[11px] max-sm:mb-3 leading-relaxed">
-                Complete Schengen visa end-to-end
+                Complete Schengen visa end-to-end with all necessary documents
               </p>
               <div className="flex items-center justify-between gap-3 mb-4 max-sm:flex-col max-sm:items-start max-sm:gap-1">
                 <div className="flex gap-3 max-sm:w-full max-sm:justify-between items-center">
