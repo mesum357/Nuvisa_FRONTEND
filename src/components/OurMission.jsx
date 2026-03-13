@@ -1,8 +1,13 @@
 "use client";
 import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 const OurMission = ({ className }) => {
+  const pathname = usePathname();
+
+  const buttonText = pathname === "/get-the-visa" ? "Get The Visa" : "Check Required Documents";
+
   return (
     <div
       className={`relative flex flex-col items-center justify-center w-full overflow-hidden ${className}`}
@@ -38,13 +43,12 @@ const OurMission = ({ className }) => {
       <div className="mb-10 md:mb-20">
         <Link href={"/get-the-visa#required-documents"}>
           <button className="group flex items-center bg-[#6B4EFF] text-white  gap-[16px] font-medium px-[24px] py-3 rounded-3xl cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb]">
-            <span className="mr-3 text-2xl">Check Required Documents</span>
+            <span className="mr-3 text-xl md:text-2xl uppercase">{buttonText}</span>
             <span className="bg-white rounded-full p-1.5 transition-transform duration-300 group-hover:rotate-45 group-hover:translate-x-1 group-hover:-translate-y-0">
               <ArrowUpRight className="w-5 h-5 text-[#6B4EFF]" />
             </span>
           </button>
         </Link>
-        {/* <GetTheVisaButton /> */}
       </div>
     </div>
   );
