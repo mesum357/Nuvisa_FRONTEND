@@ -2808,7 +2808,7 @@ const CountrySlider = () => {
                 <h2 className="text-3xl md:text-[40px] font-gilroy-bold my-auto max-sm:text-2xl max-sm:mb-2">
                   Visa <br className="hidden sm:block" /> information
                 </h2>
-                <div className="flex gap-10 justify-between w-full md:px-5 px-0">
+                <div className="flex gap-8 justify-between w-full md:px-5 px-0">
                   <div className="flex max-sm:py-2 flex-col gap-1 max-sm:gap-2  max-sm:w-full">
                     {/* Visa Types */}
                     <div className="flex items-center max-sm:text-sm">
@@ -3036,7 +3036,7 @@ const CountrySlider = () => {
       </div>
 
       {/* Right Column */}
-      <div className="w-full gap-3 flex flex-col items-start lg:max-w-[60%] max-sm:gap-4 mt-0 md:mt-4">
+      <div className="w-full gap-4 flex flex-col items-start lg:max-w-[60%] max-sm:gap-4 mt-0 md:mt-4">
         {/* NRI Badge Section */}
         <section className="text-center text-white rounded-2xl p-2 w-full max-sm:p-1">
           <div className="flex justify-start items-center">
@@ -3056,7 +3056,7 @@ const CountrySlider = () => {
         <section ref={mainSectionRef} id="add-to-cart" className="bg-[#24242D] text-white rounded-2xl p-6 w-full max-sm:p-4">
           <div className="w-full">
             {/* Header with pricing */}
-            <div className="mb-6 max-sm:mb-4">
+            <div className="mb-8 max-sm:mb-6">
               <h1 className="text-3xl font-gilroy-bold max-sm:text-2xl">
                 Schengen visa from the UK
               </h1>
@@ -3070,15 +3070,21 @@ const CountrySlider = () => {
                       £{calculateOriginalPrice()}
                     </span>
                     {Number(calculateOriginalPrice()) > visaOnlyPrice && (
+                      <span className="text-[13px] font-bold text-[#6a6a6a] mt-0.5 max-sm:text-xs">
+                        Traditional
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <span className="text-2xl font-gilroy-bold max-sm:text-xl">
+                      £{visaOnlyPrice.toFixed(2)}
+                    </span>
+                    {Number(calculateOriginalPrice()) > visaOnlyPrice && (
                       <span className="text-[13px] font-bold text-[#00B67A] mt-0.5 max-sm:text-xs">
                         You save {Math.round(((Number(calculateOriginalPrice()) - visaOnlyPrice) / Number(calculateOriginalPrice())) * 100)}%
                       </span>
                     )}
                   </div>
-                  <span className="text-2xl font-gilroy-bold max-sm:text-xl">
-                    £{visaOnlyPrice.toFixed(2)}
-                  </span>
-
                 </div>
 
                 <div className="flex items-center gap-2 shadow-lg shadow-black/20 p-2 rounded-full max-sm:w-full max-sm:justify-between max-sm:px-4">
@@ -3175,7 +3181,7 @@ const CountrySlider = () => {
             </div>
           </div>
 
-          <div className="mb-6 max-sm:mb-4">
+          <div className="mb-8 max-sm:mb-6">
             <div className="space-y-2.5 font-gilroy-medium !font-semibold max-sm:space-y-2">
               {/* Auto-booking */}
               <div>
@@ -3245,7 +3251,7 @@ const CountrySlider = () => {
               later within visa validity period.
             </p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 items-start max-sm:gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-start max-sm:gap-4">
               <div className="w-full">
                 {(() => {
                   // Calculate first valid date (4 weeks from today)
@@ -3356,7 +3362,7 @@ const CountrySlider = () => {
 
           {/* Required Documents */}
           <ClientOnly>
-            <div className="mt-6" data-documents-section id="required-documents" ref={requiredDocumentRef}>
+            <div className="mt-8" data-documents-section id="required-documents" ref={requiredDocumentRef}>
               <div
                 className={`bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden transition-all duration-300 hover:bg-white/10 ${validationErrors.size > 0
                   ? "!bg-red-500/10 border !border-red-500 shadow-lg"
@@ -3601,7 +3607,7 @@ const CountrySlider = () => {
           </ClientOnly>
 
           {/* Express Checkout Section */}
-          <div className="space-y-3 mt-6" id="discount-code">
+          <div className="space-y-4 mt-8" id="discount-code">
             <div className="flex items-center justify-between">
               <h2 className="font-medium text-lg max-sm:text-base  ">
                 Express checkout
@@ -3833,7 +3839,7 @@ const CountrySlider = () => {
           <ExpertSection checked={isExpertSelected} onChange={setIsExpertSelected} />
 
           {/* Free Offer Banner */}
-          <div className="border rounded-3xl border-white/20 bg-white/5 backdrop-blur-sm overflow-hidden max-sm:rounded-2xl mt-6">
+          <div className="border rounded-3xl border-white/20 bg-white/5 backdrop-blur-sm overflow-hidden max-sm:rounded-2xl mt-8">
             <div className="flex items-center gap-4 p-4 border-b border-white/10 max-sm:p-3 max-sm:gap-3">
               <div
                 className="h-4 w-4 rounded-full 
@@ -3889,7 +3895,7 @@ const CountrySlider = () => {
           </div>
 
           {/* Discount Code Section */}
-          <div className="space-y-3 mt-6">
+          <div className="space-y-4 mt-8">
             <h2 className="font-medium text-lg max-sm:text-base">
               Discount Code
             </h2>
@@ -4007,7 +4013,7 @@ const CountrySlider = () => {
           {/* Email Verification Section */}
           {appliedDiscount &&
             appliedDiscount.description.toLowerCase().includes("student") && (
-              <div className="space-y-3 mt-6">
+              <div className="space-y-4 mt-8">
                 <h2 className="font-medium text-lg max-sm:text-base">
                   Student Verification Required
                 </h2>
@@ -4076,19 +4082,19 @@ const CountrySlider = () => {
             )}
 
           {/* Recommended Section */}
-          <div className="mt-4">
+          <div className="mt-8">
             <h2 className="text-xl font-gilroy-bold mb-4 max-sm:text-lg">
               Recommended
             </h2>
 
             {/* Insurance Certificate & Gift Card Section */}
             <div className="w-full mb-4 max-sm:mb-3">
-              <div className="flex gap-[10px] max-sm:gap-2 items-stretch">
+              <div className="flex gap-4 max-sm:gap-3 items-stretch">
 
                 {/* 1. Insurance Certificate Box */}
                 {/* Insurance Certificate & Gift Card Section */}
                 <div className="w-full mb-4 max-sm:mb-3">
-                  <div className="flex gap-[10px] max-sm:gap-2 items-stretch">
+                  <div className="flex gap-4 max-sm:gap-3 items-stretch">
 
                     {/* 1. Insurance Certificate Box */}
                     <div className={`flex-1 flex flex-col border px-4 pb-4 pt-3 max-sm:px-2 max-sm:pb-3 rounded-2xl text-white transition-all overflow-hidden bg-white/5 ${recommendedItems.insuranceCertificate ? "border-[#7350FF] bg-white/10 ring-1 ring-[#7350FF]/50" : "border-white/20"
@@ -4208,7 +4214,7 @@ const CountrySlider = () => {
             {/* Checkout Button */}
             <button
               onClick={() => handleGetVisa()}
-              className="group flex w-full justify-between items-center bg-[#6B4EFF] text-white gap-[16px] font-medium px-[20px] py-3.5 rounded-full cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb] max-sm:py-3 max-sm:px-4 mt-5"
+              className="group flex w-full justify-between items-center bg-[#6B4EFF] text-white gap-[16px] font-medium px-[20px] py-4 rounded-full cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb] max-sm:py-3.5 max-sm:px-4 mt-8"
             >
               <span className="mr-3 text-xl font-semibold max-sm:text-lg max-sm:mr-2">
                 {selectedPaymentMethod === "stripe"
