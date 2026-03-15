@@ -79,22 +79,9 @@ const ComparisonSection = () => {
   return (
     <div className="w-full bg-[#f4eeff] py-16 md:py-24 px-4 md:px-8 overflow-x-hidden">
       <div className="max-w-[1280px] mx-auto">
-
-        {/*
-          Single grid. Each column contains its own header + content.
-          Mobile order: Beyond Compare (order-1) → Details (order-2) → Experience (order-3)
-          Desktop: natural left-to-right via lg:order-*
-        */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.6fr_1fr] gap-y-10 lg:gap-y-0 items-start">
-
-          {/* ===== COLUMN 1: DETAILS ===== */}
-          {/* Mobile: order-2 | Desktop: col 1 */}
           <div className="flex flex-col order-2 lg:order-1 lg:pr-6 lg:border-r border-gray-200">
-            {/* Header */}
             <div className="pb-4">
-              {/* <p className="text-[10px] font-gilroy-bold tracking-[0.2em] uppercase text-gray-400 mb-1">
-                Overview
-              </p> */}
               <h3 className="text-xl md:text-2xl font-gilroy-bold text-gray-900 leading-tight tracking-tight uppercase">
                 DETAILS
               </h3>
@@ -127,17 +114,13 @@ const ComparisonSection = () => {
             </div>
           </div>
 
-          {/* ===== COLUMN 2: BEYOND COMPARE ===== */}
-          {/* Mobile: order-1 | Desktop: col 2 */}
           <div className="flex flex-col order-1 lg:order-2 lg:px-6 lg:border-r border-gray-200">
-            {/* Header */}
             <div className="pb-4">
               <h3 className="text-xl md:text-2xl font-gilroy-bold text-gray-900 leading-tight tracking-tight uppercase">
                 BEYOND COMPARE
               </h3>
             </div>
 
-            {/* Column sub-headers */}
             <div className="grid grid-cols-[1fr_1fr_1fr] gap-1 py-3 border-b border-gray-300">
               <div />
               <div className="flex items-center justify-start pl-1">
@@ -198,10 +181,7 @@ const ComparisonSection = () => {
             </div>
           </div>
 
-          {/* ===== COLUMN 3: THE EXPERIENCE ===== */}
-          {/* Mobile: order-3 | Desktop: col 3 */}
           <div className="flex flex-col order-3 lg:order-3 lg:pl-6">
-            {/* Header */}
             <div className="pb-4">
               <h3 className="text-xl md:text-2xl font-gilroy-bold text-gray-900 leading-tight tracking-tight uppercase">
                 THE EXPERIENCE
