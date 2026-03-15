@@ -1,18 +1,18 @@
 // Helper to check if URL is localhost
 const isLocalhost = (url) => {
-	if (!url) return false;
-	try {
-		const urlObj = new URL(url);
-		return urlObj.hostname === 'localhost' || urlObj.hostname === '127.0.0.1' || urlObj.hostname.startsWith('192.168.') || urlObj.hostname.startsWith('10.') || urlObj.hostname.startsWith('172.');
-	} catch {
-		return url.includes('localhost') || url.includes('127.0.0.1');
-	}
+  if (!url) return false;
+  try {
+    const urlObj = new URL(url);
+    return urlObj.hostname === 'localhost' || urlObj.hostname === '127.0.0.1' || urlObj.hostname.startsWith('192.168.') || urlObj.hostname.startsWith('10.') || urlObj.hostname.startsWith('172.');
+  } catch {
+    return url.includes('localhost') || url.includes('127.0.0.1');
+  }
 };
 
 // Helper to check if we're in production
 const isProduction = () => {
-	return process.env.NODE_ENV === 'production' && 
-	       process.env.NEXT_PUBLIC_NODE_ENV !== 'development';
+  return process.env.NODE_ENV === 'production' &&
+    process.env.NEXT_PUBLIC_NODE_ENV !== 'development';
 };
 
 export default async function handler(req, res) {
@@ -23,10 +23,10 @@ export default async function handler(req, res) {
   try {
     const { path } = req.query;
     const endpoint = path ? `?path=${path}` : '?path=active';
-    
+
     // Call the admin panel API directly
     // Only skip localhost URLs in production (allow them in development)
-    const rawAdminUrl = process.env.NEXT_PUBLIC_ADMIN_URL;
+    const rawAdminUrl = process.env.NEXT_PUBLIC_ADMIN_API_URL || process.env.NEXT_PUBLIC_ADMIN_URL;
     const shouldSkipLocalhost = isProduction() && isLocalhost(rawAdminUrl);
     const adminUrl = (rawAdminUrl && !shouldSkipLocalhost) ? rawAdminUrl : 'https://nuvisa-admin.vercel.app';
     const response = await fetch(`${adminUrl}/api/comparison-section${endpoint}`, {

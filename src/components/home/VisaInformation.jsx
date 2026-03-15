@@ -67,7 +67,9 @@ const VisaInformation = () => {
           <CountrySlider />
 
           {/* Visa Type Selection */}
-          <div id="klarna-section" className="px-5 pt-5 w-full flex items-center justify-center overflow-x-hidden">
+
+          <ComparisonSection />
+          <div id="klarna-section" className="px-5 pt-5 mt-16 w-full flex items-center justify-center overflow-x-hidden">
             <div className="max-w-[88rem] bg-[#F3E5FF] text-[#FFF] w-full rounded-3xl py-12 px-10 text-center shadow-2xl">
               <h2 className="text-[26px] max-md:px-8 lg:text-[38px] font-gilroy-bold text-[#212529] mb-2 leading-tight flex items-center gap-3 justify-center lg:flex-row flex-col">
                 <Image src="/icons/klarna.png" alt="Klarna" width={100} height={40} className="" priority />
@@ -198,7 +200,6 @@ const VisaInformation = () => {
               </div>
             </div>
           </div>
-          <ComparisonSection />
 
           <VisaSolution video={true} />
           <FAQSection />
@@ -210,7 +211,7 @@ const VisaInformation = () => {
         </div>
 
         {/* Sticky Bottom Bar */}
-        <StickyBottomBar triggerElementId={'klarna-section'} key={'visa-info-page'}/>
+        <StickyBottomBar triggerElementId={'klarna-section'} key={'visa-info-page'} />
       </div>
     </ClientOnly>
   );
