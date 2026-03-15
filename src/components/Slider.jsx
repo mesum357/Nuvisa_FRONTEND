@@ -3065,15 +3065,20 @@ const CountrySlider = () => {
               </p>
               <div className="flex items-center justify-between gap-3 mb-4 max-sm:flex-col max-sm:items-start max-sm:gap-1">
                 <div className="flex gap-3 max-sm:w-full max-sm:justify-between items-center">
-                  <span className="text-lg font-semibold max-sm:text-base line-through decoration-2 decoration-neutral-400">
-                    £{calculateOriginalPrice()}
+                  <div className="flex flex-col items-center">
+                    <span className="text-lg font-semibold max-sm:text-base line-through decoration-2 decoration-neutral-400">
+                      £{calculateOriginalPrice()}
+                    </span>
+                    {Number(calculateOriginalPrice()) > visaOnlyPrice && (
+                      <span className="text-[13px] font-bold text-[#00B67A] mt-0.5 max-sm:text-xs">
+                        You save {Math.round(((Number(calculateOriginalPrice()) - visaOnlyPrice) / Number(calculateOriginalPrice())) * 100)}%
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-2xl font-gilroy-bold max-sm:text-xl">
+                    £{visaOnlyPrice.toFixed(2)}
                   </span>
 
-                  <div className="flex flex-col items-end">
-                    <span className="text-2xl font-gilroy-bold max-sm:text-xl">
-                      £{visaOnlyPrice.toFixed(2)}
-                    </span>
-                  </div>
                 </div>
 
                 <div className="flex items-center gap-2 shadow-lg shadow-black/20 p-2 rounded-full max-sm:w-full max-sm:justify-between max-sm:px-4">
