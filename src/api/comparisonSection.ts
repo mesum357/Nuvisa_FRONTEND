@@ -6,10 +6,11 @@ export const getComparisonSection = async () => {
     if (typeof window === 'undefined') {
       throw new Error('Comparison section API should only be called client-side');
     }
-    
+
     // Construct the URL using window.location to avoid localhost fallback
     const baseUrl = window.location.origin;
     const response = await axios.get(`${baseUrl}/api/comparison-section?path=active`);
+    console.log(response);
     return response;
   } catch (error) {
     console.error('Error fetching comparison section:', error);

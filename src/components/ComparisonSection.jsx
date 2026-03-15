@@ -52,11 +52,11 @@ const ComparisonSection = () => {
       {
         title: "Tips",
         items: [
-          "Schengen visa processed in as little as 10 days",
-          "Flat-fee pricing — no hidden costs or surcharges",
-          "AI-powered document review reduces errors",
-          "Real-time status tracking from anywhere",
-          "Dedicated expert support throughout the process",
+          "Ensure your passport is valid for at least 6 months beyond stay",
+          "Upload clear, high-resolution scans to speed up AI verification",
+          "Double-check that flight dates match your visa request period",
+          "Keep your digital profile updated for faster future applications",
+          "Check the specific insurance requirements for your destination",
         ]
       }
     ],
@@ -66,7 +66,7 @@ const ComparisonSection = () => {
     rightSideImage: "/image/nuvisa-image.jpg",
   };
 
-  const data = defaultData;
+  const data = comparisonData || defaultData;
   const detailSections = data?.detailSections || defaultData.detailSections;
   const comparisonColumns = data?.comparisonColumns || defaultData.comparisonColumns;
   const comparisonRows = data?.comparisonRows || defaultData.comparisonRows;
