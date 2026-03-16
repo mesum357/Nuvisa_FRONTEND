@@ -7,22 +7,23 @@ const OurMission = ({ className }) => {
   const pathname = usePathname();
 
   const buttonText = pathname === "/get-the-visa" ? "Get The Visa" : "Check Required Documents";
-  const targetHref = pathname === "/get-the-visa" 
-    ? "/get-the-visa" 
+  const targetHref = pathname === "/get-the-visa"
+    ? "/get-the-visa"
     : "/get-the-visa#required-documents";
 
   return (
     <div
+      id="our-mission"
       className={`relative flex flex-col items-center justify-center w-full overflow-hidden ${className}`}
     >
       {/* Top Section */}
       <div className="relative z-10 max-w-[1200px] w-full px-6 pt-0 md:pt-20 pb-8">
-        <p className="text-2xl font-medium text-[#29003D] mb-4">Our mission:</p>
+        <p className="text-2xl font-medium text-[#29003D] mb-4">Our vision:</p>
         <h1 className="text-[28px] lg:text-[32px] font-gilroy-bold mb-8 leading-tight text-[#29003D]">
-          Streamline your journey — Globally.
+          We believe quality travel can elevate your life.
         </h1>
-        <p className="text-[22px] text-[#29003D] font-gilroy-bold text-left md:text-right max-w-md ml-auto">
-          — empowering customers to get more.
+        <p className="text-[14px] text-[#29003D] font-gilroy-bold text-left md:text-right max-w-md ml-auto">
+          - Especially when they’re transparent & affordably priced.
         </p>
       </div>
 

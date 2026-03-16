@@ -271,6 +271,7 @@ model ComparisonSection {
   comparisonColumns Json?    // Array of column titles: string[]
   comparisonRows    Json?    // Array of { feature: string, values: string[], tooltip?: string }
   tooltip           String?
+  experienceTitle   String?  @default("THE EXPERIENCE")
   isActive          Boolean  @default(true)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt

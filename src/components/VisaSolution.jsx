@@ -12,7 +12,7 @@ import {
 import { getCountryConfig } from "@/constants/countryConfig";
 import GetTheVisaButton from "./layout/GetTheVisaButton";
 
-const VisaSolution = ({ video = false }) => {
+const VisaSolution = ({ video = false, title = "Top destinations" }) => {
   const router = useRouter();
   const dispatch = useAppDispatch();
 
@@ -32,6 +32,8 @@ const VisaSolution = ({ video = false }) => {
     );
   };
 
+
+
   const destinations = [
     {
       name: "Germany",
@@ -40,17 +42,23 @@ const VisaSolution = ({ video = false }) => {
       landmark: "Brandenburg Gate",
     },
     {
-      name: "Netherlands",
+      name: "Switzerland",
       image:
-        "/image/country/Netherlands.jpg",
-      landmark: "Amsterdam Canal Houses",
+        "/image/country/Switzerland.jpg",
+      landmark: "Matterhorn",
     },
-    {
-      name: "Belgium",
-      image:
-        "/image/country/Belgium.jpg",
-      landmark: "Atomium Brussels",
-    },
+    // {
+    //   name: "Netherlands",
+    //   image:
+    //     "/image/country/Netherlands.jpg",
+    //   landmark: "Amsterdam Canal Houses",
+    // },
+    // {
+    //   name: "Belgium",
+    //   image:
+    //     "/image/country/Belgium.jpg",
+    //   landmark: "Atomium Brussels",
+    // },
     {
       name: "France",
       image:
@@ -63,51 +71,51 @@ const VisaSolution = ({ video = false }) => {
         "/image/country/Italy.jpg",
       landmark: "Colosseum Rome",
     },
-    {
-      name: "Bulgaria",
-      image:
-        "/image/country/Bulgaria.jpg",
-      landmark: "Sagrada Familia",
-    },
-    {
-      name: "Estonia",
-      image:
-        "/image/country/Estonia.jpg",
-      landmark: "Tallinn Old Town",
-    },
-    {
-      name: "Hungary",
-      image:
-        "/image/country/Hungary.jpg",
-      landmark: "Parliament Building",
-    },
+    // {
+    //   name: "Bulgaria",
+    //   image:
+    //     "/image/country/Bulgaria.jpg",
+    //   landmark: "Sagrada Familia",
+    // },
+    // {
+    //   name: "Estonia",
+    //   image:
+    //     "/image/country/Estonia.jpg",
+    //   landmark: "Tallinn Old Town",
+    // },
+    // {
+    //   name: "Hungary",
+    //   image:
+    //     "/image/country/Hungary.jpg",
+    //   landmark: "Parliament Building",
+    // },
     {
       name: "Portugal",
       image:
         "/image/country/Portugal.jpg",
       landmark: "Pena Palace",
     },
-    {
-      name: "Iceland",
-      image:
-        "/image/country/Iceland.jpg",
-      landmark: "Blue Lagoon",
-    },
-    {
-      name: "Poland",
-      image:
-        "/image/country/Poland.jpg",
-      landmark: "Warsaw Old Town",
-    },
-    {
-      name: "Norway",
-      image:
-        "/image/country/Norway.jpg",
-      landmark: "Norwegian Fjords",
-    },
+    // {
+    //   name: "Iceland",
+    //   image:
+    //     "/image/country/Iceland.jpg",
+    //   landmark: "Blue Lagoon",
+    // },
+    // {
+    //   name: "Poland",
+    //   image:
+    //     "/image/country/Poland.jpg",
+    //   landmark: "Warsaw Old Town",
+    // },
+    // {
+    //   name: "Norway",
+    //   image:
+    //     "/image/country/Norway.jpg",
+    //   landmark: "Norwegian Fjords",
+    // },
   ];
 
-
+  // Switzerland, France, Italy, Germany, Spain, Portugal
   const galleryRef = useRef(null);
   const [isPaused, setIsPaused] = useState(false);
   const speed = 0.5;
@@ -138,15 +146,13 @@ const VisaSolution = ({ video = false }) => {
   }, [isPaused]);
 
   return (
-    <section className="w-full pri_bg py-[40px]  flex items-center justify-center gap-[32px] flex-col">
+    <section id="top-destinations" className="w-full pri_bg py-[40px] bg-gradient-to-br from-purple-100 to-[#f3e6ff] flex items-center justify-center gap-[32px] flex-col">
       <div className="w-full max-w-[86rem] mx-auto flex flex-col gap-6 items-center justify-center">
         <div className=" w-full flex items-center gap-5 md:gap-10 max-md:flex-col max-md:text-center px-6">
-          <h2 className="text-2xl sm:text-5xl text-white  md:text-6xl font-extrabold leading-tight flex-1">
-            The next generation of complete visa solutions
-          </h2>
+          <h2 className="text-2xl sm:text-5xl w-1/2 text-black  md:text-7xl font-extrabold leading-tight flex-1" dangerouslySetInnerHTML={{ __html: title }} />
 
           {/* Right Side - Description */}
-          <p className="text-white text-[13px] md:text-base font-medium leading-relaxed flex-[.6]">
+          <p className="text-black text-[11px] md:text-[14px] font-medium leading-relaxed flex-[.6]">
             {/* Benefit from document pre-checks, error-proof form filling, and
             personalized visa guidance, powered by AI with human oversight at
             critical checkpoints - all designed to prevent delays, mistakes, and

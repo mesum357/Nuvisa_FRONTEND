@@ -59,7 +59,35 @@ const Index = () => {
               </h1>
 
               <p className="text-[25px] md:text-[28px] font-extrabold leading-tight">
-                {loading ? "Flat £200 fee, faster processing, dedicated support" : heroContent.description}
+                {loading ? (
+                  "Flat £200 fee, faster processing, dedicated support"
+                ) : heroContent.description?.includes("+Link+") ? (
+                  heroContent.description.split(" I ").map((part, index, array) => {
+                    const isLast = index === array.length - 1;
+                    if (part.includes("+Link+")) {
+                      const [text, url] = part.split("+Link+");
+                      return (
+                        <span key={index}>
+                          <Link
+                            href={url.trim()}
+                            className="hover:underline decoration-white/50 transition-all"
+                          >
+                            {text.trim()}
+                          </Link>
+                          {!isLast && " I "}
+                        </span>
+                      );
+                    }
+                    return (
+                      <span key={index}>
+                        {part}
+                        {!isLast && " I "}
+                      </span>
+                    );
+                  })
+                ) : (
+                  heroContent.description
+                )}
               </p>
             </div>
           </div>
@@ -71,9 +99,16 @@ const Index = () => {
         <CountryCardsSection />
 
       </div>
-      <ComparisonSection />
+      {/* <ComparisonSection /> */}
       <VisaSolution />
-      <FeaturesSection />
+      <div className="bg-[#1E1E27] text-white w-full overflow-x-hidden pb-16">
+        <VisaProcessSection />
+      </div>
+      <div className="bg-gradient-to-br from-purple-100 to-[#f3e6ff] text-white w-full overflow-x-hidden py-16">
+        <CountryCardsSection id="everyday-steals" specificCountries={['Lithuania', 'Greece', 'Malta', 'Latvia', 'Luxembourg']} image="/image/everyday_steals.png" />
+      </div>
+      {/* <FeaturesSection /> */}
+
       <PremiumServiceSection />
       <div className="bg-gradient-to-br from-purple-100 to-[#f3e6ff]">
         <div className=" py-16 px-6">
@@ -100,9 +135,7 @@ const Index = () => {
           </div>
         </div>
       </div>
-      <div className="bg-[#1E1E27] text-white w-full overflow-x-hidden pb-16">
-        <VisaProcessSection />
-      </div>
+
       <div className="bg-gradient-to-br from-purple-100 to-[#f3e6ff]">
         <OurMission />
         <Footer />

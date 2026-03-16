@@ -16,7 +16,7 @@ import { useCountriesWithAppointmentTexts } from "@/hooks/useCountriesWithAppoin
 import { staticCountries } from "@/constants/staticCountries";
 import Link from "next/link";
 
-const CountryCardsSection = () => {
+const CountryCardsSection = ({ specificCountries, image, id }) => {
   const [showAll, setShowAll] = useState(false);
   const [sectionContent, setSectionContent] = useState({
     title: "Choose Your Country",
@@ -33,7 +33,7 @@ const CountryCardsSection = () => {
 
     // Preserve existing traveler count, default to 0 if not set
     const currentTravelerCount = visaState.travelers !== undefined && visaState.travelers !== null
-      ? visaState.travelers 
+      ? visaState.travelers
       : 0;
 
     // Store the selected country and dynamic fees in Redux
@@ -46,8 +46,7 @@ const CountryCardsSection = () => {
     router.push(
       `/get-the-visa?selectedCountry=${encodeURIComponent(
         countryName
-      )}&visaFees=${countryConfig.visaFee}&insuranceFees=${
-        countryConfig.insuranceFee
+      )}&visaFees=${countryConfig.visaFee}&insuranceFees=${countryConfig.insuranceFee
       }&travelers=${currentTravelerCount}`
     );
   }, [visaState.travelers, dispatch, router]);
@@ -93,47 +92,71 @@ const CountryCardsSection = () => {
   const homepageCountries = countries;
 
   const displayedCountries = useMemo(() => {
-    return showAll ? homepageCountries : homepageCountries.slice(0, 6);
-  }, [homepageCountries, showAll]);
+    let list = homepageCountries;
+    if (specificCountries && specificCountries.length > 0) {
+      list = homepageCountries.filter((country) =>
+        specificCountries.includes(country.name)
+      );
+    }
+    return showAll ? list : list.slice(0, 9);
+  }, [homepageCountries, showAll, specificCountries]);
 
   return (
-    <div className="max-w-6xl mx-auto  px-6">
+    <div className="max-w-6xl mx-auto  px-6" id={id}>
       {/* Cards Grid */}
-      <span className="text-4xl text-center font-gilroy-bold text-white flex item-center justify-center pb-4">
+      {/* <span className="text-4xl text-center font-gilroy-bold text-white flex item-center justify-center pb-4">
         {sectionContent.title}
       </span>
       <span className="text-3xl text-center font-gilroy text-white flex item-center justify-center pb-8">
         {sectionContent.description}
-      </span>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      </span> */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+        {/* Large 2x2 Image Card (Visible on lg screens) */}
+        {!loading && !error && (
+          <div className="hidden lg:block lg:col-span-3 lg:row-span-3 relative rounded-2xl overflow-hidden group h-full min-h-[600px]">
+            <Image
+              src={image || "/image/choose_country.png"}
+              alt="Choose Country"
+              fill
+              className="object-cover transition-transform duration-700 group-hover:scale-105"
+              priority
+            />
+            <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent"></div>
+            <div className="absolute bottom-4 left-4 text-white">
+              <h3 className="text-xl font-gilroy-bold mb-0.5">{image ? "Everyday Steals" : sectionContent.title}</h3>
+              <p className="text-xs opacity-90">{image ? "Best deals on flights and hotels" : sectionContent.description}</p>
+            </div>
+          </div>
+        )}
+
         {!loading &&
           !error &&
           displayedCountries.map((country, index) => (
             <div
               key={index}
               onClick={() => handleCountrySelect(country.name)}
-              className="group relative bg-[#18181e] rounded-xl transform hover:shadow-[0_0_15px_#3ed1ff] transition-shadow duration-300 cursor-pointer"
+              className="group relative bg-[#18181e] rounded-xl transform hover:shadow-[0_0_15px_#3ed1ff] transition-shadow duration-300 cursor-pointer overflow-hidden"
             >
               {/* Country Image */}
-              <div className="relative h-[200px] rounded-t-xl overflow-hidden">
+              <div className="relative h-[130px] md:h-[110px] overflow-hidden">
                 <Image
                   src={country.image}
                   alt={country.landmark}
                   fill
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 20vw"
                   className="object-cover transition-transform duration-500 group-hover:scale-110"
-                  loading={index < 6 ? "eager" : "lazy"}
+                  loading={index < 8 ? "eager" : "lazy"}
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent"></div>
               </div>
 
               {/* Card Content */}
-              <div className="p-3">
-                <div className="mb-4 text-sm md:text-base font-medium text-white">
+              <div className="p-2">
+                <div className="mb-1 text-[11px] font-gilroy-bold text-white uppercase tracking-wider">
                   {country.name}
                 </div>
 
-                <div className="text-sm md:text-base font-medium text-white">
+                <div className="text-[10px] font-gilroy text-white opacity-80 leading-tight line-clamp-1">
                   {country.appointmentText}
                 </div>
               </div>
@@ -142,7 +165,7 @@ const CountryCardsSection = () => {
       </div>
 
       {/* See More Button */}
-      {!showAll && homepageCountries.length > 6 && (
+      {!image && !showAll && homepageCountries.length > 4 && (
         <div className="text-center mt-12">
           <button
             onClick={() => setShowAll(true)}
@@ -155,7 +178,7 @@ const CountryCardsSection = () => {
       )}
 
       {/* Show Less Button (when expanded) */}
-      {showAll && homepageCountries.length > 6 && (
+      {showAll && homepageCountries.length > 4 && (
         <div className="text-center mt-12">
           <button
             onClick={() => setShowAll(false)}
@@ -168,22 +191,22 @@ const CountryCardsSection = () => {
       )}
 
       <div className="my-14 sm:mt-12 sm:mb-0 max-sm:w-full flex items-center justify-center flex-col gap-10">
-        <p className="text-[18px] mt-3 text-white font-gilroy-bold">
+        <p className={`text-[18px] mt-3 ${image ? "text-black" : "text-white"}  font-gilroy-bold `}>
           *If require urgent appointment in 4-5 days kindly email
           support@nuvisa.co.uk do not follow the standard visa process.
         </p>
         <div className="mb-10 md:mb-20">
 
-        <Link href={"/get-the-visa#required-documents"}>
-          <button className="group flex items-center bg-[#6B4EFF] text-white  gap-[16px] font-medium px-[24px] py-3 rounded-3xl cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb]">
-            <span className="mr-3 text-2xl uppercase">Check Required Documents</span>
-            <span className="bg-white rounded-full p-1.5 transition-transform duration-300 group-hover:rotate-45 group-hover:translate-x-1 group-hover:-translate-y-0">
-              <ArrowUpRight className="w-5 h-5 text-[#6B4EFF]" />
-            </span>
-          </button>
-        </Link>
-        {/* <GetTheVisaButton /> */}
-      </div>
+          <Link href={"/get-the-visa#required-documents"}>
+            <button className="group flex items-center bg-[#6B4EFF] text-white  gap-[16px] font-medium px-[24px] py-3 rounded-3xl cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb]">
+              <span className="mr-3 text-2xl uppercase">Check Required Documents</span>
+              <span className="bg-white rounded-full p-1.5 transition-transform duration-300 group-hover:rotate-45 group-hover:translate-x-1 group-hover:-translate-y-0">
+                <ArrowUpRight className="w-5 h-5 text-[#6B4EFF]" />
+              </span>
+            </button>
+          </Link>
+          {/* <GetTheVisaButton /> */}
+        </div>
       </div>
     </div>
   );
