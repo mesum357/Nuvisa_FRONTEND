@@ -119,7 +119,7 @@ const CompleteVisaSolutions = () => {
       <section className="w-full bg-gray-50 py-[40px] flex items-center justify-center gap-[32px] flex-col">
         <div className="max-w-[1200px] w-full mx-auto grid md:grid-cols-2 gap-10 items-center">
           <h2 className="text-4xl md:text-5xl font-extrabold leading-tight">
-            The next generation of complete visa solutions
+            The <br /> next generation of complete visa solutions
           </h2>
 
           {/* Right Side - Description */}

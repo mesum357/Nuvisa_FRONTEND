@@ -16,7 +16,7 @@ const FeaturesSection = React.memo(() => {
     const calculateMaxOffset = () => {
       maxOffsetRef.current = (window.innerWidth / 1) * 0.35;
     };
-    
+
     calculateMaxOffset();
     window.addEventListener('resize', calculateMaxOffset);
     return () => window.removeEventListener('resize', calculateMaxOffset);
@@ -60,7 +60,7 @@ const FeaturesSection = React.memo(() => {
       const currentOffset = currentOffsetRef.current;
       const targetOffset = targetOffsetRef.current;
       const difference = Math.abs(currentOffset - targetOffset);
-      
+
       // Only animate if there's a meaningful difference
       if (difference > 0.1) {
         // Smooth interpolation factor (lower = smoother but slower)
@@ -105,7 +105,7 @@ const FeaturesSection = React.memo(() => {
         // Handle cases when section is outside viewport
         const newTargetOffset = calculateTargetOffset();
         targetOffsetRef.current = newTargetOffset;
-        
+
         // On initial load, set immediately without animation to prevent flicker
         if (!isInitialized) {
           currentOffsetRef.current = newTargetOffset;
@@ -153,7 +153,7 @@ const FeaturesSection = React.memo(() => {
     });
 
     window.addEventListener("scroll", handleScroll, { passive: true });
-    
+
     return () => {
       window.removeEventListener("scroll", handleScroll);
       if (animationFrameRef.current) {

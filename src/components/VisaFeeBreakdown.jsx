@@ -80,10 +80,10 @@ const VisaFeeBreakdown = ({
   const embassyReference = Array.isArray(embassyDetails?.reference)
     ? embassyDetails.reference
     : [
-        { amount: 78, label: "12+ yrs" },
-        { amount: 40, label: "6 - 11 yrs" },
-        { amount: 0, label: "0 - 5 yrs" },
-      ];
+      { amount: 78, label: "12+ yrs" },
+      { amount: 40, label: "6 - 11 yrs" },
+      { amount: 0, label: "0 - 5 yrs" },
+    ];
 
   const travelersOriginalTotal =
     travelersCount > 0
@@ -137,15 +137,14 @@ const VisaFeeBreakdown = ({
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="mt-2 text-sm text-blue-300 underline"
+        className="mt-2 text-md  underline  text-gray-500 font-medium max-sm:text-[11px]"
       >
         {isOpen ? "Hide details" : "View details"}
       </button>
 
       <div
-        className={`overflow-hidden transition-all duration-300 ease-in-out ${
-          isOpen ? "max-h-300 opacity-100 mt-2" : "max-h-0 opacity-0"
-        }`}
+        className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? "max-h-300 opacity-100 mt-2" : "max-h-0 opacity-0"
+          }`}
       >
         <div className="rounded-2xl border border-white/15 bg-[#24242D] p-4 max-sm:px-0 max-sm:border-x-0 max-sm:rounded-none text-white">
           <div className="space-y-4 max-sm:space-y-2.5">

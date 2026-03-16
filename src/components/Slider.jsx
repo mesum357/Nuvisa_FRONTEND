@@ -1668,7 +1668,7 @@ const CountrySlider = () => {
     }
 
     const baseOriginalPrice = Math.round(currentStrikeOutPrice) * travelers;
-    return baseOriginalPrice;
+    return baseOriginalPrice.toFixed(2);
   };
 
   // Apply coupon immediately (no verification at apply time)
@@ -3028,7 +3028,7 @@ const CountrySlider = () => {
                 />
               ))}
             </div>
-            <p className="text-[18px] hidden md:block mt-8 text-white font-gilroy-bold text-center max-sm:text-[16px] max-sm:mt-8">
+            <p className="text-[18px] hidden md:block mt-3 mb-5 text-white font-gilroy-bold text-center max-sm:text-[16px] max-sm:mt-8">
               {sliderContent["urgent_note_text"]}
             </p>
           </section>
@@ -3053,7 +3053,7 @@ const CountrySlider = () => {
         </section>
 
         {/* Main Content Section */}
-        <section ref={mainSectionRef} id="add-to-cart" className="bg-[#24242D] text-white rounded-2xl p-6 w-full max-sm:p-4">
+        <section ref={mainSectionRef} id="add-to-cart" className="bg-[#24242D] text-white rounded-t-2xl  p-6 w-full max-sm:p-4">
           <div className="w-full">
             {/* Header with pricing */}
             <div className="mb-8 max-sm:mb-6">
@@ -3061,30 +3061,31 @@ const CountrySlider = () => {
                 Schengen visa from the UK
               </h1>
               <p className="text-xs mb-4 max-sm:text-[11px] max-sm:mb-3 leading-relaxed">
-                Complete visa service end-to-end with all necessary documents
+                Complete visa service with all necessary documents
               </p>
               <div className="flex items-center justify-between gap-3 mb-4 max-sm:flex-col max-sm:items-start max-sm:gap-1">
-                <div className="flex gap-3 max-sm:w-full max-sm:justify-between items-center">
-                  <div className="flex flex-col items-center">
-                    <span className="text-lg font-semibold max-sm:text-base line-through decoration-2 decoration-neutral-400">
-                      £{calculateOriginalPrice()}
-                    </span>
-                    {Number(calculateOriginalPrice()) > visaOnlyPrice && (
-                      <span className="text-[13px] font-bold text-[#6a6a6a] mt-0.5 max-sm:text-xs">
-                        Traditional
-                      </span>
-                    )}
-                  </div>
+                <div className="flex gap-12 max-sm:w-full max-sm:justify-between items-center">
                   <div className="flex flex-col items-center">
                     <span className="text-2xl font-gilroy-bold max-sm:text-xl">
                       £{visaOnlyPrice.toFixed(2)}
                     </span>
                     {Number(calculateOriginalPrice()) > visaOnlyPrice && (
-                      <span className="text-[13px] font-bold text-[#00B67A] mt-0.5 max-sm:text-xs">
-                        You save {Math.round(((Number(calculateOriginalPrice()) - visaOnlyPrice) / Number(calculateOriginalPrice())) * 100)}%
+                      <span className="text-[12px] text-gray-500 font-medium max-sm:text-[11px]">
+                        You save  £{Math.round(((Number(calculateOriginalPrice()) - visaOnlyPrice)))}
                       </span>
                     )}
                   </div>
+                  <div className="flex flex-col items-center">
+                    <span className="text-2xl font-semibold max-sm:text-base line-through decoration-2 decoration-neutral-400 text-gray-500">
+                      £{calculateOriginalPrice()}
+                    </span>
+                    {Number(calculateOriginalPrice()) > visaOnlyPrice && (
+                      <span className="text-[12px] text-gray-500 font-medium max-sm:text-[11px]">
+                        Traditional fee
+                      </span>
+                    )}
+                  </div>
+
                 </div>
 
                 <div className="flex items-center gap-2 shadow-lg shadow-black/20 p-2 rounded-full max-sm:w-full max-sm:justify-between max-sm:px-4">
@@ -3201,7 +3202,7 @@ const CountrySlider = () => {
                       <h3 className="max-sm:text-sm">
                         Auto-booking appointment
                       </h3>
-                      <span className="text-[12px] text-green-400 font-medium max-sm:text-[11px]">
+                      <span className="text-[12px] text-gray-500 font-medium max-sm:text-[11px]">
                         {currentAppointmentText}
                       </span>
                     </div>
@@ -3230,7 +3231,7 @@ const CountrySlider = () => {
                   </div>
                   <div className="flex flex-col gap-0 justify-end leading-tight">
                     <h3 className="max-sm:text-sm">Concierge assistance</h3>
-                    <span className="text-[12px] text-green-400 font-medium max-sm:text-[11px]">
+                    <span className="text-[12px] text-gray-500 font-medium max-sm:text-[11px]">
                       Your travel itinerary | Form filing
                     </span>
                   </div>
@@ -3246,7 +3247,7 @@ const CountrySlider = () => {
           </div>
 
           <div className="w-full">
-            <p className="text-xs mb-4 max-sm:text-[11px] max-sm:mb-3 leading-relaxed">
+            <p className="text-xs mb-1 max-sm:text-[11px] max-sm:mb-3 leading-relaxed">
               Dates are required for visa processing only and can be changed
               later within visa validity period.
             </p>
@@ -3362,7 +3363,7 @@ const CountrySlider = () => {
 
           {/* Required Documents */}
           <ClientOnly>
-            <div className="mt-8" data-documents-section id="required-documents" ref={requiredDocumentRef}>
+            <div className="mt-5" data-documents-section id="required-documents" ref={requiredDocumentRef}>
               <div
                 className={`bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden transition-all duration-300 hover:bg-white/10 ${validationErrors.size > 0
                   ? "!bg-red-500/10 border !border-red-500 shadow-lg"
@@ -3607,7 +3608,7 @@ const CountrySlider = () => {
           </ClientOnly>
 
           {/* Express Checkout Section */}
-          <div className="space-y-4 mt-8" id="discount-code">
+          <div className="space-y-4 mt-5" id="discount-code">
             <div className="flex items-center justify-between">
               <h2 className="font-medium text-lg max-sm:text-base  ">
                 Express checkout
@@ -3839,7 +3840,7 @@ const CountrySlider = () => {
           <ExpertSection checked={isExpertSelected} onChange={setIsExpertSelected} />
 
           {/* Free Offer Banner */}
-          <div className="border rounded-3xl border-white/20 bg-white/5 backdrop-blur-sm overflow-hidden max-sm:rounded-2xl mt-8">
+          <div className="border rounded-3xl border-white/20 bg-white/5 backdrop-blur-sm overflow-hidden max-sm:rounded-2xl mt-5">
             <div className="flex items-center gap-4 p-4 border-b border-white/10 max-sm:p-3 max-sm:gap-3">
               <div
                 className="h-4 w-4 rounded-full 
@@ -3895,7 +3896,7 @@ const CountrySlider = () => {
           </div>
 
           {/* Discount Code Section */}
-          <div className="space-y-4 mt-8">
+          <div className="space-y-4 mt-5">
             <h2 className="font-medium text-lg max-sm:text-base">
               Discount Code
             </h2>
@@ -4082,9 +4083,9 @@ const CountrySlider = () => {
             )}
 
           {/* Recommended Section */}
-          <div className="mt-8">
+          <div className="mt-3">
             <h2 className="text-xl font-gilroy-bold mb-4 max-sm:text-lg">
-              Recommended
+              More to love
             </h2>
 
             {/* Insurance Certificate & Gift Card Section */}
@@ -4097,11 +4098,11 @@ const CountrySlider = () => {
                   <div className="flex gap-4 max-sm:gap-3 items-stretch">
 
                     {/* 1. Insurance Certificate Box */}
-                    <div className={`flex-1 flex flex-col border px-4 pb-4 pt-3 max-sm:px-2 max-sm:pb-3 rounded-2xl text-white transition-all overflow-hidden bg-white/5 ${recommendedItems.insuranceCertificate ? "border-[#7350FF] bg-white/10 ring-1 ring-[#7350FF]/50" : "border-white/20"
+                    <div className={`flex-1 flex flex-col border px-4  pt-3 max-sm:px-2  rounded-2xl text-white transition-all overflow-hidden bg-white/5 ${recommendedItems.insuranceCertificate ? "border-[#7350FF] bg-white/10 ring-1 ring-[#7350FF]/50" : "border-white/20"
                       }`}>
 
                       {/* Top Section: Checkbox (Left) & 15 Days Badge (Right) */}
-                      <div className="w-full flex justify-between items-center mb-4 h-5">
+                      <div className="w-full flex justify-between items-center h-5">
                         <div
                           className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all cursor-pointer border flex-shrink-0 ${recommendedItems.insuranceCertificate ? "border-transparent bg-[#7350FF]" : "border-gray-400 bg-white"
                             }`}
@@ -4115,7 +4116,7 @@ const CountrySlider = () => {
                       </div>
 
                       {/* Center Content */}
-                      <div className="flex flex-col items-center flex-grow justify-center py-1">
+                      <div className="flex flex-col items-center justify-center pb-4">
                         <div className="w-[50%] aspect-[16/9] mb-3 overflow-hidden rounded-lg shadow-lg">
                           <Image
                             src="/image/image1.png"
@@ -4147,11 +4148,11 @@ const CountrySlider = () => {
                     </div>
 
                     {/* 2. Gift Card Box */}
-                    <div className={`flex-1 flex flex-col border px-4 pb-4 pt-3 max-sm:px-2 max-sm:pb-3 rounded-2xl text-white transition-all overflow-hidden bg-white/5 ${recommendedItems.giftCard ? "border-[#7350FF] bg-white/10 ring-1 ring-[#7350FF]/50" : "border-white/20"
+                    <div className={`flex-1 flex flex-col border px-4 pt-3 max-sm:px-2 rounded-2xl text-white transition-all overflow-hidden bg-white/5 ${recommendedItems.giftCard ? "border-[#7350FF] bg-white/10 ring-1 ring-[#7350FF]/50" : "border-white/20"
                       }`}>
 
                       {/* Top Section: Checkbox Only (Matching Height) */}
-                      <div className="w-full flex justify-start items-center mb-4 h-5">
+                      <div className="w-full flex justify-start items-center  h-5">
                         <div
                           className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all cursor-pointer border flex-shrink-0 ${recommendedItems.giftCard ? "border-transparent bg-[#7350FF]" : "border-gray-400 bg-white"
                             }`}
@@ -4162,7 +4163,7 @@ const CountrySlider = () => {
                       </div>
 
                       {/* Center Content */}
-                      <div className="flex flex-col items-center flex-grow justify-center py-1">
+                      <div className="flex flex-col items-center justify-center pb-4">
                         <div className="w-[50%] aspect-[16/9] mb-3 overflow-hidden rounded-lg shadow-lg bg-white/5">
                           <Image
                             src="/image/gitftnewcard.png"
@@ -4174,12 +4175,12 @@ const CountrySlider = () => {
                           />
                         </div>
                         <h3 className="font-bold text-base max-sm:text-[14px] leading-tight text-center px-1">
-                          Digital gift card
+                          E-Gift Card
                         </h3>
                       </div>
 
                       {/* Bottom: Qty & Price */}
-                      <div className="mt-4 flex flex-col items-center gap-2">
+                      <div className="mt-4 flex flex-col items-center gap-2 pb-4">
                         <QtyInput
                           value={giftCardCount}
                           onIncrement={() => handleGiftCardChange(1)}
@@ -4214,7 +4215,7 @@ const CountrySlider = () => {
             {/* Checkout Button */}
             <button
               onClick={() => handleGetVisa()}
-              className="group flex w-full justify-between items-center bg-[#6B4EFF] text-white gap-[16px] font-medium px-[20px] py-4 rounded-full cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb] max-sm:py-3.5 max-sm:px-4 mt-8"
+              className="group flex w-full justify-between items-center bg-[#6B4EFF] text-white gap-[16px] font-medium px-[20px] py-4 rounded-full cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb] max-sm:py-3.5 max-sm:px-4 mt-3"
             >
               <span className="mr-3 text-xl font-semibold max-sm:text-lg max-sm:mr-2">
                 {selectedPaymentMethod === "stripe"

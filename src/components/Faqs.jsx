@@ -4,6 +4,9 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { fetchFAQs as fetchFAQsFromAPI } from '@/api/faqs';
+import { ArrowUpRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 
 const FAQSection = () => {
   const [activeIndex, setActiveIndex] = useState(null);
@@ -37,8 +40,11 @@ const FAQSection = () => {
     <section className="py-16 px-4 sm:px-6 lg:px-8  w-full  mx-auto flex-col gap-3 flex items-center justify-center bg-[#F3E5FF]">
       <div id="faq" className=" max-w-2xl mx-auto w-full">
         <h1 className="text-gray-800 font-gilroy-bold text-4xl">FAQ</h1>
-        <h2 className="text-4xl mt-1 font-gilroy-bold text-gray-800 mb-6">
+        <h2 className="text-4xl mt-1 font-gilroy-bold text-gray-800 mb-6 flex items-center justify-between gap-2">
           Empowering you with knowledge{" "}
+          <Link href={'/faqs'}>
+            <ArrowRight className="text-[#7350FF]" size={40} />
+          </Link>
         </h2>
 
         <div className="space-y-4 w-full ">

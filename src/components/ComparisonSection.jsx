@@ -88,7 +88,7 @@ const ComparisonSection = () => {
   }
 
   return (
-    <div className="w-full bg-[#24242d] mt-16 py-16 md:py-24 px-4 md:px-8 overflow-x-hidden">
+    <div className="w-full bg-[#24242d] py-5 md:py-15 px-4 md:px-8 overflow-x-hidden">
       <div className="max-w-[1280px] mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.6fr_1fr] gap-y-10 lg:gap-y-0 items-start">
           <div className="flex flex-col order-2 lg:order-1 lg:pr-6 lg:border-r border-white">
@@ -142,7 +142,7 @@ const ComparisonSection = () => {
 
           <div className="flex flex-col order-1 lg:order-2 lg:px-6 lg:border-r border-white">
             <div className="pb-4 flex items-center gap-2">
-              <h3 className="text-xl md:text-2xl font-gilroy-bold text-white leading-tight tracking-tight uppercase">
+              <h3 className="text-sm md:text-base font-gilroy-bold text-white leading-tight tracking-tight uppercase">
                 {data.title || "BEYOND COMPARE"}
               </h3>
               {data.tooltip && (
@@ -224,8 +224,8 @@ const ComparisonSection = () => {
 
           <div className="flex flex-col order-3 lg:order-3 lg:pl-6">
             <div className="pb-4">
-              <h3 className="text-xl md:text-2xl font-gilroy-bold text-white leading-tight tracking-tight uppercase">
-                THE EXPERIENCE
+              <h3 className="text-sm md:text-base font-gilroy-bold text-white leading-tight tracking-tight uppercase">
+                {data.experienceTitle || "THE EXPERIENCE"}
               </h3>
             </div>
 
