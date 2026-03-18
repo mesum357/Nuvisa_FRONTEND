@@ -51,8 +51,40 @@ const CountryCardsSection = ({ specificCountries, image, id }) => {
     );
   }, [visaState.travelers, dispatch, router]);
 
+  const [dynamicSection, setDynamicSection] = useState(null);
+  const [isDynamicLoading, setIsDynamicLoading] = useState(true);
+
+  useEffect(() => {
+    // Only fetch dynamic section for "everyday-steals" section
+    if (id !== 'everyday-steals') {
+      setIsDynamicLoading(false);
+      return;
+    }
+
+    const fetchDynamicSection = async () => {
+      try {
+        const adminApiUrl = process.env.NEXT_PUBLIC_ADMIN_API_URL || 'http://localhost:3001';
+        const res = await fetch(`${adminApiUrl}/api/country-section`);
+        const result = await res.json();
+        if (result.success && result.data) {
+          setDynamicSection(result.data);
+          setSectionContent({
+            title: result.data.title,
+            description: result.data.description
+          });
+        }
+      } catch (error) {
+        console.error("Failed to fetch dynamic country section:", error);
+      } finally {
+        setIsDynamicLoading(false);
+      }
+    };
+
+    fetchDynamicSection();
+  }, [id]);
+
   const {
-    countries,
+    countries: hookCountries,
     appointmentTexts,
     isLoading: loading,
     error,
@@ -61,10 +93,13 @@ const CountryCardsSection = ({ specificCountries, image, id }) => {
     fallbackAppointmentText: "Appointment in 10 days or less",
     includeFees: true,
     sortBy: "id",
-    limit: 18,
+    limit: 100, // Increased limit to ensure all countries are available
   });
 
   useEffect(() => {
+    // Only update if we don't have dynamic section data
+    if (dynamicSection) return;
+
     if (appointmentTexts && appointmentTexts.length > 0) {
       const recordWithSectionContent =
         appointmentTexts.find(
@@ -87,20 +122,40 @@ const CountryCardsSection = ({ specificCountries, image, id }) => {
           "We support 20 countries over all the visa centres in the UK"
       });
     }
-  }, [appointmentTexts, loading]);
+  }, [appointmentTexts, loading, dynamicSection]);
 
-  const homepageCountries = countries;
+  const homepageCountries = useMemo(() => {
+    // If we have dynamic section data (only for everyday-steals), use it
+    if (dynamicSection && dynamicSection.countries && dynamicSection.countries.length > 0) {
+      // Merge dynamic items with rich data from hookCountries (especially images)
+      return dynamicSection.countries.map(dynCountry => {
+        const richMatch = hookCountries.find(
+          h => h.name.toLowerCase() === dynCountry.name.toLowerCase()
+        );
+        return {
+          ...richMatch,
+          ...dynCountry,
+          // Ensure image falls back to richMatch if dynCountry is missing it
+          image: dynCountry.image || richMatch?.image || "/image/country/Germany.jpg",
+          appointmentText: dynCountry.appointmentText || richMatch?.appointmentText || "Appointment in 10 days or less"
+        };
+      });
+    }
+    // Otherwise use hook countries (normal section)
+    return hookCountries;
+  }, [dynamicSection, hookCountries]);
 
   const displayedCountries = useMemo(() => {
     let list = homepageCountries;
-    if (specificCountries && specificCountries.length > 0) {
-      list = homepageCountries.filter((country) =>
-        specificCountries.includes(country.name)
-      );
-    }
-    return showAll ? list : list.slice(0, 9);
-  }, [homepageCountries, showAll, specificCountries]);
 
+    // Fallback if filtering resulted in an empty list but we have dynamic data
+    if (list.length === 0 && dynamicSection) {
+      list = homepageCountries;
+    }
+
+    return showAll ? list : list.slice(0, 9);
+  }, [homepageCountries, showAll, dynamicSection]);
+  console.log(displayedCountries)
   return (
     <div className="max-w-6xl mx-auto  px-6" id={id}>
       {/* Cards Grid */}
@@ -113,7 +168,7 @@ const CountryCardsSection = ({ specificCountries, image, id }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
         {/* Large 2x2 Image Card (Visible on lg screens) */}
         {!loading && !error && (
-          <div className="hidden lg:block lg:col-span-3 lg:row-span-3 relative rounded-2xl overflow-hidden group h-full min-h-[600px]">
+          <div className="lg:block lg:col-span-3 lg:row-span-3 relative rounded-2xl overflow-hidden group h-full min-h-[600px]">
             <Image
               src={image || "/image/choose_country.png"}
               alt="Choose Country"
@@ -123,8 +178,12 @@ const CountryCardsSection = ({ specificCountries, image, id }) => {
             />
             <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent"></div>
             <div className="absolute bottom-4 left-4 text-white">
-              <h3 className="text-xl font-gilroy-bold mb-0.5">{image ? "Everyday Steals" : sectionContent.title}</h3>
-              <p className="text-xs opacity-90">{image ? "Best deals on flights and hotels" : sectionContent.description}</p>
+              <h3 className="text-xl font-gilroy-bold mb-0.5">
+                {dynamicSection ? dynamicSection.title : (image ? "Everyday Steals" : sectionContent.title)}
+              </h3>
+              <p className="text-xs opacity-90">
+                {dynamicSection ? dynamicSection.description : (image ? "Best deals on flights and hotels" : sectionContent.description)}
+              </p>
             </div>
           </div>
         )}
@@ -191,20 +250,30 @@ const CountryCardsSection = ({ specificCountries, image, id }) => {
       )}
 
       <div className="my-14 sm:mt-12 sm:mb-0 max-sm:w-full flex items-center justify-center flex-col gap-10">
-        <p className={`text-[18px] mt-3 ${image ? "text-black" : "text-white"}  font-gilroy-bold `}>
+        <p className={`text-[18px] mt-3 ${image ? "text-white" : "text-white"}  font-gilroy-bold `}>
           *If require urgent appointment in 4-5 days kindly email
           support@nuvisa.co.uk do not follow the standard visa process.
         </p>
-        <div className="mb-10 md:mb-20">
-
-          <Link href={"/get-the-visa#required-documents"}>
+        {/* <div className="mb-10 md:mb-20"> */}
+        {/* <Link href={"/get-the-visa#required-documents"}>
             <button className="group flex items-center bg-[#6B4EFF] text-white  gap-[16px] font-medium px-[24px] py-3 rounded-3xl cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb]">
-              <span className="mr-3 text-2xl uppercase">Check Required Documents</span>
+              <span className="mr-3 text-xl md:text-2xl uppercase">Check Required Documents</span>
+              <span className="bg-white rounded-full p-1.5 transition-transform duration-300 group-hover:rotate-45 group-hover:translate-x-1 group-hover:-translate-y-0">
+                <ArrowUpRight className="w-5 h-5 text-[#6B4EFF]" />
+              </span>
+            </button>
+          </Link> */}
+
+        <div className="mb-10 md:mb-20">
+          <Link href={"/get-the-visa#required-documents"}>
+            <button className="group flex items-center bg-[#6B4EFF] text-white  gap-[12px] font-medium px-[24px] py-3 rounded-3xl cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb]">
+              <span className="mr-3 text-md md:text-2xl uppercase">Check Required Document</span>
               <span className="bg-white rounded-full p-1.5 transition-transform duration-300 group-hover:rotate-45 group-hover:translate-x-1 group-hover:-translate-y-0">
                 <ArrowUpRight className="w-5 h-5 text-[#6B4EFF]" />
               </span>
             </button>
           </Link>
+          {/* </div> */}
           {/* <GetTheVisaButton /> */}
         </div>
       </div>

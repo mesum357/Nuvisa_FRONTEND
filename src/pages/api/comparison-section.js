@@ -21,8 +21,11 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { path } = req.query;
-    const endpoint = path ? `?path=${path}` : '?path=active';
+    const { path, country } = req.query;
+    const params = new URLSearchParams();
+    params.append('path', path || 'active');
+    if (country) params.append('country', country);
+    const endpoint = `?${params.toString()}`;
 
     // Call the admin panel API directly
     // Only skip localhost URLs in production (allow them in development)

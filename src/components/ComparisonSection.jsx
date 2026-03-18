@@ -2,15 +2,21 @@ import React, { useState, useEffect } from "react";
 import { Check, CircleX, Shield, Headphones, Zap, Info } from "lucide-react";
 import Image from "next/image";
 import { getComparisonSection } from "@/api/comparisonSection";
+import { useAppSelector } from "@/store";
 
 const ComparisonSection = () => {
   const [comparisonData, setComparisonData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(0);
+  const selectedCountry = useAppSelector((state) => state.visa.selectedCountry);
 
-  const fetchComparisonData = async () => {
+  const fetchComparisonData = async (country) => {
     try {
-      const response = await getComparisonSection();
+      setLoading(true);
+      const countryName = country?.name || country || "";
+      const formattedCountry = countryName.includes(",") ? countryName.split(", ")[1] : countryName;
+      
+      const response = await getComparisonSection(formattedCountry);
       if (response?.data?.status === "success" && response?.data?.data?.results) {
         setComparisonData(response.data.data.results);
       } else if (response?.data) {
@@ -24,8 +30,8 @@ const ComparisonSection = () => {
   };
 
   useEffect(() => {
-    fetchComparisonData();
-  }, []);
+    fetchComparisonData(selectedCountry);
+  }, [selectedCountry]);
 
   const defaultData = {
     title: "Beyond Compare",

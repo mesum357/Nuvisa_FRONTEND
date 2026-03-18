@@ -276,6 +276,7 @@ model ComparisonSection {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   updatedBy         String?
+  countryName       String?
 
   @@map("comparison_sections")
 }
@@ -433,4 +434,17 @@ model PopupContent {
   questions              PopupQuestion[]
 
   @@map("popup_content")
+}
+
+model RecommendedSection {
+  id          String   @id @default(uuid())
+  title       String   @default("Recommended for you")
+  description String?
+  cards       Json     // Array of { title: string, description: string, image: string }
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  updatedBy   String?
+
+  @@map("recommended_sections")
 }
