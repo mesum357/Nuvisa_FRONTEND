@@ -146,13 +146,13 @@ const VisaSolution = ({ video = false, title = "Top destinations" }) => {
   }, [isPaused]);
 
   return (
-    <section id="top-destinations" className="w-full pri_bg py-[40px] bg-gradient-to-br from-purple-100 to-[#f3e6ff] flex items-center justify-center gap-[32px] flex-col">
+    <section id="top-destinations" className="w-full pri_bg py-[40px] bg-[#1E1E27] flex items-center justify-center gap-[32px] flex-col">
       <div className="w-full max-w-[86rem] mx-auto flex flex-col gap-6 items-center justify-center">
         <div className=" w-full flex items-center gap-5 md:gap-10 max-md:flex-col max-md:text-center px-6">
-          <h2 className="text-2xl sm:text-5xl w-1/2 text-black  md:text-7xl font-extrabold leading-tight flex-1" dangerouslySetInnerHTML={{ __html: title }} />
+          <h2 className="text-2xl sm:text-5xl w-1/2 text-white  md:text-7xl font-extrabold leading-tight flex-1" dangerouslySetInnerHTML={{ __html: title }} />
 
           {/* Right Side - Description */}
-          <p className="text-black text-[11px] md:text-[14px] font-medium leading-relaxed flex-[.6]">
+          <p className="text-white text-[13px] md:text-base font-medium leading-relaxed flex-[.6] text-left">
             {/* Benefit from document pre-checks, error-proof form filling, and
             personalized visa guidance, powered by AI with human oversight at
             critical checkpoints - all designed to prevent delays, mistakes, and

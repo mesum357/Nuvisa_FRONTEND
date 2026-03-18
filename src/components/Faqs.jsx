@@ -42,7 +42,7 @@ const FAQSection = () => {
         <h1 className="text-gray-800 font-gilroy-bold text-4xl">FAQ</h1>
         <h2 className="text-4xl mt-1 font-gilroy-bold text-gray-800 mb-6 flex items-center justify-between gap-2">
           Empowering you with knowledge{" "}
-          <Link href={'/faqs'}>
+          <Link href={'/faq'}>
             <ArrowRight className="text-[#7350FF]" size={40} />
           </Link>
         </h2>

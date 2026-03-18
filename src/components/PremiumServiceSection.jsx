@@ -8,7 +8,7 @@ const PremiumServiceSection = () => {
   const scrollRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
-  
+
   // Dragging States
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
@@ -65,7 +65,7 @@ const PremiumServiceSection = () => {
   return (
     <div className="bg-gray-900 text-white py-20 pb-10 px-6">
       <div className="max-w-[85rem] mx-auto flex items-center flex-col justify-center">
-        
+
         {/* Header Section */}
         <div className="flex flex-col w-full lg:flex-row justify-between items-start lg:items-center mb-16 relative">
           <div className="mb-8 lg:mb-0 md:ml-5 max-md:w-fit max-md:mx-auto">
@@ -76,9 +76,9 @@ const PremiumServiceSection = () => {
             </h1>
           </div>
 
-          <div className="flex flex-col md:flex-row items-center gap-6">
+          <div className="flex flex-col md:flex-row items-center gap-6 max-md:w-fit max-md:mx-auto">
             {/* Compliance Badges */}
-            <div className="flex md:gap-6 flex-wrap max-md:items-center max-md:justify-center">
+            <div className="flex flex-col md:flex-row items-center justify-center gap-6">
               <Image src="/image/gdpr.webp" alt="GDPR" width={150} height={150} className="object-contain" priority />
               <Image src="/image/ICO-new.png" alt="ICO" width={150} height={150} className="object-contain" priority />
               <Image src="/image/pci-dss.png" alt="PCI" width={150} height={150} className="object-contain" priority />
@@ -90,17 +90,15 @@ const PremiumServiceSection = () => {
         <div className="w-full flex justify-end gap-3 mb-6">
           <button
             onClick={() => scroll("left")}
-            className={`p-3 rounded-full border border-white/20 transition-all ${
-              canScrollLeft ? "opacity-100 bg-white/10 hover:bg-[#6B4EFF]" : "opacity-0 pointer-events-none"
-            }`}
+            className={`p-3 rounded-full border border-white/20 transition-all ${canScrollLeft ? "opacity-100 bg-white/10 hover:bg-[#6B4EFF]" : "opacity-0 pointer-events-none"
+              }`}
           >
             <ChevronLeft className="w-6 h-6" />
           </button>
           <button
             onClick={() => scroll("right")}
-            className={`p-3 rounded-full border border-white/20 transition-all ${
-              canScrollRight ? "opacity-100 bg-white/10 hover:bg-[#6B4EFF]" : "opacity-0 pointer-events-none"
-            }`}
+            className={`p-3 rounded-full border border-white/20 transition-all ${canScrollRight ? "opacity-100 bg-white/10 hover:bg-[#6B4EFF]" : "opacity-0 pointer-events-none"
+              }`}
           >
             <ChevronRight className="w-6 h-6" />
           </button>
@@ -113,9 +111,8 @@ const PremiumServiceSection = () => {
           onMouseLeave={handleMouseLeave}
           onMouseUp={handleMouseUp}
           onMouseMove={handleMouseMove}
-          className={`flex gap-4 md:gap-8 w-full overflow-x-auto hide-scrollbar select-none touch-pan-x ${
-            isDragging ? "cursor-grabbing" : "cursor-grab"
-          } ${isDragging ? "" : "scroll-smooth"}`}
+          className={`flex gap-4 md:gap-8 w-full overflow-x-auto hide-scrollbar select-none touch-pan-x ${isDragging ? "cursor-grabbing" : "cursor-grab"
+            } ${isDragging ? "" : "scroll-smooth"}`}
           style={{ scrollSnapType: isDragging ? "none" : "x mandatory" }}
         >
           {/* Always in Touch Card */}

@@ -104,11 +104,11 @@ const Index = () => {
       <div className="bg-[#1E1E27] text-white w-full overflow-x-hidden pb-16">
         <VisaProcessSection />
       </div>
-      <div className="bg-gradient-to-br from-purple-100 to-[#f3e6ff] text-white w-full overflow-x-hidden py-16">
-        <CountryCardsSection id="everyday-steals" specificCountries={['Lithuania', 'Greece', 'Malta', 'Latvia', 'Luxembourg']} image="/image/everyday_steals.png" />
+      <div className="bg-[#1E1E27] text-white w-full overflow-x-hidden py-16">
+        <CountryCardsSection id="everyday-steals" image="/image/everyday_steals.png" />
       </div>
       {/* <FeaturesSection /> */}
-
+      {/* <div className="bg-gradient-to-br from-purple-100 to-[#f3e6ff] text-white w-full overflow-x-hidden py-16"> */}
       <PremiumServiceSection />
       <div className="bg-gradient-to-br from-purple-100 to-[#f3e6ff]">
         <div className=" py-16 px-6">
