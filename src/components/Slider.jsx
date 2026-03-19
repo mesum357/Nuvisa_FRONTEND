@@ -1041,6 +1041,10 @@ const CountrySlider = () => {
     []
   );
 
+  const selectedCountryData = useMemo(() => {
+    return countries.find(c => normalizeCountryName(c.name) === normalizeCountryName(selectedCountry)) || {};
+  }, [countries, selectedCountry, normalizeCountryName]);
+
   const carouselLength = carouselCountries.length;
 
   const activeCarouselCountry =
@@ -3064,29 +3068,34 @@ const CountrySlider = () => {
                 Complete visa service with all necessary documents
               </p>
               <div className="flex items-center justify-between gap-3 mb-4 max-sm:flex-col max-sm:items-start max-sm:gap-1">
-                <div className="flex gap-12 max-sm:w-full max-sm:justify-between items-center">
-                  <div className="flex flex-col items-center">
-                    <span className="text-2xl font-gilroy-bold max-sm:text-xl">
-                      £{visaOnlyPrice.toFixed(2)}
-                    </span>
-                    {Number(calculateOriginalPrice()) > visaOnlyPrice && (
-                      <span className="text-[12px] text-gray-500 font-medium max-sm:text-[11px]">
-                        You save  £{Math.round(((Number(calculateOriginalPrice()) - visaOnlyPrice)))}
+                {selectedCountryData.isActive !== false ? (
+                  <div className="flex gap-12 max-sm:w-full max-sm:justify-between items-center">
+                    <div className="flex flex-col items-center">
+                      <span className="text-2xl font-gilroy-bold max-sm:text-xl">
+                        £{visaOnlyPrice.toFixed(2)}
                       </span>
-                    )}
-                  </div>
-                  <div className="flex flex-col items-center">
-                    <span className="text-2xl font-semibold max-sm:text-base line-through decoration-2 decoration-neutral-400 text-gray-500">
-                      £{calculateOriginalPrice()}
-                    </span>
-                    {Number(calculateOriginalPrice()) > visaOnlyPrice && (
-                      <span className="text-[12px] text-gray-500 font-medium max-sm:text-[11px]">
-                        Traditional fee
+                      {Number(calculateOriginalPrice()) > visaOnlyPrice && (
+                        <span className="text-[12px] text-gray-500 font-medium max-sm:text-[11px]">
+                          You save  £{Math.round(((Number(calculateOriginalPrice()) - visaOnlyPrice)))}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <span className="text-2xl font-semibold max-sm:text-base line-through decoration-2 decoration-neutral-400 text-gray-500">
+                        £{calculateOriginalPrice()}
                       </span>
-                    )}
+                      {Number(calculateOriginalPrice()) > visaOnlyPrice && (
+                        <span className="text-[12px] text-gray-500 font-medium max-sm:text-[11px]">
+                          Traditional fee
+                        </span>
+                      )}
+                    </div>
                   </div>
-
-                </div>
+                ) : (
+                  <div className="flex items-center h-[48px]">
+                    <span className="text-gray-400 text-sm italic">Pricing hidden for this country</span>
+                  </div>
+                )}
 
                 <div className="flex items-center gap-2 shadow-lg shadow-black/20 p-2 rounded-full max-sm:w-full max-sm:justify-between max-sm:px-4">
                   <div className="flex items-center gap-2">
