@@ -15,6 +15,7 @@ import { getCountryConfig } from "@/constants/countryConfig";
 import { useCountriesWithAppointmentTexts } from "@/hooks/useCountriesWithAppointmentTexts";
 import { staticCountries } from "@/constants/staticCountries";
 import Link from "next/link";
+import { getAdminApiBase } from "@/utils/adminApiBase";
 
 const CountryCardsSection = ({ specificCountries, image, id }) => {
   const [showAll, setShowAll] = useState(false);
@@ -25,6 +26,10 @@ const CountryCardsSection = ({ specificCountries, image, id }) => {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const visaState = useAppSelector((state) => state.visa);
+  const [countryPricingList, setCountryPricingList] = useState([]);
+  const [isVisaPricingLoading, setIsVisaPricingLoading] = useState(true);
+
+  const normalizeCountryKey = useCallback((value) => String(value || "").trim().toLowerCase(), []);
 
   // Memoize handleCountrySelect to prevent unnecessary re-renders
   const handleCountrySelect = useCallback((countryName) => {
@@ -82,6 +87,81 @@ const CountryCardsSection = ({ specificCountries, image, id }) => {
 
     fetchDynamicSection();
   }, [id]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchVisaPricing = async () => {
+      try {
+        setIsVisaPricingLoading(true);
+        const apiBase = String(process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+        const adminBase = getAdminApiBase();
+        const candidates = [
+          `/api/visa-pricing`,
+          `${apiBase}/visa_pricing`,
+          `${apiBase}/api/visa_pricing`,
+          `${apiBase}/api/public/visa_pricing`,
+          `${apiBase}/api/public/visa-pricing`,
+          `${adminBase}/api/visa_pricing`,
+          `${adminBase}/visa_pricing`,
+          `${adminBase}/api/public/visa_pricing`,
+          `${adminBase}/api/public/visa-pricing`,
+        ].filter((url) => /^https?:\/\//i.test(url) || url.startsWith("/"));
+
+        let payload = null;
+        for (const endpoint of candidates) {
+          try {
+            const res = await fetch(endpoint, { method: "GET" });
+            if (!res.ok) continue;
+            const json = await res.json();
+            const status = String(json?.status || "").toUpperCase();
+            if (status === "ERROR") continue;
+            payload = json?.data?.results || [];
+            if (Array.isArray(payload)) break;
+          } catch {
+            // Try next endpoint
+          }
+        }
+
+        if (!mounted) return;
+        if (!Array.isArray(payload) || payload.length === 0) {
+          setCountryPricingList([]);
+          return;
+        }
+
+        const normalized = payload
+          .map((item) => ({
+            id: String(item?.id || ""),
+            name: String(item?.name || "").trim(),
+            basePrice: Number(item?.basePrice),
+          }))
+          .filter(
+            (item) =>
+              item.id &&
+              item.name &&
+              Number.isFinite(item.basePrice)
+          );
+
+        setCountryPricingList(normalized);
+      } catch (error) {
+        console.error("Failed to fetch visa pricing:", error);
+      } finally {
+        if (mounted) setIsVisaPricingLoading(false);
+      }
+    };
+
+    fetchVisaPricing();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const countryPricingLookup = useMemo(() => {
+    return countryPricingList.reduce((acc, item) => {
+      acc[normalizeCountryKey(item.name)] = item;
+      return acc;
+    }, {});
+  }, [countryPricingList, normalizeCountryKey]);
 
   const {
     countries: hookCountries,
@@ -207,6 +287,13 @@ const CountryCardsSection = ({ specificCountries, image, id }) => {
                   loading={index < 8 ? "eager" : "lazy"}
                 />
                 <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent"></div>
+
+                {/* Price Tag in Bottom Left of Image */}
+                {!isVisaPricingLoading && country.isActive !== false && countryPricingLookup[normalizeCountryKey(country.name)] && (
+                  <div className=" absolute bottom-2 left-2 text-white py-0.5 rounded-lg text-[10px] font-gilroy-bold shadow-lg">
+                    from £{countryPricingLookup[normalizeCountryKey(country.name)].basePrice}
+                  </div>
+                )}
               </div>
 
               {/* Card Content */}
@@ -218,6 +305,7 @@ const CountryCardsSection = ({ specificCountries, image, id }) => {
                 <div className="text-[10px] font-gilroy text-white opacity-80 leading-tight line-clamp-1">
                   {country.appointmentText}
                 </div>
+
               </div>
             </div>
           ))}
