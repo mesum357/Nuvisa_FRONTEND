@@ -3868,7 +3868,7 @@ const CountrySlider = () => {
                 {/* August slots */}
                 <div className="text-center">
                   <div className="text-xs text-white/70 mb-2 font-medium max-sm:text-xs max-sm:mb-1">
-                    {sliderContent["slot1_label"]}
+                    {getDynamicMonthText(sliderContent["slot1_label"], -1)}
                   </div>
                   <div className="bg-[#1e1e27] rounded-full p-2 max-sm:p-1.5">
                     <div className="text-xs text-white font-semibold max-sm:text-xs">
@@ -3880,7 +3880,7 @@ const CountrySlider = () => {
                 {/* September slots */}
                 <div className="text-center">
                   <div className="text-xs text-white/70 mb-2 font-medium max-sm:text-xs max-sm:mb-1">
-                    {sliderContent["slot2_label"]}
+                    {getDynamicMonthText(sliderContent["slot2_label"], 0)}
                   </div>
                   <div className="bg-[#5a3ddb] rounded-full p-2 max-sm:p-1.5">
                     <div className="text-xs text-white font-semibold max-sm:text-xs">
@@ -3892,7 +3892,7 @@ const CountrySlider = () => {
                 {/* October slots */}
                 <div className="text-center">
                   <div className="text-xs text-white/70 mb-2 font-medium max-sm:text-xs max-sm:mb-1">
-                    {sliderContent["slot3_label"]}
+                    {getDynamicMonthText(sliderContent["slot3_label"], 1)}
                   </div>
                   <div className="bg-[#1e1e27] rounded-full p-2 max-sm:p-1.5">
                     <div className="text-xs text-white font-semibold max-sm:text-xs">

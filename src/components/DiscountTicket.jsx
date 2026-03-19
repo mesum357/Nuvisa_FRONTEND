@@ -34,7 +34,7 @@ const DiscountTicket = ({ loading, content }) => {
             </button>
 
             {/* Ticket as Link */}
-            <Link href={loading ? "/get-the-visa" : content.discountTicketLink}>
+            <Link href={loading ? "/get-the-visa/#discount-code" : content.discountTicketLink}>
                 <div
                     className="sec_bg border-r-0 border-l border-t border-b border-[#423577] text-white text-xs font-bold tracking-widest cursor-pointer select-none"
                     style={{
