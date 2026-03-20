@@ -104,6 +104,7 @@ const Index = () => {
       <div className="bg-[#1E1E27] text-white w-full overflow-x-hidden pb-16">
         <VisaProcessSection />
       </div>
+      <VisaSolution customColors={['#5f9aff', '#ff8e59', '#daee69', '#fdfd55', '#ffb1ee', '#daee69']} />
       <div className="bg-[#1E1E27] text-white w-full overflow-x-hidden py-16">
         <CountryCardsSection id="everyday-steals" image="/image/everyday_steals.png" />
       </div>

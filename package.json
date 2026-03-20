@@ -28,6 +28,7 @@
     "mindee": "^4.29.0-rc5",
     "mrz": "^4.2.1",
     "next": "^16.0.7",
+    "postcss": "^8.5.8",
     "prisma": "^6.2.1",
     "react": "19.1.0",
     "react-datepicker": "^8.4.0",
@@ -44,12 +45,12 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss": "^4",
+    "@tailwindcss/postcss": "^4.2.2",
     "@types/node": "24.5.2",
     "@types/react": "19.1.13",
     "eslint": "^9",
     "eslint-config-next": "15.4.6",
-    "tailwindcss": "^4",
+    "tailwindcss": "^4.2.2",
     "tsx": "^4.21.0"
   },
   "packageManager": "pnpm@10.30.3+sha512.c961d1e0a2d8e354ecaa5166b822516668b7f44cb5bd95122d590dd81922f606f5473b6d23ec4a5be05e7fcd18e8488d47d978bbe981872f1145d06e9a740017"

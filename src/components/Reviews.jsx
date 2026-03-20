@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import Badge from "./Badge";
 
 const reviews = [
     {
@@ -171,6 +172,11 @@ export default function Reviews() {
                     ))}
                 </div>
             </div>
+                    {/* BADGE SECTION */}
+                    <div className="w-full">
+                    <Badge />
+                    </div>
+
         </section>
     );
 }
