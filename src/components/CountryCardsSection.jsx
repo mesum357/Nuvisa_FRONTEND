@@ -29,6 +29,8 @@ const CountryCardsSection = ({ specificCountries, image, id }) => {
   const [countryPricingList, setCountryPricingList] = useState([]);
   const [isVisaPricingLoading, setIsVisaPricingLoading] = useState(true);
 
+  const [occasions, setOccasions] = useState([]);
+
   const normalizeCountryKey = useCallback((value) => String(value || "").trim().toLowerCase(), []);
 
   // Memoize handleCountrySelect to prevent unnecessary re-renders
@@ -69,17 +71,43 @@ const CountryCardsSection = ({ specificCountries, image, id }) => {
     const fetchDynamicSection = async () => {
       try {
         const adminApiUrl = process.env.NEXT_PUBLIC_ADMIN_API_URL || 'http://localhost:3001';
-        const res = await fetch(`${adminApiUrl}/api/country-section`);
-        const result = await res.json();
-        if (result.success && result.data) {
-          setDynamicSection(result.data);
-          setSectionContent({
-            title: result.data.title,
-            description: result.data.description
-          });
+        console.log(`[DEBUG] Fetching from: ${adminApiUrl}/api/occasion-content`);
+
+        // Fetch Occasion Content if this is the everyday-steals section
+        if (id === 'everyday-steals') {
+          // Add timestamp to bypass any browser/nextjs caching
+          const url = `${adminApiUrl}/api/occasion-content?t=${Date.now()}`;
+          const occRes = await fetch(url);
+          const occResult = await occRes.json();
+
+          console.log("[DEBUG] Occasion Result:", occResult);
+
+          if (occResult.success && occResult.data) {
+            setDynamicSection(occResult.data);
+            setSectionContent({
+              title: occResult.data.title,
+              description: occResult.data.description
+            });
+            if (occResult.data.occasions && Array.isArray(occResult.data.occasions)) {
+              console.log("[DEBUG] Setting occasions:", occResult.data.occasions);
+              setOccasions(occResult.data.occasions);
+            }
+          }
+        }
+        else {
+          // Standard country section fetch
+          const res = await fetch(`${adminApiUrl}/api/country-section`);
+          const result = await res.json();
+          if (result.success && result.data) {
+            setDynamicSection(result.data);
+            setSectionContent({
+              title: result.data.title,
+              description: result.data.description
+            });
+          }
         }
       } catch (error) {
-        console.error("Failed to fetch dynamic country section:", error);
+        console.error("Failed to fetch dynamic section:", error);
       } finally {
         setIsDynamicLoading(false);
       }
@@ -235,16 +263,10 @@ const CountryCardsSection = ({ specificCountries, image, id }) => {
 
     return showAll ? list : list.slice(0, 9);
   }, [homepageCountries, showAll, dynamicSection]);
-  console.log(displayedCountries)
+
+
   return (
-    <div className="max-w-6xl mx-auto  px-6" id={id}>
-      {/* Cards Grid */}
-      {/* <span className="text-4xl text-center font-gilroy-bold text-white flex item-center justify-center pb-4">
-        {sectionContent.title}
-      </span>
-      <span className="text-3xl text-center font-gilroy text-white flex item-center justify-center pb-8">
-        {sectionContent.description}
-      </span> */}
+    <div className="max-w-6xl mx-auto px-6" id={id}>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
         {/* Large 2x2 Image Card (Visible on lg screens) */}
         {!loading && !error && (
@@ -268,9 +290,35 @@ const CountryCardsSection = ({ specificCountries, image, id }) => {
           </div>
         )}
 
-        {!loading &&
-          !error &&
-          displayedCountries.map((country, index) => (
+        {id === "everyday-steals" ? (
+          <div className="lg:col-span-3 grid grid-cols-2 gap-4 h-full">
+            {occasions.map((occ, idx) => (
+              <div key={idx} className="flex flex-col gap-2 h-full">
+                <div
+                  style={{
+                    backgroundImage: `url(${occ.img})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center'
+                  }}
+
+                  className="relative flex-1 min-h-[150px] rounded-xl flex items-center justify-center p-4 text-center cursor-pointer hover:scale-[1.02] transition-transform duration-300 shadow-md overflow-hidden group"
+                >
+                  
+                  <div className="absolute inset-0 transition-colors"></div>
+
+                  <h4 style={{ color: occ.textColor }} className="relative z-10 text-[14px] md:text-[16px] font-gilroy-bold leading-tight uppercase drop-shadow-lg">
+                    {occ.title}
+                  </h4>
+                </div>
+                <p className="text-[10px] font-gilroy-bold text-[#4a90e2] uppercase tracking-tighter">
+                  {occ.subTitle}
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          // RENDER COUNTRIES (Top Section)
+          !loading && !error && displayedCountries.map((country, index) => (
             <div
               key={index}
               onClick={() => handleCountrySelect(country.name)}
@@ -280,20 +328,13 @@ const CountryCardsSection = ({ specificCountries, image, id }) => {
               <div className="relative h-[130px] md:h-[110px] overflow-hidden">
                 <Image
                   src={country.image}
-                  alt={country.landmark}
+                  alt={country.landmark || country.name}
                   fill
                   sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 20vw"
                   className="object-cover transition-transform duration-500 group-hover:scale-110"
                   loading={index < 8 ? "eager" : "lazy"}
                 />
                 <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent"></div>
-
-                {/* Price Tag in Bottom Left of Image */}
-                {!isVisaPricingLoading && country.isActive !== false && countryPricingLookup[normalizeCountryKey(country.name)] && (
-                  <div className=" absolute bottom-2 left-2 text-white py-0.5 rounded-lg text-[10px] font-gilroy-bold shadow-lg">
-                    from £{countryPricingLookup[normalizeCountryKey(country.name)].basePrice}
-                  </div>
-                )}
               </div>
 
               {/* Card Content */}
@@ -301,18 +342,23 @@ const CountryCardsSection = ({ specificCountries, image, id }) => {
                 <div className="mb-1 text-[11px] font-gilroy-bold text-white uppercase tracking-wider">
                   {country.name}
                 </div>
-
                 <div className="text-[10px] font-gilroy text-white opacity-80 leading-tight line-clamp-1">
                   {country.appointmentText}
                 </div>
 
+                {!isVisaPricingLoading && country.isActive !== false && countryPricingLookup[normalizeCountryKey(country.name)] && (
+                  <div className="mt-1 text-white text-[10px] font-gilroy-bold">
+                    from £{countryPricingLookup[normalizeCountryKey(country.name)].basePrice}
+                  </div>
+                )}
               </div>
             </div>
-          ))}
+          ))
+        )}
       </div>
 
-      {/* See More Button */}
-      {!image && !showAll && homepageCountries.length > 4 && (
+      {/* See More Button - Only for Country view */}
+      {id !== "everyday-steals" && !image && !showAll && homepageCountries.length > 4 && (
         <div className="text-center mt-12">
           <button
             onClick={() => setShowAll(true)}
@@ -324,8 +370,8 @@ const CountryCardsSection = ({ specificCountries, image, id }) => {
         </div>
       )}
 
-      {/* Show Less Button (when expanded) */}
-      {showAll && homepageCountries.length > 4 && (
+      {/* Show Less Button - Only for Country view */}
+      {id !== "everyday-steals" && showAll && homepageCountries.length > 4 && (
         <div className="text-center mt-12">
           <button
             onClick={() => setShowAll(false)}
@@ -338,31 +384,20 @@ const CountryCardsSection = ({ specificCountries, image, id }) => {
       )}
 
       <div className="my-14 sm:mt-12 sm:mb-0 max-sm:w-full flex items-center justify-center flex-col gap-10">
-        <p className={`text-[18px] mt-3 ${image ? "text-white" : "text-white"}  font-gilroy-bold `}>
+        <p className={`text-[18px] mt-3 ${image ? "text-white" : "text-white"} font-gilroy-bold text-center`}>
           *If require urgent appointment in 4-5 days kindly email
           support@nuvisa.co.uk do not follow the standard visa process.
         </p>
-        {/* <div className="mb-10 md:mb-20"> */}
-        {/* <Link href={"/get-the-visa#required-documents"}>
-            <button className="group flex items-center bg-[#6B4EFF] text-white  gap-[16px] font-medium px-[24px] py-3 rounded-3xl cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb]">
-              <span className="mr-3 text-xl md:text-2xl uppercase">Check Required Documents</span>
-              <span className="bg-white rounded-full p-1.5 transition-transform duration-300 group-hover:rotate-45 group-hover:translate-x-1 group-hover:-translate-y-0">
-                <ArrowUpRight className="w-5 h-5 text-[#6B4EFF]" />
-              </span>
-            </button>
-          </Link> */}
 
         <div className="mb-10 md:mb-20">
           <Link href={"/get-the-visa#required-documents"}>
-            <button className="group flex items-center bg-[#6B4EFF] text-white  gap-[12px] font-medium px-[24px] py-3 rounded-3xl cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb]">
+            <button className="group flex items-center bg-[#6B4EFF] text-white gap-[12px] font-medium px-[24px] py-3 rounded-3xl cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb]">
               <span className="mr-3 text-md md:text-2xl uppercase">Check Required Document</span>
               <span className="bg-white rounded-full p-1.5 transition-transform duration-300 group-hover:rotate-45 group-hover:translate-x-1 group-hover:-translate-y-0">
                 <ArrowUpRight className="w-5 h-5 text-[#6B4EFF]" />
               </span>
             </button>
           </Link>
-          {/* </div> */}
-          {/* <GetTheVisaButton /> */}
         </div>
       </div>
     </div>

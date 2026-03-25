@@ -6,7 +6,7 @@ const VisaProcessSection = () => {
 
   return (
     <div className="px-3 pt-3 w-full flex items-center justify-center overflow-hidden">
-      <div className="text-[#FFF] w-full rounded-3xl md:py-5 md:px-5 text-center shadow-2xl mt-10 md:mt-20 max-w-[88rem] overflow-x-hidden">
+      <div className="text-[#fff] w-full rounded-3xl md:py-5 md:px-5 text-center shadow-2xl mt-10 md:mt-20 max-w-[88rem] overflow-x-hidden">
         <div className="row justify-content-center">
           <div className="col-12 py-4">
             <div className="pdp_media_el bg-purple p-3 pt-5 pb-5">
