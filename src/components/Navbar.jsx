@@ -58,7 +58,7 @@ const Navbar = () => {
 
           {/* Left Content (Text + Button aligned LEFT) */}
           <div className="flex items-center gap-3 md:flex-row   ">
-            <span className="font-medium md:text-start text-center md:font-semibold md:text-base text-sm">
+            <span className="font-medium md:text-start text-center md:font-medium md:text-base text-sm">
               {getContent('banner_offer_text', ' NEW CUSTOMER OFFER - £20 fee for your first visa with us, then £200')}
 
               <Link href={getContent('banner_button_link', '#')}>

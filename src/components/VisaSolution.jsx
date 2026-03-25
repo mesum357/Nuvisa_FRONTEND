@@ -14,7 +14,69 @@ import GetTheVisaButton from "./layout/GetTheVisaButton";
 import { getAdminApiBase } from "@/utils/adminApiBase";
 import { useCountriesWithAppointmentTexts } from "@/hooks/useCountriesWithAppointmentTexts";
 
-const VisaSolution = ({ video = false, title = "Top destinations", customColors = [] }) => {
+const VisaSolution = ({
+  video = false,
+  title = "Top Destinations",
+  customColors = [],
+  countriesData = []
+}) => {
+
+  const [isDragging, setIsDragging] = useState(false);
+  const startXRef = useRef(0);
+  const scrollLeftRef = useRef(0);
+
+  const hasDraggedRef = useRef(false);
+
+  const handleMouseDown = (e) => {
+    const slider = galleryRef.current;
+    if (!slider) return;
+
+    hasDraggedRef.current = false; // reset
+    setIsDragging(true);
+    setIsPaused(true);
+
+    startXRef.current = e.pageX - slider.offsetLeft;
+    scrollLeftRef.current = slider.scrollLeft;
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging) return;
+
+    const slider = galleryRef.current;
+    if (!slider) return;
+
+    e.preventDefault();
+
+    const x = e.pageX - slider.offsetLeft;
+    const walk = (x - startXRef.current) * 1.5;
+
+    if (Math.abs(walk) > 5) {
+      hasDraggedRef.current = true; // 
+    }
+
+    slider.scrollLeft = scrollLeftRef.current - walk;
+  };
+
+const handleMouseUp = () => {
+  const slider = galleryRef.current;
+  if (slider) {
+    scrollPositionRef.current = slider.scrollLeft;
+  }
+
+  setIsDragging(false);
+  setIsPaused(false);
+};
+
+const handleMouseLeaveDrag = () => {
+  const slider = galleryRef.current;
+
+  if (isDragging && slider) {
+    scrollPositionRef.current = slider.scrollLeft;
+    setIsDragging(false);
+    setIsPaused(false);
+  }
+};
+
   const router = useRouter();
   const dispatch = useAppDispatch();
 
@@ -98,14 +160,16 @@ const VisaSolution = ({ video = false, title = "Top destinations", customColors 
     }, {});
   }, [countryPricingList, normalizeCountryKey]);
 
-  const staticData = [
-    { name: "Germany", image: "/image/country/Germany.jpg", bgColor: '#ffb1ee' },
-    { name: "Spain", image: "/image/country/Spain.jpg", bgColor: '#8f9bfe' },
-    { name: "Portugal", image: "/image/country/Portugal.jpg", bgColor: '#5f9aff' },
-    { name: "Switzerland", image: "/image/country/Switzerland.jpg", bgColor: '#ff8e59' },
-    { name: "France", image: "/image/country/France.jpg", bgColor: '#daee69' },
-    { name: "Italy", image: "/image/country/Italy.jpg", bgColor: '#ffb1ee' },
-  ];
+const defaultCountries = [
+  { name: "Spain", image: "/image/country/Spain.jpg", bgColor: '#8f9bfe' },
+  { name: "Germany", image: "/image/country/Germany.jpg", bgColor: '#5f9aff' },
+  { name: "Switzerland", image: "/image/country/Switzerland.jpg", bgColor: '#ff8e59' },
+  { name: "France", image: "/image/country/France.jpg", bgColor: '#daee69' },
+  { name: "Italy", image: "/image/country/Italy.jpg", bgColor: '#ffb1ee' },
+];
+
+const staticData = countriesData.length > 0 ? countriesData : defaultCountries;
+
 
   const { countries: dynamicCountries } = useCountriesWithAppointmentTexts({
     staticCountries: staticData
@@ -113,9 +177,9 @@ const VisaSolution = ({ video = false, title = "Top destinations", customColors 
 
   const destinations = useMemo(() => {
     const list = dynamicCountries.length > 0 ? dynamicCountries : [
-      { name: "Germany", image: "/image/country/Germany.jpg", landmark: "Brandenburg Gate", isActive: true, bgColor: '#ffb1ee' },
+      // { name: "Germany", image: "/image/country/Germany.jpg", landmark: "Brandenburg Gate", isActive: true, bgColor: '#ffb1ee' },
       { name: "Spain", image: "/image/country/Spain.jpg", landmark: "Sagrada Familia", isActive: true, bgColor: '#8f9bfe' },
-      { name: "Portugal", image: "/image/country/Portugal.jpg", landmark: "Pena Palace", isActive: true, bgColor: '#5f9aff' },
+      { name: "Germany", image: "/image/country/Germany.jpg", landmark: "Pena Palace", isActive: true, bgColor: '#5f9aff' },
       { name: "Switzerland", image: "/image/country/Switzerland.jpg", landmark: "Matterhorn", isActive: true, bgColor: '#ff8e59' },
       { name: "France", image: "/image/country/France.jpg", landmark: "Eiffel Tower", isActive: true, bgColor: '#daee69' },
       { name: "Italy", image: "/image/country/Italy.jpg", landmark: "Colosseum Rome", isActive: true, bgColor: '#ffb1ee' },
@@ -158,7 +222,7 @@ const VisaSolution = ({ video = false, title = "Top destinations", customColors 
   }, [isPaused]);
 
   return (
-    <section id="top-destinations" className="w-full py-[40px] bg-[#fefffe] flex items-center justify-center gap-[32px] flex-col">
+    <section id="top-destinations" className="w-full py-[80px] bg-[#fefffe] flex items-center justify-center gap-[32px] flex-col">
       <svg width="0" height="0" style={{ position: 'absolute' }}>
         <defs>
           <clipPath id="shape1" clipPathUnits="objectBoundingBox">
@@ -177,26 +241,52 @@ const VisaSolution = ({ video = false, title = "Top destinations", customColors 
             <rect transform="translate(0.5, 0.5) scale(0.002) translate(-240, -240)" width="480" height="480" rx="160" ry="160" />
           </clipPath>
           <clipPath id="shape6" clipPathUnits="objectBoundingBox">
-             <path transform="translate(0.5, 0.5) scale(0.002) translate(-240, -240)" d="M480,240c0,66.3-53.7,120-120,120c0,66.3-53.7,120-120,120s-120-53.7-120-120c-66.3,0-120-53.7-120-120s53.7-120,120-120c0-66.3,53.7-120,120-120s120,53.7,120,120C426.3,120,480,173.7,480,240z" />
+            <path transform="translate(0.5, 0.5) scale(0.002) translate(-240, -240)" d="M480,240c0,66.3-53.7,120-120,120c0,66.3-53.7,120-120,120s-120-53.7-120-120c-66.3,0-120-53.7-120-120s53.7-120,120-120c0-66.3,53.7-120,120-120s120,53.7,120,120C426.3,120,480,173.7,480,240z" />
           </clipPath>
         </defs>
       </svg>
 
+      {video && (
+  <div className="w-full max-w-[86rem] px-6 mt-10">
+    <div className="relative w-full aspect-video rounded-[40px] overflow-hidden bg-black shadow-xl">
+      
+      <video 
+        src="/video/nuvisa.mp4" 
+        autoPlay 
+        muted 
+        loop 
+        playsInline
+        className="absolute inset-0 w-full h-full object-cover scale-[1.15] origin-center" 
+      />
+      <div className="absolute inset-0 bg-black/40 pointer-events-none" />
+
+    </div>
+  </div>
+)}
+
       <div className="w-full max-w-[86rem] mx-auto flex flex-col gap-6 items-center justify-center">
         <div className=" w-full flex items-center gap-5 md:gap-10 max-md:flex-col max-md:text-center px-6">
-          <h2 className="text-2xl sm:text-5xl w-1/2 text-black md:text-7xl font-extrabold leading-tight flex-1" dangerouslySetInnerHTML={{ __html: title }} />
+          <h2 className="text-2xl sm:text-5xl w-1/2 text-black md:text-7xl font-gilroy-bold font-extrabold leading-tight flex-1 " dangerouslySetInnerHTML={{ __html: title }} />
           <p className="text-gray-600 text-[13px] md:text-base font-medium leading-relaxed flex-[.6] text-left">
             If you're frustrated with travel agencies that have substantial fees, confusing conditions, and slow appointments - Meet the next generation peace of mind complete visa solution you've been looking for.
           </p>
         </div>
       </div>
 
+      
+
       <div className="w-full overflow-hidden mt-20 mb-5">
         <div
           ref={galleryRef}
-          className="flex items-center justify-start overflow-x-hidden"
+          className={`flex items-center justify-start overflow-x-hidden ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
           onMouseEnter={() => setIsPaused(true)}
-          onMouseLeave={() => setIsPaused(false)}
+          onMouseLeave={() => {
+            setIsPaused(false);
+            handleMouseLeaveDrag();
+          }}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
         >
           {[...destinations, ...destinations].map((destination, index) => {
             const currentShapeId = shapeIds[index % shapeIds.length];
@@ -205,7 +295,13 @@ const VisaSolution = ({ video = false, title = "Top destinations", customColors 
             return (
               <div
                 key={`${destination.name}-${index}`}
-                onClick={() => handleCountrySelect(destination.name)}
+                onClick={(e) => {
+                  if (hasDraggedRef.current) {
+                    e.preventDefault();
+                    return; // ❌ stop redirect
+                  }
+                  handleCountrySelect(destination.name);
+                }}
                 style={{ backgroundColor: currentColor }}
                 className="relative flex-shrink-0 w-[350px] h-[500px] p-10 mx-4 group rounded-[45px] cursor-pointer flex flex-col"
               >
@@ -219,19 +315,30 @@ const VisaSolution = ({ video = false, title = "Top destinations", customColors 
                   <Image
                     src={destination.image}
                     alt={destination.name}
+                    draggable={false}
                     fill
                     className="object-cover transition-transform duration-500 group-hover:scale-110"
                     priority
                   />
                 </div>
 
-                <div className="mt-8 flex flex-col gap-3">
+                <div className="mt-8 flex flex-col gap-2">
+                  {/* Country Name */}
                   <h3 className="text-3xl font-bold text-black/80 uppercase">
                     {destination.name}
                   </h3>
-                  <button className="w-fit px-8 py-3 border border-black rounded-full text-xs font-bold text-black hover:bg-black hover:text-white transition-all duration-300 uppercase">
-                    Try It Now
-                  </button>
+
+                  {/* Price (same logic as CountryCardsSection) */}
+                  {!isVisaPricingLoading &&
+                    destination.isActive !== false &&
+                    countryPricingLookup[normalizeCountryKey(destination.name)] && (
+                      <div className="text-lg font-gilroy-bold text-black">
+                        from £{countryPricingLookup[normalizeCountryKey(destination.name)].basePrice}
+                      </div>
+                    )}
+
+                  {/* Button */}
+                  <button className="w-fit px-8 py-3 border border-black rounded-full text-xs font-bold text-black hover:bg-black hover:text-white transition-all duration-300 uppercase"> Try It Now </button>
                 </div>
               </div>
             );

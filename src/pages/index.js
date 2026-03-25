@@ -11,7 +11,7 @@ import VisaSolution from "@/components/VisaSolution";
 import AppDownloadPopup from "@/components/AppDownloadPopup";
 import { useHeroContent } from "@/hooks/useHeroContent";
 import { useKlarnaContent } from "@/hooks/useKlarnaContent";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Info } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import StickyBottomBar from "@/components/StickyBottomBar";
@@ -21,7 +21,14 @@ import DiscountTicket from "@/components/DiscountTicket";
 
 const Index = () => {
   const { heroContent, loading } = useHeroContent();
-  const { klarnaContent, loading: klarnaLoading } = useKlarnaContent();
+  
+  const secondSectionCountries = [
+    { name: "Lithuania", image: "/image/country/lithuania.jpg", bgColor: "#5f9aff" },
+    { name: "Greece", image: "/image/country/Greece.jpg", bgColor: "#ff8e59" },
+    { name: "Malta", image: "/image/country/Malta.jpg", bgColor: "#daee69" },
+    { name: "Latvia", image: "/image/country/latvia.jpg", bgColor: "#fdfd55" },
+    { name: "Luxembourg", image: "/image/country/Luxembourg.jpg", bgColor: "#ffb1ee" },
+  ];
 
   return (
     <div className="w-full mx-auto h-full min-h-screen">
@@ -104,7 +111,10 @@ const Index = () => {
       <div className="bg-[#1E1E27] text-white w-full overflow-x-hidden pb-16">
         <VisaProcessSection />
       </div>
-      <VisaSolution customColors={['#5f9aff', '#ff8e59', '#daee69', '#fdfd55', '#ffb1ee', '#daee69']} />
+      <VisaSolution 
+      title="Everyday Steals"
+      countriesData={secondSectionCountries}
+      customColors={['#5f9aff', '#ff8e59', '#daee69', '#fdfd55', '#ffb1ee', '#daee69']} />
       <div className="bg-[#1E1E27] text-white w-full overflow-x-hidden py-16">
         <CountryCardsSection id="everyday-steals" image="/image/everyday_steals.png" />
       </div>
@@ -114,25 +124,31 @@ const Index = () => {
       <div className="bg-gradient-to-br from-purple-100 to-[#f3e6ff]">
         <div className=" py-16 px-6">
           <div className="max-[1200px] mx-auto">
-            <div className="bg-[#1E1E27] rounded-3xl py-12 px-10 text-center shadow-2xl">
-              {/* Main Heading */}
-              <h2 className="text-[26px] flex-wrap max-md:px-8 lg:text-[38px] font-gilroy-bold text-[#fff] mb-2 leading-tight flex items-center gap-3 justify-center">
-                <img src="/icons/klarna.png" alt="Klarna" className="" />
-                {klarnaLoading ? "Loading..." : klarnaContent.heading}
-              </h2>
+            <div className="bg-[#1E1E27] rounded-3xl py-12 px-10 text-center shadow-2xl border border-gray-800">
+  {/* Price Guarantee Content inside Big Box */}
+  <div className="flex flex-col items-center justify-center gap-4">
+    <div className="flex items-center gap-3 justify-center flex-wrap">
+      <Image src={"/image/BadgeIcon.png"} width={60} height={60} alt="Badge Icon" />
+      <h2 className="text-[26px] lg:text-[38px] font-gilroy-bold text-[#fff] uppercase leading-tight">
+        Price match guarantee
+      </h2>
+      
+      {/* Tooltip Icon */}
+      <div className='relative group flex items-center cursor-pointer'>
+        <Info size={24} className="text-gray-400 group-hover:text-[#6F48FF] transition-colors" />
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 p-3 bg-[#6F48FF] text-white text-[12px] font-normal leading-tight rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 pointer-events-none">
+          <p>Find it cheaper, we'll match the price</p>
+          <div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-[#6F48FF]"></div>
+        </div>
+      </div>
+    </div>
 
-              {/* Subheading with Details */}
-              <div className=" flex items-center gap-2 max-md:flex-col text-white justify-center font-gilroy-medium">
-                <p className="text-sm md:text-[16px] font-semibold">
-                  {klarnaLoading ? "Loading..." : klarnaContent.subtitle}
-                </p>
-                <p className="font-gilroy-bold text-lg md:text-[20px] ">
-                  <span className="">{!klarnaLoading && klarnaContent.paymentAmount}</span> each |
-                  <span className="mx-2">{!klarnaLoading && klarnaContent.interestRate}</span>|
-                  <span> {!klarnaLoading && klarnaContent.fees}</span>
-                </p>
-              </div>
-            </div>
+    <p className="text-gray-400 text-sm md:text-lg max-w-2xl font-gilroy-medium">
+      At NUvisa, we want you to get your Schengen visa with total confidence, 
+      knowing you're getting the best price in the market.
+    </p>
+  </div>
+</div>
           </div>
         </div>
       </div>

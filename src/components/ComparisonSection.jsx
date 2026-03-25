@@ -94,7 +94,7 @@ const ComparisonSection = () => {
   }
 
   return (
-    <div className="w-full bg-[#24242d] py-5 md:py-15 px-4 md:px-8 overflow-x-hidden">
+    <div className="w-full bg-[#24242d] py-5 md:pb-32 md:pt-15 px-4 md:px-8 overflow-x-hidden">
       <div className="max-w-[1280px] mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.6fr_1fr] gap-y-10 lg:gap-y-0 items-start">
           <div className="flex flex-col order-2 lg:order-1 lg:pr-6 lg:border-r border-white">

@@ -33,9 +33,9 @@ const SeamlessExperience = () => {
   return (
     <div className="pt-5 bg-[#1E1E27]">
       <div className="">
-        <div className="section_holder my-4" id="accessories">
+        <div className="section_holder mt-10" id="accessories">
           <div
-            className=" mb-3 text-center text-white"
+            className=" mb-15 text-center text-white"
             style={{ fontSize: 38, fontWeight: 700, lineHeight: 1.0 }}
           >
             {sectionTitle}
@@ -71,9 +71,9 @@ const SeamlessExperience = () => {
         </div>
 
 
-        <div className="my-10 md:my-20 mx-auto w-fit">
+        <div className="my-5 md:my-10 mx-auto w-fit">
           <Link href={"/get-the-visa"}>
-            <button className="group flex items-center bg-[#6B4EFF] text-white  gap-[16px] font-medium px-[24px] py-3 rounded-full cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb]">
+            <button className="group flex items-center bg-[#6B4EFF] text-white gap-[16px] font-medium px-[24px] py-3 rounded-full cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb]">
               <span className="mr-3 text-xl font-semibold">GET THE VISA</span>
               <span className="bg-white rounded-full p-1.5 transition-transform duration-300 group-hover:rotate-45 group-hover:translate-x-1 group-hover:-translate-y-0">
                 <ArrowUpRight className="w-5 h-5 text-[#6B4EFF]" />

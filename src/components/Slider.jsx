@@ -3009,7 +3009,7 @@ const CountrySlider = () => {
             {/* Thumbnails for slider navigation */}
             <div
               ref={thumbnailContainerRef}
-              className="flex justify-start gap-2 max-lg:hidden mt-8 overflow-x-auto overflow-y-hidden w-full max-sm:mt-4 px-4"
+              className="flex justify-start pb-10 gap-2 max-lg:hidden mt-8 overflow-x-auto overflow-y-hidden w-full max-sm:mt-4 px-4"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
             >
               {carouselCountries.map((country, index) => (
@@ -3032,9 +3032,9 @@ const CountrySlider = () => {
                 />
               ))}
             </div>
-            <p className="text-[18px] hidden md:block mt-3 mb-5 text-white font-gilroy-bold text-center max-sm:text-[16px] max-sm:mt-8">
+            {/* <p className="text-[18px] hidden md:block mt-3 mb-5 text-white font-gilroy-bold text-center max-sm:text-[16px] max-sm:mt-8">
               {sliderContent["urgent_note_text"]}
-            </p>
+            </p> */}
           </section>
         </section>
       </div>
