@@ -67,8 +67,9 @@ const VisaInformation = () => {
           <CountrySlider />
 
           {/* Visa Type Selection */}
-
-          <ComparisonSection />
+          <section id={"comparison-section"}>
+            <ComparisonSection />
+          </section>
           <VisaSolution video={true} title={'The next generation <br /> of visa solutions'} />
 
 
@@ -211,7 +212,7 @@ const VisaInformation = () => {
         </div>
 
         {/* Sticky Bottom Bar */}
-        <StickyBottomBar triggerElementId={'klarna-section'} key={'visa-info-page'} />
+        <StickyBottomBar triggerElementId={'comparison-section'} key={'visa-info-page'} />
       </div>
     </ClientOnly>
   );

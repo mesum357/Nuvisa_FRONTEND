@@ -348,7 +348,7 @@ const CountryCardsSection = ({ specificCountries, image, id }) => {
 
                 {!isVisaPricingLoading && country.isActive !== false && countryPricingLookup[normalizeCountryKey(country.name)] && (
                   <div className="mt-1 text-white text-[10px] font-gilroy-bold">
-                    from £{countryPricingLookup[normalizeCountryKey(country.name)].basePrice}
+                    {country.price_from} £{countryPricingLookup[normalizeCountryKey(country.name)].basePrice}
                   </div>
                 )}
               </div>

@@ -4,12 +4,62 @@ import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
 import Image from "next/image";
 import WhatsAppBadge from "./WhatsAppBadge";
-import { expertSpotsConstants, syncExpertSpots } from "@/utils/expertSpots";
+import { expertSpotsConstants, syncExpertSpots, setExpertSpotsDefaultFromApi } from "@/utils/expertSpots";
+import { getExpertSection } from "@/api/expertSection";
 
 const { DEFAULT_SPOTS_LEFT } = expertSpotsConstants;
 
+// Hardcoded defaults used as fallback while loading or on error
+const DEFAULTS = {
+  titleLine1: "Unlock Your Visa Success with",
+  titleLine2: "Unlimited Access to a",
+  titleLine3: "Accountability Expert",
+  originalPrice: "£35/ Month",
+  offerPrice: "Free",
+  offerDescription: "with next 100 visa applications!",
+  expertImage: "/image/expert.png",
+  defaultSpotsLeft: DEFAULT_SPOTS_LEFT,
+};
+
 const ExpertSection = ({ checked = false, onChange = () => {} }) => {
   const [spotsLeft, setSpotsLeft] = useState(DEFAULT_SPOTS_LEFT);
+  const [content, setContent] = useState(DEFAULTS);
+  const [isVisible, setIsVisible] = useState(true);
+
+  useEffect(() => {
+    // Fetch dynamic content from API
+    getExpertSection()
+      .then((response) => {
+        const data = response?.data;
+        if (data && typeof data === "object" && data.id) {
+          // If the section is inactive from the admin, hide it
+          if (data.isActive === false) {
+            setIsVisible(false);
+            return;
+          }
+
+          setContent({
+            titleLine1: data.titleLine1 || DEFAULTS.titleLine1,
+            titleLine2: data.titleLine2 || DEFAULTS.titleLine2,
+            titleLine3: data.titleLine3 || DEFAULTS.titleLine3,
+            originalPrice: data.originalPrice || DEFAULTS.originalPrice,
+            offerPrice: data.offerPrice || DEFAULTS.offerPrice,
+            offerDescription: data.offerDescription || DEFAULTS.offerDescription,
+            expertImage: data.expertImage || DEFAULTS.expertImage,
+            defaultSpotsLeft: data.defaultSpotsLeft ?? DEFAULTS.defaultSpotsLeft,
+          });
+
+          // Update the spots counter with the DB value
+          if (data.defaultSpotsLeft != null) {
+            const synced = setExpertSpotsDefaultFromApi(data.defaultSpotsLeft);
+            setSpotsLeft(synced);
+          }
+        }
+      })
+      .catch(() => {
+        // Silently fall back to defaults
+      });
+  }, []);
 
   useEffect(() => {
     const syncSpots = () => {
@@ -26,6 +76,8 @@ const ExpertSection = ({ checked = false, onChange = () => {} }) => {
       window.removeEventListener("expert-spots-updated", onSpotsUpdated);
     };
   }, []);
+
+  if (!isVisible) return null;
 
   return (
     <section
@@ -66,20 +118,20 @@ const ExpertSection = ({ checked = false, onChange = () => {} }) => {
 
             <label htmlFor="expert-accountability-coach" className="flex-1 cursor-pointer flex flex-col justify-start min-h-36">
               <h3 className="text-base leading-normal font-gilroy-bold max-sm:text-sm">
-                <span className="block">Unlock Your Visa Success with</span>
-                <span className="block">Unlimited Access to a <WhatsAppBadge /></span>
-                <span className="block">Accountability Expert</span>
+                <span className="block">{content.titleLine1}</span>
+                <span className="block">{content.titleLine2} <WhatsAppBadge /></span>
+                <span className="block">{content.titleLine3}</span>
               </h3>
 
               <div className="mt-6 flex items-center gap-3 max-sm:gap-2 whitespace-nowrap max-sm:flex-wrap">
                 <span className="text-white/50 line-through text-base max-sm:text-sm whitespace-nowrap">
-                  £35/ Month
+                  {content.originalPrice}
                 </span>
                 <span className="text-base leading-none font-gilroy-bold max-sm:text-sm whitespace-nowrap">
-                  Free
+                  {content.offerPrice}
                 </span>
                 <span className="text-base text-white/75 max-sm:text-sm whitespace-nowrap max-sm:basis-full">
-                  with next 100 visa applications!
+                  {content.offerDescription}
                 </span>
               </div>
             </label>
@@ -87,7 +139,7 @@ const ExpertSection = ({ checked = false, onChange = () => {} }) => {
 
           <div className="absolute right-0 max-sm:-right-9 bottom-0 w-40 h-40 max-sm:w-32 max-sm:h-32 shrink-0">
             <Image
-              src="/image/expert.png"
+              src={content.expertImage}
               alt="Expert coach"
               fill
               sizes="(max-width: 640px) 128px, 160px"

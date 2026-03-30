@@ -2759,7 +2759,7 @@ const CountrySlider = () => {
       router.events.off('routeChangeComplete', handleScrollAndHighlight);
     };
   }, [router]);
-
+  
   return (
     <div className="w-full max-w-[1300px] gap-20 max-lg:flex-col max-lg:gap-10 flex items-start justify-center px-5 max-sm:px-3">
       {/* System Alerts */}
@@ -3062,10 +3062,10 @@ const CountrySlider = () => {
             {/* Header with pricing */}
             <div className="mb-8 max-sm:mb-6">
               <h1 className="text-3xl font-gilroy-bold max-sm:text-2xl">
-                Schengen visa from the UK
+                {sliderContent?.slider_header}
               </h1>
               <p className="text-xs mb-4 max-sm:text-[11px] max-sm:mb-3 leading-relaxed">
-                Complete visa service with all necessary documents
+                {sliderContent?.slider_description || "Complete visa service with all necessary documents"}
               </p>
               <div className="flex items-center justify-between gap-3 mb-4 max-sm:flex-col max-sm:items-start max-sm:gap-1">
                 {selectedCountryData.isActive !== false ? (
@@ -3076,7 +3076,7 @@ const CountrySlider = () => {
                       </span>
                       {Number(calculateOriginalPrice()) > visaOnlyPrice && (
                         <span className="text-[12px] text-gray-500 font-medium max-sm:text-[11px]">
-                          You save  £{Math.round(((Number(calculateOriginalPrice()) - visaOnlyPrice)))}
+                         {sliderContent?.slider_save}{Math.round(((Number(calculateOriginalPrice()) - visaOnlyPrice)))}
                         </span>
                       )}
                     </div>
@@ -3086,7 +3086,7 @@ const CountrySlider = () => {
                       </span>
                       {Number(calculateOriginalPrice()) > visaOnlyPrice && (
                         <span className="text-[12px] text-gray-500 font-medium max-sm:text-[11px]">
-                          Traditional fee
+                          {sliderContent?.slider_traditional}
                         </span>
                       )}
                     </div>
