@@ -132,6 +132,7 @@ export const useCountriesWithAppointmentTexts = ({
         landmark: staticCountry?.landmark || countryData.originalCountryName || countryName,
         appointmentText: countryData.appointmentText || fallbackAppointmentText,
         isActive: visaCountry.isActive ?? true,
+        price_from: visaCountry.price_from || "From",
       };
 
       if (includeFees) {

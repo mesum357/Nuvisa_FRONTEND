@@ -333,7 +333,7 @@ const staticData = countriesData.length > 0 ? countriesData : defaultCountries;
                     destination.isActive !== false &&
                     countryPricingLookup[normalizeCountryKey(destination.name)] && (
                       <div className="text-lg font-gilroy-bold text-black">
-                        from £{countryPricingLookup[normalizeCountryKey(destination.name)].basePrice}
+                        {destination.price_from} £{countryPricingLookup[normalizeCountryKey(destination.name)].basePrice}
                       </div>
                     )}
 

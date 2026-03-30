@@ -94,7 +94,7 @@ const ComparisonSection = () => {
   }
 
   return (
-    <div className="w-full bg-[#24242d] py-5 md:pb-32 md:pt-15 px-4 md:px-8 overflow-x-hidden">
+    <div  className="w-full bg-[#24242d] py-5 md:pb-32 md:pt-15 px-4 md:px-8 overflow-x-hidden">
       <div className="max-w-[1280px] mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.6fr_1fr] gap-y-10 lg:gap-y-0 items-start">
           <div className="flex flex-col order-2 lg:order-1 lg:pr-6 lg:border-r border-white">
@@ -122,7 +122,7 @@ const ComparisonSection = () => {
                   <ul className="space-y-4">
                     {detailSections[activeTab].items.map((bullet, i) => (
                       <li key={i} className="flex items-start gap-3">
-                        <div className="mt-1.5 shrink-0 w-1.5 h-1.5 rounded-full bg-[#6F48FF]"></div>
+                        <div className="mt-1.5 shrink-0 w-1.5 h-1.5 rounded-full bg-[#ffffff]"></div>
                         <span className="text-[13px] text-white/90 font-gilroy-medium leading-relaxed">
                           {bullet}
                         </span>
@@ -148,7 +148,7 @@ const ComparisonSection = () => {
 
           <div className="flex flex-col order-1 lg:order-2 lg:px-6 lg:border-r border-white">
             <div className="pb-4 flex items-center gap-2">
-              <h3 className="text-sm md:text-base font-gilroy-bold text-white leading-tight tracking-tight uppercase">
+              <h3 className="text-sm md:text-base font-gilroy-bold font-bold text-white leading-tight tracking-tight uppercase">
                 {data.title || "BEYOND COMPARE"}
               </h3>
               {data.tooltip && (
