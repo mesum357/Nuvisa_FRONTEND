@@ -200,7 +200,7 @@ const ComparisonSection = () => {
                       )}
                     </div>
                     {row.values.map((val, cIdx) => {
-                      const isValueBullet = val.trim().toLowerCase() === 'check' || val.trim() === '●';
+                      const isValueBullet = val.trim().toLowerCase() === 'check' || val.trim() === '●' || val.trim() === '○';
                       const isValueCross = val.trim().toLowerCase() === 'x' || val.trim().toLowerCase() === 'no';
 
                       return (
@@ -211,7 +211,7 @@ const ComparisonSection = () => {
                             }`}
                         >
                           {isValueBullet ? (
-                            <div className={`w-2.5 h-2.5 rounded-full ${cIdx === 0 ? 'bg-[#6F48FF]' : 'bg-white/40'}`} />
+                            <div className={`w-2.5 h-2.5 rounded-full ${cIdx === 0 || val.trim() === '○' ? 'bg-[#6F48FF]' : 'bg-white/40'}`} />
                           ) : isValueCross ? (
                             <CircleX size={14} className="text-white/20" />
                           ) : (
