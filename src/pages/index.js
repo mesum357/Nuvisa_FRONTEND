@@ -144,8 +144,8 @@ const Index = () => {
             <div className="bg-[#1E1E27] rounded-4xl py-6 px-10 text-center shadow-2xl border border-gray-800">
               <div className="flex flex-col items-center justify-center gap-4">
                 <div className="flex items-center gap-3 justify-center flex-wrap">
-                  <Image src="/image/BadgeIcon.png" width={60} height={60} alt="Badge Icon" />
-                  <h2 className="text-[26px] lg:text-[38px] font-gilroy-bold text-white uppercase leading-tight">
+                  <Image src="/image/BadgeIcon.png" width={40} height={40} alt="Badge Icon" />
+                  <h2 className="text-[26px] lg:text-[32px] font-gilroy-bold text-white leading-tight">
                     Price match guarantee
                   </h2>
 
@@ -170,7 +170,7 @@ const Index = () => {
                   </div>
                 </div>
 
-                <p className="text-gray-400 text-sm md:text-lg max-w-2xl font-gilroy-medium">
+                <p className="text-gray-400 text-sm md:text-md max-w-2xl font-gilroy-medium">
                   At NUvisa, we want you to get your Schengen visa with total confidence,
                   knowing you're getting the best price in the market.
                 </p>

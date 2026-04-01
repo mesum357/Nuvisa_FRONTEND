@@ -190,17 +190,18 @@ const VisaInformation = () => {
                 {klarnaLoading ? "Loading..." : klarnaContent.heading}
               </h2>
 
-              <div className=" flex items-center gap-2 max-md:flex-col text-white justify-center ">
-                <p className="text-sm md:text-[16px] font-medium">
+              <div className="flex items-center gap-2 text-gray-400 justify-center font-gilroy-medium mt-1">
+                <p className="text-[12px] md:text-lg font-semibold">
                   {klarnaLoading ? "Loading..." : klarnaContent.subtitle}
                 </p>
+                <span className="text-gray-600">|</span>
                 <p className="font-semibold text-lg md:text-[20px] ">
-                  <span className="">
+                  {klarnaContent.paymentAmount && <span className="">
                     {!klarnaLoading && klarnaContent.paymentAmount}
-                  </span>{" "}
-                  <span className="mx-2">
+                  </span>}
+                  {klarnaContent.interestRate && <span className="mx-2">
                     {!klarnaLoading && klarnaContent.interestRate}
-                  </span>
+                  </span>}
                   <span> {!klarnaLoading && klarnaContent.fees}</span>
                 </p>
               </div>
