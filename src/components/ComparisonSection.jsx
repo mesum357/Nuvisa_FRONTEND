@@ -178,7 +178,7 @@ const ComparisonSection = () => {
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.6fr_1fr] gap-y-10 lg:gap-y-0 items-start">
 
           {/* Left Column */}
-          <div className="flex flex-col order-2 lg:order-1 lg:pr-6 lg:border-r border-white">
+          <div className="flex flex-col h-full order-2 lg:order-1 lg:pr-6 lg:border-r border-white">
             <div className="flex flex-col gap-6">
               <div className="flex gap-8 border-b border-white/10 mb-2">
                 {detailSections.map((section, sIdx) => (
@@ -211,6 +211,17 @@ const ComparisonSection = () => {
                 </div>
               )}
             </div>
+
+                      <div className="my-6 hidden lg:flex flex-wrap justify-center items-center gap-5 pt-5 border-t border-white">
+            {trustBadges.map((badge, i) => (
+              <div key={i} className="flex flex-col items-center gap-1 text-center">
+                <span className="text-white">{badge.icon}</span>
+                <p className="text-[9px] font-gilroy-bold tracking-widest text-white uppercase leading-tight">
+                  {badge.label}
+                </p>
+              </div>
+            ))}
+          </div>
           </div>
 
           {/* Middle Column */}
@@ -361,7 +372,7 @@ const ComparisonSection = () => {
               </div>
             )}
 
-            <div className="my-6 flex flex-wrap justify-center items-center gap-5 pt-5 border-t border-white">
+            <div className="my-6 lg:hidden flex flex-wrap justify-center items-center gap-5 pt-5 border-t border-white">
               {trustBadges.map((badge, i) => (
                 <div key={i} className="flex flex-col items-center gap-1 text-center">
                   <span className="text-white">{badge.icon}</span>

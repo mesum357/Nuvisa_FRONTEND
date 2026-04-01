@@ -72,13 +72,13 @@ const SeamlessExperience = () => {
           </div>
 
           {/* Right side - single image */}
-          <div className="flex-1 flex items-center justify-center">
+          <div className="flex-1 flex items-end justify-center">
             <Image
-              src="/image/get-the-visa-image.png"
+              src="/image/get-the-visa-image-1.png"
               width={500}
               height={500}
               alt="Side image"
-              className="w-full h-full object-cover rounded-[2rem]"
+              className="w-full max-w-[545px] max-h-[600px] h-full object-fit rounded-[2rem]"
             />
           </div>
         </div>

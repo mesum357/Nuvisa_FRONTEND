@@ -111,18 +111,18 @@ const PremiumServiceSection = () => {
         >
 
           {/* Card 4 */}
-          <div className="w-full flex-shrink-0 px-1 sm:px-2 md:px-5 snap-center">
-            <div className="rounded-[30px] md:rounded-[60px] w-full flex flex-col md:flex-row items-center justify-between p-6 sm:p-8 md:p-16 gap-6 md:gap-0 transition-all duration-300 hover:shadow-2xl" style={{ backgroundColor: "#daee69" }}>
+          <div className="w-full flex-shrink-0 snap-center">
+            <div className="rounded-[30px] md:rounded-[60px] w-full flex flex-col md:flex-row items-center justify-between p-6 md:py-3 md:px-16 gap-6 md:gap-0 transition-all duration-300 hover:shadow-2xl lg:min-h-117.5" style={{ backgroundColor: "#daee69" }}>
               <div className="w-full md:w-2/3 text-left z-10">
-                <h3 className="text-[28px] sm:text-[36px] md:text-[64px] font-extrabold font-gilroy-bold leading-tight mb-3 md:mb-4">
+                <h3 className="text-[28px] sm:text-[36px] md:text-[54px] font-extrabold font-gilroy-bold leading-tight mb-3">
                   Reduce your odds<br className="hidden sm:block" /> of rejection
                 </h3>
-                <p className="text-[15px] md:text-[20px] font-medium opacity-90 max-w-3xl mb-6 md:mb-8">
+                <p className="text-[15px] md:text-[16px] font-medium opacity-90 max-w-3xl mb-6">
                   Benefit from document pre-checks, error-proof form filling, and personalised visa guidance, powered by AI with human oversight at critical checkpoints — all designed to prevent delays, mistakes, and rejections, allowing our customers to benefit from a 99.3% approval rate.
                 </p>
-                <button className="w-fit px-6 md:px-8 py-2.5 md:py-3 border border-black rounded-full text-xs font-bold text-black hover:bg-black hover:text-white transition-all duration-300 uppercase">
+                <Link href="/get-the-visa" className="w-fit px-6 md:px-8 py-2.5 md:py-3 border border-black rounded-full text-xs font-bold text-black hover:bg-black hover:text-white transition-all duration-300 uppercase">
                   Get It Now
-                </button>
+                </Link>
               </div>
               <div className="w-full md:w-1/2 flex justify-center md:justify-end">
                 <div className="relative w-[220px] h-[220px] sm:w-[280px] sm:h-[280px] md:w-[450px] md:h-[450px] bg-[#ffffff]/75" style={{ clipPath: "url(#shape7)", WebkitClipPath: "url(#shape7)" }}>
@@ -133,17 +133,17 @@ const PremiumServiceSection = () => {
           </div>
 
           {/* Card 1 */}
-          <div className="w-full flex-shrink-0 px-1 sm:px-2 md:px-5 snap-center">
-            <div className="rounded-[30px] md:rounded-[60px] w-full flex flex-col md:flex-row items-center justify-between p-6 sm:p-8 md:p-16 gap-6 md:gap-0 transition-all duration-300 hover:shadow-2xl" style={{ backgroundColor: "#ffb1ee" }}>
+          <div className="w-full flex-shrink-0 snap-center">
+            <div className="rounded-[30px] md:rounded-[60px] w-full flex flex-col md:flex-row items-center justify-between p-6 md:py-3 md:px-16 gap-6 md:gap-0 transition-all duration-300 hover:shadow-2xl lg:min-h-117.5" style={{ backgroundColor: "#ffb1ee" }}>
               <div className="w-full md:w-1/2 text-left z-10 text-black">
-                <h3 className="text-[28px] sm:text-[36px] md:text-[64px] font-extrabold font-gilroy-bold leading-tight mb-3 md:mb-4">Always in touch</h3>
-                <p className="text-[15px] md:text-[20px] font-medium opacity-90 max-w-md mb-6 md:mb-8">Got any question? Get in touch with 24/7 live human support available.</p>
-                <button className="w-fit px-6 md:px-8 py-2.5 md:py-3 border border-black rounded-full text-xs font-bold text-black hover:bg-black hover:text-white transition-all duration-300 uppercase">
+                <h3 className="text-[28px] sm:text-[36px] md:text-[54px] font-extrabold font-gilroy-bold leading-tight mb-3">Always in touch</h3>
+                <p className="text-[15px] md:text-[16px] font-medium opacity-90 max-w-3xl mb-6">Got any question? Get in touch with 24/7 live human support available.</p>
+                <Link href="/get-the-visa" className="w-fit px-6 md:px-8 py-2.5 md:py-3 border border-black rounded-full text-xs font-bold text-black hover:bg-black hover:text-white transition-all duration-300 uppercase">
                   Get It Now
-                </button>
+                </Link>
               </div>
               <div className="w-full md:w-1/2 flex justify-center md:justify-end">
-                <div className="relative w-[220px] h-[220px] sm:w-[280px] sm:h-[280px] md:w-[420px] md:h-[420px] bg-[#23232a]" style={{ clipPath: "url(#shape4)", WebkitClipPath: "url(#shape4)" }}>
+                <div className="relative w-[220px] h-[220px] sm:w-[280px] sm:h-[280px] md:w-[420px] md:h-[420px] bg-[#71a6f4]" style={{ clipPath: "url(#shape4)", WebkitClipPath: "url(#shape4)" }}>
                   <Image src="/image/grid-showcase-1.png" alt="Icon" fill className="object-contain p-8 md:p-15 pointer-events-none" priority />
                 </div>
               </div>
@@ -151,14 +151,14 @@ const PremiumServiceSection = () => {
           </div>
 
           {/* Card 2 */}
-          <div className="w-full flex-shrink-0 px-1 sm:px-2 md:px-5 snap-center">
-            <div className="rounded-[30px] md:rounded-[60px] w-full flex flex-col md:flex-row items-center justify-between p-6 sm:p-8 md:p-16 gap-6 md:gap-0 transition-all duration-300 hover:shadow-2xl" style={{ backgroundColor: "#5f9aff" }}>
+          <div className="w-full flex-shrink-0 snap-center">
+            <div className="rounded-[30px] md:rounded-[60px] w-full flex flex-col md:flex-row items-center justify-between p-6 md:py-3 md:px-16 gap-6 md:gap-0 transition-all duration-300 hover:shadow-2xl lg:min-h-117.5" style={{ backgroundColor: "#5f9aff" }}>
               <div className="w-full md:w-1/2 text-left z-10 text-black">
-                <h3 className="text-[28px] sm:text-[36px] md:text-[64px] font-extrabold font-gilroy-bold leading-tight mb-3 md:mb-4">Realtime reporting</h3>
-                <p className="text-[15px] md:text-[20px] font-medium opacity-90 max-w-md mb-6 md:mb-8">On the go online updates for your visa process with instant handy notifications.</p>
-                <button className="w-fit px-6 md:px-8 py-2.5 md:py-3 border border-black rounded-full text-xs font-bold text-black hover:bg-black hover:text-white transition-all duration-300 uppercase">
+                <h3 className="text-[28px] sm:text-[36px] md:text-[54px] font-extrabold font-gilroy-bold leading-tight mb-3">Realtime reporting</h3>
+                <p className="text-[15px] md:text-[16px] font-medium opacity-90 max-w-3xl mb-6">On the go online updates for your visa process with instant handy notifications.</p>
+                <Link href="/get-the-visa" className="w-fit px-6 md:px-8 py-2.5 md:py-3 border border-black rounded-full text-xs font-bold text-black hover:bg-black hover:text-white transition-all duration-300 uppercase">
                   Get It Now
-                </button>
+                </Link>
               </div>
               <div className="w-full md:w-1/2 flex justify-center md:justify-end">
                 <div className="relative w-[220px] h-[220px] sm:w-[280px] sm:h-[280px] md:w-[420px] md:h-[420px] bg-[#ffe7d5]" style={{ clipPath: "url(#shape5)", WebkitClipPath: "url(#shape5)" }}>
@@ -169,14 +169,14 @@ const PremiumServiceSection = () => {
           </div>
 
           {/* Card 3 */}
-          <div className="w-full flex-shrink-0 px-1 sm:px-2 md:px-5 snap-center">
-            <div className="rounded-[30px] md:rounded-[60px] w-full flex flex-col md:flex-row items-center justify-between p-6 sm:p-8 md:p-16 gap-6 md:gap-0 transition-all duration-300 hover:shadow-2xl" style={{ backgroundColor: "#ff8e59" }}>
+          <div className="w-full flex-shrink-0 snap-center">
+            <div className="rounded-[30px] md:rounded-[60px] w-full flex flex-col md:flex-row items-center justify-between p-6 md:py-3 md:px-16 gap-6 md:gap-0 transition-all duration-300 hover:shadow-2xl lg:min-h-117.5" style={{ backgroundColor: "#ff8e59" }}>
               <div className="w-full md:w-1/2 text-left z-10">
-                <h3 className="text-[28px] sm:text-[36px] md:text-[64px] font-extrabold font-gilroy-bold leading-tight mb-3 md:mb-4">Peace of mind</h3>
-                <p className="text-[15px] md:text-[20px] font-medium opacity-90 max-w-md mb-6 md:mb-8">Registered with ICO & GDPR compliant. End-to-end security, no data sharing.</p>
-                <button className="w-fit px-6 md:px-8 py-2.5 md:py-3 border border-black rounded-full text-xs font-bold text-black hover:bg-black hover:text-white transition-all duration-300 uppercase">
+                <h3 className="text-[28px] sm:text-[36px] md:text-[54px] font-extrabold font-gilroy-bold leading-tight mb-3">Peace of mind</h3>
+                <p className="text-[15px] md:text-[16px] font-medium opacity-90 max-w-3xl mb-6">Registered with ICO & GDPR compliant. End-to-end security, no data sharing.</p>
+                <Link href="/get-the-visa" className="w-fit px-6 md:px-8 py-2.5 md:py-3 border border-black rounded-full text-xs font-bold text-black hover:bg-black hover:text-white transition-all duration-300 uppercase">
                   Get It Now
-                </button>
+                </Link>
               </div>
               <div className="w-full md:w-1/2 flex justify-center md:justify-end">
                 <div className="relative w-[220px] h-[220px] sm:w-[280px] sm:h-[280px] md:w-[450px] md:h-[450px] bg-[#fafafc]/50" style={{ clipPath: "url(#shape6)", WebkitClipPath: "url(#shape6)" }}>
@@ -189,20 +189,19 @@ const PremiumServiceSection = () => {
         </div>
 
         {/* Dots Navigation */}
-        <div className="flex gap-3 mt-6">
+        <div className="flex gap-3 mt-6 mb-10">
           {Array.from({ length: totalCards }).map((_, index) => (
             <button
               key={index}
               onClick={() => scrollToIndex(index)}
-              className={`rounded-full transition-all duration-300 ${
-                activeIndex === index ? "bg-[#6B4EFF] w-8 h-3" : "bg-gray-300 hover:bg-gray-400 w-3 h-3"
-              }`}
+              className={`rounded-full transition-all duration-300 ${activeIndex === index ? "bg-[#6B4EFF] w-8 h-3" : "bg-gray-300 hover:bg-gray-400 w-3 h-3"
+                }`}
             />
           ))}
         </div>
 
         <Link href={"/get-the-visa"}>
-          <button className="group flex items-center bg-[#6B4EFF] text-white gap-[16px] font-medium px-[24px] py-3 rounded-3xl cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb] mt-10">
+          <button className="group flex items-center bg-[#6B4EFF] text-white gap-[16px] font-medium px-[24px] py-3 rounded-3xl cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb]">
             <span className="mr-3 text-xl md:text-2xl uppercase">Get the visa</span>
             <span className="bg-white rounded-full p-1.5 transition-transform duration-300 group-hover:rotate-45 group-hover:translate-x-1">
               <ArrowUpRight className="w-5 h-5 text-[#6B4EFF]" />
