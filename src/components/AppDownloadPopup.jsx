@@ -93,7 +93,7 @@ const AppDownloadPopup = () => {
       const timer = setTimeout(() => {
         setIsVisible(true);
         setTimeout(() => setIsAnimating(true), 10); 
-      }, 9000);
+      }, 45000);
       return () => clearTimeout(timer);
     } else if (!isHomePage) {
       setIsVisible(false);

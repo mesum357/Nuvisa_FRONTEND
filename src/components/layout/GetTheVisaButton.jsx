@@ -21,7 +21,7 @@ const GetTheVisaButton = ({ frosted = false, removeArrow, btnClassName }) => {
       } ${btnClassName}`}
     >
       <span
-        className={frosted ? "mr-3 text-lg" : removeArrow ? "!mr-0" : "mr-3"}
+        className={frosted ? "mr-3 text-2xl!" : removeArrow ? "mr-0!" : "mr-3 text-2xl!"}
       >
         GET THE VISA
       </span>

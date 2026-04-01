@@ -29,6 +29,15 @@ const CountryCardsSection = ({ specificCountries, image, id }) => {
   const [countryPricingList, setCountryPricingList] = useState([]);
   const [isVisaPricingLoading, setIsVisaPricingLoading] = useState(true);
 
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
   const [occasions, setOccasions] = useState([]);
 
   const normalizeCountryKey = useCallback((value) => String(value || "").trim().toLowerCase(), []);
@@ -256,17 +265,39 @@ const CountryCardsSection = ({ specificCountries, image, id }) => {
   const displayedCountries = useMemo(() => {
     let list = homepageCountries;
 
-    // Fallback if filtering resulted in an empty list but we have dynamic data
     if (list.length === 0 && dynamicSection) {
       list = homepageCountries;
     }
 
-    return showAll ? list : list.slice(0, 9);
-  }, [homepageCountries, showAll, dynamicSection]);
+    const limit = isMobile ? 5 : 9;
+    return showAll ? list : list.slice(0, limit);
+  }, [homepageCountries, showAll, dynamicSection, isMobile]);
 
 
   return (
     <div className="max-w-6xl mx-auto px-6" id={id}>
+      {id === "everyday-steals" &&
+
+        <div className='w-full px-4 pt-10 pb-5'>
+          <div className='bg-[#fdfd55] md:flex-row flex-col text-center md:text-start flex items-center justify-center py-6 px-6 rounded-4xl -mt-8 gap-3 md:gap-6'>
+
+            <Image src={"/icons/nu-logo.png"} className="rounded-full" width={75} height={75} alt="Badge Icon" />
+            <div className='flex flex-col text-white items-center justify-center'>
+              <div className='flex items-center gap-2'>
+                <p className='text-[24px] lg:text-[26px] font-gilroy-bold text-black leading-tight'>
+                  Grab £50 off your advance booking
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 text-gray-500 font-gilroy-medium mt-1">
+                <p className="text-[12px] md:text-lg font-semibold">
+                  Lock it in today to maximise savings.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
         {/* Large 2x2 Image Card (Visible on lg screens) */}
         {!loading && !error && (
@@ -296,14 +327,12 @@ const CountryCardsSection = ({ specificCountries, image, id }) => {
               <div key={idx} className="flex flex-col gap-2 h-full">
                 <div
                   style={{
-                    backgroundImage: `url(${occ.img})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center'
+                    backgroundColor: `${occ.bgColor}`,
                   }}
 
                   className="relative flex-1 min-h-[150px] rounded-xl flex items-center justify-center p-4 text-center cursor-pointer hover:scale-[1.02] transition-transform duration-300 shadow-md overflow-hidden group"
                 >
-                  
+
                   <div className="absolute inset-0 transition-colors"></div>
 
                   <h4 style={{ color: occ.textColor }} className="relative z-10 text-[14px] md:text-[16px] font-gilroy-bold leading-tight uppercase drop-shadow-lg">
@@ -358,7 +387,7 @@ const CountryCardsSection = ({ specificCountries, image, id }) => {
       </div>
 
       {/* See More Button - Only for Country view */}
-      {id !== "everyday-steals" && !image && !showAll && homepageCountries.length > 4 && (
+      {id !== "everyday-steals" && !image && !showAll && homepageCountries.length > (isMobile ? 5 : 9) && (
         <div className="text-center mt-12">
           <button
             onClick={() => setShowAll(true)}
@@ -371,7 +400,7 @@ const CountryCardsSection = ({ specificCountries, image, id }) => {
       )}
 
       {/* Show Less Button - Only for Country view */}
-      {id !== "everyday-steals" && showAll && homepageCountries.length > 4 && (
+      {id !== "everyday-steals" && showAll && homepageCountries.length > (isMobile ? 5 : 9) && (
         <div className="text-center mt-12">
           <button
             onClick={() => setShowAll(false)}
