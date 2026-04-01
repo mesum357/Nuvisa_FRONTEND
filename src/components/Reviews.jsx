@@ -97,7 +97,7 @@ export default function Reviews() {
     }, []);
 
     return (
-        <section className="w-full py-10 text-white flex flex-col items-center justify-center gap-8">
+        <section className="w-full pt-10 text-white flex flex-col items-center justify-center gap-8">
             <style jsx>{`
                 @keyframes reviews-marquee {
                     0% { transform: translateX(0); }

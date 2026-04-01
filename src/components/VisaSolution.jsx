@@ -57,32 +57,32 @@ const VisaSolution = ({
     slider.scrollLeft = scrollLeftRef.current - walk;
   };
 
-const handleMouseUp = () => {
-  const slider = galleryRef.current;
-  if (slider) {
-    scrollPositionRef.current = slider.scrollLeft;
-  }
+  const handleMouseUp = () => {
+    const slider = galleryRef.current;
+    if (slider) {
+      scrollPositionRef.current = slider.scrollLeft;
+    }
 
-  setIsDragging(false);
-  setIsPaused(false);
-};
-
-const handleMouseLeaveDrag = () => {
-  const slider = galleryRef.current;
-
-  if (isDragging && slider) {
-    scrollPositionRef.current = slider.scrollLeft;
     setIsDragging(false);
     setIsPaused(false);
-  }
-};
+  };
+
+  const handleMouseLeaveDrag = () => {
+    const slider = galleryRef.current;
+
+    if (isDragging && slider) {
+      scrollPositionRef.current = slider.scrollLeft;
+      setIsDragging(false);
+      setIsPaused(false);
+    }
+  };
 
   const router = useRouter();
   const dispatch = useAppDispatch();
 
   // Premium Colors - Agar customColors prop mein data hoga toh wo use hoga, warna ye default array
   const premiumColors = customColors.length > 0 ? customColors : ['#ffb1ee', '#8f9bfe', '#5f9aff', '#ff8e59', '#daee69', '#b1a0ff'];
-  const shapeIds = ["shape1", "shape2", "shape3", "shape4", "shape5", "shape6"];
+  const shapeIds = ["shape1", "shape2", "shape3", "shape4", "shape5", "shape6", "shape7"];
 
   const handleCountrySelect = (countryName) => {
     const countryConfig = getCountryConfig(countryName);
@@ -153,6 +153,40 @@ const handleMouseLeaveDrag = () => {
     return () => { mounted = false; };
   }, []);
 
+  // Add these new touch handlers
+  const handleTouchStart = (e) => {
+    const slider = galleryRef.current;
+    if (!slider) return;
+
+    hasDraggedRef.current = false;
+    setIsPaused(true);
+
+    startXRef.current = e.touches[0].pageX - slider.offsetLeft;
+    scrollLeftRef.current = slider.scrollLeft;
+  };
+
+  const handleTouchMove = (e) => {
+    const slider = galleryRef.current;
+    if (!slider) return;
+
+    const x = e.touches[0].pageX - slider.offsetLeft;
+    const walk = (x - startXRef.current) * 1.5;
+
+    if (Math.abs(walk) > 5) {
+      hasDraggedRef.current = true;
+    }
+
+    slider.scrollLeft = scrollLeftRef.current - walk;
+  };
+
+  const handleTouchEnd = () => {
+    const slider = galleryRef.current;
+    if (slider) {
+      scrollPositionRef.current = slider.scrollLeft;
+    }
+    setIsPaused(false);
+  };
+
   const countryPricingLookup = useMemo(() => {
     return countryPricingList.reduce((acc, item) => {
       acc[normalizeCountryKey(item.name)] = item;
@@ -160,15 +194,15 @@ const handleMouseLeaveDrag = () => {
     }, {});
   }, [countryPricingList, normalizeCountryKey]);
 
-const defaultCountries = [
-  { name: "Spain", image: "/image/country/Spain.jpg", bgColor: '#8f9bfe' },
-  { name: "Germany", image: "/image/country/Germany.jpg", bgColor: '#5f9aff' },
-  { name: "Switzerland", image: "/image/country/Switzerland.jpg", bgColor: '#ff8e59' },
-  { name: "France", image: "/image/country/France.jpg", bgColor: '#daee69' },
-  { name: "Italy", image: "/image/country/Italy.jpg", bgColor: '#ffb1ee' },
-];
+  const defaultCountries = [
+    { name: "Spain", image: "/image/country/Spain.jpg", bgColor: '#8f9bfe' },
+    { name: "Germany", image: "/image/country/Germany.jpg", bgColor: '#5f9aff' },
+    { name: "Switzerland", image: "/image/country/Switzerland.jpg", bgColor: '#ff8e59' },
+    { name: "France", image: "/image/country/France.jpg", bgColor: '#daee69' },
+    { name: "Italy", image: "/image/country/Italy.jpg", bgColor: '#ffb1ee' },
+  ];
 
-const staticData = countriesData.length > 0 ? countriesData : defaultCountries;
+  const staticData = countriesData.length > 0 ? countriesData : defaultCountries;
 
 
   const { countries: dynamicCountries } = useCountriesWithAppointmentTexts({
@@ -222,7 +256,7 @@ const staticData = countriesData.length > 0 ? countriesData : defaultCountries;
   }, [isPaused]);
 
   return (
-    <section id="top-destinations" className="w-full py-[80px] bg-[#fefffe] flex items-center justify-center gap-[32px] flex-col">
+    <section id="top-destinations" className="w-full py-10 md:py-20 bg-[#fefffe] flex items-center justify-center gap-[32px] flex-col">
       <svg width="0" height="0" style={{ position: 'absolute' }}>
         <defs>
           <clipPath id="shape1" clipPathUnits="objectBoundingBox">
@@ -243,37 +277,41 @@ const staticData = countriesData.length > 0 ? countriesData : defaultCountries;
           <clipPath id="shape6" clipPathUnits="objectBoundingBox">
             <path transform="translate(0.5, 0.5) scale(0.002) translate(-240, -240)" d="M480,240c0,66.3-53.7,120-120,120c0,66.3-53.7,120-120,120s-120-53.7-120-120c-66.3,0-120-53.7-120-120s53.7-120,120-120c0-66.3,53.7-120,120-120s120,53.7,120,120C426.3,120,480,173.7,480,240z" />
           </clipPath>
+          <clipPath id="shape7" clipPathUnits="objectBoundingBox">
+            <path
+              transform="translate(0.5, 0.5) scale(0.00208) translate(-240, -240)"
+              d="M240,10 C270,10 400,85 425,120 C450,155 450,325 425,360 C400,395 270,470 240,470 C210,470 80,395 55,360 C30,325 30,155 55,120 C80,85 210,10 240,10 Z"
+            />
+          </clipPath>
         </defs>
       </svg>
 
-      {video && (
-  <div className="w-full max-w-[86rem] px-6 mt-10">
-    <div className="relative w-full aspect-video rounded-[40px] overflow-hidden bg-black shadow-xl">
-      
-      <video 
-        src="/video/nuvisa.mp4" 
-        autoPlay 
-        muted 
-        loop 
-        playsInline
-        className="absolute inset-0 w-full h-full object-cover scale-[1.15] origin-center" 
-      />
-      <div className="absolute inset-0 bg-black/40 pointer-events-none" />
-
-    </div>
-  </div>
-)}
-
-      <div className="w-full max-w-[86rem] mx-auto flex flex-col gap-6 items-center justify-center">
-        <div className=" w-full flex items-center gap-5 md:gap-10 max-md:flex-col max-md:text-center px-6">
-          <h2 className="text-2xl sm:text-5xl w-1/2 text-black md:text-7xl font-gilroy-bold font-extrabold leading-tight flex-1 " dangerouslySetInnerHTML={{ __html: title }} />
+      <div id={title === "Everyday Steals" && "everyday-steals"} className="w-full max-w-[86rem] mx-auto flex flex-col gap-6 items-center justify-center">
+        <div className=" w-full flex items-center gap-5 md:gap-10 max-md:flex-col max-md:text-left px-6">
+          <h2 className="text-4xl whitespace-nowrap sm:text-5xl w-1/2 text-black md:text-7xl font-gilroy-bold font-extrabold leading-tight flex-1 w-full" dangerouslySetInnerHTML={{ __html: title }} />
           <p className="text-gray-600 text-[13px] md:text-base font-medium leading-relaxed flex-[.6] text-left">
             If you're frustrated with travel agencies that have substantial fees, confusing conditions, and slow appointments - Meet the next generation peace of mind complete visa solution you've been looking for.
           </p>
         </div>
       </div>
 
-      
+      {video && (
+        <div className="w-full max-w-[60rem] px-6 mt-10">
+          <div className="relative w-full aspect-video rounded-[40px] overflow-hidden bg-black shadow-xl">
+
+            <video
+              src="/video/nuvisa.mp4"
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="absolute inset-0 w-full h-full object-cover scale-[1.15] origin-center"
+            />
+            <div className="absolute inset-0 bg-black/40 pointer-events-none" />
+
+          </div>
+        </div>
+      )}
 
       <div className="w-full overflow-hidden mt-20 mb-5">
         <div
@@ -287,6 +325,9 @@ const staticData = countriesData.length > 0 ? countriesData : defaultCountries;
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
         >
           {[...destinations, ...destinations].map((destination, index) => {
             const currentShapeId = shapeIds[index % shapeIds.length];
@@ -338,7 +379,7 @@ const staticData = countriesData.length > 0 ? countriesData : defaultCountries;
                     )}
 
                   {/* Button */}
-                  <button className="w-fit px-8 py-3 border border-black rounded-full text-xs font-bold text-black hover:bg-black hover:text-white transition-all duration-300 uppercase"> Try It Now </button>
+                  <button className="w-fit px-8 py-3 border border-black rounded-full text-xs font-bold text-black hover:bg-black hover:text-white transition-all duration-300 uppercase"> Get It Now </button>
                 </div>
               </div>
             );

@@ -47,7 +47,7 @@ const OurMission = ({ className }) => {
       <div className="mb-10 md:mb-20">
         <Link href={targetHref}>
           <button className="group flex items-center bg-[#6B4EFF] text-white  gap-[16px] font-medium px-[24px] py-3 rounded-3xl cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb]">
-            <span className="mr-3 text-xl md:text-2xl uppercase">{buttonText}</span>
+            <span className="mr-3 text-md md:text-2xl uppercase">{buttonText}</span>
             <span className="bg-white rounded-full p-1.5 transition-transform duration-300 group-hover:rotate-45 group-hover:translate-x-1 group-hover:-translate-y-0">
               <ArrowUpRight className="w-5 h-5 text-[#6B4EFF]" />
             </span>

@@ -663,7 +663,7 @@ useEffect(() => {
             className="w-full bg-[#24242D] rounded-2xl px-4 py-3 mb-3 flex items-center justify-between text-white hover:bg-[#2a2a35] transition-colors"
           >
             <span className="font-medium">Pair with</span>
-            {isDrawerOpen ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+            {!isDrawerOpen ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
           </button>
 
           {/* Schengen Visa Section - Full Width - Always visible and functional */}

@@ -198,11 +198,10 @@ const VisaInformation = () => {
                   <span className="">
                     {!klarnaLoading && klarnaContent.paymentAmount}
                   </span>{" "}
-                  each |
                   <span className="mx-2">
                     {!klarnaLoading && klarnaContent.interestRate}
                   </span>
-                  | <span> {!klarnaLoading && klarnaContent.fees}</span>
+                  <span> {!klarnaLoading && klarnaContent.fees}</span>
                 </p>
               </div>
             </div>

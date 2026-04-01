@@ -4111,7 +4111,7 @@ const CountrySlider = () => {
                       }`}>
 
                       {/* Top Section: Checkbox (Left) & 15 Days Badge (Right) */}
-                      <div className="w-full flex justify-between items-center h-5">
+                      <div className="w-full flex justify-between items-center h-5 pb-2">
                         <div
                           className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all cursor-pointer border flex-shrink-0 ${recommendedItems.insuranceCertificate ? "border-transparent bg-[#7350FF]" : "border-gray-400 bg-white"
                             }`}
@@ -4119,7 +4119,7 @@ const CountrySlider = () => {
                         >
                           {recommendedItems.insuranceCertificate && <Check className="w-3 h-3 text-white" />}
                         </div>
-                        <span className="bg-[#7350FF]/20 border border-[#7350FF]/50 px-2 py-1 rounded-full text-[11px] text-purple-200 font-bold leading-none shadow-sm">
+                        <span className="bg-[#7350FF]/20 border border-[#7350FF]/50 px-2 py-1 rounded-full text-[9px] text-purple-200 font-bold leading-none shadow-sm">
                           {insuranceDays} Days
                         </span>
                       </div>
@@ -4136,7 +4136,7 @@ const CountrySlider = () => {
                             priority
                           />
                         </div>
-                        <h3 className="font-bold text-base max-sm:text-[14px] leading-tight text-center px-1">
+                        <h3 className="font-bold whitespace-nowrap text-base max-sm:text-[14px] leading-tight text-center px-1">
                           Insurance certificate
                         </h3>
                       </div>

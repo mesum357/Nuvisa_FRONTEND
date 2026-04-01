@@ -33,41 +33,54 @@ const SeamlessExperience = () => {
   return (
     <div className="pt-5 bg-[#1E1E27]">
       <div className="">
-        <div className="section_holder mt-10" id="accessories">
-          <div
-            className=" mb-15 text-center text-white"
-            style={{ fontSize: 38, fontWeight: 700, lineHeight: 1.0 }}
-          >
-            {sectionTitle}
-          </div>
-        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 px-6 md:px-16 mx-auto">
-          {displayCards.map((card, index) => (
-            <div key={index} className="bg-white backdrop-blur-sm rounded-[2rem] flex items-center gap-5 md:gap-10 text-gray-800 p-6 md:py-12 md:px-5 shadow-none transition-shadow duration-300">
-              <Image
-                src={card.image}
-                width={160}
-                height={160}
-                alt={card.title}
-                className={`md:w-[160px] w-[100px] object-cover ${index === 0 ? "rounded-[10px]" : ""}`}
-                priority
-              />
-              <div className="flex flex-col gap-1">
-                <h3 className="text-lg font-gilroy-bold font-semibold text-gray-800">
-                  {card.title}
-                </h3>
-                <p className="text-sm md:text-lg font-medium leading-relaxed text-gray-600">
-                  {card.description}
-                </p>
+        <div className="flex flex-col lg:flex-row gap-8 px-6 md:px-16 mx-auto">
+          {/* Left side - two cards stacked */}
+          <div className="flex flex-col justify-center gap-8 flex-1">
 
-                <p className="font-semibold">
-                  {card.strikeOutPrice && <s className="text-gray-500">{card.strikeOutPrice}</s>} {" "}
-                  <span className="text-black">{card.price}</span>
-                </p>
+            <div className="section_holder mt-10" id="accessories">
+              <div
+                className="text-left text-white text-4xl md:text-6xl font-gilroy-bold"
+              >
+                {sectionTitle}
               </div>
             </div>
-          ))}
+            {displayCards.map((card, index) => (
+              <div key={index} className="bg-white backdrop-blur-sm rounded-[2rem] flex items-center gap-5 md:gap-10 text-gray-800 p-6 md:py-12 md:px-5 shadow-none transition-shadow duration-300">
+                <Image
+                  src={card.image}
+                  width={160}
+                  height={160}
+                  alt={card.title}
+                  className={`md:w-[160px] w-[100px] object-cover ${index === 0 ? "rounded-[10px]" : ""}`}
+                  priority
+                />
+                <div className="flex flex-col gap-1">
+                  <h3 className="text-lg font-gilroy-bold font-semibold text-gray-800">
+                    {card.title}
+                  </h3>
+                  <p className="text-sm md:text-lg font-medium leading-relaxed text-gray-600">
+                    {card.description}
+                  </p>
+                  <p className="font-semibold">
+                    {card.strikeOutPrice && <s className="text-gray-500">{card.strikeOutPrice}</s>}{" "}
+                    <span className="text-black">{card.price}</span>
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Right side - single image */}
+          <div className="flex-1 flex items-center justify-center">
+            <Image
+              src="/image/get-the-visa-image.png"
+              width={500}
+              height={500}
+              alt="Side image"
+              className="w-full h-full object-cover rounded-[2rem]"
+            />
+          </div>
         </div>
 
 
