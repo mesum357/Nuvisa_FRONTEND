@@ -87,7 +87,7 @@ const VisaInformation = () => {
                           <span dangerouslySetInnerHTML={{ __html: processContent.heading }} />
                         )}
                       </h2>
-                      <p className="text-white text-[13px] md:text-base font-medium leading-relaxed flex-[.6] text-left">
+                      <p className="text-white text-[13px] md:text-[14px] font-medium leading-relaxed flex-[.6] text-left">
                         {processLoading ? "Loading..." : processContent.description}
                       </p>
                     </div>
@@ -110,7 +110,7 @@ const VisaInformation = () => {
                             {processLoading ? "Loading..." : processContent.steps[0].title}
                           </h1>
                         </div>
-                        <p className="font-medium leading-relaxed mt-3 md:mt-0 opacity-90 text-[14px] md:text-base">
+                        <p className="font-medium leading-relaxed mt-3 md:mt-0 opacity-90 text-[14px]">
                           {processLoading ? "Loading..." : processContent.steps[0].description}
                         </p>
                       </div>
@@ -130,7 +130,7 @@ const VisaInformation = () => {
                             {processLoading ? "Loading..." : processContent.steps[1].title}
                           </h1>
                         </div>
-                        <p className="font-medium leading-relaxed mt-3 md:mt-0 opacity-90 text-[14px] md:text-base">
+                        <p className="font-medium leading-relaxed mt-3 md:mt-0 opacity-90 text-[14px]">
                           {processLoading ? "Loading..." : processContent.steps[1].description}
                         </p>
                       </div>
@@ -150,7 +150,7 @@ const VisaInformation = () => {
                             {processLoading ? "Loading..." : processContent.steps[2].title}
                           </h1>
                         </div>
-                        <p className="font-medium leading-relaxed mt-3 md:mt-0 opacity-90 text-[14px] md:text-base">
+                        <p className="font-medium leading-relaxed mt-3 md:mt-0 opacity-90 text-[14px]">
                           {processLoading ? "Loading..." : processContent.steps[2].description}
                         </p>
                       </div>
@@ -170,7 +170,7 @@ const VisaInformation = () => {
                             {processLoading ? "Loading..." : processContent.steps[3].title}
                           </h1>
                         </div>
-                        <p className="font-medium leading-relaxed mt-3 md:mt-0 opacity-90 text-[14px] md:text-base">
+                        <p className="font-medium leading-relaxed mt-3 md:mt-0 opacity-90 text-[14px]">
                           {processLoading ? "Loading..." : processContent.steps[3].description}
                         </p>
                       </div>

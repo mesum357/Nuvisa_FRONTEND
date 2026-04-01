@@ -112,7 +112,7 @@ const PremiumServiceSection = () => {
 
           {/* Card 4 */}
           <div className="w-full flex-shrink-0 snap-center">
-            <div className="rounded-[30px] md:rounded-[60px] w-full flex flex-col md:flex-row items-center justify-between p-6 md:py-3 md:px-16 gap-6 md:gap-0 transition-all duration-300 hover:shadow-2xl lg:min-h-117.5" style={{ backgroundColor: "#daee69" }}>
+            <div className="rounded-[30px] md:rounded-[60px] w-full flex flex-col md:flex-row items-center justify-between p-6 md:py-3 md:px-16 gap-6 md:gap-0 transition-all duration-300 lg:min-h-117.5" style={{ backgroundColor: "#daee69" }}>
               <div className="w-full md:w-2/3 text-left z-10">
                 <h3 className="text-[28px] sm:text-[36px] md:text-[54px] font-extrabold font-gilroy-bold leading-tight mb-3">
                   Reduce your odds<br className="hidden sm:block" /> of rejection
@@ -134,7 +134,7 @@ const PremiumServiceSection = () => {
 
           {/* Card 1 */}
           <div className="w-full flex-shrink-0 snap-center">
-            <div className="rounded-[30px] md:rounded-[60px] w-full flex flex-col md:flex-row items-center justify-between p-6 md:py-3 md:px-16 gap-6 md:gap-0 transition-all duration-300 hover:shadow-2xl lg:min-h-117.5" style={{ backgroundColor: "#ffb1ee" }}>
+            <div className="rounded-[30px] md:rounded-[60px] w-full flex flex-col md:flex-row items-center justify-between p-6 md:py-3 md:px-16 gap-6 md:gap-0 transition-all duration-300 lg:min-h-117.5" style={{ backgroundColor: "#ffb1ee" }}>
               <div className="w-full md:w-1/2 text-left z-10 text-black">
                 <h3 className="text-[28px] sm:text-[36px] md:text-[54px] font-extrabold font-gilroy-bold leading-tight mb-3">Always in touch</h3>
                 <p className="text-[15px] md:text-[16px] font-medium opacity-90 max-w-3xl mb-6">Got any question? Get in touch with 24/7 live human support available.</p>
@@ -143,7 +143,7 @@ const PremiumServiceSection = () => {
                 </Link>
               </div>
               <div className="w-full md:w-1/2 flex justify-center md:justify-end">
-                <div className="relative w-[220px] h-[220px] sm:w-[280px] sm:h-[280px] md:w-[420px] md:h-[420px] bg-[#71a6f4]" style={{ clipPath: "url(#shape4)", WebkitClipPath: "url(#shape4)" }}>
+                <div className="relative w-[220px] h-[220px] sm:w-[280px] sm:h-[280px] md:w-[420px] md:h-[420px] bg-[#fbc5ef]" style={{ clipPath: "url(#shape4)", WebkitClipPath: "url(#shape4)" }}>
                   <Image src="/image/grid-showcase-1.png" alt="Icon" fill className="object-contain p-8 md:p-15 pointer-events-none" priority />
                 </div>
               </div>
@@ -152,7 +152,7 @@ const PremiumServiceSection = () => {
 
           {/* Card 2 */}
           <div className="w-full flex-shrink-0 snap-center">
-            <div className="rounded-[30px] md:rounded-[60px] w-full flex flex-col md:flex-row items-center justify-between p-6 md:py-3 md:px-16 gap-6 md:gap-0 transition-all duration-300 hover:shadow-2xl lg:min-h-117.5" style={{ backgroundColor: "#5f9aff" }}>
+            <div className="rounded-[30px] md:rounded-[60px] w-full flex flex-col md:flex-row items-center justify-between p-6 md:py-3 md:px-16 gap-6 md:gap-0 transition-all duration-300 lg:min-h-117.5" style={{ backgroundColor: "#5f9aff" }}>
               <div className="w-full md:w-1/2 text-left z-10 text-black">
                 <h3 className="text-[28px] sm:text-[36px] md:text-[54px] font-extrabold font-gilroy-bold leading-tight mb-3">Realtime reporting</h3>
                 <p className="text-[15px] md:text-[16px] font-medium opacity-90 max-w-3xl mb-6">On the go online updates for your visa process with instant handy notifications.</p>
@@ -170,7 +170,7 @@ const PremiumServiceSection = () => {
 
           {/* Card 3 */}
           <div className="w-full flex-shrink-0 snap-center">
-            <div className="rounded-[30px] md:rounded-[60px] w-full flex flex-col md:flex-row items-center justify-between p-6 md:py-3 md:px-16 gap-6 md:gap-0 transition-all duration-300 hover:shadow-2xl lg:min-h-117.5" style={{ backgroundColor: "#ff8e59" }}>
+            <div className="rounded-[30px] md:rounded-[60px] w-full flex flex-col md:flex-row items-center justify-between p-6 md:py-3 md:px-16 gap-6 md:gap-0 transition-all duration-300 lg:min-h-117.5" style={{ backgroundColor: "#ff8e59" }}>
               <div className="w-full md:w-1/2 text-left z-10">
                 <h3 className="text-[28px] sm:text-[36px] md:text-[54px] font-extrabold font-gilroy-bold leading-tight mb-3">Peace of mind</h3>
                 <p className="text-[15px] md:text-[16px] font-medium opacity-90 max-w-3xl mb-6">Registered with ICO & GDPR compliant. End-to-end security, no data sharing.</p>
