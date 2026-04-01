@@ -281,7 +281,7 @@ const CountryCardsSection = ({ specificCountries, image, id }) => {
         <div className='w-full px-4 pt-10 pb-5'>
           <div className='bg-[#fdfd55] md:flex-row flex-col text-center md:text-start flex items-center justify-center py-6 px-6 rounded-4xl -mt-8 gap-3 md:gap-6'>
 
-            <Image src={"/icons/nu-logo.png"} className="rounded-full" width={75} height={75} alt="Badge Icon" />
+            <Image src={"/image/nu-logo.png"} className="rounded-full" width={75} height={75} alt="Badge Icon" />
             <div className='flex flex-col text-white items-center justify-center'>
               <div className='flex items-center gap-2'>
                 <p className='text-[24px] lg:text-[26px] font-gilroy-bold text-black leading-tight'>
