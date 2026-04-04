@@ -18,12 +18,36 @@ import Reviews from "@/components/Reviews";
 import VisaProcessSection from "@/components/home/VisaProcessSection";
 import DiscountTicket from "@/components/DiscountTicket";
 import { useState, useEffect, useRef } from "react";
+import { getAdminApiBase } from "@/utils/adminApiBase";
+
+const defaultContactCards = {
+  reduce: {
+    title: "Reduce your odds of rejection",
+    description:
+      "Benefit from document pre-checks, error-proof form filling, and personalised visa guidance, powered by AI with human oversight at critical checkpoints — all designed to prevent delays, mistakes, and rejections, allowing our customers to benefit from a 99.3% approval rate.",
+  },
+  touch: {
+    title: "Always in touch",
+    description: "Got any question? Get in touch with 24/7 live human support available.",
+  },
+  reporting: {
+    title: "Realtime reporting",
+    description: "On the go online updates for your visa process with instant handy notifications.",
+  },
+  mind: {
+    title: "Peace of mind",
+    description: "Registered with ICO & GDPR compliant. End-to-end security, no data sharing.",
+  },
+};
 
 const Index = () => {
   const { heroContent, loading } = useHeroContent();
   const [showTooltip, setShowTooltip] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const tooltipRef = useRef(null);
+  const [contactCards, setContactCards] = useState(defaultContactCards);
+  const [occasionContent, setOccasionContent] = useState(null);
+  const [urgentDescription, setUrgentDescription] = useState("");
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -42,6 +66,60 @@ const Index = () => {
     document.addEventListener("click", handleClickOutside);
     return () => document.removeEventListener("click", handleClickOutside);
   }, [showTooltip]);
+
+  useEffect(() => {
+    const fetchHomepageDynamicContent = async () => {
+      try {
+        const adminBase = getAdminApiBase();
+
+        const [contentRes] = await Promise.all([
+          fetch(`${adminBase}/api/content?t=${Date.now()}`),
+        ]);
+
+        if (contentRes.ok) {
+          const contentJson = await contentRes.json();
+          const contentRows = Array.isArray(contentJson?.data) ? contentJson.data : [];
+          const byKey = contentRows.reduce((acc, row) => {
+            if (row?.key) acc[row.key] = row.value;
+            return acc;
+          }, {});
+          setContactCards({
+            reduce: {
+              title: byKey.contact_reduce_title || defaultContactCards.reduce.title,
+              description:
+                byKey.contact_reduce_description || defaultContactCards.reduce.description,
+            },
+            touch: {
+              title: byKey.contact_touch_title || defaultContactCards.touch.title,
+              description:
+                byKey.contact_touch_description || defaultContactCards.touch.description,
+            },
+            reporting: {
+              title: byKey.contact_reporting_title || defaultContactCards.reporting.title,
+              description:
+                byKey.contact_reporting_description || defaultContactCards.reporting.description,
+            },
+            mind: {
+              title: byKey.contact_mind_title || defaultContactCards.mind.title,
+              description:
+                byKey.contact_mind_description || defaultContactCards.mind.description,
+            },
+          });
+
+          setUrgentDescription(
+            byKey.urgent_description ||
+              "*If require urgent appointment in 3-4 days kindly email support@nuvisa.co.uk do not follow the standard visa process."
+            );
+            setOccasionContent(byKey.ocassion_title || null);
+        }
+
+      } catch (_error) {
+        // Keep defaults on fetch failure
+      }
+    };
+
+    fetchHomepageDynamicContent();
+  }, []);
 
   const secondSectionCountries = [
     { name: "Lithuania", image: "/image/country/lithuania.jpg", bgColor: "#5f9aff" },
@@ -116,7 +194,7 @@ const Index = () => {
           <Reviews />
         </main>
 
-        <CountryCardsSection />
+        <CountryCardsSection urgentDescription={urgentDescription} />
       </div>
 
       <VisaSolution />
@@ -132,10 +210,15 @@ const Index = () => {
       />
 
       <div className="bg-[#1E1E27] text-white w-full overflow-x-hidden py-16">
-        <CountryCardsSection id="everyday-steals" image="/image/everyday_steals.png" />
+        <CountryCardsSection
+          id="everyday-steals"
+          image="/image/everyday_steals.png"
+          occasionContent={occasionContent}
+          urgentDescription={urgentDescription}
+        />
       </div>
 
-      <PremiumServiceSection />
+      <PremiumServiceSection contactCardsData={contactCards} />
 
       {/* Price Guarantee Section */}
       <div className="bg-gradient-to-br from-purple-100 to-[#f3e6ff]">

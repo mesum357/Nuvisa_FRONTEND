@@ -64,7 +64,7 @@ import { setExpertSpotsDefaultFromApi } from "@/utils/expertSpots";
 
 const normalizeCountryKey = (value) => String(value || "").trim().toLowerCase();
 
-const CountrySlider = () => {
+const CountrySlider = ({ moreToLoveData }) => {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { showError, showSuccess } = useToast();
@@ -94,6 +94,14 @@ const CountrySlider = () => {
     return getDynamicMonthText(normalizedText);
   }, [sliderContent]);
 
+  const more_to_love = useMemo(
+    () => ({
+      insurance: moreToLoveData?.insurance || "Insurance Certificate",
+      giftCard: moreToLoveData?.giftCard || "E-Gift Card",
+    }),
+    [moreToLoveData]
+  );
+
   useEffect(() => {
     setExpertSpotsDefaultFromApi(sliderContent["slots_left"]);
   }, [sliderContent]);
@@ -114,6 +122,7 @@ const CountrySlider = () => {
 
     return textOptions[textIndex];
   }, [nriBadgeText]);
+
 
   const hasEuFlagBadge = dailyNriBadgeText?.includes("🇪🇺");
 
@@ -4137,7 +4146,7 @@ const CountrySlider = () => {
                           />
                         </div>
                         <h3 className="font-bold whitespace-nowrap text-base max-sm:text-[14px] leading-tight text-center px-1">
-                          Insurance certificate
+                      {   more_to_love.insurance ? more_to_love.insurance : "Insurance Certificate"}
                         </h3>
                       </div>
 
@@ -4184,7 +4193,7 @@ const CountrySlider = () => {
                           />
                         </div>
                         <h3 className="font-bold text-base max-sm:text-[14px] leading-tight text-center px-1">
-                          E-Gift Card
+                          {more_to_love.giftCard? more_to_love.giftCard : "E-Gift Card"}
                         </h3>
                       </div>
 
