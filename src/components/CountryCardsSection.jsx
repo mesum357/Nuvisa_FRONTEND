@@ -17,7 +17,7 @@ import { staticCountries } from "@/constants/staticCountries";
 import Link from "next/link";
 import { getAdminApiBase } from "@/utils/adminApiBase";
 
-const CountryCardsSection = ({ specificCountries, image, id, occasionContent, urgentDescription }) => {
+const CountryCardsSection = ({ specificCountries, image, id, occasionContent, occasionSubtitle, urgentDescription }) => {
   const [showAll, setShowAll] = useState(false);
   const [sectionContent, setSectionContent] = useState({
     title: "Choose Your Country",
@@ -292,7 +292,7 @@ const CountryCardsSection = ({ specificCountries, image, id, occasionContent, ur
 
               <div className="flex items-center gap-2 text-gray-500 font-gilroy-medium mt-1">
                 <p className="text-[12px] md:text-lg font-semibold">
-                  Lock it in today to maximise savings.
+                  {occasionSubtitle || "Lock it in today to maximise savings."}
                 </p>
               </div>
             </div>

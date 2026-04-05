@@ -19,8 +19,11 @@ const VisaInformation = () => {
   const { processContent, loading: processLoading } = useProcessContent();
   const { klarnaContent, loading: klarnaLoading } = useKlarnaContent();
   const [moreToLoveData, setMoreToLoveData] = useState({
-    insurance: "Insurance Certificate",
-    giftCard: "E-Gift Card",
+    title: "More to love",
+    leftTitle: "Insurance Certificate",
+    rightTitle: "E-Gift Card",
+    leftSubtitle: "",
+    rightSubtitle: "",
   });
 
   // Handle hash fragment scrolling
@@ -77,10 +80,12 @@ const VisaInformation = () => {
           if (row?.key) acc[row.key] = row.value;
           return acc;
         }, {});
-
         setMoreToLoveData({
-          insurance: byKey.more_to_love_title_one || "Insurance Certificate",
-          giftCard: byKey.more_to_love_title_two || "E-Gift Card",
+          title: byKey.more_to_love_title_one || "More to love",
+          leftTitle: byKey.more_to_love_left_title || "Insurance Certificate",
+          rightTitle: byKey.more_to_love_right_title || "E-Gift Card",
+          leftSubtitle: byKey.more_to_love_left_subtitle || "",
+          rightSubtitle: byKey.more_to_love_right_subtitle || "",
         });
       } catch (_error) {
         // Keep defaults when API request fails.
