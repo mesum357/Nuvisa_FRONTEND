@@ -4,7 +4,27 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRef, useState, useEffect } from "react";
 
-const PremiumServiceSection = () => {
+const defaultContactCards = {
+  reduce: {
+    title: "Reduce your odds of rejection",
+    description:
+      "Benefit from document pre-checks, error-proof form filling, and personalised visa guidance, powered by AI with human oversight at critical checkpoints — all designed to prevent delays, mistakes, and rejections, allowing our customers to benefit from a 99.3% approval rate.",
+  },
+  touch: {
+    title: "Always in touch",
+    description: "Got any question? Get in touch with 24/7 live human support available.",
+  },
+  reporting: {
+    title: "Realtime reporting",
+    description: "On the go online updates for your visa process with instant handy notifications.",
+  },
+  mind: {
+    title: "Peace of mind",
+    description: "Registered with ICO & GDPR compliant. End-to-end security, no data sharing.",
+  },
+};
+
+const PremiumServiceSection = ({ contactCardsData }) => {
   const scrollRef = useRef(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const totalCards = 4;
@@ -12,6 +32,7 @@ const PremiumServiceSection = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
+  const contactCards = contactCardsData || defaultContactCards;
 
   // Mouse handlers
   const handleMouseDown = (e) => {
@@ -115,10 +136,10 @@ const PremiumServiceSection = () => {
             <div className="rounded-[30px] md:rounded-[60px] w-full flex flex-col md:flex-row items-center justify-between p-6 md:py-3 md:px-16 gap-6 md:gap-0 transition-all duration-300 lg:min-h-117.5" style={{ backgroundColor: "#daee69" }}>
               <div className="w-full md:w-2/3 text-left z-10">
                 <h3 className="text-[28px] sm:text-[36px] md:text-[54px] font-extrabold font-gilroy-bold leading-tight mb-3">
-                  Reduce your odds<br className="hidden sm:block" /> of rejection
+                  {contactCards.reduce.title}
                 </h3>
                 <p className="text-[15px] md:text-[16px] font-medium opacity-90 max-w-3xl mb-6">
-                  Benefit from document pre-checks, error-proof form filling, and personalised visa guidance, powered by AI with human oversight at critical checkpoints — all designed to prevent delays, mistakes, and rejections, allowing our customers to benefit from a 99.3% approval rate.
+                  {contactCards.reduce.description}
                 </p>
                 <Link href="/get-the-visa" className="w-fit px-6 md:px-8 py-2.5 md:py-3 border border-black rounded-full text-xs font-bold text-black hover:bg-black hover:text-white transition-all duration-300 uppercase">
                   Get It Now
@@ -136,8 +157,8 @@ const PremiumServiceSection = () => {
           <div className="w-full flex-shrink-0 snap-center">
             <div className="rounded-[30px] md:rounded-[60px] w-full flex flex-col md:flex-row items-center justify-between p-6 md:py-3 md:px-16 gap-6 md:gap-0 transition-all duration-300 lg:min-h-117.5" style={{ backgroundColor: "#ffb1ee" }}>
               <div className="w-full md:w-1/2 text-left z-10 text-black">
-                <h3 className="text-[28px] sm:text-[36px] md:text-[54px] font-extrabold font-gilroy-bold leading-tight mb-3">Always in touch</h3>
-                <p className="text-[15px] md:text-[16px] font-medium opacity-90 max-w-3xl mb-6">Got any question? Get in touch with 24/7 live human support available.</p>
+                <h3 className="text-[28px] sm:text-[36px] md:text-[54px] font-extrabold font-gilroy-bold leading-tight mb-3">{contactCards.touch.title}</h3>
+                <p className="text-[15px] md:text-[16px] font-medium opacity-90 max-w-3xl mb-6">{contactCards.touch.description}</p>
                 <Link href="/get-the-visa" className="w-fit px-6 md:px-8 py-2.5 md:py-3 border border-black rounded-full text-xs font-bold text-black hover:bg-black hover:text-white transition-all duration-300 uppercase">
                   Get It Now
                 </Link>
@@ -154,8 +175,8 @@ const PremiumServiceSection = () => {
           <div className="w-full flex-shrink-0 snap-center">
             <div className="rounded-[30px] md:rounded-[60px] w-full flex flex-col md:flex-row items-center justify-between p-6 md:py-3 md:px-16 gap-6 md:gap-0 transition-all duration-300 lg:min-h-117.5" style={{ backgroundColor: "#5f9aff" }}>
               <div className="w-full md:w-1/2 text-left z-10 text-black">
-                <h3 className="text-[28px] sm:text-[36px] md:text-[54px] font-extrabold font-gilroy-bold leading-tight mb-3">Realtime reporting</h3>
-                <p className="text-[15px] md:text-[16px] font-medium opacity-90 max-w-3xl mb-6">On the go online updates for your visa process with instant handy notifications.</p>
+                <h3 className="text-[28px] sm:text-[36px] md:text-[54px] font-extrabold font-gilroy-bold leading-tight mb-3">{contactCards.reporting.title}</h3>
+                <p className="text-[15px] md:text-[16px] font-medium opacity-90 max-w-3xl mb-6">{contactCards.reporting.description}</p>
                 <Link href="/get-the-visa" className="w-fit px-6 md:px-8 py-2.5 md:py-3 border border-black rounded-full text-xs font-bold text-black hover:bg-black hover:text-white transition-all duration-300 uppercase">
                   Get It Now
                 </Link>
@@ -172,8 +193,8 @@ const PremiumServiceSection = () => {
           <div className="w-full flex-shrink-0 snap-center">
             <div className="rounded-[30px] md:rounded-[60px] w-full flex flex-col md:flex-row items-center justify-between p-6 md:py-3 md:px-16 gap-6 md:gap-0 transition-all duration-300 lg:min-h-117.5" style={{ backgroundColor: "#ff8e59" }}>
               <div className="w-full md:w-1/2 text-left z-10">
-                <h3 className="text-[28px] sm:text-[36px] md:text-[54px] font-extrabold font-gilroy-bold leading-tight mb-3">Peace of mind</h3>
-                <p className="text-[15px] md:text-[16px] font-medium opacity-90 max-w-3xl mb-6">Registered with ICO & GDPR compliant. End-to-end security, no data sharing.</p>
+                <h3 className="text-[28px] sm:text-[36px] md:text-[54px] font-extrabold font-gilroy-bold leading-tight mb-3">{contactCards.mind.title}</h3>
+                <p className="text-[15px] md:text-[16px] font-medium opacity-90 max-w-3xl mb-6">{contactCards.mind.description}</p>
                 <Link href="/get-the-visa" className="w-fit px-6 md:px-8 py-2.5 md:py-3 border border-black rounded-full text-xs font-bold text-black hover:bg-black hover:text-white transition-all duration-300 uppercase">
                   Get It Now
                 </Link>

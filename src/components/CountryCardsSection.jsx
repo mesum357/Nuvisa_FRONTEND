@@ -17,12 +17,13 @@ import { staticCountries } from "@/constants/staticCountries";
 import Link from "next/link";
 import { getAdminApiBase } from "@/utils/adminApiBase";
 
-const CountryCardsSection = ({ specificCountries, image, id }) => {
+const CountryCardsSection = ({ specificCountries, image, id, occasionContent, urgentDescription }) => {
   const [showAll, setShowAll] = useState(false);
   const [sectionContent, setSectionContent] = useState({
     title: "Choose Your Country",
     description: "We support 20 countries over all the visa centres in the UK",
   });
+  console.log(occasionContent);
   const router = useRouter();
   const dispatch = useAppDispatch();
   const visaState = useAppSelector((state) => state.visa);
@@ -285,7 +286,7 @@ const CountryCardsSection = ({ specificCountries, image, id }) => {
             <div className='flex flex-col text-white items-center justify-center'>
               <div className='flex items-center gap-2'>
                 <p className='text-[24px] lg:text-[26px] font-gilroy-bold text-black leading-tight'>
-                  Grab £50 off your advance booking
+                  {occasionContent || "Grab £50 off your advance booking"}
                 </p>
               </div>
 
@@ -414,7 +415,8 @@ const CountryCardsSection = ({ specificCountries, image, id }) => {
 
       <div className="my-14 sm:mt-12 sm:mb-0 max-sm:w-full flex items-center justify-center flex-col gap-10">
         <p className={`text-[18px] mt-3 ${image ? "text-white" : "text-white"} font-gilroy-bold text-center`}>
-          {id !== "everyday-steals" && "*If require urgent appointment in 3-4 days kindly email support@nuvisa.co.uk do not follow the standard visa process."}
+          {id !== "everyday-steals" && urgentDescription
+          || "*If require urgent appointment in 3-4 days kindly email support@nuvisa.co.uk do not follow the standard visa process."}
         </p>
 
         <div className="mb-10 md:mb-20">

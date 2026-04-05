@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import ClientOnly from "../ClientOnly";
 import ComparisonSection from "../ComparisonSection";
@@ -13,10 +13,15 @@ import StickyBottomBar from "../StickyBottomBar";
 import submit from "../../../public/icons/submit.png";
 import { useKlarnaContent } from "../../hooks/useKlarnaContent";
 import { useProcessContent } from "../../hooks/useProcessContent";
+import { getAdminApiBase } from "@/utils/adminApiBase";
 
 const VisaInformation = () => {
   const { processContent, loading: processLoading } = useProcessContent();
   const { klarnaContent, loading: klarnaLoading } = useKlarnaContent();
+  const [moreToLoveData, setMoreToLoveData] = useState({
+    insurance: "Insurance Certificate",
+    giftCard: "E-Gift Card",
+  });
 
   // Handle hash fragment scrolling
   useEffect(() => {
@@ -59,12 +64,37 @@ const VisaInformation = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const fetchMoreToLove = async () => {
+      try {
+        const adminBase = getAdminApiBase();
+        const response = await fetch(`${adminBase}/api/content?t=${Date.now()}`);
+        if (!response.ok) return;
+
+        const json = await response.json();
+        const rows = Array.isArray(json?.data) ? json.data : [];
+        const byKey = rows.reduce((acc, row) => {
+          if (row?.key) acc[row.key] = row.value;
+          return acc;
+        }, {});
+
+        setMoreToLoveData({
+          insurance: byKey.more_to_love_title_one || "Insurance Certificate",
+          giftCard: byKey.more_to_love_title_two || "E-Gift Card",
+        });
+      } catch (_error) {
+        // Keep defaults when API request fails.
+      }
+    };
+
+    fetchMoreToLove();
+  }, []);
   return (
     <ClientOnly>
       <div className="bg-[#1E1E27] text-white w-full overflow-x-clip">
         <Navbar />
         <div className="w-full mx-auto flex flex-col gap-0 items-center justify-center mt-5 ">
-          <CountrySlider />
+          <CountrySlider moreToLoveData={moreToLoveData} />
 
           {/* Visa Type Selection */}
           <section id={"comparison-section"}>
