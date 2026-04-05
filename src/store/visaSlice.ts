@@ -21,6 +21,15 @@ interface AppliedDiscount {
   discountAmount?: number;
 }
 
+interface VisaPriceDisplay {
+  isOccasion: boolean;
+  originalPerTraveler: number;
+  traditionalPerTraveler: number;
+  discountedLabel: string;
+  originalLabel: string;
+  traditionalLabel: string;
+}
+
 export interface IVisaState {
   selectedCountry: string;
   visaFees: number;
@@ -48,6 +57,7 @@ export interface IVisaState {
     benefits: { freeTraveler: number; freeInsurance: number };
     quantity: number;
   }>;
+  visaPriceDisplay: VisaPriceDisplay | null;
 }
 
 const initialState: IVisaState = {
@@ -82,6 +92,7 @@ const initialState: IVisaState = {
   insuranceCount: 0,
   giftCardCount: 0,
   redeemedGiftCards: [],
+  visaPriceDisplay: null,
 };
 
 export const visaSlice = createSlice({
@@ -176,6 +187,9 @@ export const visaSlice = createSlice({
     clearRedeemedGiftCards: (state) => {
       state.redeemedGiftCards = [];
     },
+    setVisaPriceDisplay: (state, action: PayloadAction<VisaPriceDisplay | null>) => {
+      state.visaPriceDisplay = action.payload;
+    },
     clearVisaData: (state) => {
       state.selectedCountry = "";
       state.visaFees = 0;
@@ -208,6 +222,7 @@ export const visaSlice = createSlice({
       state.insuranceCount = 0;
       state.giftCardCount = 0;
       state.redeemedGiftCards = [];
+      state.visaPriceDisplay = null;
     },
   },
 });
@@ -238,5 +253,6 @@ export const {
   addRedeemedGiftCard,
   removeRedeemedGiftCard,
   clearRedeemedGiftCards,
+  setVisaPriceDisplay,
 } = visaSlice.actions;
 export const visaReducer = visaSlice.reducer;

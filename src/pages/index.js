@@ -47,6 +47,7 @@ const Index = () => {
   const tooltipRef = useRef(null);
   const [contactCards, setContactCards] = useState(defaultContactCards);
   const [occasionContent, setOccasionContent] = useState(null);
+  const [occasionSubtitle, setOccasionSubtitle] = useState(null);
   const [urgentDescription, setUrgentDescription] = useState("");
 
   useEffect(() => {
@@ -111,6 +112,7 @@ const Index = () => {
               "*If require urgent appointment in 3-4 days kindly email support@nuvisa.co.uk do not follow the standard visa process."
             );
             setOccasionContent(byKey.ocassion_title || null);
+            setOccasionSubtitle(byKey.ocassion_subtitle || null);
         }
 
       } catch (_error) {
@@ -214,6 +216,7 @@ const Index = () => {
           id="everyday-steals"
           image="/image/everyday_steals.png"
           occasionContent={occasionContent}
+          occasionSubtitle={occasionSubtitle}
           urgentDescription={urgentDescription}
         />
       </div>

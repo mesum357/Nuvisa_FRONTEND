@@ -25,6 +25,7 @@ const StickyBottomBar = ({ triggerElementId } ) => {
   const giftCardCount = visaState.giftCardCount || 0;
   const recommendedItems = visaState.recommendedItems;
   const requiredDocuments = visaState.requiredDocuments || {};
+  const visaPriceDisplay = visaState.visaPriceDisplay;
   
   // Refs to track previous values for toast notifications
   const prevTravelerCountRef = useRef(travelerCount);
@@ -257,7 +258,12 @@ const StickyBottomBar = ({ triggerElementId } ) => {
   // Memoized to prevent recalculation on every render
   const discountedPrices = useMemo(() => {
     // Base discounted prices (not original prices)
-    const baseDiscountedVisaFees = visaFeePerTraveler * quantities.schengen;
+    const reduxVisaFees = Number(visaState.visaFees || 0);
+    const canUseReduxVisaFees = reduxVisaFees > 0 && travelerCount > 0;
+    const effectiveVisaFeePerTraveler = canUseReduxVisaFees
+      ? reduxVisaFees / travelerCount
+      : visaFeePerTraveler;
+    const baseDiscountedVisaFees = effectiveVisaFeePerTraveler * quantities.schengen;
     const baseDiscountedInsuranceFees = insuranceBaseFees;
     const baseDiscountedGiftCardFees = recommendedItems?.giftCard ? 159 * quantities.giftCard : 0;
 
@@ -268,7 +274,7 @@ const StickyBottomBar = ({ triggerElementId } ) => {
     const travelersQualify = quantities.schengen >= 3;
     const insuranceQualify = effectiveInsuranceCount >= 3;
     const giftCardQualify = quantities.giftCard >= 3;
-
+    
     // Apply coupon discounts from Redux state
     const appliedDiscount = visaState.appliedDiscount;
     const hasStudentDiscount = appliedDiscount && appliedDiscount.code === "STUDENT10";
@@ -280,7 +286,7 @@ const StickyBottomBar = ({ triggerElementId } ) => {
     let finalGiftCardFees = baseDiscountedGiftCardFees;
 
     // Apply 20% quantity discount first (if 3+ items)
-    if (travelersQualify) {
+    if (!canUseReduxVisaFees && travelersQualify) {
       const quantityDiscount = (finalVisaFees * 20) / 100;
       finalVisaFees = finalVisaFees - quantityDiscount;
     }
@@ -296,7 +302,7 @@ const StickyBottomBar = ({ triggerElementId } ) => {
     // Apply GROUP20 coupon (ensures 20% is applied if conditions met)
     if (hasGroupDiscount) {
       if (travelersQualify && (insuranceQualify || giftCardQualify)) {
-        if (travelersQualify && finalVisaFees === baseDiscountedVisaFees) {
+        if (!canUseReduxVisaFees && travelersQualify && finalVisaFees === baseDiscountedVisaFees) {
           const quantityDiscount = (finalVisaFees * 20) / 100;
           finalVisaFees = finalVisaFees - quantityDiscount;
         }
@@ -312,7 +318,7 @@ const StickyBottomBar = ({ triggerElementId } ) => {
     }
 
     // Apply 10% student discount on already-discounted price (if student)
-    if (hasStudentDiscount) {
+    if (!canUseReduxVisaFees && hasStudentDiscount) {
       const studentDiscount = (finalVisaFees * 10) / 100;
       finalVisaFees = finalVisaFees - studentDiscount;
       if (recommendedItems?.insuranceCertificate) {
@@ -332,6 +338,8 @@ const StickyBottomBar = ({ triggerElementId } ) => {
       total: finalVisaFees + finalInsuranceFees + finalGiftCardFees
     };
   }, [
+    visaState.visaFees,
+    travelerCount,
     visaFeePerTraveler,
     quantities,
     insuranceBaseFees,
@@ -353,7 +361,24 @@ const StickyBottomBar = ({ triggerElementId } ) => {
     }
   }, [discountedPrices]);
 
+  const schengenMaxDiscountAmount = useMemo(() => {
+    const schengenQtyForDisplay = quantities.schengen > 0 ? quantities.schengen : 1;
+    const displayedDiscountedTotal =
+      quantities.schengen > 0 ? Number(discountedPrices.visa || 0) : 129;
+    const maxStrikePerTraveler = Math.max(
+      Number(visaPriceDisplay?.originalPerTraveler || 0),
+      Number(visaPriceDisplay?.traditionalPerTraveler || 0)
+    );
+    const maxStrikeTotal = maxStrikePerTraveler * schengenQtyForDisplay;
+    return Math.max(0, maxStrikeTotal - displayedDiscountedTotal);
+  }, [
+    quantities.schengen,
+    discountedPrices.visa,
+    visaPriceDisplay?.originalPerTraveler,
+    visaPriceDisplay?.traditionalPerTraveler,
+  ]);
 
+console.log("visa state",visaState)
   // Memoize handleAddToCart to prevent unnecessary re-renders
   const handleAddToCart = useCallback(() => {
     // Always trigger document validation when Add to Cart is clicked
@@ -492,13 +517,39 @@ useEffect(() => {
                 {/* Item Info */}
                 <div className="flex flex-col">
                   <h3 className="text-sm font-medium text-white mb-1">{item.title}</h3>
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-400 line-through text-sm">
-                      £{quantities[item.id] > 0 ? item.originalPrice * quantities[item.id] : item.originalPrice}
-                    </span>
-                    <span className="text-white font-bold">
-                      £{quantities[item.id] > 0 ? getItemDiscountedPrice(item.id).toFixed(2) : item.currentPrice}
-                    </span>
+                  <div className="flex items-start gap-3">
+                    <div className="flex flex-col">
+                      <span className="text-white font-bold">
+                        £{quantities[item.id] > 0 ? getItemDiscountedPrice(item.id).toFixed(2) : item.currentPrice}
+                      </span>
+                      {!!visaPriceDisplay?.discountedLabel && (
+                        <span className="text-[10px] text-gray-500 font-medium">
+                          {visaPriceDisplay.discountedLabel} {schengenMaxDiscountAmount.toFixed(2)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-red-400 line-through text-sm">
+                        £{((Number(visaPriceDisplay?.originalPerTraveler || item.originalPrice)) * (quantities[item.id] > 0 ? quantities[item.id] : 1)).toFixed(2)}
+                      </span>
+                      {!!visaPriceDisplay?.originalLabel && (
+                        <span className="text-[10px] text-gray-500 font-medium">
+                          {visaPriceDisplay.originalLabel}
+                        </span>
+                      )}
+                    </div>
+                    {Number(visaPriceDisplay?.traditionalPerTraveler || 0) > 0 && (
+                      <div className="flex flex-col">
+                        <span className="text-gray-500 line-through text-sm">
+                          £{(Number(visaPriceDisplay?.traditionalPerTraveler || 0) * (quantities[item.id] > 0 ? quantities[item.id] : 1)).toFixed(2)}
+                        </span>
+                        {!!visaPriceDisplay?.traditionalLabel && (
+                          <span className="text-[10px] text-gray-500 font-medium">
+                            {visaPriceDisplay.traditionalLabel}
+                          </span>
+                        )}
+                      </div>
+                    )}
                     {item.badge && (
                       <div className="flex items-center gap-1">
                         <div className="text-white px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1" style={{backgroundColor: '#6B4EFF'}}>
@@ -673,13 +724,39 @@ useEffect(() => {
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col flex-1">
                     <h3 className="text-sm font-medium text-white mb-1">{item.title}</h3>
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-400 line-through text-sm">
-                        £{quantities[item.id] > 0 ? item.originalPrice * quantities[item.id] : item.originalPrice}
-                      </span>
-                      <span className="text-white font-bold">
-                        £{quantities[item.id] > 0 ? getItemDiscountedPrice(item.id).toFixed(2) : item.currentPrice}
-                      </span>
+                    <div className="flex flex-wrap items-start gap-2">
+                      <div className="flex flex-col">
+                        <span className="text-white font-bold">
+                          £{quantities[item.id] > 0 ? getItemDiscountedPrice(item.id).toFixed(2) : item.currentPrice}
+                        </span>
+                        {!!visaPriceDisplay?.discountedLabel && (
+                          <span className="text-[10px] text-gray-500 font-medium">
+                            {visaPriceDisplay.discountedLabel} {schengenMaxDiscountAmount.toFixed(2)}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-gray-400 line-through text-sm">
+                          £{((Number(visaPriceDisplay?.originalPerTraveler || item.originalPrice)) * (quantities[item.id] > 0 ? quantities[item.id] : 1)).toFixed(2)}
+                        </span>
+                        {!!visaPriceDisplay?.originalLabel && (
+                          <span className="text-[10px] text-gray-500 font-medium">
+                            {visaPriceDisplay.originalLabel}
+                          </span>
+                        )}
+                      </div>
+                      {Number(visaPriceDisplay?.traditionalPerTraveler || 0) > 0 && (
+                        <div className="flex flex-col">
+                          <span className="text-gray-500 line-through text-sm">
+                            £{(Number(visaPriceDisplay?.traditionalPerTraveler || 0) * (quantities[item.id] > 0 ? quantities[item.id] : 1)).toFixed(2)}
+                          </span>
+                          {!!visaPriceDisplay?.traditionalLabel && (
+                            <span className="text-[10px] text-gray-500 font-medium">
+                              {visaPriceDisplay.traditionalLabel}
+                            </span>
+                          )}
+                        </div>
+                      )}
                       {item.badge && (
                         <div className="text-white px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1" style={{backgroundColor: '#6B4EFF'}}>
                           <UserIcon className="w-3 h-3" />

@@ -17,13 +17,12 @@ import { staticCountries } from "@/constants/staticCountries";
 import Link from "next/link";
 import { getAdminApiBase } from "@/utils/adminApiBase";
 
-const CountryCardsSection = ({ specificCountries, image, id, occasionContent, urgentDescription }) => {
+const CountryCardsSection = ({ specificCountries, image, id, occasionContent, occasionSubtitle, urgentDescription }) => {
   const [showAll, setShowAll] = useState(false);
   const [sectionContent, setSectionContent] = useState({
     title: "Choose Your Country",
     description: "We support 20 countries over all the visa centres in the UK",
   });
-  console.log(occasionContent);
   const router = useRouter();
   const dispatch = useAppDispatch();
   const visaState = useAppSelector((state) => state.visa);
@@ -275,6 +274,92 @@ const CountryCardsSection = ({ specificCountries, image, id, occasionContent, ur
   }, [homepageCountries, showAll, dynamicSection, isMobile]);
 
 
+  // Resolve occasion dates: use admin-set dates if available, otherwise derive from title
+  const getOccasionDates = useCallback((occ) => {
+    if (occ.arrivalDate && occ.departureDate) {
+      return { arrivalDate: occ.arrivalDate, departureDate: occ.departureDate };
+    }
+
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const title = (occ.title || "").toLowerCase().trim();
+
+    // Map occasion titles to sensible date ranges
+    const monthNames = ["january","february","march","april","may","june","july","august","september","october","november","december"];
+    const monthShort = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
+
+    // Check if title is a month name (e.g. "April", "May")
+    let monthIndex = monthNames.findIndex(m => title.includes(m));
+    if (monthIndex === -1) monthIndex = monthShort.findIndex(m => title === m || title.startsWith(m + " "));
+    if (monthIndex !== -1) {
+      let year = currentYear;
+      // Extract year from title if present (e.g. "April 27")
+      const yearMatch = title.match(/\b(\d{2})\b/);
+      if (yearMatch) year = 2000 + parseInt(yearMatch[1]);
+      // If month is in the past this year, use next year
+      else if (monthIndex < now.getMonth() || (monthIndex === now.getMonth() && now.getDate() > 15)) {
+        year = currentYear + 1;
+      }
+      const arrival = `${year}-${String(monthIndex + 1).padStart(2, "0")}-01`;
+      const lastDay = new Date(year, monthIndex + 1, 0).getDate();
+      const departure = `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+      return { arrivalDate: arrival, departureDate: departure };
+    }
+
+    // Easter: approximate dates
+    if (title.includes("easter")) {
+      // Easter 2026 is April 5
+      let year = currentYear;
+      const easterDates = { 2025: [4, 20], 2026: [4, 5], 2027: [3, 28], 2028: [4, 16] };
+      const entry = easterDates[year] || easterDates[year + 1];
+      if (entry && (new Date(year, entry[0] - 1, entry[1]) < now)) year++;
+      const e = easterDates[year] || [4, 5];
+      const arrival = new Date(year, e[0] - 1, e[1] - 3); // 3 days before Easter
+      const departure = new Date(year, e[0] - 1, e[1] + 4); // 4 days after Easter
+      return {
+        arrivalDate: arrival.toISOString().split("T")[0],
+        departureDate: departure.toISOString().split("T")[0],
+      };
+    }
+
+    // Christmas / Xmas
+    if (title.includes("xmas") || title.includes("christmas")) {
+      let year = currentYear;
+      const yearMatch = title.match(/\b(\d{2})\b/);
+      if (yearMatch) year = 2000 + parseInt(yearMatch[1]);
+      else if (now.getMonth() === 11 && now.getDate() > 26) year++;
+      return { arrivalDate: `${year}-12-20`, departureDate: `${year}-12-31` };
+    }
+
+    // New Year
+    if (title.includes("new year")) {
+      let year = currentYear;
+      const yearMatch = title.match(/\b(\d{2})\b/);
+      if (yearMatch) year = 2000 + parseInt(yearMatch[1]);
+      else if (now.getMonth() === 0 && now.getDate() > 5) year++;
+      return { arrivalDate: `${year}-12-28`, departureDate: `${year + 1}-01-05` };
+    }
+
+    // Half Term (February half term by default)
+    if (title.includes("half term")) {
+      let year = currentYear;
+      const yearMatch = title.match(/\b(\d{2})\b/);
+      if (yearMatch) year = 2000 + parseInt(yearMatch[1]);
+      else if (now.getMonth() > 1) year++;
+      return { arrivalDate: `${year}-02-15`, departureDate: `${year}-02-23` };
+    }
+
+    // "Best snow right now" or any unrecognized — use 4 weeks from now + 14 days
+    const arrival = new Date();
+    arrival.setDate(arrival.getDate() + 28);
+    const departure = new Date(arrival);
+    departure.setDate(departure.getDate() + 14);
+    return {
+      arrivalDate: arrival.toISOString().split("T")[0],
+      departureDate: departure.toISOString().split("T")[0],
+    };
+  }, []);
+
   return (
     <div className="max-w-6xl mx-auto px-6" id={id}>
       {id === "everyday-steals" &&
@@ -292,7 +377,7 @@ const CountryCardsSection = ({ specificCountries, image, id, occasionContent, ur
 
               <div className="flex items-center gap-2 text-gray-500 font-gilroy-medium mt-1">
                 <p className="text-[12px] md:text-lg font-semibold">
-                  Lock it in today to maximise savings.
+                  {occasionSubtitle || "Lock it in today to maximise savings."}
                 </p>
               </div>
             </div>
@@ -325,7 +410,17 @@ const CountryCardsSection = ({ specificCountries, image, id, occasionContent, ur
         {id === "everyday-steals" ? (
           <div className="lg:col-span-3 grid grid-cols-2 gap-4 h-full">
             {occasions.map((occ, idx) => (
-              <div key={idx} className="flex flex-col gap-2 h-full">
+              <div key={idx} className="flex flex-col gap-2 h-full"
+                onClick={() => {
+                  const dates = getOccasionDates(occ);
+                  const params = new URLSearchParams();
+                  if (dates.arrivalDate) params.set('arrivalDate', dates.arrivalDate);
+                  if (dates.departureDate) params.set('departureDate', dates.departureDate);
+                  params.set('occasionIdx', String(idx));
+                  const qs = params.toString();
+                  router.push(`/get-the-visa${qs ? `?${qs}` : ''}`);
+                }}
+              >
                 <div
                   style={{
                     backgroundColor: `${occ.bgColor}`,

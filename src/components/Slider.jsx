@@ -25,6 +25,7 @@ import {
   addRedeemedGiftCard,
   removeRedeemedGiftCard,
   clearRedeemedGiftCards,
+  setVisaPriceDisplay,
 } from "@/store/visaSlice";
 import ClientOnly from "./ClientOnly";
 import {
@@ -61,6 +62,7 @@ import { getDynamicMonthText } from "@/utils/getDynamicMonthText";
 import { getCurrentWeekSlotPercentage } from "@/utils/getCurrentWeekSlotPercentage";
 import { getAdminApiBase } from "@/utils/adminApiBase";
 import { setExpertSpotsDefaultFromApi } from "@/utils/expertSpots";
+import dynamic from "next/dynamic";
 
 const normalizeCountryKey = (value) => String(value || "").trim().toLowerCase();
 
@@ -80,6 +82,9 @@ const CountrySlider = ({ moreToLoveData }) => {
   const [countryPricingList, setCountryPricingList] = useState([]);
   const [isVisaPricingLoading, setIsVisaPricingLoading] = useState(true);
   const [visaPricingError, setVisaPricingError] = useState("");
+  const [occasionPricing, setOccasionPricing] = useState(null);
+  const [occasionDateRange, setOccasionDateRange] = useState(null); // { start: Date, end: Date }
+  const [occasionTraditionalText, setOccasionTraditionalText] = useState("");
 
   const freeOfferBannerText = useMemo(() => {
     const rawText =
@@ -96,11 +101,15 @@ const CountrySlider = ({ moreToLoveData }) => {
 
   const more_to_love = useMemo(
     () => ({
-      insurance: moreToLoveData?.insurance || "Insurance Certificate",
-      giftCard: moreToLoveData?.giftCard || "E-Gift Card",
+      title: moreToLoveData?.title || "More to love",
+      leftTitle: moreToLoveData?.leftTitle || "Insurance Certificate",
+      rightTitle: moreToLoveData?.rightTitle || "E-Gift Card",
+      leftSubtitle: moreToLoveData?.leftSubtitle || "",
+      rightSubtitle: moreToLoveData?.rightSubtitle || "",
     }),
     [moreToLoveData]
   );
+  // console.log(moreToLoveData);
 
   useEffect(() => {
     setExpertSpotsDefaultFromApi(sliderContent["slots_left"]);
@@ -201,7 +210,7 @@ const CountrySlider = ({ moreToLoveData }) => {
           setCountryPricingList([]);
           return;
         }
-
+        // console.log("payload receive", payload);
         const normalized = payload
           .map((item) => ({
             id: String(item?.id || ""),
@@ -263,6 +272,7 @@ const CountrySlider = ({ moreToLoveData }) => {
   const requiredDocumentRef = useRef(null);
   const mainSectionRef = useRef(null);
   const reasonTooltipRef = useRef(null);
+  const urlDatesAppliedRef = useRef(false);
 
   // Use Redux state instead of local state
   const travelers = visaState.travelers ?? 0;
@@ -414,6 +424,28 @@ const CountrySlider = ({ moreToLoveData }) => {
     return countryPricingLookup[normalizeCountryKey(countryName)] || null;
   }, [selectedCountry, countryPricingLookup]);
 
+  // Occasion-specific pricing for the selected country (3-tier: early, original, traditional)
+  const activeOccasionPricing = useMemo(() => {
+    if (!occasionPricing) return null;
+    const countryName = getCountryParam(selectedCountry) || "Belgium";
+    const match = occasionPricing.find(
+      (p) => normalizeCountryKey(p.country) === normalizeCountryKey(countryName)
+    );
+    if (!match) return null;
+    const early = Number(match.earlyDiscount);
+    const original = Number(match.originalPrice);
+    const traditional = Number(match.traditionalPrice);
+    if (!Number.isFinite(early) || early <= 0) return null;
+    return {
+      earlyDiscount: early,
+      originalPrice: original,
+      traditionalPrice: traditional,
+      earlyDiscountLabel: match.earlyDiscountLabel || "",
+      originalPriceLabel: match.originalPriceLabel || "",
+      traditionalPriceLabel: match.traditionalPriceLabel || "",
+    };
+  }, [occasionPricing, selectedCountry]);
+
   const tripDaysInclusive = (start, end) => {
     if (!start || !end) return 0;
     const startDate = new Date(start);
@@ -518,6 +550,15 @@ const CountrySlider = ({ moreToLoveData }) => {
     setArrivalDateLocal(safeDate);
     const dateString = safeDate ? safeDate.toISOString().split("T")[0] : "";
     dispatch(setArrivalDate(dateString));
+
+    // Check if new start date is within occasion discount range
+    if (occasionDateRange && safeDate) {
+      const withinRange = safeDate >= occasionDateRange.start && safeDate <= occasionDateRange.end;
+      if (!withinRange) {
+        setOccasionPricing(null);
+        setOccasionDateRange(null);
+      }
+    }
 
     if (safeDate) {
       const minDeparture = new Date(safeDate);
@@ -705,6 +746,9 @@ const CountrySlider = ({ moreToLoveData }) => {
   ]);
 
   useEffect(() => {
+    // Skip if URL date params were applied — they take priority
+    if (urlDatesAppliedRef.current) return;
+
     const persistedArrival = parsePersistedDate(visaState.arrivalDate);
     if (persistedArrival) {
       const persistedMs = persistedArrival.getTime();
@@ -991,6 +1035,10 @@ const CountrySlider = ({ moreToLoveData }) => {
     // Get dynamic fees based on selected country
     const countryConfig = getCountryConfig(countryName);
 
+    console.log("dynamic rpice", dynamicPricing);
+    console.log("config price", countryConfig);
+    console.log("selected country", countryName);
+    console.log("calculated price", calculateOriginalPrice())
     dispatch(setReduxSelectedCountry(String(countryName)));
     dispatch(setVisaFees(Number(dynamicPricing?.basePrice ?? countryConfig.visaFee)));
     dispatch(setInsuranceFees(Number(countryConfig.insuranceFee)));
@@ -1007,6 +1055,8 @@ const CountrySlider = ({ moreToLoveData }) => {
   });
 
   const defaultCountryMarker = "default_country";
+
+  // console.log("Default Country Marker:", countryPricingList);
 
   const dropdownCountries = useMemo(
     () =>
@@ -1097,6 +1147,65 @@ const CountrySlider = ({ moreToLoveData }) => {
     normalizeCountryName,
     dispatch,
   ]);
+
+  // Handle pre-selected dates from URL parameters (e.g. from occasion cards)
+  // arrivalDate = start of admin range (used as booking start date)
+  // departureDate = end of admin range (used to validate discount eligibility, NOT as booking end)
+  // Booking end date = start date + 14 days (15 days inclusive, current default)
+  useEffect(() => {
+    const urlArrival = router.query.arrivalDate;
+    const urlDeparture = router.query.departureDate;
+    if (!urlArrival) return;
+
+    let applied = false;
+    const parsedArrival = new Date(urlArrival + "T00:00:00");
+    if (!Number.isNaN(parsedArrival.getTime())) {
+      setArrivalDateLocal(parsedArrival);
+      dispatch(setArrivalDate(parsedArrival.toISOString().split("T")[0]));
+
+      // End date = start + 14 days (15 days inclusive)
+      const autoEnd = new Date(parsedArrival);
+      autoEnd.setDate(autoEnd.getDate() + 14);
+      setDepartureDateLocal(autoEnd);
+      dispatch(setDepartureDate(autoEnd.toISOString().split("T")[0]));
+      applied = true;
+    }
+
+    // Store the occasion date range for discount validation
+    if (urlArrival && urlDeparture) {
+      const rangeStart = new Date(urlArrival + "T00:00:00");
+      const rangeEnd = new Date(urlDeparture + "T00:00:00");
+      if (!Number.isNaN(rangeStart.getTime()) && !Number.isNaN(rangeEnd.getTime())) {
+        setOccasionDateRange({ start: rangeStart, end: rangeEnd });
+      }
+    }
+
+    if (applied) urlDatesAppliedRef.current = true;
+  }, [router.query.arrivalDate, router.query.departureDate, dispatch]);
+
+  // Fetch occasion pricing when arriving from an occasion card
+  useEffect(() => {
+    const occasionIdx = router.query.occasionIdx;
+    if (occasionIdx === undefined || occasionIdx === null) return;
+
+    const fetchOccasionPricing = async () => {
+      try {
+        const adminBase = getAdminApiBase();
+        const res = await fetch(`${adminBase}/api/occasion-content`);
+        if (!res.ok) return;
+        const json = await res.json();
+        if (!json.success || !json.data?.occasions) return;
+        const occ = json.data.occasions[Number(occasionIdx)];
+        if (occ?.countryPricing && Array.isArray(occ.countryPricing)) {
+          setOccasionPricing(occ.countryPricing);
+        }
+        if (occ?.traditionalPriceText) {
+          setOccasionTraditionalText(occ.traditionalPriceText);
+        }
+      } catch { /* silently fail */ }
+    };
+    fetchOccasionPricing();
+  }, [router.query.occasionIdx]);
 
   const currentCountryName = getCountryParam(selectedCountry) || "Belgium";
   const currentAppointmentText =
@@ -1410,6 +1519,96 @@ const CountrySlider = ({ moreToLoveData }) => {
     effectiveInsuranceDays,
   ]);
 
+  const calculateDiscountedVisaFee = useCallback(
+    ({ discount = appliedDiscount, hasOnlyInsurance = false } = {}) => {
+      const occasionBasePerTraveler = Number(activeOccasionPricing?.earlyDiscount);
+      const visaFeePerTraveler =
+        Number.isFinite(occasionBasePerTraveler) && occasionBasePerTraveler > 0
+          ? occasionBasePerTraveler
+          : currentVisaFeePerTraveler;
+
+      const baseDiscountedVisaFees = hasOnlyInsurance
+        ? 0
+        : visaFeePerTraveler * travelers;
+
+      const travelersQualify = !hasOnlyInsurance && travelers >= 3;
+      const hasStudentDiscount = discount?.code === "STUDENT10";
+      const hasGroupDiscount = discount?.code === "GROUP20";
+
+      let finalVisaFees = baseDiscountedVisaFees;
+      const appliedDiscounts = [];
+      console.log("base discount", baseDiscountedVisaFees);
+      if (travelersQualify) {
+        const quantityDiscount = (finalVisaFees * 20) / 100;
+        finalVisaFees = finalVisaFees - quantityDiscount;
+        appliedDiscounts.push({
+          type: "quantity",
+          percentage: 20,
+          amount: quantityDiscount,
+        });
+      }
+
+      if (hasGroupDiscount && travelersQualify && finalVisaFees === baseDiscountedVisaFees) {
+        const quantityDiscount = (finalVisaFees * 20) / 100;
+        finalVisaFees = finalVisaFees - quantityDiscount;
+        appliedDiscounts.push({
+          type: "group",
+          percentage: 20,
+          amount: quantityDiscount,
+        });
+      }
+
+      if (hasStudentDiscount) {
+        const studentDiscount = (finalVisaFees * 10) / 100;
+        finalVisaFees = finalVisaFees - studentDiscount;
+        appliedDiscounts.push({
+          type: "student",
+          percentage: 10,
+          amount: studentDiscount,
+        });
+      }
+
+      const roundedVisaFees = Number(finalVisaFees.toFixed(2));
+
+      console.log("[Slider] visa fee recalculation", {
+        discountCode: discount?.code || null,
+        discountDescription: discount?.description || null,
+        usingOccasionPricing:
+          Number.isFinite(occasionBasePerTraveler) && occasionBasePerTraveler > 0,
+        occasionBasePerTraveler:
+          Number.isFinite(occasionBasePerTraveler) && occasionBasePerTraveler > 0
+            ? occasionBasePerTraveler
+            : null,
+        hasOnlyInsurance,
+        travelers,
+        currentVisaFeePerTraveler: visaFeePerTraveler,
+        baseDiscountedVisaFees,
+        appliedDiscounts,
+        roundedVisaFees,
+      });
+
+      return roundedVisaFees;
+    },
+    [appliedDiscount, activeOccasionPricing?.earlyDiscount, currentVisaFeePerTraveler, travelers]
+  );
+
+  useEffect(() => {
+    const nextVisaFees = calculateDiscountedVisaFee({ discount: appliedDiscount });
+
+    if (!Number.isFinite(nextVisaFees)) {
+      return;
+    }
+
+    if (visaState.visaFees !== nextVisaFees) {
+      console.log("[Slider] dispatching updated visaFees", {
+        previousVisaFees: visaState.visaFees,
+        nextVisaFees,
+        discountCode: appliedDiscount?.code || null,
+      });
+      dispatch(setVisaFees(nextVisaFees));
+    }
+  }, [appliedDiscount, calculateDiscountedVisaFee, dispatch, visaState.visaFees]);
+
   // Memoize calculateVisaAndInsurancePrice
   const visaAndInsurancePrice = useMemo(() => {
     // Apply gift card benefits: reduce effective counts for calculation
@@ -1684,6 +1883,50 @@ const CountrySlider = ({ moreToLoveData }) => {
     return baseOriginalPrice.toFixed(2);
   };
 
+  useEffect(() => {
+    if (activeOccasionPricing) {
+      dispatch(
+        setVisaPriceDisplay({
+          isOccasion: true,
+          originalPerTraveler: Number(activeOccasionPricing.originalPrice || 0),
+          traditionalPerTraveler: Number(activeOccasionPricing.traditionalPrice || 0),
+          discountedLabel:
+            activeOccasionPricing.earlyDiscountLabel ||
+            sliderContent?.slider_save ||
+            "",
+          originalLabel:
+            activeOccasionPricing.originalPriceLabel ||
+            sliderContent?.slider_traditional ||
+            "Traditional fee",
+          traditionalLabel:
+            activeOccasionPricing.traditionalPriceLabel ||
+            sliderContent?.third_price_message ||
+            occasionTraditionalText ||
+            sliderContent?.slider_traditional ||
+            "Traditional",
+        })
+      );
+      return;
+    }
+
+    dispatch(
+      setVisaPriceDisplay({
+        isOccasion: false,
+        originalPerTraveler: Number(strikeOutPrice || 0),
+        traditionalPerTraveler: 0,
+        discountedLabel: sliderContent?.slider_save || "",
+        originalLabel: sliderContent?.slider_traditional || "Traditional",
+        traditionalLabel: "",
+      })
+    );
+  }, [
+    dispatch,
+    activeOccasionPricing,
+    strikeOutPrice,
+    sliderContent,
+    occasionTraditionalText,
+  ]);
+
   // Apply coupon immediately (no verification at apply time)
   const applyCouponCode = async () => {
     if (!couponCode.trim()) {
@@ -1813,6 +2056,19 @@ const CountrySlider = ({ moreToLoveData }) => {
     } else {
       dispatch(setAppliedDiscount(discountWithAmount));
     }
+
+    const updatedVisaFees = calculateDiscountedVisaFee({
+      discount: discountWithAmount,
+    });
+
+    console.log("[Slider] coupon applied, dispatching discounted visa fee", {
+      code: codeUpper,
+      baseVisaFee: currentVisaFeePerTraveler * travelers,
+      travelers,
+      updatedVisaFees,
+    });
+  
+    dispatch(setVisaFees(updatedVisaFees));
 
     setCouponError("");
     if (codeUpper === "GROUP20") {
@@ -2065,9 +2321,13 @@ const CountrySlider = ({ moreToLoveData }) => {
       }
     }
 
-    // Use the same discount calculation logic as calculateFinalPrice for consistency
+    // Use shared helper so checkout dispatch respects occasion pricing tiers too
+    const visaFees = calculateDiscountedVisaFee({
+      discount: appliedDiscount,
+      hasOnlyInsurance,
+    });
+
     // Base discounted prices (not original prices)
-    const baseDiscountedVisaFees = hasOnlyInsurance ? 0 : currentVisaFeePerTraveler * travelers;
     const baseDiscountedInsuranceFees = discountedInsuranceBase;
     const baseDiscountedGiftCardFees = recommendedItems.giftCard
       ? 159 * giftCardCount
@@ -2084,15 +2344,10 @@ const CountrySlider = ({ moreToLoveData }) => {
     const hasGroupDiscount = appliedDiscount && appliedDiscount.code === "GROUP20";
 
     // Calculate discounts sequentially (compound): First 20% quantity discount, then 10% student discount on discounted price
-    let visaFees = baseDiscountedVisaFees;
     let insuranceFees = baseDiscountedInsuranceFees;
     let giftCardFees = baseDiscountedGiftCardFees;
 
     // Apply 20% quantity discount first (if 3+ items)
-    if (travelersQualify) {
-      const quantityDiscount = (visaFees * 20) / 100;
-      visaFees = visaFees - quantityDiscount;
-    }
     if (insuranceQualify && recommendedItems.insuranceCertificate) {
       const quantityDiscount = (insuranceFees * 20) / 100;
       insuranceFees = insuranceFees - quantityDiscount;
@@ -2105,10 +2360,6 @@ const CountrySlider = ({ moreToLoveData }) => {
     // Apply GROUP20 coupon (ensures 20% is applied if conditions met)
     if (hasGroupDiscount) {
       if (travelersQualify && (insuranceQualify || giftCardQualify)) {
-        if (travelersQualify && visaFees === baseDiscountedVisaFees) {
-          const quantityDiscount = (visaFees * 20) / 100;
-          visaFees = visaFees - quantityDiscount;
-        }
         if (insuranceQualify && recommendedItems.insuranceCertificate && insuranceFees === baseDiscountedInsuranceFees) {
           const quantityDiscount = (insuranceFees * 20) / 100;
           insuranceFees = insuranceFees - quantityDiscount;
@@ -2122,8 +2373,6 @@ const CountrySlider = ({ moreToLoveData }) => {
 
     // Apply 10% student discount on already-discounted price (if student)
     if (hasStudentDiscount) {
-      const studentDiscount = (visaFees * 10) / 100;
-      visaFees = visaFees - studentDiscount;
       if (recommendedItems.insuranceCertificate) {
         const studentDiscount = (insuranceFees * 10) / 100;
         insuranceFees = insuranceFees - studentDiscount;
@@ -3078,6 +3327,41 @@ const CountrySlider = ({ moreToLoveData }) => {
               </p>
               <div className="flex items-center justify-between gap-3 mb-4 max-sm:flex-col max-sm:items-start max-sm:gap-1">
                 {selectedCountryData.isActive !== false ? (
+                  activeOccasionPricing ? (
+                    <div className="flex flex-col gap-2">
+                      {/* Row 1: Discounted + Original */}
+                      <div className="flex gap-12 max-sm:w-full max-sm:justify-between items-center">
+                        <div className="flex flex-col items-center">
+                          <span className="text-2xl font-gilroy-bold max-sm:text-xl">
+                            £{(activeOccasionPricing.earlyDiscount * (travelers || 1)).toFixed(2)}
+                          </span>
+                          <span className="text-[11px] text-gray-500 font-medium max-sm:text-[10px]">
+                            {activeOccasionPricing.earlyDiscountLabel || `${sliderContent?.slider_save || ""}${Math.round((activeOccasionPricing.originalPrice - activeOccasionPricing.earlyDiscount) * (travelers || 1))}`}
+                          </span>
+                        </div>
+                        <div className="flex flex-col items-center">
+                          <span className="text-xl font-semibold max-sm:text-sm line-through decoration-2 decoration-neutral-400 text-red-400">
+                            £{(activeOccasionPricing.originalPrice * (travelers || 1)).toFixed(2)}
+                          </span>
+                          <span className="text-[11px] text-gray-500 font-medium max-sm:text-[10px]">
+                            {activeOccasionPricing.originalPriceLabel || sliderContent?.slider_traditional || "Traditional fee"}
+                          </span>
+                        </div>
+                      </div>
+                      {/* Row 2: Traditional price below */}
+                      {activeOccasionPricing.traditionalPrice > 0 && (
+                        <div className="flex flex-col">
+                          <span className="text-xl font-semibold max-sm:text-sm line-through decoration-2 decoration-neutral-400 text-gray-500">
+                            £{(activeOccasionPricing.traditionalPrice * (travelers || 1)).toFixed(2)}
+                          </span>
+                          <span className="text-[12px] text-gray-500 font-medium max-sm:text-[11px]">
+                            {activeOccasionPricing.traditionalPriceLabel || sliderContent?.third_price_message || occasionTraditionalText || sliderContent?.slider_traditional || "Traditional"}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                  /* Default 2-tier pricing */
                   <div className="flex gap-12 max-sm:w-full max-sm:justify-between items-center">
                     <div className="flex flex-col items-center">
                       <span className="text-2xl font-gilroy-bold max-sm:text-xl">
@@ -3100,6 +3384,7 @@ const CountrySlider = ({ moreToLoveData }) => {
                       )}
                     </div>
                   </div>
+                  )
                 ) : (
                   <div className="flex items-center h-[48px]">
                     <span className="text-gray-400 text-sm italic">Pricing hidden for this country</span>
@@ -4103,7 +4388,7 @@ const CountrySlider = ({ moreToLoveData }) => {
           {/* Recommended Section */}
           <div className="mt-3">
             <h2 className="text-xl font-gilroy-bold mb-4 max-sm:text-lg">
-              More to love
+              {more_to_love.title}
             </h2>
 
             {/* Insurance Certificate & Gift Card Section */}
@@ -4146,8 +4431,13 @@ const CountrySlider = ({ moreToLoveData }) => {
                           />
                         </div>
                         <h3 className="font-bold whitespace-nowrap text-base max-sm:text-[14px] leading-tight text-center px-1">
-                      {   more_to_love.insurance ? more_to_love.insurance : "Insurance Certificate"}
+                        {more_to_love.leftTitle}
                         </h3>
+                        {more_to_love.leftSubtitle && (
+                          <p className="mt-1 text-[11px] text-gray-300 text-center leading-snug">
+                            {more_to_love.leftSubtitle}
+                          </p>
+                        )}
                       </div>
 
                       {/* Bottom: Qty & Price */}
@@ -4193,8 +4483,13 @@ const CountrySlider = ({ moreToLoveData }) => {
                           />
                         </div>
                         <h3 className="font-bold text-base max-sm:text-[14px] leading-tight text-center px-1">
-                          {more_to_love.giftCard? more_to_love.giftCard : "E-Gift Card"}
+                          {more_to_love.rightTitle}
                         </h3>
+                        {more_to_love.rightSubtitle && (
+                          <p className="mt-1 text-[11px] text-gray-300 text-center leading-snug">
+                            {more_to_love.rightSubtitle}
+                          </p>
+                        )}
                       </div>
 
                       {/* Bottom: Qty & Price */}
