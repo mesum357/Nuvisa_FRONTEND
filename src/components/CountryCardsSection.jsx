@@ -213,6 +213,8 @@ const CountryCardsSection = ({ specificCountries, image, id, occasionContent, oc
     limit: 100, // Increased limit to ensure all countries are available
   });
 
+  console.log("hook coutries", hookCountries);
+
   useEffect(() => {
     // Only update if we don't have dynamic section data
     if (dynamicSection) return;
@@ -273,7 +275,8 @@ const CountryCardsSection = ({ specificCountries, image, id, occasionContent, oc
     return showAll ? list : list.slice(0, limit);
   }, [homepageCountries, showAll, dynamicSection, isMobile]);
 
-
+console.log("homepage coutries", homepageCountries);
+console.log("displayed countries", displayedCountries, loading, error);
   // Resolve occasion dates: use admin-set dates if available, otherwise derive from title
   const getOccasionDates = useCallback((occ) => {
     if (occ.arrivalDate && occ.departureDate) {

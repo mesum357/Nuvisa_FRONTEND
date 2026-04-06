@@ -22,20 +22,64 @@ export const useCountriesWithAppointmentTexts = ({
   useEffect(() => {
     let active = true;
 
+    const normalizeVisaCountriesPayload = (payload) => {
+      if (Array.isArray(payload)) return payload;
+      if (Array.isArray(payload?.data)) return payload.data;
+      if (Array.isArray(payload?.data?.results)) return payload.data.results;
+      if (Array.isArray(payload?.results)) return payload.results;
+      return [];
+    };
+
+    const normalizeVisaCountryRecord = (item) => {
+      if (!item) return null;
+
+      if (typeof item === "string") {
+        const name = item.trim();
+        if (!name) return null;
+        return {
+          name,
+          image: "",
+          isActive: true,
+          price_from: "",
+        };
+      }
+
+      if (typeof item !== "object") return null;
+
+      const name = String(item?.name || item?.countryName || "").trim();
+      if (!name) return null;
+
+      const rawPriceFrom = item?.price_from ?? item?.priceFrom;
+      return {
+        ...item,
+        name,
+        image: String(item?.image || ""),
+        isActive: item?.isActive ?? true,
+        price_from:
+          rawPriceFrom === undefined || rawPriceFrom === null
+            ? ""
+            : String(rawPriceFrom),
+      };
+    };
+
     const loadData = async () => {
       try {
         setIsLoading(true);
         const adminBase = getAdminApiBase();
-        
+
         const [appTextsResponse, visaCountriesResponse] = await Promise.all([
           fetchAppointmentTexts(),
-          fetch(`${adminBase}/api/visa-countries`).then(res => res.ok ? res.json() : { success: false })
+          fetch(`${adminBase}/api/visa-countries?active=true`).then(res => res.ok ? res.json() : { success: false })
         ]);
 
         if (!active) return;
 
         setAppointmentTexts(Array.isArray(appTextsResponse) ? appTextsResponse : []);
-        setVisaCountries(visaCountriesResponse.success && Array.isArray(visaCountriesResponse.data) ? visaCountriesResponse.data : []);
+        const visaCountriesList = normalizeVisaCountriesPayload(visaCountriesResponse)
+          .map(normalizeVisaCountryRecord)
+          .filter((item) => item?.isActive !== false)
+          .filter(Boolean);
+        setVisaCountries(visaCountriesList);
         setError(null);
       } catch (err) {
         if (!active) return;
@@ -83,26 +127,32 @@ export const useCountriesWithAppointmentTexts = ({
     const apiCountryNames = appointmentTexts
       .map((item) => item?.countryName)
       .filter(Boolean);
-    const visaCountriesNames = visaCountries
-      .map((item) => item?.name)
+    const activeVisaCountries = visaCountries.filter((item) => item?.isActive !== false);
+
+    const visaCountriesNames = activeVisaCountries
+      .map((item) => item?.name || item?.countryName)
       .filter(Boolean);
 
     const allCountryNames = new Set([...staticCountryNames, ...apiCountryNames, ...visaCountriesNames]);
 
-    const visaCountriesMap = visaCountries.reduce((acc, item) => {
-      const key = normalizeCountryName(item?.name);
+    const visaCountriesMap = activeVisaCountries.reduce((acc, item) => {
+      const key = normalizeCountryName(item?.name || item?.countryName);
       if (key) {
         acc[key] = item;
       }
       return acc;
     }, {});
-
+    // console.log("visa countries map", visaCountriesMap);
+    // console.log("visa countries", visaCountries);
     const merged = Array.from(allCountryNames).map((countryName, index) => {
       const normalizedCountryName = normalizeCountryName(countryName);
       const staticCountry = staticCountriesMap[normalizedCountryName];
       const countryData = appointmentTextMap[normalizedCountryName] || {};
-      const visaCountry = visaCountriesMap[normalizedCountryName] || {};
-
+      const visaCountryRaw = visaCountriesMap[normalizedCountryName];
+      const visaCountry =
+        visaCountryRaw && typeof visaCountryRaw === "object"
+          ? visaCountryRaw
+          : {};
       let countryImage = "";
       if (visaCountry.image) {
         countryImage = visaCountry.image.startsWith("http")
@@ -132,7 +182,11 @@ export const useCountriesWithAppointmentTexts = ({
         landmark: staticCountry?.landmark || countryData.originalCountryName || countryName,
         appointmentText: countryData.appointmentText || fallbackAppointmentText,
         isActive: visaCountry.isActive ?? true,
-        price_from: visaCountry.price_from || "From",
+        // Keep API value when present, otherwise default to empty string.
+        price_from:
+          visaCountry.price_from === undefined || visaCountry.price_from === null
+            ? ""
+            : String(visaCountry.price_from),
       };
 
       if (includeFees) {
@@ -182,6 +236,7 @@ export const useCountriesWithAppointmentTexts = ({
     return deduped;
   }, [
     appointmentTexts,
+    visaCountries,
     fallbackAppointmentText,
     includeFees,
     sortBy,
