@@ -17,6 +17,7 @@ import { useCountriesWithAppointmentTexts } from "@/hooks/useCountriesWithAppoin
 const VisaSolution = ({
   video = false,
   title = "Top Destinations",
+  subtitle,
   customColors = [],
   countriesData = []
 }) => {
@@ -236,6 +237,10 @@ const VisaSolution = ({
   const scrollPositionRef = useRef(0);
   const [isPaused, setIsPaused] = useState(false);
   const speed = 0.5;
+  const defaultSubtitle = title === "Everyday Steals"
+    ? "A curated edit of handpicked countries for travellers who are on budget and want to access Schengen countries."
+    : "If you're frustrated with travel agencies that have substantial fees, confusing conditions, and slow appointments - Meet the next generation peace of mind complete visa solution you've been looking for.";
+  const sectionSubtitle = subtitle || defaultSubtitle;
 
   useEffect(() => {
     const gallery = galleryRef.current;
@@ -290,7 +295,7 @@ const VisaSolution = ({
         <div className=" w-full flex items-center gap-5 md:gap-10 max-md:flex-col max-md:text-left px-6">
           <h2 className="text-4xl whitespace-nowrap sm:text-5xl w-1/2 text-black md:text-7xl font-gilroy-bold font-extrabold leading-tight flex-1 w-full" dangerouslySetInnerHTML={{ __html: title }} />
           <p className="text-gray-600 text-[13px] md:text-base font-medium leading-relaxed flex-[.6] text-left">
-            {title === "Everyday Steals" ? "A curated edit of handpicked countries for travellers who are on budget and want to access Schengen countries." : "If you're frustrated with travel agencies that have substantial fees, confusing conditions, and slow appointments - Meet the next generation peace of mind complete visa solution you've been looking for."}
+            {sectionSubtitle}
           </p>
         </div>
       </div>

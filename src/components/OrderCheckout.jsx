@@ -66,12 +66,13 @@ const VisaCheckout = () => {
   // Get data from Redux store first, fallback to URL params if not available
   const visaState = useAppSelector((state) => state.visa);
   const recommendedItems = visaState.recommendedItems || {};
+  const visaPriceDisplay = visaState.visaPriceDisplay;
 
   const [insuranceCount, setInsuranceCount] = useState(
     visaState.insuranceCount
   );
-  // Use dynamic visa fee from selected visa type if available, otherwise fallback to base fee
-  const baseVisaFee =
+  // Use the current visa fee from Redux when available, otherwise fall back to the selected visa type.
+  const fallbackVisaFeePerTraveler =
     visaState.selectedVisaType && visaState.selectedVisaType.priceGBP
       ? Number(visaState.selectedVisaType.priceGBP)
       : visaState.selectedVisaType && visaState.selectedVisaType.price
@@ -81,6 +82,19 @@ const VisaCheckout = () => {
   const selectedCountry = visaState.selectedCountry;
   const selectedVisaType = visaState.selectedVisaType;
   const visaTypeId = visaState.visaTypeId;
+  const travelerCountForVisa = Math.max(Number(visaState.travelers || 1), 1);
+  const storedVisaFees = Number(visaState.visaFees || 0);
+  const currentVisaFeePerTraveler =
+    storedVisaFees > 0 && travelerCountForVisa > 0
+      ? storedVisaFees / travelerCountForVisa
+      : fallbackVisaFeePerTraveler;
+  const hasOccasionPricing = Boolean(visaPriceDisplay?.isOccasion);
+  const specialVisaFeePerTraveler = hasOccasionPricing
+    ? Number(visaPriceDisplay?.originalPerTraveler || currentVisaFeePerTraveler)
+    : currentVisaFeePerTraveler;
+  const traditionalVisaFeePerTraveler = hasOccasionPricing
+    ? Number(visaPriceDisplay?.traditionalPerTraveler || 0)
+    : 0;
 
   const [travelers, setTravelersLocal] = useState(
     visaState.travelers !== undefined && visaState.travelers !== null
@@ -685,12 +699,7 @@ const VisaCheckout = () => {
     }
 
     // Apply immediately
-    const currentBaseFee =
-      selectedVisaType && selectedVisaType.priceGBP
-        ? Number(selectedVisaType.priceGBP)
-        : selectedVisaType && selectedVisaType.price
-          ? Math.round(Number(selectedVisaType.price) / 100)
-          : baseVisaFee; // baseFee fallback
+    const currentBaseFee = currentVisaFeePerTraveler;
     const currentVisaFees = currentBaseFee * travelers;
     const calculatedDiscountAmount =
       (currentVisaFees * discount.percentage) / 100;
@@ -907,7 +916,9 @@ const VisaCheckout = () => {
   };
 
   // SUBTOTAL: Original prices (no discounts applied)
-  const originalVisaFees = 200 * travelers; // £200 per traveler
+  const originalVisaFees = (traditionalVisaFeePerTraveler > 0
+    ? traditionalVisaFeePerTraveler
+    : specialVisaFeePerTraveler) * travelers;
   const originalInsuranceFees = includeInsurance
     ? originalPerDayInsurancePrice * travelDays * insuranceCount
     : 0; // Dynamic strike price based on travel days
@@ -928,7 +939,7 @@ const VisaCheckout = () => {
     ? Math.max(0, insuranceCount - (giftCardBenefits?.freeInsurance || 0))
     : insuranceCount;
 
-  const baseDiscountedVisaFees = baseVisaFee * effectiveTravelers; // Dynamic per traveler (with gift card benefit)
+  const baseDiscountedVisaFees = currentVisaFeePerTraveler * effectiveTravelers; // Dynamic per traveler (with gift card benefit)
   const baseDiscountedInsuranceFees = includeInsurance
     ? perDayInsurancePrice * travelDays * effectiveInsuranceCountForCalc
     : 0; // £2 per day per traveller (with gift card benefit)
@@ -1020,7 +1031,7 @@ const VisaCheckout = () => {
   const giftCardFeesGBP = finalGiftCardFees;
 
   // Strike-through prices (original prices)
-  const travellerStrikeTotal = originalVisaFees;
+  const travellerStrikeTotal = specialVisaFeePerTraveler * travelers;
   const insuranceStrikeTotal = originalInsuranceFees;
   const giftCardStrikeTotal = originalGiftCardFees;
 
@@ -1053,7 +1064,7 @@ const VisaCheckout = () => {
   const visaFees = finalVisaFees;
   const insuranceFees = finalInsuranceFees;
   const giftCardFees = finalGiftCardFees;
-  const currentBaseFee = baseVisaFee; // Current base fee per traveler
+  const currentBaseFee = currentVisaFeePerTraveler; // Current base fee per traveler
   const totalAmount = total;
 
   // Check available payment methods from ExpressPaymentRequestButton
@@ -2304,10 +2315,33 @@ const VisaCheckout = () => {
               />
             </div>
 
-            <div className="flex items-center gap-2 justify-end">
-              <span className="line-through">
-                {formatCurrency(travellerStrikeGBP, "GBP")}
-              </span>
+            <div className="flex items-center gap-3 justify-end flex-wrap">
+             
+              {traditionalVisaFeePerTraveler > 0 && (
+                <div className="flex flex-col items-end">
+                  <span className="line-through">
+                    {formatCurrency(
+                      traditionalVisaFeePerTraveler * travelers,
+                      "GBP"
+                    )}
+                  </span>
+                  {!!visaPriceDisplay?.traditionalLabel && (
+                    <span className="text-[10px] text-gray-400 font-medium">
+                      {visaPriceDisplay.traditionalLabel}
+                    </span>
+                  )}
+                </div>
+              )}
+               <div className="flex flex-col items-end">
+                <span className="line-through">
+                  {formatCurrency(travellerStrikeGBP, "GBP")}
+                </span>
+                {!!visaPriceDisplay?.originalLabel && (
+                  <span className="text-[10px] text-gray-400 font-medium">
+                    {visaPriceDisplay.originalLabel}
+                  </span>
+                )}
+              </div>
               <span className="text-sm font-medium">
                 {formatCurrency(visaFeesGBPDisplay, "GBP")}
               </span>
