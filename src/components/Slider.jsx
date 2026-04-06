@@ -2152,23 +2152,27 @@ const CountrySlider = ({ moreToLoveData }) => {
 
   useEffect(() => {
     if (activeOccasionPricing) {
+      // Map occasion labels to price display labels based on mode
+      // 2-tier mode: originalPrice (displayed as "current"), traditionalPrice (displayed as "strike")
+      // 3-tier mode: earlyDiscount (current), originalPrice (strike), traditionalPrice (3rd strike)
+      const discountedLabelForMode =
+        activeOccasionPricing.priceMode === "two"
+          ? activeOccasionPricing.originalPriceLabel // Current price label in 2-tier
+          : activeOccasionPricing.earlyDiscountLabel; // Current price label in 3-tier
+
+      const originalLabelForMode =
+        activeOccasionPricing.priceMode === "two"
+          ? activeOccasionPricing.traditionalPriceLabel // Strike price label in 2-tier
+          : activeOccasionPricing.originalPriceLabel; // Strike price label in 3-tier
+
       dispatch(
         setVisaPriceDisplay({
           isOccasion: true,
           originalPerTraveler: Number(activeOccasionPricing.comparisonPrice || 0),
           traditionalPerTraveler: Number(activeOccasionPricing.thirdPrice || 0),
-          discountedLabel:
-            (activeOccasionPricing.priceMode === "two"
-              ? activeOccasionPricing.originalPriceLabel
-              : activeOccasionPricing.earlyDiscountLabel) ||
-            sliderContent?.slider_save ||
-            "",
-          originalLabel:
-            (activeOccasionPricing.priceMode === "two"
-              ? activeOccasionPricing.traditionalPriceLabel
-              : activeOccasionPricing.originalPriceLabel) ||
-            sliderContent?.slider_traditional ||
-            "Traditional fee",
+          // Use occasion labels, fallback to slider content only if empty
+          discountedLabel: discountedLabelForMode || sliderContent?.slider_save || "",
+          originalLabel: originalLabelForMode || sliderContent?.slider_traditional || "Traditional fee",
           traditionalLabel:
             activeOccasionPricing.traditionalPriceLabel ||
             sliderContent?.third_price_message ||
@@ -3609,7 +3613,8 @@ const CountrySlider = ({ moreToLoveData }) => {
                           <span className="text-[11px] text-gray-500 font-medium max-sm:text-[10px]">
                             {activeOccasionPricing.priceMode === "two"
                               ? ((activeOccasionPricing.originalPriceLabel || sliderContent?.slider_save || "You save ") + Math.round((activeOccasionPricing.comparisonPrice - activeOccasionPricing.currentPrice) * (travelers || 1)))
-                              : (activeOccasionPricing.earlyDiscountLabel || `${sliderContent?.slider_save || ""}${Math.round((activeOccasionPricing.thirdPrice - activeOccasionPricing.currentPrice) * (travelers || 1))}`)}
+                              : (activeOccasionPricing.earlyDiscountLabel || `${sliderContent?.slider_save || ""} ${Math.round((activeOccasionPricing.thirdPrice - activeOccasionPricing.currentPrice) * (travelers || 1))}`)
+                            }{activeOccasionPricing.priceMode === "three" && " "+ Math.round((activeOccasionPricing.thirdPrice - activeOccasionPricing.currentPrice) * (travelers || 1))}
                           </span>
                         </div>
                         {activeOccasionPricing.comparisonPrice > 0 && (

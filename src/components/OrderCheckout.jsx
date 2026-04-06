@@ -2325,7 +2325,7 @@ const VisaCheckout = () => {
                       "GBP"
                     )}
                   </span>
-                  {!!visaPriceDisplay?.traditionalLabel && (
+                  {visaPriceDisplay?.isOccasion && !!visaPriceDisplay?.traditionalLabel && (
                     <span className="text-[10px] text-gray-400 font-medium">
                       {visaPriceDisplay.traditionalLabel}
                     </span>
@@ -2336,15 +2336,22 @@ const VisaCheckout = () => {
                 <span className="line-through">
                   {formatCurrency(travellerStrikeGBP, "GBP")}
                 </span>
-                {!!visaPriceDisplay?.originalLabel && (
+                {visaPriceDisplay?.isOccasion && !!visaPriceDisplay?.originalLabel && (
                   <span className="text-[10px] text-gray-400 font-medium">
                     {visaPriceDisplay.originalLabel}
                   </span>
                 )}
               </div>
-              <span className="text-sm font-medium">
-                {formatCurrency(visaFeesGBPDisplay, "GBP")}
-              </span>
+              <div className="flex flex-col items-end">
+                <span className="text-sm font-medium">
+                  {formatCurrency(visaFeesGBPDisplay, "GBP")}
+                </span>
+                {visaPriceDisplay?.isOccasion && !!visaPriceDisplay?.discountedLabel && (
+                  <span className="text-[10px] text-gray-400 font-medium">
+                    {visaPriceDisplay.discountedLabel} {console.log("")}
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="flex items-center justify-between py-1">
