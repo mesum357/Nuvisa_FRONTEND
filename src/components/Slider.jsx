@@ -83,6 +83,7 @@ const CountrySlider = ({ moreToLoveData }) => {
   const [isVisaPricingLoading, setIsVisaPricingLoading] = useState(true);
   const [visaPricingError, setVisaPricingError] = useState("");
   const [occasionPricing, setOccasionPricing] = useState(null);
+  const [occasionCountryNames, setOccasionCountryNames] = useState([]);
   const [occasionDateRange, setOccasionDateRange] = useState(null); // { start: Date, end: Date }
   const [occasionTraditionalText, setOccasionTraditionalText] = useState("");
 
@@ -421,8 +422,19 @@ const CountrySlider = ({ moreToLoveData }) => {
 
   const selectedCountryPricing = useMemo(() => {
     const countryName = getCountryParam(selectedCountry) || "Belgium";
-    return countryPricingLookup[normalizeCountryKey(countryName)] || null;
-  }, [selectedCountry, countryPricingLookup]);
+    const basePricing = countryPricingLookup[normalizeCountryKey(countryName)] || null;
+    const occasionMatch = occasionPricing?.find(
+      (p) => normalizeCountryKey(p.country) === normalizeCountryKey(countryName)
+    );
+
+    if (!occasionMatch) return basePricing;
+
+    return {
+      ...basePricing,
+      reason: occasionMatch.reason || basePricing?.reason || "",
+      reasonName: occasionMatch.reasonName || basePricing?.reasonName || "",
+    };
+  }, [selectedCountry, countryPricingLookup, occasionPricing, normalizeCountryKey]);
 
   // Occasion-specific pricing for the selected country (3-tier: early, original, traditional)
   const activeOccasionPricing = useMemo(() => {
@@ -432,17 +444,43 @@ const CountrySlider = ({ moreToLoveData }) => {
       (p) => normalizeCountryKey(p.country) === normalizeCountryKey(countryName)
     );
     if (!match) return null;
+
+    const mode = match.priceMode === "two" ? "two" : "three";
     const early = Number(match.earlyDiscount);
     const original = Number(match.originalPrice);
     const traditional = Number(match.traditionalPrice);
-    if (!Number.isFinite(early) || early <= 0) return null;
+
+    const hasEarly = Number.isFinite(early) && early > 0;
+    const hasOriginal = Number.isFinite(original) && original > 0;
+    const hasTraditional = Number.isFinite(traditional) && traditional > 0;
+
+    let currentPrice = 0;
+    let comparisonPrice = 0;
+    let thirdPrice = 0;
+
+    if (mode === "two") {
+      // 2-price mode: use Original as current and Traditional as strike-through.
+      currentPrice = hasOriginal ? original : 0;
+      comparisonPrice = hasTraditional ? traditional : 0;
+    } else {
+      // 3-price mode: Early (current), Original, Traditional.
+      currentPrice = hasEarly ? early : 0;
+      comparisonPrice = hasOriginal ? original : 0;
+      thirdPrice = hasTraditional ? traditional : 0;
+    }
+
+    if (!Number.isFinite(currentPrice) || currentPrice <= 0) return null;
+
     return {
-      earlyDiscount: early,
-      originalPrice: original,
-      traditionalPrice: traditional,
+      priceMode: mode,
+      currentPrice,
+      comparisonPrice,
+      thirdPrice,
       earlyDiscountLabel: match.earlyDiscountLabel || "",
       originalPriceLabel: match.originalPriceLabel || "",
       traditionalPriceLabel: match.traditionalPriceLabel || "",
+      reason: match.reason || "",
+      reasonName: match.reasonName || "",
     };
   }, [occasionPricing, selectedCountry]);
 
@@ -1059,16 +1097,33 @@ const CountrySlider = ({ moreToLoveData }) => {
   // console.log("Default Country Marker:", countryPricingList);
 
   const dropdownCountries = useMemo(
-    () =>
-      countryPricingList
+    () => {
+      const baseCountries = countryPricingList
         .map((country) => country?.name)
         .filter(Boolean)
         .filter(
           (countryName) =>
             normalizeCountryName(countryName) !==
             normalizeCountryName(defaultCountryMarker)
-        ),
-    [countryPricingList, normalizeCountryName]
+        );
+
+      if (!occasionCountryNames.length) {
+        return baseCountries;
+      }
+
+      const occasionSet = new Set(
+        occasionCountryNames.map((name) => normalizeCountryName(name))
+      );
+
+      return baseCountries.filter((countryName) =>
+        occasionSet.has(normalizeCountryName(countryName))
+      );
+    },
+    [
+      countryPricingList,
+      normalizeCountryName,
+      occasionCountryNames,
+    ]
   );
 
   useEffect(() => {
@@ -1186,7 +1241,10 @@ const CountrySlider = ({ moreToLoveData }) => {
   // Fetch occasion pricing when arriving from an occasion card
   useEffect(() => {
     const occasionIdx = router.query.occasionIdx;
-    if (occasionIdx === undefined || occasionIdx === null) return;
+    if (occasionIdx === undefined || occasionIdx === null) {
+      setOccasionCountryNames([]);
+      return;
+    }
 
     const fetchOccasionPricing = async () => {
       try {
@@ -1198,11 +1256,21 @@ const CountrySlider = ({ moreToLoveData }) => {
         const occ = json.data.occasions[Number(occasionIdx)];
         if (occ?.countryPricing && Array.isArray(occ.countryPricing)) {
           setOccasionPricing(occ.countryPricing);
+          const countries = occ.countryPricing
+            .filter((item) => item?.country)
+            .filter((item) => item?.isHidden !== true)
+            .map((item) => String(item.country).trim())
+            .filter(Boolean);
+          setOccasionCountryNames(countries);
+        } else {
+          setOccasionCountryNames([]);
         }
         if (occ?.traditionalPriceText) {
           setOccasionTraditionalText(occ.traditionalPriceText);
         }
-      } catch { /* silently fail */ }
+      } catch {
+        setOccasionCountryNames([]);
+      }
     };
     fetchOccasionPricing();
   }, [router.query.occasionIdx]);
@@ -1521,7 +1589,7 @@ const CountrySlider = ({ moreToLoveData }) => {
 
   const calculateDiscountedVisaFee = useCallback(
     ({ discount = appliedDiscount, hasOnlyInsurance = false } = {}) => {
-      const occasionBasePerTraveler = Number(activeOccasionPricing?.earlyDiscount);
+      const occasionBasePerTraveler = Number(activeOccasionPricing?.currentPrice);
       const visaFeePerTraveler =
         Number.isFinite(occasionBasePerTraveler) && occasionBasePerTraveler > 0
           ? occasionBasePerTraveler
@@ -1589,7 +1657,7 @@ const CountrySlider = ({ moreToLoveData }) => {
 
       return roundedVisaFees;
     },
-    [appliedDiscount, activeOccasionPricing?.earlyDiscount, currentVisaFeePerTraveler, travelers]
+    [appliedDiscount, activeOccasionPricing?.currentPrice, currentVisaFeePerTraveler, travelers]
   );
 
   useEffect(() => {
@@ -1888,14 +1956,18 @@ const CountrySlider = ({ moreToLoveData }) => {
       dispatch(
         setVisaPriceDisplay({
           isOccasion: true,
-          originalPerTraveler: Number(activeOccasionPricing.originalPrice || 0),
-          traditionalPerTraveler: Number(activeOccasionPricing.traditionalPrice || 0),
+          originalPerTraveler: Number(activeOccasionPricing.comparisonPrice || 0),
+          traditionalPerTraveler: Number(activeOccasionPricing.thirdPrice || 0),
           discountedLabel:
-            activeOccasionPricing.earlyDiscountLabel ||
+            (activeOccasionPricing.priceMode === "two"
+              ? activeOccasionPricing.originalPriceLabel
+              : activeOccasionPricing.earlyDiscountLabel) ||
             sliderContent?.slider_save ||
             "",
           originalLabel:
-            activeOccasionPricing.originalPriceLabel ||
+            (activeOccasionPricing.priceMode === "two"
+              ? activeOccasionPricing.traditionalPriceLabel
+              : activeOccasionPricing.originalPriceLabel) ||
             sliderContent?.slider_traditional ||
             "Traditional fee",
           traditionalLabel:
@@ -3017,7 +3089,7 @@ const CountrySlider = ({ moreToLoveData }) => {
       router.events.off('routeChangeComplete', handleScrollAndHighlight);
     };
   }, [router]);
-  
+  console.log(activeOccasionPricing)
   return (
     <div className="w-full max-w-[1300px] gap-20 max-lg:flex-col max-lg:gap-10 flex items-start justify-center px-5 max-sm:px-3">
       {/* System Alerts */}
@@ -3333,26 +3405,32 @@ const CountrySlider = ({ moreToLoveData }) => {
                       <div className="flex gap-12 max-sm:w-full max-sm:justify-between items-center">
                         <div className="flex flex-col items-center">
                           <span className="text-2xl font-gilroy-bold max-sm:text-xl">
-                            £{(activeOccasionPricing.earlyDiscount * (travelers || 1)).toFixed(2)}
+                            £{(activeOccasionPricing.currentPrice * (travelers || 1)).toFixed(2)}
                           </span>
                           <span className="text-[11px] text-gray-500 font-medium max-sm:text-[10px]">
-                            {activeOccasionPricing.earlyDiscountLabel || `${sliderContent?.slider_save || ""}${Math.round((activeOccasionPricing.originalPrice - activeOccasionPricing.earlyDiscount) * (travelers || 1))}`}
+                            {activeOccasionPricing.priceMode === "two"
+                              ? ((activeOccasionPricing.originalPriceLabel || sliderContent?.slider_save || "You save ") + Math.round((activeOccasionPricing.comparisonPrice - activeOccasionPricing.currentPrice) * (travelers || 1)))
+                              : (activeOccasionPricing.earlyDiscountLabel || `${sliderContent?.slider_save || ""}${Math.round((activeOccasionPricing.thirdPrice - activeOccasionPricing.currentPrice) * (travelers || 1))}`)}
                           </span>
                         </div>
-                        <div className="flex flex-col items-center">
-                          <span className="text-xl font-semibold max-sm:text-sm line-through decoration-2 decoration-neutral-400 text-red-400">
-                            £{(activeOccasionPricing.originalPrice * (travelers || 1)).toFixed(2)}
-                          </span>
-                          <span className="text-[11px] text-gray-500 font-medium max-sm:text-[10px]">
-                            {activeOccasionPricing.originalPriceLabel || sliderContent?.slider_traditional || "Traditional fee"}
-                          </span>
-                        </div>
+                        {activeOccasionPricing.comparisonPrice > 0 && (
+                          <div className="flex flex-col items-center">
+                            <span className={`text-xl font-semibold max-sm:text-sm line-through decoration-2 decoration-neutral-400 ${activeOccasionPricing.priceMode === "two" ? "text-gray-500" : "text-red-400"}`}>
+                              £{(activeOccasionPricing.comparisonPrice * (travelers || 1)).toFixed(2)}
+                            </span>
+                            <span className="text-[11px] text-gray-500 font-medium max-sm:text-[10px]">
+                              {activeOccasionPricing.priceMode === "two"
+                                ? (activeOccasionPricing.traditionalPriceLabel || sliderContent?.slider_traditional || "Traditional fee")
+                                : (activeOccasionPricing.originalPriceLabel || sliderContent?.slider_traditional || "Traditional fee")}
+                            </span>
+                          </div>
+                        )}
                       </div>
                       {/* Row 2: Traditional price below */}
-                      {activeOccasionPricing.traditionalPrice > 0 && (
+                      {activeOccasionPricing.thirdPrice > 0 && (
                         <div className="flex flex-col">
                           <span className="text-xl font-semibold max-sm:text-sm line-through decoration-2 decoration-neutral-400 text-gray-500">
-                            £{(activeOccasionPricing.traditionalPrice * (travelers || 1)).toFixed(2)}
+                            £{(activeOccasionPricing.thirdPrice * (travelers || 1)).toFixed(2)}
                           </span>
                           <span className="text-[12px] text-gray-500 font-medium max-sm:text-[11px]">
                             {activeOccasionPricing.traditionalPriceLabel || sliderContent?.third_price_message || occasionTraditionalText || sliderContent?.slider_traditional || "Traditional"}
@@ -3453,7 +3531,7 @@ const CountrySlider = ({ moreToLoveData }) => {
                       {visaPricingError || "No visa pricing available right now."}
                     </p>
                   )}
-                  {selectedCountryPricing?.showReason && selectedCountryPricing?.reason && (
+                  {selectedCountryPricing?.reason && (
                     <div className="mt-2 flex justify-end max-sm:justify-start">
                       <div
                         ref={reasonTooltipRef}
@@ -3468,7 +3546,7 @@ const CountrySlider = ({ moreToLoveData }) => {
                             )
                           }
                         >
-                          {sliderContent["appointment_reason"] || "Priority appointment notice"}
+                          {selectedCountryPricing?.reasonName || sliderContent["appointment_reason"] || "Priority appointment notice"}
                         </button>
 
                         {activeTooltip === "priorityAppointment" && (

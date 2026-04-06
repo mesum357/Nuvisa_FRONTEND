@@ -40,12 +40,31 @@ const defaultContactCards = {
   },
 };
 
+const defaultVisaSolutionContent = {
+  title: "Everyday Steals",
+  subtitle:
+    "A curated edit of handpicked countries for travellers who are on budget and want to access Schengen countries.",
+};
+
+const defaultEverydayStealsCountries = [
+  { name: "Lithuania", bgColor: "#5f9aff", isHidden: false },
+  { name: "Greece", bgColor: "#ff8e59", isHidden: false },
+  { name: "Malta", bgColor: "#daee69", isHidden: false },
+  { name: "Latvia", bgColor: "#fdfd55", isHidden: false },
+  { name: "Luxembourg", bgColor: "#ffb1ee", isHidden: false },
+];
+
+const buildCountryImagePath = (countryName) =>
+  `/image/country/${encodeURIComponent(String(countryName || "").trim())}.jpg`;
+
 const Index = () => {
   const { heroContent, loading } = useHeroContent();
   const [showTooltip, setShowTooltip] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const tooltipRef = useRef(null);
   const [contactCards, setContactCards] = useState(defaultContactCards);
+  const [visaSolutionContent, setVisaSolutionContent] = useState(defaultVisaSolutionContent);
+  const [everydayStealsCountries, setEverydayStealsCountries] = useState(defaultEverydayStealsCountries);
   const [occasionContent, setOccasionContent] = useState(null);
   const [occasionSubtitle, setOccasionSubtitle] = useState(null);
   const [urgentDescription, setUrgentDescription] = useState("");
@@ -110,9 +129,35 @@ const Index = () => {
           setUrgentDescription(
             byKey.urgent_description ||
               "*If require urgent appointment in 3-4 days kindly email support@nuvisa.co.uk do not follow the standard visa process."
-            );
-            setOccasionContent(byKey.ocassion_title || null);
-            setOccasionSubtitle(byKey.ocassion_subtitle || null);
+          );
+          setOccasionContent(byKey.ocassion_title || null);
+          setOccasionSubtitle(byKey.ocassion_subtitle || null);
+          setVisaSolutionContent({
+            title: byKey.visasolution_title || defaultVisaSolutionContent.title,
+            subtitle: byKey.visasolution_subtitle || defaultVisaSolutionContent.subtitle,
+          });
+
+          let parsedCountries = [];
+          if (byKey.visasolution_everyday_countries) {
+            try {
+              const parsed = JSON.parse(byKey.visasolution_everyday_countries);
+              if (Array.isArray(parsed)) {
+                parsedCountries = parsed
+                  .map((item) => ({
+                    name: String(item?.name || "").trim(),
+                    bgColor: String(item?.bgColor || "").trim() || "#5f9aff",
+                    isHidden: Boolean(item?.isHidden),
+                  }))
+                  .filter((item) => item.name);
+              }
+            } catch {
+              // Keep defaults if malformed.
+            }
+          }
+
+          setEverydayStealsCountries(
+            parsedCountries.length > 0 ? parsedCountries : defaultEverydayStealsCountries
+          );
         }
 
       } catch (_error) {
@@ -123,13 +168,13 @@ const Index = () => {
     fetchHomepageDynamicContent();
   }, []);
 
-  const secondSectionCountries = [
-    { name: "Lithuania", image: "/image/country/lithuania.jpg", bgColor: "#5f9aff" },
-    { name: "Greece", image: "/image/country/Greece.jpg", bgColor: "#ff8e59" },
-    { name: "Malta", image: "/image/country/Malta.jpg", bgColor: "#daee69" },
-    { name: "Latvia", image: "/image/country/latvia.jpg", bgColor: "#fdfd55" },
-    { name: "Luxembourg", image: "/image/country/Luxembourg.jpg", bgColor: "#ffb1ee" },
-  ];
+  const secondSectionCountries = everydayStealsCountries
+    .filter((country) => !country.isHidden)
+    .map((country) => ({
+      name: country.name,
+      image: buildCountryImagePath(country.name),
+      bgColor: country.bgColor,
+    }));
 
   return (
     <div className="w-full mx-auto h-full min-h-screen">
@@ -206,9 +251,9 @@ const Index = () => {
       </div>
 
       <VisaSolution
-        title="Everyday Steals"
+        title={visaSolutionContent.title}
+        subtitle={visaSolutionContent.subtitle}
         countriesData={secondSectionCountries}
-        customColors={['#5f9aff', '#ff8e59', '#daee69', '#fdfd55', '#ffb1ee', '#daee69']}
       />
 
       <div className="bg-[#1E1E27] text-white w-full overflow-x-hidden py-16">
