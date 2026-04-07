@@ -29,6 +29,10 @@ const QtyControl = ({ value, onDecrement, onIncrement }) => (
 const VisaFeeBreakdown = ({
   pricingDetails,
   priceSummary,
+  travelerPricing,
+  travelersCount: travelersCountProp,
+  insuranceCount: insuranceCountProp,
+  giftCardCount: giftCardCountProp,
   hasAdditionalTravellers,
   includeInsurance,
   includeGiftCard,
@@ -70,9 +74,17 @@ const VisaFeeBreakdown = ({
 
   const computedVisaOnlyTotal = Number(priceSummary?.visaOnlyTotal || 0);
   const computedOriginalTotal = Number(priceSummary?.originalTotal || 0);
+  const providedTravelersCurrentTotal = Number(priceSummary?.travelersCurrentTotal || 0);
+  const providedTravelersOriginalTotal = Number(priceSummary?.travelersOriginalTotal || 0);
   const computedPerTravelerCurrent = Number(priceSummary?.perTravelerCurrent || 0);
   const computedPerTravelerOriginal = Number(priceSummary?.perTravelerOriginal || 0);
-  const travelersCount = Number(priceSummary?.travelers || 0);
+  const computedPerTravelerComparison = Number(priceSummary?.perTravelerComparison || 0);
+  const computedPerTravelerTraditional = Number(priceSummary?.perTravelerTraditional || 0);
+  const travelersCount = Number(
+    travelersCountProp ?? priceSummary?.travelers ?? 0
+  );
+  const visaPriceDisplay = priceSummary?.visaPriceDisplay || {};
+  const hasOccasionPricing = Boolean(visaPriceDisplay?.isOccasion);
 
   const insuranceDetails = priceSummary?.recommended?.insurance || {};
   const giftCardDetails = priceSummary?.recommended?.giftCard || {};
@@ -85,14 +97,65 @@ const VisaFeeBreakdown = ({
       { amount: 0, label: "0 - 5 yrs" },
     ];
 
-  const travelersOriginalTotal =
+  const fallbackTravelersOriginalTotal =
     travelersCount > 0
       ? computedPerTravelerOriginal * travelersCount
       : computedOriginalTotal;
-  const travelersCurrentTotal =
+  const fallbackTravelersCurrentTotal =
     travelersCount > 0
       ? computedPerTravelerCurrent * travelersCount
       : computedVisaOnlyTotal;
+  const fallbackTravelersComparisonTotal =
+    travelersCount > 0
+      ? computedPerTravelerComparison * travelersCount
+      : computedOriginalTotal;
+  const fallbackTravelersTraditionalTotal =
+    travelersCount > 0
+      ? computedPerTravelerTraditional * travelersCount
+      : 0;
+
+  // Prefer totals from Slider summary (occasion-aware), fallback to local derivation.
+  const travelersOriginalTotal =
+    providedTravelersOriginalTotal > 0
+      ? providedTravelersOriginalTotal
+      : fallbackTravelersOriginalTotal;
+  const travelersCurrentTotal =
+    providedTravelersCurrentTotal > 0
+      ? providedTravelersCurrentTotal
+      : fallbackTravelersCurrentTotal;
+  const providedTravelersComparisonTotal = Number(priceSummary?.travelersComparisonTotal || 0);
+  const providedTravelersTraditionalTotal = Number(priceSummary?.travelersTraditionalTotal || 0);
+  const travelersComparisonTotal =
+    providedTravelersComparisonTotal > 0
+      ? providedTravelersComparisonTotal
+      : fallbackTravelersComparisonTotal;
+  const travelersTraditionalTotal =
+    providedTravelersTraditionalTotal > 0
+      ? providedTravelersTraditionalTotal
+      : fallbackTravelersTraditionalTotal;
+
+  const effectiveTravelersCurrentTotal =
+    Number(travelerPricing?.currentTotal) > 0
+      ? Number(travelerPricing.currentTotal)
+      : travelersCurrentTotal;
+  const effectiveTravelersOriginalTotal =
+    Number(travelerPricing?.strikeTotal) > 0
+      ? Number(travelerPricing.strikeTotal)
+      : travelersOriginalTotal;
+  const effectiveTravelersComparisonTotal =
+    Number(travelerPricing?.comparisonTotal) > 0
+      ? Number(travelerPricing.comparisonTotal)
+      : travelersComparisonTotal;
+  const effectiveTravelersTraditionalTotal =
+    Number(travelerPricing?.traditionalTotal) > 0
+      ? Number(travelerPricing.traditionalTotal)
+      : travelersTraditionalTotal;
+
+  const showThreeTierOccasion =
+    Boolean(travelerPricing?.hasThreeTier) ||
+    (hasOccasionPricing &&
+      effectiveTravelersTraditionalTotal > 0 &&
+      effectiveTravelersComparisonTotal > effectiveTravelersCurrentTotal);
 
   const appointmentOriginal = 100;
   const appointmentCurrent = 0;
@@ -101,11 +164,15 @@ const VisaFeeBreakdown = ({
 
   const insuranceOriginalTotal = Number(insuranceDetails?.original || 0);
   const insuranceCurrentTotal = Number(insuranceDetails?.current || 0);
-  const insuranceCount = Number(insuranceDetails?.count || 0);
+  const insuranceCount = Number(
+    insuranceCountProp ?? insuranceDetails?.count ?? 0
+  );
 
   const giftCardOriginalTotal = Number(giftCardDetails?.original || 0);
   const giftCardCurrentTotal = Number(giftCardDetails?.current || 0);
-  const giftCardCount = Number(giftCardDetails?.count || 0);
+  const giftCardCount = Number(
+    giftCardCountProp ?? giftCardDetails?.count ?? 0
+  );
 
   const isAdditionalTravellersChecked =
     typeof hasAdditionalTravellers === "boolean"
@@ -121,12 +188,12 @@ const VisaFeeBreakdown = ({
       : Boolean(giftCardDetails?.selected);
 
   const subtotalAmount =
-    travelersOriginalTotal +
+    effectiveTravelersOriginalTotal +
     insuranceOriginalTotal +
     giftCardOriginalTotal;
 
   const totalAmount =
-    travelersCurrentTotal +
+    effectiveTravelersCurrentTotal +
     insuranceCurrentTotal +
     giftCardCurrentTotal;
 
@@ -169,12 +236,23 @@ const VisaFeeBreakdown = ({
                   onIncrement={onTravelersIncrement}
                   onDecrement={onTravelersDecrement}
                 />
-                <div className="flex items-center gap-2">
-                  <span className="line-through text-white/80 text-sm max-sm:text-xs">
-                    {formatFeeAmount(travelersOriginalTotal)}
-                  </span>
+                <div className="flex flex-col items-end gap-0.5">
+                  {showThreeTierOccasion ? (
+                    <>
+                      <span className="line-through text-red-400 text-sm max-sm:text-xs">
+                        {formatFeeAmount(effectiveTravelersComparisonTotal)}
+                      </span>
+                      <span className="line-through text-white/80 text-sm max-sm:text-xs">
+                        {formatFeeAmount(effectiveTravelersTraditionalTotal)}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="line-through text-white/80 text-sm max-sm:text-xs">
+                      {formatFeeAmount(effectiveTravelersOriginalTotal)}
+                    </span>
+                  )}
                   <span className="text-sm font-medium max-sm:text-xs">
-                    {formatFeeAmount(travelersCurrentTotal)}
+                    {formatFeeAmount(effectiveTravelersCurrentTotal)}
                   </span>
                 </div>
               </div>
