@@ -1186,13 +1186,17 @@ const CountrySlider = ({ moreToLoveData }) => {
 
   const _handleTravelerChange = (increment) => {
     const newValue = travelers + increment;
-    if (newValue >= 0) {
-      // If traveler count decreases, adjust insurance count if needed
-      if (newValue >= 1 && insuranceCount > newValue) {
-        dispatch(setReduxInsuranceCount(Number(newValue)));
-      }
-      dispatch(setReduxTravelers(Number(newValue)));
+    const normalizedValue = Math.max(1, Number(newValue) || 1);
+
+    // If traveler count decreases, adjust insurance count if needed
+    if (insuranceCount > normalizedValue) {
+      dispatch(setReduxInsuranceCount(Number(normalizedValue)));
     }
+
+    dispatch(setReduxTravelers(Number(normalizedValue)));
+
+    // Keep Redux visa total in sync with traveler changes (single source of truth)
+    dispatch(setVisaFees(Number((currentVisaFeePerTraveler * normalizedValue).toFixed(2))));
   };
 
   const selectCountry = (country) => {
@@ -3116,10 +3120,37 @@ const CountrySlider = ({ moreToLoveData }) => {
     const visaOnlyTotal = Number(visaOnlyPrice || 0);
     const currentTotal = Number(finalPrice || 0);
     const safeTravelers = Number(travelers || 0);
+    const hasOccasionPricing = Boolean(visaState?.visaPriceDisplay?.isOccasion);
+    const occasionOriginalPerTraveler = Number(visaState?.visaPriceDisplay?.originalPerTraveler || 0);
+    const occasionTraditionalPerTraveler = Number(visaState?.visaPriceDisplay?.traditionalPerTraveler || 0);
+    const discountedLabel = String(visaState?.visaPriceDisplay?.discountedLabel || "");
+    const originalLabel = String(visaState?.visaPriceDisplay?.originalLabel || "");
+    const traditionalLabel = String(visaState?.visaPriceDisplay?.traditionalLabel || "");
+
+    // Match checkout logic: in occasion mode use traditional strike when available, else original strike.
+    const strikePerTraveler = hasOccasionPricing
+      ? (occasionTraditionalPerTraveler > 0 ? occasionTraditionalPerTraveler : occasionOriginalPerTraveler)
+      : safeTravelers > 0
+        ? originalTotal / safeTravelers
+        : originalTotal;
+
+    const comparisonPerTraveler = hasOccasionPricing
+      ? occasionOriginalPerTraveler
+      : strikePerTraveler;
+    const traditionalPerTraveler = hasOccasionPricing
+      ? occasionTraditionalPerTraveler
+      : 0;
+
+    const travelersOriginalTotal = strikePerTraveler * safeTravelers;
+    const travelersCurrentTotal = visaOnlyTotal;
+    const travelersComparisonTotal = comparisonPerTraveler * safeTravelers;
+    const travelersTraditionalTotal = traditionalPerTraveler * safeTravelers;
+
     const perTravelerCurrent =
       safeTravelers > 0 ? visaOnlyTotal / safeTravelers : visaOnlyTotal;
-    const perTravelerOriginal =
-      safeTravelers > 0 ? originalTotal / safeTravelers : originalTotal;
+    const perTravelerOriginal = strikePerTraveler;
+    const perTravelerComparison = comparisonPerTraveler;
+    const perTravelerTraditional = traditionalPerTraveler;
     const expertOriginalValue = isExpertSelected
       ? expertPricePerMonth * expertAccessMonths
       : 0;
@@ -3135,9 +3166,21 @@ const CountrySlider = ({ moreToLoveData }) => {
       visaOnlyTotal,
       currentTotal,
       originalTotal,
+      travelersCurrentTotal,
+      travelersOriginalTotal,
+      travelersComparisonTotal,
+      travelersTraditionalTotal,
       includedValue: Math.max(0, originalTotal - visaOnlyTotal),
       perTravelerCurrent,
       perTravelerOriginal,
+      perTravelerComparison,
+      perTravelerTraditional,
+      visaPriceDisplay: {
+        isOccasion: hasOccasionPricing,
+        discountedLabel,
+        originalLabel,
+        traditionalLabel,
+      },
       recommended: {
         insurance: {
           selected: Boolean(recommendedItems.insuranceCertificate),
@@ -3195,7 +3238,45 @@ const CountrySlider = ({ moreToLoveData }) => {
     baseFee,
     strikeOutPrice,
     selectedVisaType,
+    visaState?.visaPriceDisplay?.isOccasion,
+    visaState?.visaPriceDisplay?.discountedLabel,
+    visaState?.visaPriceDisplay?.originalLabel,
+    visaState?.visaPriceDisplay?.traditionalLabel,
+    visaState?.visaPriceDisplay?.originalPerTraveler,
+    visaState?.visaPriceDisplay?.traditionalPerTraveler,
   ]);
+
+  const travelerPricingBreakdown = useMemo(() => {
+    const safeTravelers = Number(travelers || 0);
+
+    if (activeOccasionPricing) {
+      const currentTotal = Number(activeOccasionPricing.currentPrice || 0) * safeTravelers;
+      const comparisonTotal = Number(activeOccasionPricing.comparisonPrice || 0) * safeTravelers;
+      const traditionalTotal = Number(activeOccasionPricing.thirdPrice || 0) * safeTravelers;
+      const hasThreeTier =
+        activeOccasionPricing.priceMode === "three" &&
+        traditionalTotal > 0 &&
+        comparisonTotal > currentTotal;
+
+      return {
+        currentTotal,
+        strikeTotal: hasThreeTier ? traditionalTotal : comparisonTotal,
+        comparisonTotal,
+        traditionalTotal,
+        hasOccasion: true,
+        hasThreeTier,
+      };
+    }
+
+    return {
+      currentTotal: Number(visaOnlyPrice || 0),
+      strikeTotal: Number(calculateOriginalPrice() || 0),
+      comparisonTotal: 0,
+      traditionalTotal: 0,
+      hasOccasion: false,
+      hasThreeTier: false,
+    };
+  }, [activeOccasionPricing, travelers, visaOnlyPrice, selectedVisaType, strikeOutPrice, baseFee]);
 
   // Check available payment methods from ExpressPaymentRequestButton
   useEffect(() => {
@@ -3292,7 +3373,7 @@ const CountrySlider = ({ moreToLoveData }) => {
       router.events.off('routeChangeComplete', handleScrollAndHighlight);
     };
   }, [router]);
-  console.log("active ocassions", allOccasions);
+  // console.log("active ocassions", allOccasions);
   return (
     <div className="w-full max-w-[1300px] gap-20 max-lg:flex-col max-lg:gap-10 flex items-start justify-center px-5 max-sm:px-3">
       {/* System Alerts */}
@@ -4397,15 +4478,20 @@ const CountrySlider = ({ moreToLoveData }) => {
                     <VisaFeeBreakdown
                       pricingDetails={pricingDetails}
                       priceSummary={computedPriceSummary}
+                      travelerPricing={travelerPricingBreakdown}
+                      travelersCount={travelers}
+                      insuranceCount={insuranceCount}
+                      giftCardCount={giftCardCount}
                       hasAdditionalTravellers={travelers > 1}
                       includeInsurance={Boolean(recommendedItems.insuranceCertificate)}
                       includeGiftCard={Boolean(recommendedItems.giftCard)}
                       onToggleAdditionalTravellers={(checked) => {
                         const nextTravelers = checked ? 2 : 1;
-                        if (nextTravelers >= 1 && insuranceCount > nextTravelers) {
+                        if (insuranceCount > nextTravelers) {
                           dispatch(setReduxInsuranceCount(Number(nextTravelers)));
                         }
                         dispatch(setReduxTravelers(Number(nextTravelers)));
+                        dispatch(setVisaFees(Number((currentVisaFeePerTraveler * nextTravelers).toFixed(2))));
                       }}
                       onToggleInsurance={() => toggleRecommendedItem("insuranceCertificate")}
                       onToggleGiftCard={() => toggleRecommendedItem("giftCard")}

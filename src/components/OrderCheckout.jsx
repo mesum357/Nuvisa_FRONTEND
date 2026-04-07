@@ -24,6 +24,7 @@ import {
   setCouponCode,
   setGiftCardFees,
   setInsuranceFees,
+  setVisaFees,
   setReduxInsuranceCount,
   setReduxGiftCardCount,
   setTotalAmount,
@@ -96,19 +97,21 @@ const VisaCheckout = () => {
     ? Number(visaPriceDisplay?.traditionalPerTraveler || 0)
     : 0;
 
-  const [travelers, setTravelersLocal] = useState(
-    visaState.travelers !== undefined && visaState.travelers !== null
-      ? Number(visaState.travelers)
-      : 0
-  );
+  // Redux is the single source of truth for travelers on checkout.
+  const travelers = Math.max(Number(visaState.travelers ?? 1), 1);
 
   const handleTravelersChange = (newCount) => {
-    if (newCount >= 1 && insuranceCount > newCount) {
-      setInsuranceCount(newCount);
-      dispatch(setReduxInsuranceCount(Number(newCount)));
+    const normalizedCount = Math.max(1, Number(newCount) || 1);
+
+    if (insuranceCount > normalizedCount) {
+      setInsuranceCount(normalizedCount);
+      dispatch(setReduxInsuranceCount(normalizedCount));
     }
-    setTravelersLocal(newCount);
-    dispatch(setTravelers(Number(newCount)));
+
+    dispatch(setTravelers(normalizedCount));
+
+    // Keep visa fee total in sync with traveler changes to avoid stale derived per-traveler pricing.
+    dispatch(setVisaFees(Number((currentVisaFeePerTraveler * normalizedCount).toFixed(2))));
   };
   let travelDays = 15;
   try {
@@ -436,16 +439,6 @@ const VisaCheckout = () => {
       }
     } catch { }
   }, []);
-
-  // Sync local state with Redux state when it changes
-  useEffect(() => {
-    const reduxTravelers = visaState.travelers !== undefined && visaState.travelers !== null
-      ? Number(visaState.travelers)
-      : 1;
-    if (reduxTravelers !== travelers) {
-      setTravelersLocal(reduxTravelers);
-    }
-  }, [visaState.travelers, travelers]);
 
   useEffect(() => {
     const reduxInsuranceCount = visaState.insuranceCount || 0;
@@ -2288,11 +2281,9 @@ const VisaCheckout = () => {
                 checked={travelers > 1}
                 onChange={(e) => {
                   if (e.target.checked && travelers === 1) {
-                    setTravelersLocal(2);
-                    dispatch(setTravelers(2));
+                    handleTravelersChange(2);
                   } else if (!e.target.checked && travelers > 1) {
-                    setTravelersLocal(1);
-                    dispatch(setTravelers(1));
+                    handleTravelersChange(1);
                   }
                 }}
               />
@@ -2311,7 +2302,7 @@ const VisaCheckout = () => {
                 onIncrement={(val) => handleTravelersChange(val)}
                 onDecrement={(val) => handleTravelersChange(val)}
                 value={travelers}
-                min={0}
+                min={1}
               />
             </div>
 
