@@ -82,6 +82,7 @@ const CountrySlider = ({ moreToLoveData }) => {
   const [countryPricingList, setCountryPricingList] = useState([]);
   const [isVisaPricingLoading, setIsVisaPricingLoading] = useState(true);
   const [visaPricingError, setVisaPricingError] = useState("");
+  const [allOccasions, setAllOccasions] = useState([]);
   const [occasionPricing, setOccasionPricing] = useState(null);
   const [occasionCountryNames, setOccasionCountryNames] = useState([]);
   const [occasionDateRange, setOccasionDateRange] = useState(null); // { start: Date, end: Date }
@@ -290,7 +291,7 @@ const CountrySlider = ({ moreToLoveData }) => {
   const initialArrivalDate = computeDefaultArrival();
   const computeDefaultDeparture = (arrival) => {
     const d = new Date(arrival);
-    d.setHours(0, 0, 0, 0);
+    // d.setHours(0, 0, 0, 0);
     d.setDate(d.getDate() + 14); // 14 days ahead to show 15 days inclusive
     return d;
   };
@@ -413,6 +414,148 @@ const CountrySlider = ({ moreToLoveData }) => {
     return days;
   };
   const isValidDate = (d) => d instanceof Date && !isNaN(d.getTime());
+
+  const toDateOnly = (value) => {
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return null;
+    parsed.setHours(0, 0, 0, 0);
+    return parsed;
+  };
+
+  // Keep occasion date resolution aligned with occasion cards for title-only occasions.
+  const resolveOccasionRange = useCallback((occ) => {
+    if (!occ) return null;
+
+    const explicitStart = occ.arrivalDate || occ.startDate;
+    const explicitEnd = occ.departureDate || occ.endDate;
+
+    if (explicitStart && explicitEnd) {
+      const start = toDateOnly(explicitStart);
+      const end = toDateOnly(explicitEnd);
+      if (start && end) return { start, end };
+    }
+
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const title = String(occ?.title || "").toLowerCase().trim();
+
+    const monthNames = [
+      "january",
+      "february",
+      "march",
+      "april",
+      "may",
+      "june",
+      "july",
+      "august",
+      "september",
+      "october",
+      "november",
+      "december",
+    ];
+    const monthShort = [
+      "jan",
+      "feb",
+      "mar",
+      "apr",
+      "may",
+      "jun",
+      "jul",
+      "aug",
+      "sep",
+      "oct",
+      "nov",
+      "dec",
+    ];
+
+    let monthIndex = monthNames.findIndex((m) => title.includes(m));
+    if (monthIndex === -1) {
+      monthIndex = monthShort.findIndex(
+        (m) => title === m || title.startsWith(`${m} `)
+      );
+    }
+
+    if (monthIndex !== -1) {
+      let year = currentYear;
+      const yearMatch = title.match(/\b(\d{2})\b/);
+      if (yearMatch) year = 2000 + parseInt(yearMatch[1], 10);
+      else if (
+        monthIndex < now.getMonth() ||
+        (monthIndex === now.getMonth() && now.getDate() > 15)
+      ) {
+        year = currentYear + 1;
+      }
+
+      const start = toDateOnly(
+        `${year}-${String(monthIndex + 1).padStart(2, "0")}-01`
+      );
+      const lastDay = new Date(year, monthIndex + 1, 0).getDate();
+      const end = toDateOnly(
+        `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(
+          lastDay
+        ).padStart(2, "0")}`
+      );
+
+      if (start && end) return { start, end };
+    }
+
+    if (title.includes("easter")) {
+      let year = currentYear;
+      const easterDates = {
+        2025: [4, 20],
+        2026: [4, 5],
+        2027: [3, 28],
+        2028: [4, 16],
+      };
+
+      const entry = easterDates[year] || easterDates[year + 1];
+      if (entry && new Date(year, entry[0] - 1, entry[1]) < now) year++;
+      const [month, day] = easterDates[year] || [4, 5];
+      const start = new Date(year, month - 1, day - 3);
+      const end = new Date(year, month - 1, day + 4);
+      start.setHours(0, 0, 0, 0);
+      end.setHours(0, 0, 0, 0);
+      return { start, end };
+    }
+
+    if (title.includes("xmas") || title.includes("christmas")) {
+      let year = currentYear;
+      const yearMatch = title.match(/\b(\d{2})\b/);
+      if (yearMatch) year = 2000 + parseInt(yearMatch[1], 10);
+      else if (now.getMonth() === 11 && now.getDate() > 26) year++;
+      const start = toDateOnly(`${year}-12-20`);
+      const end = toDateOnly(`${year}-12-31`);
+      if (start && end) return { start, end };
+    }
+
+    if (title.includes("new year")) {
+      let year = currentYear;
+      const yearMatch = title.match(/\b(\d{2})\b/);
+      if (yearMatch) year = 2000 + parseInt(yearMatch[1], 10);
+      else if (now.getMonth() === 0 && now.getDate() > 5) year++;
+      const start = toDateOnly(`${year}-12-28`);
+      const end = toDateOnly(`${year + 1}-01-05`);
+      if (start && end) return { start, end };
+    }
+
+    if (title.includes("half term")) {
+      let year = currentYear;
+      const yearMatch = title.match(/\b(\d{2})\b/);
+      if (yearMatch) year = 2000 + parseInt(yearMatch[1], 10);
+      else if (now.getMonth() > 1) year++;
+      const start = toDateOnly(`${year}-02-15`);
+      const end = toDateOnly(`${year}-02-23`);
+      if (start && end) return { start, end };
+    }
+
+    const fallbackStart = new Date();
+    fallbackStart.setHours(0, 0, 0, 0);
+    fallbackStart.setDate(fallbackStart.getDate() + 28);
+    const fallbackEnd = new Date(fallbackStart);
+    fallbackEnd.setDate(fallbackEnd.getDate() + 14);
+    fallbackEnd.setHours(0, 0, 0, 0);
+    return { start: fallbackStart, end: fallbackEnd };
+  }, []);
 
   const getCountryParam = (countryVal) => {
     const raw = countryVal?.name || countryVal || "";
@@ -588,15 +731,6 @@ const CountrySlider = ({ moreToLoveData }) => {
     setArrivalDateLocal(safeDate);
     const dateString = safeDate ? safeDate.toISOString().split("T")[0] : "";
     dispatch(setArrivalDate(dateString));
-
-    // Check if new start date is within occasion discount range
-    if (occasionDateRange && safeDate) {
-      const withinRange = safeDate >= occasionDateRange.start && safeDate <= occasionDateRange.end;
-      if (!withinRange) {
-        setOccasionPricing(null);
-        setOccasionDateRange(null);
-      }
-    }
 
     if (safeDate) {
       const minDeparture = new Date(safeDate);
@@ -1226,54 +1360,119 @@ const CountrySlider = ({ moreToLoveData }) => {
       applied = true;
     }
 
-    // Store the occasion date range for discount validation
-    if (urlArrival && urlDeparture) {
-      const rangeStart = new Date(urlArrival + "T00:00:00");
-      const rangeEnd = new Date(urlDeparture + "T00:00:00");
-      if (!Number.isNaN(rangeStart.getTime()) && !Number.isNaN(rangeEnd.getTime())) {
-        setOccasionDateRange({ start: rangeStart, end: rangeEnd });
-      }
-    }
-
     if (applied) urlDatesAppliedRef.current = true;
   }, [router.query.arrivalDate, router.query.departureDate, dispatch]);
 
-  // Fetch occasion pricing when arriving from an occasion card
+  // Fetch all occasions once.
   useEffect(() => {
-    const occasionIdx = router.query.occasionIdx;
-    if (occasionIdx === undefined || occasionIdx === null) {
-      setOccasionCountryNames([]);
-      return;
-    }
+    let mounted = true;
 
     const fetchOccasionPricing = async () => {
       try {
         const adminBase = getAdminApiBase();
         const res = await fetch(`${adminBase}/api/occasion-content`);
-        if (!res.ok) return;
+        if (!res.ok) {
+          if (mounted) {
+            setAllOccasions([]);
+            setOccasionPricing(null);
+            setOccasionCountryNames([]);
+            setOccasionDateRange(null);
+            setOccasionTraditionalText("");
+          }
+          return;
+        }
         const json = await res.json();
-        if (!json.success || !json.data?.occasions) return;
-        const occ = json.data.occasions[Number(occasionIdx)];
-        if (occ?.countryPricing && Array.isArray(occ.countryPricing)) {
-          setOccasionPricing(occ.countryPricing);
-          const countries = occ.countryPricing
-            .filter((item) => item?.country)
-            .filter((item) => item?.isHidden !== true)
-            .map((item) => String(item.country).trim())
-            .filter(Boolean);
-          setOccasionCountryNames(countries);
-        } else {
+        if (!mounted) return;
+        if (!json.success || !Array.isArray(json.data?.occasions)) {
+          setAllOccasions([]);
+          setOccasionPricing(null);
           setOccasionCountryNames([]);
+          setOccasionDateRange(null);
+          setOccasionTraditionalText("");
+          return;
         }
-        if (occ?.traditionalPriceText) {
-          setOccasionTraditionalText(occ.traditionalPriceText);
-        }
+        setAllOccasions(json.data.occasions);
       } catch {
-        setOccasionCountryNames([]);
+        if (mounted) {
+          setAllOccasions([]);
+          setOccasionPricing(null);
+          setOccasionCountryNames([]);
+          setOccasionDateRange(null);
+          setOccasionTraditionalText("");
+        }
       }
     };
+
     fetchOccasionPricing();
-  }, [router.query.occasionIdx]);
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Recompute active occasion from selected dates (strict: both dates must be inside range).
+  useEffect(() => {
+    const activeArrival = toDateOnly(arrivalDate);
+    const activeDeparture = toDateOnly(departureDate);
+
+    if (!activeArrival || !activeDeparture || !allOccasions.length) {
+      setOccasionPricing(null);
+      setOccasionCountryNames([]);
+      setOccasionDateRange(null);
+      setOccasionTraditionalText("");
+      return;
+    }
+
+    const eligibleOccasions = allOccasions
+      .map((occ, index) => {
+        const countryPricing = Array.isArray(occ?.countryPricing)
+          ? occ.countryPricing
+          : [];
+        const range = resolveOccasionRange(occ);
+        if (!range || countryPricing.length === 0) return null;
+
+        const inRange =
+          activeArrival >= range.start &&
+          activeArrival <= range.end &&
+          activeDeparture >= range.start &&
+          activeDeparture <= range.end;
+
+        if (!inRange) return null;
+
+        return {
+          index,
+          range,
+          countryPricing,
+          traditionalPriceText: String(occ?.traditionalPriceText || ""),
+        };
+      })
+      .filter(Boolean);
+
+    const activeOccasion = eligibleOccasions[0] || null;
+
+    if (!activeOccasion) {
+      setOccasionPricing(null);
+      setOccasionCountryNames([]);
+      setOccasionDateRange(null);
+      setOccasionTraditionalText("");
+      return;
+    }
+
+    const countries = activeOccasion.countryPricing
+      .filter((item) => item?.country)
+      .filter((item) => item?.isHidden !== true)
+      .map((item) => String(item.country).trim())
+      .filter(Boolean);
+
+    setOccasionPricing(activeOccasion.countryPricing);
+    setOccasionCountryNames(countries);
+    setOccasionDateRange(activeOccasion.range);
+    setOccasionTraditionalText(activeOccasion.traditionalPriceText);
+  }, [
+    allOccasions,
+    arrivalDate,
+    departureDate,
+    resolveOccasionRange,
+  ]);
 
   const currentCountryName = getCountryParam(selectedCountry) || "Belgium";
   const currentAppointmentText =
@@ -1953,23 +2152,27 @@ const CountrySlider = ({ moreToLoveData }) => {
 
   useEffect(() => {
     if (activeOccasionPricing) {
+      // Map occasion labels to price display labels based on mode
+      // 2-tier mode: originalPrice (displayed as "current"), traditionalPrice (displayed as "strike")
+      // 3-tier mode: earlyDiscount (current), originalPrice (strike), traditionalPrice (3rd strike)
+      const discountedLabelForMode =
+        activeOccasionPricing.priceMode === "two"
+          ? activeOccasionPricing.originalPriceLabel // Current price label in 2-tier
+          : activeOccasionPricing.earlyDiscountLabel; // Current price label in 3-tier
+
+      const originalLabelForMode =
+        activeOccasionPricing.priceMode === "two"
+          ? activeOccasionPricing.traditionalPriceLabel // Strike price label in 2-tier
+          : activeOccasionPricing.originalPriceLabel; // Strike price label in 3-tier
+
       dispatch(
         setVisaPriceDisplay({
           isOccasion: true,
           originalPerTraveler: Number(activeOccasionPricing.comparisonPrice || 0),
           traditionalPerTraveler: Number(activeOccasionPricing.thirdPrice || 0),
-          discountedLabel:
-            (activeOccasionPricing.priceMode === "two"
-              ? activeOccasionPricing.originalPriceLabel
-              : activeOccasionPricing.earlyDiscountLabel) ||
-            sliderContent?.slider_save ||
-            "",
-          originalLabel:
-            (activeOccasionPricing.priceMode === "two"
-              ? activeOccasionPricing.traditionalPriceLabel
-              : activeOccasionPricing.originalPriceLabel) ||
-            sliderContent?.slider_traditional ||
-            "Traditional fee",
+          // Use occasion labels, fallback to slider content only if empty
+          discountedLabel: discountedLabelForMode || sliderContent?.slider_save || "",
+          originalLabel: originalLabelForMode || sliderContent?.slider_traditional || "Traditional fee",
           traditionalLabel:
             activeOccasionPricing.traditionalPriceLabel ||
             sliderContent?.third_price_message ||
@@ -3089,7 +3292,7 @@ const CountrySlider = ({ moreToLoveData }) => {
       router.events.off('routeChangeComplete', handleScrollAndHighlight);
     };
   }, [router]);
-  console.log(activeOccasionPricing)
+  console.log("active ocassions", allOccasions);
   return (
     <div className="w-full max-w-[1300px] gap-20 max-lg:flex-col max-lg:gap-10 flex items-start justify-center px-5 max-sm:px-3">
       {/* System Alerts */}
@@ -3410,7 +3613,8 @@ const CountrySlider = ({ moreToLoveData }) => {
                           <span className="text-[11px] text-gray-500 font-medium max-sm:text-[10px]">
                             {activeOccasionPricing.priceMode === "two"
                               ? ((activeOccasionPricing.originalPriceLabel || sliderContent?.slider_save || "You save ") + Math.round((activeOccasionPricing.comparisonPrice - activeOccasionPricing.currentPrice) * (travelers || 1)))
-                              : (activeOccasionPricing.earlyDiscountLabel || `${sliderContent?.slider_save || ""}${Math.round((activeOccasionPricing.thirdPrice - activeOccasionPricing.currentPrice) * (travelers || 1))}`)}
+                              : (activeOccasionPricing.earlyDiscountLabel || `${sliderContent?.slider_save || ""} ${Math.round((activeOccasionPricing.thirdPrice - activeOccasionPricing.currentPrice) * (travelers || 1))}`)
+                            }{activeOccasionPricing.priceMode === "three" && " "+ Math.round((activeOccasionPricing.thirdPrice - activeOccasionPricing.currentPrice) * (travelers || 1))}
                           </span>
                         </div>
                         {activeOccasionPricing.comparisonPrice > 0 && (
