@@ -132,10 +132,11 @@ const AppDownloadPopup = () => {
       }
     };
     fetchPopupContent();
+    console.log("Popup content rendered");
   }, []);
 
   useEffect(() => {
-    if (!dbContent) return;
+    if (!dbContent || !router.isReady) return;
 
     const isHomePage = router.pathname === '/' || router.pathname === '/home';
     const hasInteractedThisSession = sessionStorage.getItem("popupSessionStatus");
@@ -143,14 +144,26 @@ const AppDownloadPopup = () => {
     const showOnDates = Array.isArray(dbContent.showOnDates) ? dbContent.showOnDates : [];
     const matchesDateRule = showOnDates.length === 0 || showOnDates.includes(today);
     const delayMs = Math.max(0, Number(dbContent.triggerDelaySeconds) || 45) * 1000;
-    console.log(matchesDateRule, delayMs);
+    
+    // DEBUGGING LOGS
+    console.log("=== POPUP VISIBILITY DEBUG ===");
+    console.log("1. isActive:", dbContent.isActive);
+    console.log("2. matchesDateRule:", matchesDateRule, "showOnDates:", showOnDates, "today:", today);
+    console.log("3. isHomePage:", isHomePage, "router.pathname:", router.pathname);
+    console.log("4. hasInteractedThisSession:", hasInteractedThisSession);
+    console.log("5. Will show popup?", isHomePage && hasInteractedThisSession !== "hidden");
+    console.log("6. delayMs:", delayMs);
+    console.log("=============================");
+    
     if (!dbContent.isActive || !matchesDateRule) {
+      console.log("❌ Popup hidden: isActive or matchesDateRule failed");
       setIsVisible(false);
       setIsAnimating(false);
       return;
     }
 
     if (isHomePage && hasInteractedThisSession !== "hidden") {
+      console.log("✅ Popup will show after delay:", delayMs, "ms");
       const timer = setTimeout(() => {
         setIsVisible(true);
         setTimeout(() => setIsAnimating(true), 10);
@@ -158,10 +171,10 @@ const AppDownloadPopup = () => {
       return () => clearTimeout(timer);
     }
 
+    console.log("❌ Popup hidden: Not on home page or user already interacted");
     setIsVisible(false);
     setIsAnimating(false);
-  }, [router.pathname, dbContent]);
-
+  }, [router.pathname, router.isReady, dbContent]);
   useEffect(() => {
     setError("");
   }, [answers, currentStep]);

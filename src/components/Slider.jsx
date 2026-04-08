@@ -1455,7 +1455,9 @@ const CountrySlider = ({ moreToLoveData }) => {
     };
   }, []);
 
-  // Recompute active occasion from selected dates (strict: both dates must be inside range).
+  // Recompute active occasion from selected dates.
+  // Start-date-driven eligibility: if start date is within occasion range,
+  // keep that occasion even when selected end date is outside the range.
   useEffect(() => {
     const activeArrival = toDateOnly(arrivalDate);
     const activeDeparture = toDateOnly(departureDate);
@@ -1478,9 +1480,7 @@ const CountrySlider = ({ moreToLoveData }) => {
 
         const inRange =
           activeArrival >= range.start &&
-          activeArrival <= range.end &&
-          activeDeparture >= range.start &&
-          activeDeparture <= range.end;
+          activeArrival <= range.end;
 
         if (!inRange) return null;
 
@@ -1495,7 +1495,22 @@ const CountrySlider = ({ moreToLoveData }) => {
 
     const activeOccasion = eligibleOccasions[0] || null;
 
+    if (eligibleOccasions.length > 1) {
+      console.log("[Slider][OccasionSelection] Multiple eligible occasions by start date; selecting first", {
+        eligibleCount: eligibleOccasions.length,
+        selectedIndex: eligibleOccasions[0]?.index,
+        selectedRange: eligibleOccasions[0]?.range,
+        arrivalDate: activeArrival,
+        departureDate: activeDeparture,
+      });
+    }
+
     if (!activeOccasion) {
+      console.log("[Slider][OccasionSelection] No eligible occasion", {
+        mode: "start-date-only",
+        arrivalDate: activeArrival,
+        departureDate: activeDeparture,
+      });
       setOccasionPricing(null);
       setOccasionCountryNames([]);
       setOccasionDateRange(null);
@@ -1513,6 +1528,18 @@ const CountrySlider = ({ moreToLoveData }) => {
     setOccasionCountryNames(countries);
     setOccasionDateRange(activeOccasion.range);
     setOccasionTraditionalText(activeOccasion.traditionalPriceText);
+
+    console.log("[Slider][OccasionSelection] Selected occasion", {
+      mode: "start-date-only",
+      selectedIndex: activeOccasion.index,
+      selectedRange: activeOccasion.range,
+      arrivalDate: activeArrival,
+      departureDate: activeDeparture,
+      departureOutsideRange:
+        activeDeparture < activeOccasion.range.start ||
+        activeDeparture > activeOccasion.range.end,
+      countriesCount: countries.length,
+    });
   }, [
     allOccasions,
     arrivalDate,
