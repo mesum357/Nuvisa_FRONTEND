@@ -66,6 +66,33 @@ import dynamic from "next/dynamic";
 
 const normalizeCountryKey = (value) => String(value || "").trim().toLowerCase();
 
+const parseOccasionPrice = (value) => {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : NaN;
+  }
+
+  const raw = String(value ?? "").trim();
+  if (!raw) return NaN;
+
+  // Accept admin-entered values like "129", "1,299", "129.50" and "129,50".
+  let normalized = raw.replace(/[^\d.,-]/g, "");
+  if (!normalized) return NaN;
+
+  const hasComma = normalized.includes(",");
+  const hasDot = normalized.includes(".");
+
+  if (hasComma && hasDot) {
+    normalized = normalized.replace(/,/g, "");
+  } else if (hasComma && !hasDot) {
+    normalized = /,\d{1,2}$/.test(normalized)
+      ? normalized.replace(",", ".")
+      : normalized.replace(/,/g, "");
+  }
+
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : NaN;
+};
+
 const CountrySlider = ({ moreToLoveData }) => {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -277,7 +304,7 @@ const CountrySlider = ({ moreToLoveData }) => {
   const urlDatesAppliedRef = useRef(false);
 
   // Use Redux state instead of local state
-  const travelers = visaState.travelers ?? 0;
+  const travelers = Math.max(Number(visaState.travelers ?? 1), 1);
   const insuranceCount = visaState.insuranceCount || 0;
   const giftCardCount = visaState.giftCardCount || 0;
   // Default arrival = 4 weeks from today, default departure = arrival + 14 days (15 days inclusive)
@@ -588,10 +615,10 @@ const CountrySlider = ({ moreToLoveData }) => {
     );
     if (!match) return null;
 
-    const mode = match.priceMode === "two" ? "two" : "three";
-    const early = Number(match.earlyDiscount);
-    const original = Number(match.originalPrice);
-    const traditional = Number(match.traditionalPrice);
+    let mode = match.priceMode === "two" ? "two" : "three";
+    const early = parseOccasionPrice(match.earlyDiscount);
+    const original = parseOccasionPrice(match.originalPrice);
+    const traditional = parseOccasionPrice(match.traditionalPrice);
 
     const hasEarly = Number.isFinite(early) && early > 0;
     const hasOriginal = Number.isFinite(original) && original > 0;
@@ -601,15 +628,30 @@ const CountrySlider = ({ moreToLoveData }) => {
     let comparisonPrice = 0;
     let thirdPrice = 0;
 
+    if (mode === "three" && !hasEarly && hasOriginal) {
+      mode = "two";
+    }
+
     if (mode === "two") {
       // 2-price mode: use Original as current and Traditional as strike-through.
-      currentPrice = hasOriginal ? original : 0;
-      comparisonPrice = hasTraditional ? traditional : 0;
+      currentPrice = hasOriginal ? original : hasTraditional ? traditional : 0;
+      comparisonPrice = hasTraditional && traditional !== currentPrice ? traditional : 0;
     } else {
       // 3-price mode: Early (current), Original, Traditional.
-      currentPrice = hasEarly ? early : 0;
-      comparisonPrice = hasOriginal ? original : 0;
-      thirdPrice = hasTraditional ? traditional : 0;
+      currentPrice = hasEarly
+        ? early
+        : hasOriginal
+          ? original
+          : hasTraditional
+            ? traditional
+            : 0;
+      comparisonPrice = hasOriginal && original !== currentPrice ? original : 0;
+      thirdPrice = hasTraditional && traditional !== currentPrice ? traditional : 0;
+
+      if (!comparisonPrice && thirdPrice) {
+        comparisonPrice = thirdPrice;
+        thirdPrice = 0;
+      }
     }
 
     if (!Number.isFinite(currentPrice) || currentPrice <= 0) return null;
@@ -2993,8 +3035,21 @@ const CountrySlider = ({ moreToLoveData }) => {
   // Calculate total amount for express payments (Apple Pay/Google Pay) - memoized to prevent infinite loops
   // Uses the same logic as calculateFinalPrice() to match OrderCheckout.jsx
   const expressPaymentData = useMemo(() => {
+    const visaDisplay = visaState?.visaPriceDisplay || {};
+    const comparisonPerTraveler = Number(visaDisplay.originalPerTraveler || 0);
+    const traditionalPerTraveler = Number(visaDisplay.traditionalPerTraveler || 0);
+
+    const effectiveTravelers = giftCardRedeemed && travelers > 0
+      ? Math.max(0, travelers - (giftCardBenefits?.freeTraveler || 0))
+      : travelers;
+
     // SUBTOTAL: Original prices (no discounts applied) - matching OrderCheckout
-    const originalVisaFees = 200 * travelers; // £200 per traveler
+    const originalVisaPerTraveler = traditionalPerTraveler > 0
+      ? traditionalPerTraveler
+      : comparisonPerTraveler > 0
+        ? comparisonPerTraveler
+        : strikeOutPrice;
+    const originalVisaFees = originalVisaPerTraveler * travelers;
     const originalInsuranceFees = originalInsuranceBase; // Dynamic per-day pricing
     const originalGiftCardFees = recommendedItems.giftCard
       ? 245 * giftCardCount
@@ -3006,7 +3061,8 @@ const CountrySlider = ({ moreToLoveData }) => {
 
     // Base discounted prices (matching OrderCheckout.jsx and calculateFinalPrice)
     const baseDiscountedVisaFees =
-      currentVisaFeePerTraveler * travelers; // Dynamic per traveler
+      calculateDiscountedVisaFee({ discount: null }) *
+      (travelers > 0 ? effectiveTravelers / travelers : 1);
     const baseDiscountedInsuranceFees = discountedInsuranceBase;
     const baseDiscountedGiftCardFees = recommendedItems.giftCard
       ? 159 * giftCardCount
@@ -3023,15 +3079,11 @@ const CountrySlider = ({ moreToLoveData }) => {
     const hasGroupDiscount = appliedDiscount && appliedDiscount.code === "GROUP20";
 
     // Calculate discounts sequentially (compound): First 20% quantity discount, then 10% student discount on discounted price
-    let finalVisaFees = baseDiscountedVisaFees;
+    let finalVisaFees = calculateDiscountedVisaFee({ discount: appliedDiscount });
     let finalInsuranceFees = baseDiscountedInsuranceFees;
     let finalGiftCardFees = baseDiscountedGiftCardFees;
 
-    // Apply 20% quantity discount first (if 3+ items)
-    if (travelersQualify) {
-      const quantityDiscount = (finalVisaFees * 20) / 100;
-      finalVisaFees = finalVisaFees - quantityDiscount;
-    }
+    // Visa discount logic is already applied by calculateDiscountedVisaFee().
     if (insuranceQualify && recommendedItems.insuranceCertificate) {
       const quantityDiscount = (finalInsuranceFees * 20) / 100;
       finalInsuranceFees = finalInsuranceFees - quantityDiscount;
@@ -3044,10 +3096,6 @@ const CountrySlider = ({ moreToLoveData }) => {
     // Apply GROUP20 coupon (ensures 20% is applied if conditions met)
     if (hasGroupDiscount) {
       if (travelersQualify && (insuranceQualify || giftCardQualify)) {
-        if (travelersQualify && finalVisaFees === baseDiscountedVisaFees) {
-          const quantityDiscount = (finalVisaFees * 20) / 100;
-          finalVisaFees = finalVisaFees - quantityDiscount;
-        }
         if (insuranceQualify && recommendedItems.insuranceCertificate && finalInsuranceFees === baseDiscountedInsuranceFees) {
           const quantityDiscount = (finalInsuranceFees * 20) / 100;
           finalInsuranceFees = finalInsuranceFees - quantityDiscount;
@@ -3061,8 +3109,6 @@ const CountrySlider = ({ moreToLoveData }) => {
 
     // Apply 10% student discount on already-discounted price (if student)
     if (hasStudentDiscount) {
-      const studentDiscount = (finalVisaFees * 10) / 100;
-      finalVisaFees = finalVisaFees - studentDiscount;
       if (recommendedItems.insuranceCertificate) {
         const studentDiscount = (finalInsuranceFees * 10) / 100;
         finalInsuranceFees = finalInsuranceFees - studentDiscount;
@@ -3095,7 +3141,7 @@ const CountrySlider = ({ moreToLoveData }) => {
       couponCode: couponCode || "",
     };
   }, [
-    requiredDocuments,
+    visaState?.visaPriceDisplay,
     recommendedItems,
     selectedVisaType,
     travelers,
@@ -3105,7 +3151,11 @@ const CountrySlider = ({ moreToLoveData }) => {
     currentVisaFeePerTraveler,
     discountedInsuranceBase,
     originalInsuranceBase,
+    strikeOutPrice,
     couponCode,
+    calculateDiscountedVisaFee,
+    giftCardRedeemed,
+    giftCardBenefits,
   ]);
 
   const selectedVisaTypeDetails = useMemo(() => {
@@ -3694,8 +3744,8 @@ const CountrySlider = ({ moreToLoveData }) => {
                           <span className="text-[11px] text-gray-500 font-medium max-sm:text-[10px]">
                             {activeOccasionPricing.priceMode === "two"
                               ? ((activeOccasionPricing.originalPriceLabel || sliderContent?.slider_save || "You save ") + Math.round((activeOccasionPricing.comparisonPrice - activeOccasionPricing.currentPrice) * (travelers || 1)))
-                              : (activeOccasionPricing.earlyDiscountLabel || `${sliderContent?.slider_save || ""} ${Math.round((activeOccasionPricing.thirdPrice - activeOccasionPricing.currentPrice) * (travelers || 1))}`)
-                            }{activeOccasionPricing.priceMode === "three" && " "+ Math.round((activeOccasionPricing.thirdPrice - activeOccasionPricing.currentPrice) * (travelers || 1))}
+                              : ((activeOccasionPricing.earlyDiscountLabel || sliderContent?.slider_save || "Early Bird ") + Math.round((activeOccasionPricing.thirdPrice - activeOccasionPricing.currentPrice) * (travelers || 1)))
+                            }
                           </span>
                         </div>
                         {activeOccasionPricing.comparisonPrice > 0 && (
@@ -3766,14 +3816,14 @@ const CountrySlider = ({ moreToLoveData }) => {
                   <QtyInput
                     value={travelers}
                     onChange={(next) => {
-                      const n = Number(next);
+                      const n = Math.max(1, Number(next) || 1);
                       // If traveler count decreases, adjust insurance count if needed
                       if (n >= 1 && insuranceCount > n) {
                         dispatch(setReduxInsuranceCount(Number(n)));
                       }
                       dispatch(setReduxTravelers(Number(n)));
                     }}
-                    min={0}
+                    min={1}
                   />
                 </div>
 
