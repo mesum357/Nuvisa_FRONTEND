@@ -378,7 +378,7 @@ const StickyBottomBar = ({ triggerElementId } ) => {
     visaPriceDisplay?.traditionalPerTraveler,
   ]);
 
-console.log("visa state",visaState)
+// console.log("visa state",visaState)
   // Memoize handleAddToCart to prevent unnecessary re-renders
   const handleAddToCart = useCallback(() => {
     // Always trigger document validation when Add to Cart is clicked

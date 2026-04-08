@@ -524,6 +524,8 @@ const ExpressPaymentRequestButton = forwardRef(
       ref,
       () => ({
         triggerPaymentRequest: () => {
+          const normalizedTravellers = Math.max(Number(travellers || 0), 0);
+
           if (isRefreshingRequest) {
             const message = "Updating checkout total. Please try again in a moment.";
             setButtonError(message);
@@ -531,7 +533,20 @@ const ExpressPaymentRequestButton = forwardRef(
           }
 
           if (!paymentRequest || !isSupported) {
-            const message = "Add at least one traveller to enable checkout";
+            const message =
+              normalizedTravellers < 1
+                ? "Add at least one traveller to enable checkout"
+                : !normalizedAmount
+                  ? "Checkout total is not ready yet. Please try again."
+                  : "Apple Pay / Google Pay is not available on this browser or device right now.";
+
+            console.log("[ExpressPayment] triggerPaymentRequest blocked", {
+              normalizedTravellers,
+              normalizedAmount,
+              isSupported,
+              hasPaymentRequest: !!paymentRequest,
+              availableMethods,
+            });
             setButtonError(message);
             return { success: false, message };
           }
@@ -546,7 +561,7 @@ const ExpressPaymentRequestButton = forwardRef(
           }
 
           if (typeof paymentRequest.show !== "function") {
-            const message = "Add at least one traveller to enable checkout";
+            const message = "Payment request is not ready yet. Please try again in a moment.";
             setButtonError(message);
             return { success: false, message };
           }
@@ -576,7 +591,7 @@ const ExpressPaymentRequestButton = forwardRef(
         getAvailableMethods: () => availableMethods,
         getIsRefreshingRequest: () => isRefreshingRequest,
       }),
-      [paymentRequest, isSupported, onBeforePayment, availableMethods, isRefreshingRequest]
+      [paymentRequest, isSupported, onBeforePayment, availableMethods, isRefreshingRequest, travellers, normalizedAmount]
     );
 
     if (disabled) {

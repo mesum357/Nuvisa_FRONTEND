@@ -68,7 +68,7 @@ const VisaCheckout = () => {
   const visaState = useAppSelector((state) => state.visa);
   const recommendedItems = visaState.recommendedItems || {};
   const visaPriceDisplay = visaState.visaPriceDisplay;
-
+  
   const [insuranceCount, setInsuranceCount] = useState(
     visaState.insuranceCount
   );
@@ -90,12 +90,14 @@ const VisaCheckout = () => {
       ? storedVisaFees / travelerCountForVisa
       : fallbackVisaFeePerTraveler;
   const hasOccasionPricing = Boolean(visaPriceDisplay?.isOccasion);
-  const specialVisaFeePerTraveler = hasOccasionPricing
-    ? Number(visaPriceDisplay?.originalPerTraveler || currentVisaFeePerTraveler)
+  const comparisonVisaFeePerTraveler = Number(
+    visaPriceDisplay?.originalPerTraveler || 0
+  ) > 0
+    ? Number(visaPriceDisplay?.originalPerTraveler)
     : currentVisaFeePerTraveler;
-  const traditionalVisaFeePerTraveler = hasOccasionPricing
-    ? Number(visaPriceDisplay?.traditionalPerTraveler || 0)
-    : 0;
+  const traditionalVisaFeePerTraveler = Number(
+    visaPriceDisplay?.traditionalPerTraveler || 0
+  );
 
   // Redux is the single source of truth for travelers on checkout.
   const travelers = Math.max(Number(visaState.travelers ?? 1), 1);
@@ -911,7 +913,7 @@ const VisaCheckout = () => {
   // SUBTOTAL: Original prices (no discounts applied)
   const originalVisaFees = (traditionalVisaFeePerTraveler > 0
     ? traditionalVisaFeePerTraveler
-    : specialVisaFeePerTraveler) * travelers;
+    : comparisonVisaFeePerTraveler) * travelers;
   const originalInsuranceFees = includeInsurance
     ? originalPerDayInsurancePrice * travelDays * insuranceCount
     : 0; // Dynamic strike price based on travel days
@@ -1024,7 +1026,7 @@ const VisaCheckout = () => {
   const giftCardFeesGBP = finalGiftCardFees;
 
   // Strike-through prices (original prices)
-  const travellerStrikeTotal = specialVisaFeePerTraveler * travelers;
+  const travellerStrikeTotal = comparisonVisaFeePerTraveler * travelers;
   const insuranceStrikeTotal = originalInsuranceFees;
   const giftCardStrikeTotal = originalGiftCardFees;
 
@@ -1048,6 +1050,17 @@ const VisaCheckout = () => {
   const insuranceDiscountAmount = originalInsuranceFees - finalInsuranceFees;
   const giftCardDiscountAmount = originalGiftCardFees - finalGiftCardFees;
 
+  const visaDiscountLabelText = useMemo(() => {
+    const label = String(visaPriceDisplay?.discountedLabel || "").trim();
+    if (!label) return "";
+    const savedAmount = Math.max(0, visaDiscountAmount);
+    if (savedAmount <= 0) return label;
+    if (/[£$€₹]/.test(label)) {
+      return `${label}${savedAmount.toFixed(2)}`;
+    }
+    return `${label} ${formatCurrency(savedAmount, "GBP")}`;
+  }, [visaPriceDisplay?.discountedLabel, visaDiscountAmount]);
+
   // Discount amount in GBP (for display purposes)
   const totalCouponDiscount =
     visaDiscountAmount + insuranceDiscountAmount + giftCardDiscountAmount;
@@ -1059,6 +1072,38 @@ const VisaCheckout = () => {
   const giftCardFees = finalGiftCardFees;
   const currentBaseFee = currentVisaFeePerTraveler; // Current base fee per traveler
   const totalAmount = total;
+
+  useEffect(() => {
+    const isTwoTierNonOccasion = !hasOccasionPricing && traditionalVisaFeePerTraveler <= 0;
+    console.log("[OrderCheckout][PricingDebug]", {
+      country: selectedCountry,
+      travelers,
+      isOccasion: hasOccasionPricing,
+      isTwoTierNonOccasion,
+      currentVisaFeePerTraveler,
+      comparisonVisaFeePerTraveler,
+      traditionalVisaFeePerTraveler,
+      originalVisaFees,
+      finalVisaFees,
+      visaDiscountAmount,
+      total,
+      totalSavingsAmount,
+      visaPriceDisplay,
+    });
+  }, [
+    selectedCountry,
+    travelers,
+    hasOccasionPricing,
+    currentVisaFeePerTraveler,
+    comparisonVisaFeePerTraveler,
+    traditionalVisaFeePerTraveler,
+    originalVisaFees,
+    finalVisaFees,
+    visaDiscountAmount,
+    total,
+    totalSavingsAmount,
+    visaPriceDisplay,
+  ]);
 
   // Check available payment methods from ExpressPaymentRequestButton
   useEffect(() => {
@@ -2327,7 +2372,7 @@ const VisaCheckout = () => {
                 <span className="line-through">
                   {formatCurrency(travellerStrikeGBP, "GBP")}
                 </span>
-                {visaPriceDisplay?.isOccasion && !!visaPriceDisplay?.originalLabel && (
+                {!!visaPriceDisplay?.originalLabel && (
                   <span className="text-[10px] text-gray-400 font-medium">
                     {visaPriceDisplay.originalLabel}
                   </span>
@@ -2337,9 +2382,9 @@ const VisaCheckout = () => {
                 <span className="text-sm font-medium">
                   {formatCurrency(visaFeesGBPDisplay, "GBP")}
                 </span>
-                {visaPriceDisplay?.isOccasion && !!visaPriceDisplay?.discountedLabel && (
+                {!!visaPriceDisplay?.discountedLabel && (
                   <span className="text-[10px] text-gray-400 font-medium">
-                    {visaPriceDisplay.discountedLabel} {console.log("")}
+                    {visaDiscountLabelText}
                   </span>
                 )}
               </div>
