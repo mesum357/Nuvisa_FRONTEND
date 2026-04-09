@@ -286,7 +286,8 @@ const StickyBottomBar = ({ triggerElementId } ) => {
     let finalGiftCardFees = baseDiscountedGiftCardFees;
 
     // Apply 20% quantity discount first (if 3+ items)
-    if (!canUseReduxVisaFees && travelersQualify) {
+    // Redux now stores base visa fees, so always apply discount if qualifying
+    if (canUseReduxVisaFees && travelersQualify) {
       const quantityDiscount = (finalVisaFees * 20) / 100;
       finalVisaFees = finalVisaFees - quantityDiscount;
     }
@@ -302,7 +303,7 @@ const StickyBottomBar = ({ triggerElementId } ) => {
     // Apply GROUP20 coupon (ensures 20% is applied if conditions met)
     if (hasGroupDiscount) {
       if (travelersQualify && (insuranceQualify || giftCardQualify)) {
-        if (!canUseReduxVisaFees && travelersQualify && finalVisaFees === baseDiscountedVisaFees) {
+        if (canUseReduxVisaFees && travelersQualify && finalVisaFees === baseDiscountedVisaFees) {
           const quantityDiscount = (finalVisaFees * 20) / 100;
           finalVisaFees = finalVisaFees - quantityDiscount;
         }
@@ -318,7 +319,8 @@ const StickyBottomBar = ({ triggerElementId } ) => {
     }
 
     // Apply 10% student discount on already-discounted price (if student)
-    if (!canUseReduxVisaFees && hasStudentDiscount) {
+    // Redux now stores base visa fees, so always apply if student discount is active
+    if (canUseReduxVisaFees && hasStudentDiscount) {
       const studentDiscount = (finalVisaFees * 10) / 100;
       finalVisaFees = finalVisaFees - studentDiscount;
       if (recommendedItems?.insuranceCertificate) {
