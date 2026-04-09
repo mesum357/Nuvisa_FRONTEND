@@ -239,11 +239,11 @@ const VisaFeeBreakdown = ({
                 <div className="flex flex-col items-end gap-0.5">
                   {showThreeTierOccasion ? (
                     <>
-                      <span className="line-through text-red-400 text-sm max-sm:text-xs">
-                        {formatFeeAmount(effectiveTravelersComparisonTotal)}
-                      </span>
                       <span className="line-through text-white/80 text-sm max-sm:text-xs">
                         {formatFeeAmount(effectiveTravelersTraditionalTotal)}
+                      </span>
+                      <span className="line-through text-red-400 text-sm max-sm:text-xs">
+                        {formatFeeAmount(effectiveTravelersComparisonTotal)}
                       </span>
                     </>
                   ) : (

@@ -83,6 +83,37 @@ const ExpressPaymentRequestButton = forwardRef(
       googlePay: false,
     });
     const shouldValidateOnPaymentMethodRef = useRef(true);
+    const hasLoggedStripeInitErrorRef = useRef(false);
+    const hasLoggedUnsupportedRef = useRef(false);
+
+    const logExpressDebug = (stage, details = {}) => {
+      console.log("[ExpressPayment][Debug]", {
+        stage,
+        route: router?.asPath || "",
+        stripeReady: Boolean(stripe),
+        elementsReady: Boolean(elements),
+        amountMajor: Number(amount || 0),
+        amountMinor: normalizedAmount,
+        currency,
+        travellers: Number(travellers || 0),
+        country,
+        includeInsurance: Boolean(includeInsurance),
+        insuranceCount: Number(insuranceCount || 0),
+        insurancePaymentAmount: Number(insurancePaymentAmount || 0),
+        visaTypeId: visaTypeId || "",
+        paymentType: paymentType || "",
+        visaFees: Number(visaFees || 0),
+        insuranceFees: Number(insuranceFees || 0),
+        giftCardFees: Number(giftCardFees || 0),
+        includeGiftCard: Boolean(includeGiftCard),
+        giftCardCount: Number(giftCardCount || 0),
+        subtotalGBP: Number(subtotalGBP || 0),
+        discountedInsuranceFeesGBP: Number(discountedInsuranceFeesGBP || 0),
+        visaFeesGBP: Number(visaFeesGBP || 0),
+        couponCode: couponCode || "",
+        ...details,
+      });
+    };
 
     const normalizedAmount = useMemo(() => {
       if (!amount || Number(amount) <= 0) return null;
@@ -92,6 +123,13 @@ const ExpressPaymentRequestButton = forwardRef(
     useEffect(() => {
       // Apple Pay and Google Pay provide email, so we don't require it upfront
       if (!stripe || !elements || !normalizedAmount) {
+        logExpressDebug("payment_request_init_skipped", {
+          reason: !stripe
+            ? "stripe_missing"
+            : !elements
+              ? "elements_missing"
+              : "amount_not_ready",
+        });
         setPaymentRequest(null);
         setIsSupported(false);
         setIsRefreshingRequest(false);
@@ -104,6 +142,36 @@ const ExpressPaymentRequestButton = forwardRef(
       setPaymentRequest(null);
       setIsSupported(false);
 
+      const displayItems = [
+        {
+          label: "Visa Fees",
+          amount: Math.round((visaFees || 0) * 100),
+        },
+        includeInsurance && {
+          label: `Insurance (${insuranceCount || 0})`,
+          amount: Math.round((insuranceFees || 0) * 100),
+        },
+        includeGiftCard && {
+          label: `Gift Cards (${giftCardCount || 0})`,
+          amount: Math.round((giftCardFees || 0) * 100),
+        },
+      ].filter(Boolean);
+
+      logExpressDebug("payment_request_create", {
+        stripePaymentRequestPayload: {
+          country: "GB",
+          currency: currency.toLowerCase(),
+          total: {
+            label: "NUvisa - Visa Application",
+            amount: normalizedAmount,
+          },
+          requestPayerName: true,
+          requestPayerEmail: true,
+          requestPayerPhone: false,
+          displayItems,
+        },
+      });
+
       const request = stripe.paymentRequest({
         country: "GB",
         currency: currency.toLowerCase(),
@@ -115,20 +183,7 @@ const ExpressPaymentRequestButton = forwardRef(
         requestPayerEmail: true,
         requestPayerPhone: false, // Optional - set to true if you need phone
         // Display items for better breakdown (works for both Apple Pay and Google Pay)
-        displayItems: [
-          {
-            label: "Visa Fees",
-            amount: Math.round((visaFees || 0) * 100),
-          },
-          includeInsurance && {
-            label: `Insurance (${insuranceCount || 0})`,
-            amount: Math.round((insuranceFees || 0) * 100),
-          },
-          includeGiftCard && {
-            label: `Gift Cards (${giftCardCount || 0})`,
-            amount: Math.round((giftCardFees || 0) * 100),
-          },
-        ].filter(Boolean),
+        displayItems,
       });
 
       let isMounted = true;
@@ -193,6 +248,9 @@ const ExpressPaymentRequestButton = forwardRef(
             rawResult: result,
           });
         } else {
+          logExpressDebug("can_make_payment_unavailable", {
+            rawResult: result,
+          });
           setPaymentRequest(null);
           setIsSupported(false);
           setAvailableMethods({
@@ -201,8 +259,11 @@ const ExpressPaymentRequestButton = forwardRef(
           });
           setIsRefreshingRequest(false);
         }
-      }).catch(() => {
+      }).catch((error) => {
         if (!isMounted) return;
+        logExpressDebug("can_make_payment_error", {
+          errorMessage: error?.message || "unknown_error",
+        });
         setPaymentRequest(null);
         setIsSupported(false);
         setAvailableMethods({ applePay: false, googlePay: false });
@@ -338,6 +399,17 @@ const ExpressPaymentRequestButton = forwardRef(
               ? { quantity: String(giftCardCount), noOfGiftCards: String(giftCardCount) }
               : {}),
           };
+
+          logExpressDebug("create_payment_intent_payload", {
+            checkoutPayloadPreview: {
+              ...checkoutPayload,
+              emailPresent: Boolean(checkoutPayload.email),
+              email: undefined,
+            },
+            payerEmailPresent: Boolean(event?.payerEmail),
+            paymentMethodId: event?.paymentMethod?.id || "",
+            paymentMethodType: event?.paymentMethod?.type || "",
+          });
 
           const response = await createPaymentIntent(checkoutPayload, () => {});
 
@@ -528,6 +600,7 @@ const ExpressPaymentRequestButton = forwardRef(
 
           if (isRefreshingRequest) {
             const message = "Updating checkout total. Please try again in a moment.";
+            logExpressDebug("pre_error_refreshing_request", { message });
             setButtonError(message);
             return { success: false, message };
           }
@@ -540,7 +613,8 @@ const ExpressPaymentRequestButton = forwardRef(
                   ? "Checkout total is not ready yet. Please try again."
                   : "Apple Pay / Google Pay is not available on this browser or device right now.";
 
-            console.log("[ExpressPayment] triggerPaymentRequest blocked", {
+            logExpressDebug("pre_error_trigger_blocked", {
+              message,
               normalizedTravellers,
               normalizedAmount,
               isSupported,
@@ -555,6 +629,9 @@ const ExpressPaymentRequestButton = forwardRef(
           if (onBeforePayment) {
             const validationError = onBeforePayment();
             if (validationError) {
+              logExpressDebug("pre_error_validation_failed", {
+                validationError,
+              });
               setButtonError(validationError);
               return { success: false, message: validationError };
             }
@@ -562,6 +639,9 @@ const ExpressPaymentRequestButton = forwardRef(
 
           if (typeof paymentRequest.show !== "function") {
             const message = "Payment request is not ready yet. Please try again in a moment.";
+            logExpressDebug("pre_error_payment_request_show_missing", {
+              message,
+            });
             setButtonError(message);
             return { success: false, message };
           }
@@ -575,6 +655,10 @@ const ExpressPaymentRequestButton = forwardRef(
                 const message =
                   err?.message ||
                   "Unable to open Apple Pay / Google Pay on this device.";
+                logExpressDebug("pre_error_payment_request_show_rejected", {
+                  message,
+                  errorMessage: err?.message || "unknown_error",
+                });
                 setButtonError(message);
               });
             }
@@ -584,6 +668,10 @@ const ExpressPaymentRequestButton = forwardRef(
             const message =
               err?.message ||
               "Unable to open Apple Pay / Google Pay on this device.";
+            logExpressDebug("pre_error_payment_request_show_exception", {
+              message,
+              errorMessage: err?.message || "unknown_error",
+            });
             setButtonError(message);
             return { success: false, message };
           }
@@ -603,12 +691,19 @@ const ExpressPaymentRequestButton = forwardRef(
     }
 
     if (!stripe || !elements) {
+      if (!hasLoggedStripeInitErrorRef.current) {
+        logExpressDebug("pre_render_error_stripe_not_initialized", {
+          userFacingMessage: "Stripe is not initialized. Please refresh and try again.",
+        });
+        hasLoggedStripeInitErrorRef.current = true;
+      }
       return (
         <div className="p-4 border rounded-lg text-sm text-red-700 bg-red-50 border-red-200">
           Stripe is not initialized. Please refresh and try again.
         </div>
       );
     }
+    hasLoggedStripeInitErrorRef.current = false;
 
     // Email is optional - Apple Pay and Google Pay provide it automatically
 
@@ -626,12 +721,21 @@ const ExpressPaymentRequestButton = forwardRef(
       process.env.NEXT_PUBLIC_NODE_ENV === "development";
 
     if (!isSupported && !isDevelopment) {
+      if (!hasLoggedUnsupportedRef.current) {
+        logExpressDebug("pre_render_error_express_not_supported", {
+          userFacingMessage:
+            "Apple Pay / Google Pay is not available on this device or browser.",
+          availableMethods,
+        });
+        hasLoggedUnsupportedRef.current = true;
+      }
       return (
         <div className="p-4 border border-gray-200 bg-gray-50 rounded-lg text-sm text-gray-700">
           Apple Pay / Google Pay is not available on this device or browser.
         </div>
       );
     }
+    hasLoggedUnsupportedRef.current = false;
 
     // If hideUI is true, don't render any UI - just provide the payment logic via ref
     if (hideUI) {
