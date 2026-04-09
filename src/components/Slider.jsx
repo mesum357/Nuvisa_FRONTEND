@@ -1862,8 +1862,10 @@ const CountrySlider = ({ moreToLoveData }) => {
   const calculateDiscountedVisaFee = useCallback(
     ({ discount = appliedDiscount, hasOnlyInsurance = false } = {}) => {
       const occasionBasePerTraveler = Number(activeOccasionPricing?.currentPrice);
+      const isOccasionVisaPricingActive =
+        Number.isFinite(occasionBasePerTraveler) && occasionBasePerTraveler > 0;
       const visaFeePerTraveler =
-        Number.isFinite(occasionBasePerTraveler) && occasionBasePerTraveler > 0
+        isOccasionVisaPricingActive
           ? occasionBasePerTraveler
           : currentVisaFeePerTraveler;
 
@@ -1871,7 +1873,10 @@ const CountrySlider = ({ moreToLoveData }) => {
         ? 0
         : visaFeePerTraveler * travelers;
 
-      const travelersQualify = !hasOnlyInsurance && travelers >= 3;
+      // Occasion pricing is already a promotional visa price tier.
+      // Skip extra 3+ traveler/group visa discount to avoid double discounting.
+      const travelersQualify =
+        !hasOnlyInsurance && travelers >= 3 ;
       const hasStudentDiscount = discount?.code === "STUDENT10";
       const hasGroupDiscount = discount?.code === "GROUP20";
 
@@ -1913,12 +1918,12 @@ const CountrySlider = ({ moreToLoveData }) => {
       console.log("[Slider] visa fee recalculation", {
         discountCode: discount?.code || null,
         discountDescription: discount?.description || null,
-        usingOccasionPricing:
-          Number.isFinite(occasionBasePerTraveler) && occasionBasePerTraveler > 0,
+        usingOccasionPricing: isOccasionVisaPricingActive,
         occasionBasePerTraveler:
-          Number.isFinite(occasionBasePerTraveler) && occasionBasePerTraveler > 0
+          isOccasionVisaPricingActive
             ? occasionBasePerTraveler
             : null,
+        occasionVisaDiscountSuppressed: isOccasionVisaPricingActive,
         hasOnlyInsurance,
         travelers,
         currentVisaFeePerTraveler: visaFeePerTraveler,
@@ -3185,6 +3190,27 @@ const CountrySlider = ({ moreToLoveData }) => {
     giftCardBenefits,
   ]);
 
+  const discountedVisaDisplayTotal = useMemo(() => {
+    const next = calculateDiscountedVisaFee({ discount: appliedDiscount });
+    return Number.isFinite(next) ? next : 0;
+  }, [calculateDiscountedVisaFee, appliedDiscount]);
+
+  const occasionDisplayedSaveAmount = useMemo(() => {
+    if (!activeOccasionPricing) return 0;
+
+    const referencePerTraveler =
+      activeOccasionPricing.priceMode === "two"
+        ? Number(activeOccasionPricing.comparisonPrice || 0)
+        : Number(
+          activeOccasionPricing.thirdPrice ||
+          activeOccasionPricing.comparisonPrice ||
+          0
+        );
+
+    const referenceTotal = referencePerTraveler * Number(travelers || 0);
+    return Math.max(0, referenceTotal - discountedVisaDisplayTotal);
+  }, [activeOccasionPricing, travelers, discountedVisaDisplayTotal]);
+
   const selectedVisaTypeDetails = useMemo(() => {
     const candidates = [selectedVisaType, visaState.selectedVisaType].filter(Boolean);
     return candidates.find((visaType) => visaType?.pricing) || candidates[0] || null;
@@ -3327,7 +3353,7 @@ const CountrySlider = ({ moreToLoveData }) => {
     const safeTravelers = Number(travelers || 0);
 
     if (activeOccasionPricing) {
-      const currentTotal = Number(activeOccasionPricing.currentPrice || 0) * safeTravelers;
+      const currentTotal = Number(discountedVisaDisplayTotal || 0);
       const comparisonTotal = Number(activeOccasionPricing.comparisonPrice || 0) * safeTravelers;
       const traditionalTotal = Number(activeOccasionPricing.thirdPrice || 0) * safeTravelers;
       const hasThreeTier =
@@ -3353,7 +3379,15 @@ const CountrySlider = ({ moreToLoveData }) => {
       hasOccasion: false,
       hasThreeTier: false,
     };
-  }, [activeOccasionPricing, travelers, visaOnlyPrice, selectedVisaType, strikeOutPrice, baseFee]);
+  }, [
+    activeOccasionPricing,
+    travelers,
+    visaOnlyPrice,
+    selectedVisaType,
+    strikeOutPrice,
+    baseFee,
+    discountedVisaDisplayTotal,
+  ]);
 
   // Check available payment methods from ExpressPaymentRequestButton
   useEffect(() => {
@@ -3766,14 +3800,17 @@ const CountrySlider = ({ moreToLoveData }) => {
                       <div className="flex gap-12 max-sm:w-full max-sm:justify-between items-center">
                         <div className="flex flex-col items-center">
                           <span className="text-2xl font-gilroy-bold max-sm:text-xl">
-                            £{(activeOccasionPricing.currentPrice * (travelers || 1)).toFixed(2)}
+                            £{discountedVisaDisplayTotal.toFixed(2)}
                           </span>
-                          <span className="text-[11px] text-gray-500 font-medium max-sm:text-[10px]">
-                            {activeOccasionPricing.priceMode === "two"
-                              ? ((activeOccasionPricing.originalPriceLabel || sliderContent?.slider_save || "You save ") + Math.round((activeOccasionPricing.comparisonPrice - activeOccasionPricing.currentPrice) * (travelers || 1)))
-                              : ((activeOccasionPricing.earlyDiscountLabel || sliderContent?.slider_save || "Early Bird ") + Math.round((activeOccasionPricing.thirdPrice - activeOccasionPricing.currentPrice) * (travelers || 1)))
-                            }
-                          </span>
+                          {occasionDisplayedSaveAmount > 0 && (
+                            <span className="text-[11px] text-gray-500 font-medium max-sm:text-[10px]">
+                              {activeOccasionPricing.priceMode === "two"
+                                ? (activeOccasionPricing.originalPriceLabel || sliderContent?.slider_save || "You save ")
+                                : (activeOccasionPricing.earlyDiscountLabel || sliderContent?.slider_save || "Early Bird ")
+                              }
+                              {Math.round(occasionDisplayedSaveAmount)}
+                            </span>
+                          )}
                         </div>
                         {activeOccasionPricing.comparisonPrice > 0 && (
                           <div className="flex flex-col items-center">
