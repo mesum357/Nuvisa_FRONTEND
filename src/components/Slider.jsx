@@ -1181,6 +1181,24 @@ const CountrySlider = ({ moreToLoveData }) => {
     return baseFee;
   }, [selectedVisaType?.priceGBP, selectedVisaType?.price, baseFee]);
 
+  const calculateStoredVisaFee = useCallback(
+    ({ travelerCount = travelers, hasOnlyInsurance = false } = {}) => {
+      if (hasOnlyInsurance) return 0;
+
+      const normalizedTravelers = Math.max(1, Number(travelerCount) || 1);
+      const occasionBasePerTraveler = Number(activeOccasionPricing?.currentPrice);
+      const isOccasionVisaPricingActive =
+        Number.isFinite(occasionBasePerTraveler) && occasionBasePerTraveler > 0;
+
+      const basePerTraveler = isOccasionVisaPricingActive
+        ? occasionBasePerTraveler
+        : currentVisaFeePerTraveler;
+
+      return Number((basePerTraveler * normalizedTravelers).toFixed(2));
+    },
+    [activeOccasionPricing?.currentPrice, currentVisaFeePerTraveler, travelers]
+  );
+
   const effectiveInsuranceDays = useMemo(() => {
     if (!recommendedItems.insuranceCertificate) return 0;
     return Math.max(insuranceDays || 0, 1);
@@ -1238,7 +1256,7 @@ const CountrySlider = ({ moreToLoveData }) => {
     dispatch(setReduxTravelers(Number(normalizedValue)));
 
     // Keep Redux visa total in sync with traveler changes (single source of truth)
-    dispatch(setVisaFees(Number((currentVisaFeePerTraveler * normalizedValue).toFixed(2))));
+    dispatch(setVisaFees(calculateStoredVisaFee({ travelerCount: normalizedValue })));
   };
 
   const selectCountry = (country) => {
@@ -1938,7 +1956,7 @@ const CountrySlider = ({ moreToLoveData }) => {
   );
 
   useEffect(() => {
-    const nextVisaFees = calculateDiscountedVisaFee({ discount: appliedDiscount });
+    const nextVisaFees = calculateStoredVisaFee();
 
     if (!Number.isFinite(nextVisaFees)) {
       return;
@@ -1952,7 +1970,7 @@ const CountrySlider = ({ moreToLoveData }) => {
       });
       dispatch(setVisaFees(nextVisaFees));
     }
-  }, [appliedDiscount, calculateDiscountedVisaFee, dispatch, visaState.visaFees]);
+  }, [appliedDiscount, calculateStoredVisaFee, dispatch, visaState.visaFees]);
 
   // Memoize calculateVisaAndInsurancePrice
   const visaAndInsurancePrice = useMemo(() => {
@@ -2410,11 +2428,9 @@ const CountrySlider = ({ moreToLoveData }) => {
       dispatch(setAppliedDiscount(discountWithAmount));
     }
 
-    const updatedVisaFees = calculateDiscountedVisaFee({
-      discount: discountWithAmount,
-    });
+    const updatedVisaFees = calculateStoredVisaFee();
 
-    console.log("[Slider] coupon applied, dispatching discounted visa fee", {
+    console.log("[Slider] coupon applied, keeping stored base visa fee", {
       code: codeUpper,
       baseVisaFee: currentVisaFeePerTraveler * travelers,
       travelers,
@@ -2740,7 +2756,7 @@ const CountrySlider = ({ moreToLoveData }) => {
     const countryName = getCountryParam(selectedCountry) || "Germany";
 
     dispatch(setReduxSelectedCountry(String(countryName)));
-    dispatch(setVisaFees(Number(visaFees)));
+    dispatch(setVisaFees(calculateStoredVisaFee({ hasOnlyInsurance })));
     dispatch(setInsuranceFees(Number(insuranceFees)));
     dispatch(setReduxTravelers(Number(travelers)));
     dispatch(setRequiredDocuments(requiredDocuments || {}));
@@ -4605,7 +4621,7 @@ const CountrySlider = ({ moreToLoveData }) => {
                           dispatch(setReduxInsuranceCount(Number(nextTravelers)));
                         }
                         dispatch(setReduxTravelers(Number(nextTravelers)));
-                        dispatch(setVisaFees(Number((currentVisaFeePerTraveler * nextTravelers).toFixed(2))));
+                        dispatch(setVisaFees(calculateStoredVisaFee({ travelerCount: nextTravelers })));
                       }}
                       onToggleInsurance={() => toggleRecommendedItem("insuranceCertificate")}
                       onToggleGiftCard={() => toggleRecommendedItem("giftCard")}
