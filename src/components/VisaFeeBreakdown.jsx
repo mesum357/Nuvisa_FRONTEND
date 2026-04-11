@@ -230,13 +230,13 @@ const VisaFeeBreakdown = ({
                 <FaUser className="text-sm" />
                 <span className="text-sm">Travellers</span>
               </div>
-              <div className="flex items-center gap-3 max-sm:gap-2 shrink-0">
+              <div className="flex flex-col items-center gap-3 max-sm:gap-2 shrink-0">
                 <QtyControl
                   value={travelersCount}
                   onIncrement={onTravelersIncrement}
                   onDecrement={onTravelersDecrement}
                 />
-                <div className="flex flex-col items-end gap-0.5">
+                <div className="flex gap-2 items-end gap-0.5">
                   {showThreeTierOccasion ? (
                     <>
                       <span className="line-through text-white/80 text-sm max-sm:text-xs">

@@ -510,16 +510,16 @@ useEffect(() => {
     <div ref={barRef} className={`fixed bottom-0 left-0 right-0 z-[70] bg-[#1e1e27] ${isDrawerOpen ? 'shadow-none' : 'shadow-2xl'} animate-slide-up`}>
       <div className="mx-auto px-4 sm:px-10 py-4">
         {/* Desktop Layout (lg and above) */}
-        <div className="hidden lg:flex items-center justify-between gap-4">
+        <div className="hidden lg:flex sm:flex-wrap md:items-center justify-between gap-4">
           
           {/* Travellers Section - Left Side */}
           <div className="flex items-center gap-3 text-white">
             {items.filter(item => item.id === 'schengen').map((item) => (
-              <div key={item.id} className="flex items-center gap-3 text-white">
+              <div key={item.id} className="flex flex-col xl:flex-row items-center gap-3 text-white">
                 {/* Item Info */}
                 <div className="flex flex-col">
                   <h3 className="text-sm font-medium text-white mb-1">{item.title}</h3>
-                  <div className="flex items-start gap-3">
+                  <div className="flex flex-wrap items-start gap-3">
                     <div className="flex flex-col">
                       <span className="text-white font-bold">
                         £{quantities[item.id] > 0 ? getItemDiscountedPrice(item.id).toFixed(2) : item.currentPrice}
@@ -553,7 +553,7 @@ useEffect(() => {
                       </div>
                     )}
                     {item.badge && (
-                      <div className="flex items-center gap-1">
+                      <div className="flex  items-center gap-1">
                         <div className="text-white px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1" style={{backgroundColor: '#6B4EFF'}}>
                    <UserIcon className="fill-white max-sm:w-3 max-sm:h-3" />
                           {item.badge}
@@ -606,7 +606,7 @@ useEffect(() => {
             {items.filter(item => item.id === 'insurance' || item.id === 'giftCard').map((item) => (
               <div key={item.id} className="flex items-center gap-3 text-white">
                 {/* Background Container for Insurance Certificate and Gift Card */}
-                <div className="bg-[#24242D] rounded-2xl px-6 py-3 flex items-center gap-3 min-w-[280px]">
+                <div className="bg-[#24242D] rounded-2xl px-2 xl:px-6 py-1 2xl:py-3 flex flex-col 2xl:items-center 2xl:flex-row gap-3 min-w-[280px]">
                   {/* Item Image */}
                   <Image 
                     src={item.id === 'insurance' ? '/image/certificatee.jpg' : '/image/gitftnewcard.png'}
@@ -616,6 +616,7 @@ useEffect(() => {
                     className="w-16 h-12 rounded-lg object-contain flex-shrink-0 bg-white/10"
                     priority
                   />
+                  <div className="flex items-end gap-2 ">
                   {/* Item Info */}
                   <div className="flex flex-col">
                     <h3 className="text-sm font-medium text-white mb-1">{item.title}</h3>
@@ -668,7 +669,7 @@ useEffect(() => {
                   </div>
 
                   {/* Toggle Switch */}
-                  <div className="ml-4">
+                  <div className="xl:ml-4">
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input
                         type="checkbox"
@@ -679,6 +680,8 @@ useEffect(() => {
                       <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all" style={{'--tw-bg-opacity': quantities[item.id] > 0 ? '1' : '0', backgroundColor: quantities[item.id] > 0 ? '#6B4EFF' : '#6b7280'}}></div>
                     </label>
                   </div>
+                  </div>
+
                 </div>
               </div>
             ))}
