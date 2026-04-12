@@ -1,16 +1,23 @@
+import { getAdminApiBase } from "@/utils/adminApiBase";
 import axios from "axios";
 
-export const getComparisonSection = async (country?: string) => {
+export const getComparisonSection = async (
+  country?: string,
+  isOccasion?: boolean,
+  arrivalDate?: string,
+  departureDate?: string
+) => {
   try {
     // Only make requests on client side to avoid SSR issues
     if (typeof window === 'undefined') {
       throw new Error('Comparison section API should only be called client-side');
     }
 
-    // Construct the URL using window.location to avoid localhost fallback
-    const baseUrl = window.location.origin;
     const countryParam = country ? `&country=${encodeURIComponent(country)}` : '';
-    const response = await axios.get(`${baseUrl}/api/comparison-section?path=active${countryParam}`);
+    const occasionParam = isOccasion ? '&isOccasion=true' : '';
+    const arrivalDateParam = arrivalDate ? `&arrivalDate=${encodeURIComponent(arrivalDate)}` : '';
+    const departureDateParam = departureDate ? `&departureDate=${encodeURIComponent(departureDate)}` : '';
+    const response = await axios.get(`${getAdminApiBase()}/api/comparison-section?path=active${countryParam}${occasionParam}${arrivalDateParam}${departureDateParam}`);
     return response;
   } catch (error) {
     console.error('Error fetching comparison section:', error);
