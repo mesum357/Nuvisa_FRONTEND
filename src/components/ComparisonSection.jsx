@@ -89,13 +89,16 @@ const ComparisonSection = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(0);
   const selectedCountry = useAppSelector((state) => state.visa.selectedCountry);
+  const isOccasion = useAppSelector((state) => Boolean(state.visa.visaPriceDisplay?.isOccasion));
+  const arrivalDate = useAppSelector((state) => state.visa.arrivalDate);
+  const departureDate = useAppSelector((state) => state.visa.departureDate);
 
-  const fetchComparisonData = async (country) => {
+  const fetchComparisonData = async (country, occasionEnabled, arrival, departure) => {
     try {
       setLoading(true);
       const countryName = country?.name || country || "";
       const formattedCountry = countryName.includes(",") ? countryName.split(", ")[1] : countryName;
-      const response = await getComparisonSection(formattedCountry);
+      const response = await getComparisonSection(formattedCountry, occasionEnabled, arrival, departure);
       if (response?.data?.status === "success" && response?.data?.data?.results) {
         setComparisonData(response.data.data.results);
       } else if (response?.data) {
@@ -109,8 +112,8 @@ const ComparisonSection = () => {
   };
 
   useEffect(() => {
-    fetchComparisonData(selectedCountry);
-  }, [selectedCountry]);
+    fetchComparisonData(selectedCountry, isOccasion, arrivalDate, departureDate);
+  }, [selectedCountry, isOccasion, arrivalDate, departureDate]);
 
   const defaultData = {
     title: "Beyond Compare",

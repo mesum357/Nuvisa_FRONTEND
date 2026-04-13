@@ -21,10 +21,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { path, country } = req.query;
+    const { path, country, isOccasion, arrivalDate, departureDate } = req.query;
     const params = new URLSearchParams();
     params.append('path', path || 'active');
     if (country) params.append('country', country);
+    if (isOccasion !== undefined) params.append('isOccasion', String(isOccasion));
+    if (arrivalDate) params.append('arrivalDate', String(arrivalDate));
+    if (departureDate) params.append('departureDate', String(departureDate));
     const endpoint = `?${params.toString()}`;
 
     // Call the admin panel API directly
