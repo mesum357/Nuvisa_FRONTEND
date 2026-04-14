@@ -4,8 +4,11 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { category } = req.query;
-    const endpoint = category ? `?category=${encodeURIComponent(category)}` : '';
+    const { category, faqType } = req.query;
+    const query = new URLSearchParams();
+    if (category) query.set('category', String(category));
+    if (faqType) query.set('faqType', String(faqType));
+    const endpoint = query.toString() ? `?${query.toString()}` : '';
     
     // Call the admin panel API directly
     const { getAdminApiBase } = await import('@/utils/adminApiBase');

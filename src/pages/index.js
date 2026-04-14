@@ -19,6 +19,7 @@ import VisaProcessSection from "@/components/home/VisaProcessSection";
 import DiscountTicket from "@/components/DiscountTicket";
 import { useState, useEffect, useRef } from "react";
 import { getAdminApiBase } from "@/utils/adminApiBase";
+import FAQSection from "@/components/Faqs";
 
 const defaultContactCards = {
   reduce: {
@@ -243,9 +244,10 @@ const Index = () => {
 
         <CountryCardsSection urgentDescription={urgentDescription} />
       </div>
-
       <VisaSolution />
+      <FAQSection />
 
+      
       <div className="bg-[#1E1E27] text-white w-full overflow-x-hidden pb-16">
         <VisaProcessSection />
       </div>

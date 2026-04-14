@@ -1,15 +1,21 @@
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
 import { fetchFAQs as fetchFAQsFromAPI } from '@/api/faqs';
-import { ArrowUpRight } from "lucide-react";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
+const FAQ_TABS = [
+  { value: 'WHAT_IT_IS', label: 'What is Schengen visa?' },
+  { value: 'ELIGIBILITY', label: 'Eligibility & Requirements' },
+  { value: 'COUNTRIES', label: '29 Schengen countries' },
+];
+
 const FAQSection = () => {
   const [activeIndex, setActiveIndex] = useState(null);
+  const [activeTab, setActiveTab] = useState('WHAT_IT_IS');
   const [faqs, setFaqs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
@@ -35,6 +41,33 @@ const FAQSection = () => {
     setActiveIndex(activeIndex === index ? null : index);
   };
 
+  const faqsByType = useMemo(() => {
+    const grouped = {
+      WHAT_IT_IS: [],
+      ELIGIBILITY: [],
+      COUNTRIES: [],
+    };
+
+    (Array.isArray(faqs) ? faqs : [])
+      .slice()
+      .sort((a, b) => {
+        const aOrder = Number.isFinite(a?.order) ? a.order : Number.MAX_SAFE_INTEGER;
+        const bOrder = Number.isFinite(b?.order) ? b.order : Number.MAX_SAFE_INTEGER;
+        if (aOrder !== bOrder) return aOrder - bOrder;
+        return (a?.question || '').localeCompare(b?.question || '');
+      })
+      .forEach((faq) => {
+        const type = faq?.faqType;
+        if (grouped[type]) {
+          grouped[type].push(faq);
+        }
+      });
+
+    return grouped;
+  }, [faqs]);
+
+  const activeFaqs = faqsByType[activeTab] || [];
+
 
   return (
     <section className="py-16 px-4 sm:px-6 lg:px-8  w-full  mx-auto flex-col gap-3 flex items-center justify-center bg-[#F3E5FF]">
@@ -47,15 +80,40 @@ const FAQSection = () => {
           </Link>
         </h2>
 
+        <div className="mb-6 flex flex-wrap gap-2">
+          {FAQ_TABS.map((tab) => (
+            <button
+              key={tab.value}
+              type="button"
+              onClick={() => {
+                setActiveTab(tab.value);
+                setActiveIndex(null);
+                setShowAll(false);
+              }}
+              className={`px-4 py-2 rounded-md font-gilroy-bold text-sm transition-colors ${
+                activeTab === tab.value
+                  ? 'bg-[#7350FF] text-white'
+                  : 'bg-white text-[#7350FF] border border-[#7350FF] hover:bg-[#efe8ff]'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
         <div className="space-y-4 w-full ">
           {loading ? (
             <div className="text-center py-8">
               <div className="animate-pulse text-gray-500">Loading FAQs...</div>
             </div>
+          ) : activeFaqs.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              No FAQs available in this section yet.
+            </div>
           ) : (
-            (showAll ? faqs : faqs.slice(0, 4)).map((faq, index) => (
+            (showAll ? activeFaqs : activeFaqs.slice(0, 4)).map((faq, index) => (
               <div
-                key={index}
+                key={faq.id || `${activeTab}-${index}`}
                 className="border border-gray-200 rounded-lg overflow-hidden transition-all duration-300 w-full"
               >
                 <button
@@ -81,7 +139,7 @@ const FAQSection = () => {
             ))
           )}
         </div>
-        {!loading && faqs?.length > 4 && (
+        {!loading && activeFaqs.length > 4 && (
           <div className="w-full flex justify-center mt-6">
             <button
               type="button"
