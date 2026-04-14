@@ -18,7 +18,7 @@ const isProduction = () => {
 };
 
 // Fetch FAQs from admin panel API
-export const fetchFAQs = async (category = null) => {
+export const fetchFAQs = async (filters = null) => {
   // Try multiple endpoints in order of preference
   const adminApiUrl = process.env.NEXT_PUBLIC_ADMIN_API_URL;
   // Only skip localhost URLs in production (allow them in development)
@@ -30,7 +30,19 @@ export const fetchFAQs = async (category = null) => {
     '/api/faqs',
   ].filter(Boolean);
 
-  const endpoint = category ? `?category=${encodeURIComponent(category)}` : '';
+  const normalizedFilters = typeof filters === 'string'
+    ? { category: filters }
+    : (filters || {});
+
+  const query = new URLSearchParams();
+  if (normalizedFilters.category) {
+    query.set('category', normalizedFilters.category);
+  }
+  if (normalizedFilters.faqType) {
+    query.set('faqType', normalizedFilters.faqType);
+  }
+
+  const endpoint = query.toString() ? `?${query.toString()}` : '';
 
   for (const baseUrl of apiEndpoints) {
     try {
@@ -44,7 +56,7 @@ export const fetchFAQs = async (category = null) => {
         withCredentials: false, // Don't send cookies for public endpoint
         timeout: 5000, // 5 second timeout
       });
-      
+      console.log("faqs res: ", res)
       if (res?.data?.success) return res.data.data;
     } catch (error) {
       continue;
