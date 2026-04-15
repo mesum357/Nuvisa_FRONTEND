@@ -230,7 +230,7 @@ const VisaFeeBreakdown = ({
                 <FaUser className="text-sm" />
                 <span className="text-sm">Travellers</span>
               </div>
-              <div className="flex flex-col items-center gap-3 max-sm:gap-2 shrink-0">
+              <div className="flex items-center justify-center items-center gap-3 max-sm:gap-2 shrink-0">
                 <QtyControl
                   value={travelersCount}
                   onIncrement={onTravelersIncrement}

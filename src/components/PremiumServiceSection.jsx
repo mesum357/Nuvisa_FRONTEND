@@ -136,7 +136,12 @@ const PremiumServiceSection = ({ contactCardsData }) => {
             <div className="rounded-[30px] md:rounded-[60px] w-full flex flex-col md:flex-row items-center justify-between p-6 md:py-3 md:px-16 gap-6 md:gap-0 transition-all duration-300 lg:min-h-117.5" style={{ backgroundColor: "#daee69" }}>
               <div className="w-full md:w-2/3 text-left z-10">
                 <h3 className="text-[28px] sm:text-[36px] md:text-[54px] font-extrabold font-gilroy-bold leading-tight mb-3">
-                  {contactCards.reduce.title}
+                  {/* make last word of title red color */}
+                  {contactCards.reduce.title.split(" ").map((word, index) => (
+                    <span key={index} className={index === contactCards.reduce.title.split(" ").length - 1 ? "text-[#ff5959]" : ""}>
+                      {word}{" "}
+                    </span>
+                  ))}
                 </h3>
                 <p className="text-[15px] md:text-[16px] font-medium opacity-90 max-w-3xl mb-6">
                   {contactCards.reduce.description}

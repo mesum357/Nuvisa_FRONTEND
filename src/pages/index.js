@@ -296,7 +296,7 @@ const Index = () => {
                     />
                     {showTooltip && (
                       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 p-3 bg-[#6F48FF] text-white text-[12px] font-normal leading-tight rounded-xl shadow-2xl z-50">
-                        <p>Find it cheaper, we'll match the price</p>
+                        <p>Here at NUvisa, we pride ourselves on our fair prices, expertise, and simplicity. Meaning you won’t find better value elsewhere, thanks to our unbeatable prices. Find it cheaper, and we’ll match the price — that’s a promise.</p>
                         <div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-[#6F48FF]" />
                       </div>
                     )}
@@ -304,8 +304,7 @@ const Index = () => {
                 </div>
 
                 <p className="text-gray-400 text-sm md:text-md max-w-2xl font-gilroy-medium">
-                  At NUvisa, we want you to get your Schengen visa with total confidence,
-                  knowing you're getting the best price in the market.
+                  At NUvisa, we want you to get your Schengen visa with total confidence, that's why we regularly review our prices. In fact, we guarantee to beat any like-for-like Schengen visa price, so you can apply with peace of mind.
                 </p>
               </div>
             </div>
