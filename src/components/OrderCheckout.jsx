@@ -2363,7 +2363,7 @@ const VisaCheckout = () => {
                   </span>
                   {visaPriceDisplay?.isOccasion && !!visaPriceDisplay?.traditionalLabel && (
                     <span className="text-[10px] text-gray-400 font-medium">
-                      {visaPriceDisplay.traditionalLabel}
+                      {/* {visaPriceDisplay.traditionalLabel} */}
                     </span>
                   )}
                 </div>
@@ -2374,7 +2374,7 @@ const VisaCheckout = () => {
                 </span>
                 {!!visaPriceDisplay?.originalLabel && (
                   <span className="text-[10px] text-gray-400 font-medium">
-                    {visaPriceDisplay.originalLabel}
+                    {/* {visaPriceDisplay.originalLabel} */}
                   </span>
                 )}
               </div>
@@ -2384,7 +2384,7 @@ const VisaCheckout = () => {
                 </span>
                 {!!visaPriceDisplay?.discountedLabel && (
                   <span className="text-[10px] text-gray-400 font-medium">
-                    {visaDiscountLabelText}
+                    {/* {visaDiscountLabelText} */}
                   </span>
                 )}
               </div>

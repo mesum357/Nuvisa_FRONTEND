@@ -19,10 +19,14 @@ export const CommonDatePicker = ({
           selected={selected}
           onChange={onChange}
           {...props}
+          fixedHeight
+          popperModifiers={[
+            { name: "flip", enabled: false },
+            { name: "preventOverflow", options: { boundary: "viewport", padding: 8 } },
+          ]}
           wrapperClassName="w-full"
-          className={`w-full cursor-pointer px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none bg-[#292933] text-white ${
-            error ? "border-red-500" : "border-[#423577]"
-          }`}
+          className={`w-full cursor-pointer px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition outline-none bg-[#292933] text-white ${error ? "border-red-500" : "border-[#423577]"
+            }`}
           dateFormat="dd-MM-yyyy"
           placeholderText="DD-MM-YYYY"
         />

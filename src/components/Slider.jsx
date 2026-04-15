@@ -768,53 +768,49 @@ const CountrySlider = ({ moreToLoveData }) => {
   };
 
   // Handle date changes with validation and Redux updates
-  const handleArrivalDateChange = (date) => {
-    const safeDate = isValidDate(date) ? date : null;
-    setArrivalDateLocal(safeDate);
-    const dateString = safeDate ? safeDate.toISOString().split("T")[0] : "";
-    dispatch(setArrivalDate(dateString));
+ const handleArrivalDateChange = (date) => {
+  const safeDate = isValidDate(date) ? date : null;
+  setArrivalDateLocal(safeDate);
+  const dateString = safeDate ? safeDate.toISOString().split("T")[0] : "";
+  dispatch(setArrivalDate(dateString));
 
-    if (safeDate) {
-      const minDeparture = new Date(safeDate);
-      minDeparture.setDate(minDeparture.getDate() + 1);
+  // Auto-set end date to 15 days total (start + 14 days), editable by user later.
+  let nextDeparture = departureDate;
+  if (safeDate) {
+    nextDeparture = new Date(safeDate);
+    nextDeparture.setDate(nextDeparture.getDate() + 14);
+  } else {
+    nextDeparture = null;
+  }
 
-      if (!departureDate || departureDate < minDeparture) {
-        setDepartureDateLocal(minDeparture);
-        dispatch(setDepartureDate(minDeparture.toISOString().split("T")[0]));
-      }
-    }
+  // Respect visa max duration if needed.
+  if (
+    selectedVisaType?.duration_permitted &&
+    safeDate &&
+    nextDeparture
+  ) {
+    const maxDays = parseDurationDays(selectedVisaType.duration_permitted);
+    const tripDays = Math.ceil(
+      (nextDeparture - safeDate) / (1000 * 60 * 60 * 24)
+    );
 
-    const errors = validateDates(safeDate, departureDate, selectedVisaType);
-    setDateValidationErrors(errors);
-    if (safeDate && (departureDate || (safeDate && initialDepartureDate))) {
-      const errors2 = validateDates(safeDate, departureDate, selectedVisaType);
-      setDateValidationErrors(errors2);
-    }
-
-    if (
-      selectedVisaType &&
-      selectedVisaType.duration_permitted &&
-      safeDate &&
-      departureDate
-    ) {
-      const maxDays = parseDurationDays(selectedVisaType.duration_permitted);
-      const currentTripDays = Math.ceil(
-        (departureDate - safeDate) / (1000 * 60 * 60 * 24)
+    if (maxDays && tripDays > maxDays) {
+      nextDeparture = new Date(
+        safeDate.getTime() + (maxDays - 1) * 24 * 60 * 60 * 1000
       );
-
-      // If current trip exceeds limit, adjust departure date to max allowed
-      if (maxDays && currentTripDays > maxDays) {
-        const newDepartureDate = new Date(
-          safeDate.getTime() + (maxDays - 1) * 24 * 60 * 60 * 1000
-        );
-        setDepartureDateLocal(newDepartureDate);
-        dispatch(
-          setDepartureDate(newDepartureDate.toISOString().split("T")[0])
-        );
-      }
     }
-  };
+  }
 
+  setDepartureDateLocal(nextDeparture);
+  dispatch(
+    setDepartureDate(
+      nextDeparture ? nextDeparture.toISOString().split("T")[0] : ""
+    )
+  );
+
+  const errors = validateDates(safeDate, nextDeparture, selectedVisaType);
+  setDateValidationErrors(errors);
+};
   const handleDepartureDateChange = (date) => {
     const safeDate = isValidDate(date) ? date : null;
     setDepartureDateLocal(safeDate);
