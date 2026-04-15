@@ -128,9 +128,7 @@ const Index = () => {
           });
 
           setUrgentDescription(
-            byKey.urgent_description ||
-              "*If require urgent appointment in 3-4 days kindly email support@nuvisa.co.uk do not follow the standard visa process."
-          );
+            byKey.urgent_description);
           setOccasionContent(byKey.ocassion_title || null);
           setOccasionSubtitle(byKey.ocassion_subtitle || null);
           setVisaSolutionContent({

@@ -513,7 +513,7 @@ const CountryCardsSection = ({ specificCountries, image, id, occasionContent, oc
 
       <div className="my-14 sm:mt-12 sm:mb-0 max-sm:w-full flex items-center justify-center flex-col gap-10">
         <p className={`text-[18px] mt-3 ${image ? "text-white" : "text-white"} font-gilroy-bold text-center`}>
-          {id !== "everyday-steals" && urgentDescription && "*If require urgent appointment in 3-4 days kindly email support@nuvisa.co.uk do not follow the standard visa process."}
+          {id !== "everyday-steals" && urgentDescription ? urgentDescription : ""}
         </p>
 
         <div className="mb-10 md:mb-20">
