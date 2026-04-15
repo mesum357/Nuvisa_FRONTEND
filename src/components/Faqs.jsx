@@ -10,7 +10,7 @@ import Link from "next/link";
 const FAQ_TABS = [
   { value: 'WHAT_IT_IS', label: 'What is Schengen visa?' },
   { value: 'ELIGIBILITY', label: 'Eligibility & Requirements' },
-  { value: 'COUNTRIES', label: '29 Schengen countries' },
+  { value: 'COUNTRIES', label: '29 Schengen countries?' },
 ];
 
 const FAQSection = () => {
@@ -80,7 +80,7 @@ const FAQSection = () => {
           </Link>
         </h2>
 
-        <div className="mb-6 flex flex-wrap gap-2">
+        <div className="mb-6 border-b border-[#D8C7FF] flex flex-wrap gap-6 sm:gap-8">
           {FAQ_TABS.map((tab) => (
             <button
               key={tab.value}
@@ -90,13 +90,18 @@ const FAQSection = () => {
                 setActiveIndex(null);
                 setShowAll(false);
               }}
-              className={`px-4 py-2 rounded-md font-gilroy-bold text-sm transition-colors ${
+              className={`relative pb-3 -mb-px font-gilroy-bold text-sm sm:text-base transition-colors duration-200 ${
                 activeTab === tab.value
-                  ? 'bg-[#7350FF] text-white'
-                  : 'bg-white text-[#7350FF] border border-[#7350FF] hover:bg-[#efe8ff]'
+                  ? 'text-[#7350FF]'
+                  : 'text-gray-500 hover:text-[#7350FF]'
               }`}
             >
               {tab.label}
+              <span
+                className={`absolute left-0 right-0 bottom-0 h-[2px] rounded-full transition-colors duration-200 ${
+                  activeTab === tab.value ? 'bg-[#7350FF]' : 'bg-transparent'
+                }`}
+              />
             </button>
           ))}
         </div>
