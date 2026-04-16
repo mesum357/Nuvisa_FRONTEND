@@ -70,8 +70,9 @@ const VisaCheckout = () => {
   const visaPriceDisplay = visaState.visaPriceDisplay;
   
   const [insuranceCount, setInsuranceCount] = useState(
-    visaState.insuranceCount
+    visaState.insuranceCount || 0
   );
+  console.log('🛡️ INITIAL Insurance Count:', visaState.insuranceCount);
   // Use the current visa fee from Redux when available, otherwise fall back to the selected visa type.
   const fallbackVisaFeePerTraveler =
     visaState.selectedVisaType && visaState.selectedVisaType.priceGBP
@@ -153,6 +154,10 @@ const VisaCheckout = () => {
   const [includeInsurance, setIncludeInsurance] = useState(
     visaState.recommendedItems?.insuranceCertificate || false
   );
+  console.log('🔍 INITIAL Insurance:', {
+    includeInsurance: visaState.recommendedItems?.insuranceCertificate || false,
+    insuranceCount: visaState.insuranceCount,
+  });
   const [email, setEmail] = useState(userEmail || "");
   const [emailError, setEmailError] = useState("");
   const [phone, setPhone] = useState("");
@@ -759,12 +764,17 @@ const VisaCheckout = () => {
     visaState.recommendedItems?.giftCard || false
   );
   const [giftCardCount, setGiftCardCount] = useState(
-    visaState.giftCardCount || 1
+    visaState.giftCardCount || 0
   );
+  console.log('🎁 INITIAL GiftCard:', {
+    includeGiftCard: visaState.recommendedItems?.giftCard || false,
+    giftCardCount: visaState.giftCardCount || 0,
+  });
 
   // Sync local state with Redux state when it changes - Gift Card
   useEffect(() => {
-    const reduxGiftCardCount = visaState.giftCardCount || 1;
+    const reduxGiftCardCount = visaState.giftCardCount || 0;
+    console.log('🎁 Redux gift card sync effect:', { reduxValue: reduxGiftCardCount, localValue: giftCardCount });
     if (reduxGiftCardCount !== giftCardCount) {
       setGiftCardCount(reduxGiftCardCount);
     }
@@ -838,13 +848,16 @@ const VisaCheckout = () => {
 
   const handleGiftCardChange = (increment) => {
     const newValue = giftCardCount + increment;
-    if (newValue >= 1) {
+    console.log('🎁 handleGiftCardChange:', { current: giftCardCount, increment, newValue, min: 0, passes: newValue >= 0 });
+    if (newValue >= 0) {
       setGiftCardCount(newValue);
       dispatch(setReduxGiftCardCount(Number(newValue)));
 
       if (newValue > 0 && !includeGiftCard) {
+        console.log('🎁 Auto-enabling gift card');
         setIncludeGiftCard(true);
       } else if (newValue === 0 && includeGiftCard) {
+        console.log('🎁 Auto-disabling gift card');
         setIncludeGiftCard(false);
       }
     }
@@ -852,13 +865,19 @@ const VisaCheckout = () => {
 
   const handleInsuranceChange = (increment) => {
     const proposed = insuranceCount + increment;
-    if (proposed < 1) return;
+    console.log('🛡️ handleInsuranceChange:', { current: insuranceCount, increment, proposed, travelers, min: 0, passes: proposed >= 0 });
+    if (proposed < 0) return;
     const cappedValue = Math.min(proposed, travelers);
+    console.log('🛡️ cappedValue:', cappedValue);
     if (cappedValue !== insuranceCount) {
       setInsuranceCount(cappedValue);
       dispatch(setReduxInsuranceCount(Number(cappedValue)));
       if (cappedValue > 0 && !includeInsurance) {
+        console.log('🛡️ Auto-enabling insurance');
         setIncludeInsurance(true);
+      } else if (cappedValue === 0 && includeInsurance) {
+        console.log('🛡️ Auto-disabling insurance');
+        setIncludeInsurance(false);
       }
     }
   };
@@ -2431,9 +2450,15 @@ const VisaCheckout = () => {
               <div
                 className="flex items-center space-x-2 cursor-pointer"
                 onClick={() => {
+                  console.log('🛡️ Insurance checkbox clicked:', { current: includeInsurance, newVal: !includeInsurance });
                   setIncludeInsurance(!includeInsurance);
-                  setInsuranceCount(1);
-                  dispatch(setReduxInsuranceCount(1));
+                  if (!includeInsurance) {
+                    setInsuranceCount(1);
+                    dispatch(setReduxInsuranceCount(1));
+                  } else {
+                    setInsuranceCount(0);
+                    dispatch(setReduxInsuranceCount(0));
+                  }
                 }}
               >
                 <input
@@ -2451,7 +2476,7 @@ const VisaCheckout = () => {
                   value={insuranceCount}
                   onIncrement={() => handleInsuranceChange(1)}
                   onDecrement={() => handleInsuranceChange(-1)}
-                  min={1}
+                  min={0}
                 />
                 <div className="flex item-center gap-2">
                   <span className="line-through">
@@ -2496,10 +2521,14 @@ const VisaCheckout = () => {
               <div
                 className="flex items-center space-x-2 cursor-pointer"
                 onClick={() => {
+                  console.log('🎁 GiftCard checkbox clicked:', { current: includeGiftCard, newVal: !includeGiftCard });
                   setIncludeGiftCard(!includeGiftCard);
                   if (!includeGiftCard) {
                     setGiftCardCount(1);
                     dispatch(setReduxGiftCardCount(1));
+                  } else {
+                    setGiftCardCount(0);
+                    dispatch(setReduxGiftCardCount(0));
                   }
                 }}
               >
@@ -2508,10 +2537,14 @@ const VisaCheckout = () => {
                   id="giftCard"
                   checked={includeGiftCard}
                   onChange={(e) => {
+                    console.log('🎁 GiftCard onChange:', { checked: e.target.checked, current: giftCardCount });
                     setIncludeGiftCard(e.target.checked);
                     if (e.target.checked && giftCardCount === 0) {
                       setGiftCardCount(1);
                       dispatch(setReduxGiftCardCount(1));
+                    } else if (!e.target.checked) {
+                      setGiftCardCount(0);
+                      dispatch(setReduxGiftCardCount(0));
                     }
                   }}
                   className="h-4 w-4 border-gray-300 rounded"
@@ -2524,7 +2557,7 @@ const VisaCheckout = () => {
                   value={giftCardCount}
                   onIncrement={() => handleGiftCardChange(1)}
                   onDecrement={() => handleGiftCardChange(-1)}
-                  min={1}
+                  min={0}
                 />
                 <div className="flex items-center gap-2">
                   {includeGiftCard && (
