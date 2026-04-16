@@ -7,28 +7,23 @@ import { fetchFAQs as fetchFAQsFromAPI } from '@/api/faqs';
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
-const FAQ_TABS = [
-  { value: 'WHAT_IT_IS', label: 'What is Schengen visa?' },
-  { value: 'ELIGIBILITY', label: 'Eligibility & Requirements' },
-  { value: 'COUNTRIES', label: '29 Schengen countries?' },
-];
-
 const FAQSection = () => {
   const [activeIndex, setActiveIndex] = useState(null);
-  const [activeTab, setActiveTab] = useState('WHAT_IT_IS');
+  const [activeTab, setActiveTab] = useState(null);
   const [faqs, setFaqs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
-    fetchFAQs();
+    fetchFAQData();
   }, []);
 
-  const fetchFAQs = async () => {
+  const fetchFAQData = async () => {
     try {
       setLoading(true);
-      const data = await fetchFAQsFromAPI();
-      setFaqs(data || []);
+      // Fetch featured FAQs and derive tabs directly from faqType values.
+      const faqData = await fetchFAQsFromAPI({ isFeatured: true });
+      setFaqs(Array.isArray(faqData) ? faqData : []);
     } catch (error) {
       console.error('Error fetching FAQs:', error);
       setFaqs([]);
@@ -37,16 +32,52 @@ const FAQSection = () => {
     }
   };
 
+  const faqTabs = useMemo(() => {
+    const counts = new Map();
+
+    (Array.isArray(faqs) ? faqs : []).forEach((faq) => {
+      const type = typeof faq?.faqType === 'string' ? faq.faqType.trim() : '';
+      if (type) {
+        counts.set(type, (counts.get(type) || 0) + 1);
+      }
+    });
+
+    return Array.from(counts.entries())
+      .sort((a, b) => {
+        if (b[1] !== a[1]) return b[1] - a[1];
+        return a[0].localeCompare(b[0]);
+      })
+      .map(([type]) => ({
+        value: type,
+        label: type,
+      }));
+  }, [faqs]);
+
+  useEffect(() => {
+    if (faqTabs.length === 0) {
+      setActiveTab(null);
+      return;
+    }
+
+    const tabStillExists = faqTabs.some((tab) => tab.value === activeTab);
+    if (!tabStillExists) {
+      setActiveTab(faqTabs[0].value);
+      setActiveIndex(null);
+      setShowAll(false);
+    }
+  }, [faqTabs, activeTab]);
+
   const toggleAccordion = (index) => {
     setActiveIndex(activeIndex === index ? null : index);
   };
 
   const faqsByType = useMemo(() => {
-    const grouped = {
-      WHAT_IT_IS: [],
-      ELIGIBILITY: [],
-      COUNTRIES: [],
-    };
+    const grouped = {};
+
+    // Initialize groups for each tab
+    faqTabs.forEach(tab => {
+      grouped[tab.value] = [];
+    });
 
     (Array.isArray(faqs) ? faqs : [])
       .slice()
@@ -58,15 +89,15 @@ const FAQSection = () => {
       })
       .forEach((faq) => {
         const type = faq?.faqType;
-        if (grouped[type]) {
+        if (type && grouped.hasOwnProperty(type)) {
           grouped[type].push(faq);
         }
       });
 
     return grouped;
-  }, [faqs]);
+  }, [faqs, faqTabs]);
 
-  const activeFaqs = faqsByType[activeTab] || [];
+  const activeFaqs = activeTab && faqsByType[activeTab] ? faqsByType[activeTab] : [];
 
 
   return (
@@ -81,7 +112,7 @@ const FAQSection = () => {
         </h2>
 
         <div className="mb-6 border-b border-[#D8C7FF] flex flex-wrap gap-6 sm:gap-8">
-          {FAQ_TABS.map((tab) => (
+          {faqTabs.map((tab) => (
             <button
               key={tab.value}
               type="button"
