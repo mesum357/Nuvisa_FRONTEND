@@ -4672,7 +4672,7 @@ const CountrySlider = ({ moreToLoveData }) => {
                   </div>
                   <div className="bg-[#5a3ddb] rounded-full p-2 max-sm:p-1.5">
                     <div className="text-xs text-white font-semibold max-sm:text-xs">
-                      {currentWeekReservedText}
+                      {sliderContent["slot2_status"]}
                     </div>
                   </div>
                 </div>
