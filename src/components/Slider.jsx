@@ -2772,7 +2772,7 @@ const CountrySlider = ({ moreToLoveData }) => {
     dispatch(setGiftCardFees(giftCardFees || 0));
     dispatch(setTotalAmount(totalAmount || 0));
     dispatch(setInsuranceOnly(hasOnlyInsurance || false));
-    dispatch(setReduxInsuranceCount(insuranceCount || 1));
+    dispatch(setReduxInsuranceCount(insuranceCount || 0));
 
     // Store selected visa type information
     if (selectedVisaType) {
@@ -4940,7 +4940,7 @@ const CountrySlider = ({ moreToLoveData }) => {
                           value={insuranceCount}
                           onIncrement={() => handleInsuranceChange(1)}
                           onDecrement={() => handleInsuranceChange(-1)}
-                          min={1}
+                          min={0}
                         />
                         <div className="flex items-center gap-2 justify-center">
                           <span className="text-[15px] text-gray-400 line-through">£{originalInsuranceBase.toFixed(2)}</span>
@@ -4992,7 +4992,7 @@ const CountrySlider = ({ moreToLoveData }) => {
                           value={giftCardCount}
                           onIncrement={() => handleGiftCardChange(1)}
                           onDecrement={() => handleGiftCardChange(-1)}
-                          min={1}
+                          min={0}
                         />
                         <div className="flex items-center gap-2 justify-center">
                           <span className="text-[15px] text-gray-400 line-through">£{(245 * giftCardCount).toFixed(2)}</span>
