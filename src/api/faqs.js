@@ -41,6 +41,9 @@ export const fetchFAQs = async (filters = null) => {
   if (normalizedFilters.faqType) {
     query.set('faqType', normalizedFilters.faqType);
   }
+  if (normalizedFilters.isFeatured) {
+    query.set('isFeatured', String(normalizedFilters.isFeatured));
+  }
 
   const endpoint = query.toString() ? `?${query.toString()}` : '';
 
