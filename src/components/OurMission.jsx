@@ -1,7 +1,9 @@
 "use client";
 import { ArrowUpRight } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import GetTheVisaButton from "./layout/GetTheVisaButton";
 
 const OurMission = ({ className }) => {
   const pathname = usePathname();
@@ -36,13 +38,13 @@ const OurMission = ({ className }) => {
       ></div>
 
       {/* Bottom Section */}
-      <div className="relative z-10 text-center pb-5 md:pb-10">
+      {/* <div className="relative z-10 text-center pb-5 md:pb-10">
         <h2 className="text-5xl max-md:tracking-tighter text-[#29003D]  md:text-6xl lg:text-8xl font-gilroy-bold leading-tight">
           Visa Process,
           <br />
           <span className="">Supercharged.</span>
         </h2>
-      </div>
+      </div> */}
 
       <div className="mb-10 md:mb-20">
         <Link href={targetHref}>
@@ -53,6 +55,29 @@ const OurMission = ({ className }) => {
             </span>
           </button>
         </Link>
+      </div>
+
+      <div className="w-full max-w-5xl px-6 pb-10 md:pb-20">
+        <div className="rounded-3xl bg-white border border-[#E6DBFF] shadow-[0_10px_40px_rgba(107,78,255,0.12)] overflow-hidden">
+          <div className="flex flex-col md:flex-row items-stretch">
+            <div className="md:w-[42%] w-full relative min-h-[420px]">
+              <Image
+                src="/image/supercharged.png"
+                alt="Supercharged Schengen visa support"
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, 42vw"
+              />
+            </div>
+
+            <div className="md:w-[58%] w-full px-6 py-8 md:px-10 md:py-10 flex flex-col items-start justify-center gap-6">
+              <p className="text-[#29003D] text-2xl md:text-3xl font-gilroy-bold leading-tight">
+                You&apos;re this close getting your Schengen visa and going on holiday
+              </p>
+              <GetTheVisaButton btnClassName="tracking-[0.04em]" />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
