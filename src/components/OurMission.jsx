@@ -57,10 +57,16 @@ const OurMission = ({ className }) => {
         </Link>
       </div>
 
-      <div className="w-full max-w-5xl px-6 pb-10 md:pb-20">
-        <div className="rounded-3xl bg-white border border-[#E6DBFF] shadow-[0_10px_40px_rgba(107,78,255,0.12)] overflow-hidden">
-          <div className="flex flex-col md:flex-row items-stretch">
-            <div className="md:w-[42%] w-full relative min-h-[420px]">
+      <div className="w-full max-w-8xl px-6 md:px-20 pb-10 md:pb-20">
+        <div className="w-full overflow-hidden">
+          <div className="flex flex-col md:flex-row md:justify-around items-center">
+             <div className="md:w-[38%] w-full py-8 md:px-10 md:py-10 flex flex-col items-center justify-center gap-6">
+              <p className="text-[#29003D] text-center text-2xl md:text-3xl font-gilroy-bold leading-tight">
+                You&apos;re this close getting your Schengen visa and going on holiday
+              </p>
+              <GetTheVisaButton btnClassName="tracking-[0.04em]" />
+            </div>
+            <div className="md:w-[32%] max-w-md w-full relative min-h-[470px] md:min-h-[510px] max-h-[550px] rounded-2xl overflow-hidden">
               <Image
                 src="/image/supercharged.png"
                 alt="Supercharged Schengen visa support"
@@ -70,12 +76,7 @@ const OurMission = ({ className }) => {
               />
             </div>
 
-            <div className="md:w-[58%] w-full px-6 py-8 md:px-10 md:py-10 flex flex-col items-start justify-center gap-6">
-              <p className="text-[#29003D] text-2xl md:text-3xl font-gilroy-bold leading-tight">
-                You&apos;re this close getting your Schengen visa and going on holiday
-              </p>
-              <GetTheVisaButton btnClassName="tracking-[0.04em]" />
-            </div>
+           
           </div>
         </div>
       </div>
