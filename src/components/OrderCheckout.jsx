@@ -2652,7 +2652,7 @@ const VisaCheckout = () => {
                     {/* Slot 1 */}
                     <div className="text-center">
                       <div className="text-xs text-white/70 mb-2 font-medium max-sm:text-xs max-sm:mb-1">
-                        {sliderContent["slot1_label"] || "Oct slots"}
+                        {getDynamicMonthText(sliderContent["slot1_label"], -1)}
                       </div>
                       <div className="bg-[#1e1e27] rounded-full p-2 max-sm:p-1.5">
                         <div className="text-xs text-white font-semibold max-sm:text-xs">
@@ -2664,11 +2664,11 @@ const VisaCheckout = () => {
                     {/* Slot 2 */}
                     <div className="text-center">
                       <div className="text-xs text-white/70 mb-2 font-medium max-sm:text-xs max-sm:mb-1">
-                        {sliderContent["slot2_label"] || "Nov slots"}
+                         {getDynamicMonthText(sliderContent["slot2_label"], 0)}
                       </div>
                       <div className="bg-[#5a3ddb] rounded-full p-2 max-sm:p-1.5">
                         <div className="text-xs text-white font-semibold max-sm:text-xs">
-                          { sliderContent["slot2_status"]||currentWeekReservedText}
+                          {currentWeekReservedText}
                         </div>
                       </div>
                     </div>
@@ -2676,11 +2676,11 @@ const VisaCheckout = () => {
                     {/* Slot 3 */}
                     <div className="text-center">
                       <div className="text-xs text-white/70 mb-2 font-medium max-sm:text-xs max-sm:mb-1">
-                        {sliderContent["slot3_label"] || "Dec slots"}
+                        {getDynamicMonthText(sliderContent["slot3_label"], 1)}
                       </div>
                       <div className="bg-[#1e1e27] rounded-full p-2 max-sm:p-1.5">
                         <div className="text-xs text-white font-semibold max-sm:text-xs">
-                          {sliderContent["slot3_status"] || "45% reserved"}
+                          {sliderContent["slot3_status"]}
                         </div>
                       </div>
                     </div>

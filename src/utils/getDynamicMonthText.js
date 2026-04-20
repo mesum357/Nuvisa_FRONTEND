@@ -1,11 +1,5 @@
-export const getDynamicMonthText = (
-  text,
-  monthOffset = 0,
-  options = {}
-) => {
+export const getDynamicMonthText = (text, monthOffset = 0) => {
   if (!text || typeof text !== "string") return text;
-  const { replaceMonthNames = false } = options;
-
   const now = new Date();
   const targetDate = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
 
@@ -22,8 +16,8 @@ export const getDynamicMonthText = (
     .replace(/\{monthLong\}/gi, monthLong)
     .replace(/\{year\}/gi, year);
 
-  // Optional legacy behavior: replace hardcoded month names if no placeholders are used.
-  if (replaceMonthNames && replaced === text) {
+  // If no placeholders were replaced, fallback to replacing hardcoded month names
+  if (replaced === text) {
     const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const monthLongNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
@@ -40,5 +34,6 @@ export const getDynamicMonthText = (
       replaced = replaced.replace(/\b\d{4}\b/g, year);
     }
   }
+
   return replaced;
 };
