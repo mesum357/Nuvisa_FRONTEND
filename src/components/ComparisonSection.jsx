@@ -158,7 +158,7 @@ const ComparisonSection = () => {
   const detailSections = data?.detailSections || defaultData.detailSections;
   const comparisonColumns = data?.comparisonColumns || defaultData.comparisonColumns;
   const comparisonRows = data?.comparisonRows || defaultData.comparisonRows;
-
+  console.log("Comparison Data:", comparisonData);
   const trustBadges = [
     { icon: <Shield size={20} strokeWidth={1.5} />, label: "SECURE DATA" },
     { icon: <Headphones size={20} strokeWidth={1.5} />, label: "EXPERT GUIDANCE" },
@@ -215,16 +215,16 @@ const ComparisonSection = () => {
               )}
             </div>
 
-                      <div className="my-6 hidden lg:flex flex-wrap justify-center items-center gap-5 pt-5 border-t border-white">
-            {trustBadges.map((badge, i) => (
-              <div key={i} className="flex flex-col items-center gap-1 text-center">
-                <span className="text-white">{badge.icon}</span>
-                <p className="text-[9px] font-gilroy-bold tracking-widest text-white uppercase leading-tight">
-                  {badge.label}
-                </p>
-              </div>
-            ))}
-          </div>
+            <div className="my-6 hidden lg:flex flex-wrap justify-center items-center gap-5 pt-5 border-t border-white">
+              {trustBadges.map((badge, i) => (
+                <div key={i} className="flex flex-col items-center gap-1 text-center">
+                  <span className="text-white">{badge.icon}</span>
+                  <p className="text-[9px] font-gilroy-bold tracking-widest text-white uppercase leading-tight">
+                    {badge.label}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Middle Column */}
@@ -330,9 +330,8 @@ const ComparisonSection = () => {
                       key={idx}
                       className="flex items-start gap-3 p-3 rounded-xl bg-white/5 border border-white/10 hover:border-[#6F48FF]/50 transition-colors"
                     >
-                      <div className="shrink-0 mt-0.5 w-5 h-5 flex items-center justify-center rounded-full bg-[#6F48FF] text-white">
-                        <Check size={10} strokeWidth={3} />
-                      </div>
+                      <div className="mt-1.5 shrink-0 w-1.5 h-1.5 rounded-full bg-white" />
+
                       <span className="text-[13px] text-white font-gilroy-medium leading-snug">
                         {task}
                       </span>

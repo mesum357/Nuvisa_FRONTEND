@@ -530,8 +530,8 @@ useEffect(() => {
                         </span>
                       )}
                     </div>
-                    <div className="flex flex-col">
-                      <span className="text-red-400 line-through text-sm">
+                    <div className="flex gap-1 flex-col">
+                      <span className={` ${visaPriceDisplay?.traditionalPerTraveler ? 'text-red-400' : ''} line-through text-sm`}>
                         £{((Number(visaPriceDisplay?.originalPerTraveler || item.originalPrice)) * (quantities[item.id] > 0 ? quantities[item.id] : 1)).toFixed(2)}
                       </span>
                       {!!visaPriceDisplay?.originalLabel && (
@@ -541,7 +541,7 @@ useEffect(() => {
                       )}
                     </div>
                     {Number(visaPriceDisplay?.traditionalPerTraveler || 0) > 0 && (
-                      <div className="flex flex-col">
+                      <div className="flex  gap-1 flex-col">
                         <span className="text-gray-500 line-through text-sm">
                           £{(Number(visaPriceDisplay?.traditionalPerTraveler || 0) * (quantities[item.id] > 0 ? quantities[item.id] : 1)).toFixed(2)}
                         </span>
@@ -740,7 +740,7 @@ useEffect(() => {
                           </span>
                         )}
                       </div>
-                      <div className="flex flex-col">
+                      <div className="flex gap-1 flex-col">
                         <span className="text-gray-400 line-through text-sm">
                           £{((Number(visaPriceDisplay?.originalPerTraveler || item.originalPrice)) * (quantities[item.id] > 0 ? quantities[item.id] : 1)).toFixed(2)}
                         </span>
@@ -751,7 +751,7 @@ useEffect(() => {
                         )}
                       </div>
                       {Number(visaPriceDisplay?.traditionalPerTraveler || 0) > 0 && (
-                        <div className="flex flex-col">
+                        <div className="flex gap-1 flex-col">
                           <span className="text-gray-500 line-through text-sm">
                             £{(Number(visaPriceDisplay?.traditionalPerTraveler || 0) * (quantities[item.id] > 0 ? quantities[item.id] : 1)).toFixed(2)}
                           </span>
