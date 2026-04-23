@@ -21,7 +21,6 @@ const FAQSection = () => {
   const fetchFAQData = async () => {
     try {
       setLoading(true);
-      // Fetch featured FAQs and derive tabs directly from faqType values.
       const faqData = await fetchFAQsFromAPI({ isFeatured: true });
       setFaqs(Array.isArray(faqData) ? faqData : []);
     } catch (error) {
@@ -43,10 +42,7 @@ const FAQSection = () => {
     });
 
     return Array.from(counts.entries())
-      .sort((a, b) => {
-        if (b[1] !== a[1]) return b[1] - a[1];
-        return a[0].localeCompare(b[0]);
-      })
+      .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([type]) => ({
         value: type,
         label: type,
