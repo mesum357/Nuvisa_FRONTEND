@@ -93,7 +93,7 @@ const parseOccasionPrice = (value) => {
   return Number.isFinite(parsed) ? parsed : NaN;
 };
 
-const CountrySlider = ({ moreToLoveData }) => {
+const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { showError, showSuccess } = useToast();
@@ -5040,11 +5040,11 @@ const CountrySlider = ({ moreToLoveData }) => {
             <div className="mt-6 space-y-2 max-sm:space-y-1.5">
               <div className="flex items-center space-x-2 text-sm max-sm:text-xs">
                 <MedalIcon className="size-5 text-white/70 max-sm:w-4 max-sm:h-4" />
-                <span>99.3% Visa approval rate</span>
+                <span>{checkoutButtonDescription.subtitleOne}</span>
               </div>
               <div className="flex items-center space-x-2 text-sm max-sm:text-xs">
                 <ShieldCheckIcon className="size-5 text-white/70 max-sm:w-4 max-sm:h-4" />
-                <span>100% Risk free - Get your visa or full refund</span>
+                <span>{checkoutButtonDescription.subtitleTwo}</span>
               </div>
             </div>
 
