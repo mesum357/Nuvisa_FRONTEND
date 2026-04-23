@@ -25,7 +25,10 @@ const VisaInformation = () => {
     leftSubtitle: "",
     rightSubtitle: "",
   });
-
+  const [checkoutButtonDescription, setCheckoutButtonDescription] = useState({
+    subtitleOne: "99.3% Visa approval rate",
+    subtitleTwo: "100% Risk free - Get your visa or full refund",
+  });
   // Handle hash fragment scrolling
   useEffect(() => {
     const scrollToHash = (retryCount = 0) => {
@@ -87,6 +90,10 @@ const VisaInformation = () => {
           leftSubtitle: byKey.more_to_love_left_subtitle || "",
           rightSubtitle: byKey.more_to_love_right_subtitle || "",
         });
+        setCheckoutButtonDescription({
+          subtitleOne: byKey.subtitle_one || "99.3% Visa approval rate",
+          subtitleTwo: byKey.subtitle_two || "100% Risk free - Get your visa or full refund",
+        })
       } catch (_error) {
         // Keep defaults when API request fails.
       }
@@ -99,7 +106,7 @@ const VisaInformation = () => {
       <div className="bg-[#1E1E27] text-white w-full overflow-x-clip">
         <Navbar />
         <div className="w-full mx-auto flex flex-col gap-0 items-center justify-center mt-5 ">
-          <CountrySlider moreToLoveData={moreToLoveData} />
+          <CountrySlider moreToLoveData={moreToLoveData} checkoutButtonDescription={checkoutButtonDescription} />
 
           {/* Visa Type Selection */}
           <section id={"comparison-section"}>
