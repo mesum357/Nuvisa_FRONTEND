@@ -32,20 +32,39 @@ const FAQSection = () => {
   };
 
   const faqTabs = useMemo(() => {
-    const counts = new Map();
+    const typeMeta = new Map();
 
     (Array.isArray(faqs) ? faqs : []).forEach((faq) => {
       const type = typeof faq?.faqType === 'string' ? faq.faqType.trim() : '';
       if (type) {
-        counts.set(type, (counts.get(type) || 0) + 1);
+        const rawCreatedAt = faq?.faqTypeCreatedAt || faq?.createdAt || null;
+        const createdAtMs = rawCreatedAt ? new Date(rawCreatedAt).getTime() : Number.MAX_SAFE_INTEGER;
+        const existing = typeMeta.get(type);
+
+        if (!existing) {
+          typeMeta.set(type, {
+            label: type,
+            createdAtMs,
+          });
+          return;
+        }
+
+        if (createdAtMs < existing.createdAtMs) {
+          existing.createdAtMs = createdAtMs;
+        }
       }
     });
 
-    return Array.from(counts.entries())
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([type]) => ({
+    return Array.from(typeMeta.entries())
+      .sort((a, b) => {
+        if (a[1].createdAtMs !== b[1].createdAtMs) {
+          return a[1].createdAtMs - b[1].createdAtMs;
+        }
+        return a[0].localeCompare(b[0]);
+      })
+      .map(([type, meta]) => ({
         value: type,
-        label: type,
+        label: meta.label,
       }));
   }, [faqs]);
 
@@ -84,7 +103,7 @@ const FAQSection = () => {
         return (a?.question || '').localeCompare(b?.question || '');
       })
       .forEach((faq) => {
-        const type = faq?.faqType;
+        const type = typeof faq?.faqType === 'string' ? faq.faqType.trim() : '';
         if (type && grouped.hasOwnProperty(type)) {
           grouped[type].push(faq);
         }
