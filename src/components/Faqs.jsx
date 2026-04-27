@@ -183,7 +183,7 @@ const FAQSection = () => {
 
                 {activeIndex === index && (
                   <div className="p-5 bg-white text-gray-600 ">
-                    <p>{faq.answer}</p>
+                    <pre class="font-sans whitespace-pre-wrap">{faq.answer}</pre>
                   </div>
                 )}
               </div>
