@@ -126,7 +126,7 @@ const FAQSection = () => {
           </Link>
         </h2>
 
-        <div className="mb-6 border-b border-[#D8C7FF] flex flex-wrap gap-6 sm:gap-8">
+        <div className="mb-6 border-b border-[#D8C7FF] flex flex-wrap gap-6 sm:gap-8 w-fit">
           {faqTabs.map((tab) => (
             <button
               key={tab.value}

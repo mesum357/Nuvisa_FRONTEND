@@ -277,7 +277,7 @@ const Index = () => {
                 <div className="flex items-center gap-3 justify-center flex-wrap">
                   <Image src="/image/BadgeIcon.png" width={40} height={40} alt="Badge Icon" />
                   <h2 className="text-[26px] lg:text-[32px] font-gilroy-bold text-white leading-tight">
-                    Price match guarantee
+                    The NUvisa Price Match Promise
                   </h2>
 
                   {/* Tooltip */}
@@ -294,7 +294,7 @@ const Index = () => {
                     />
                     {showTooltip && (
                       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 p-3 bg-[#6F48FF] text-white text-[12px] font-normal leading-tight rounded-xl shadow-2xl z-50">
-                        <p>Here at NUvisa, we pride ourselves on our fair prices, expertise, and simplicity. Meaning you won’t find better value elsewhere, thanks to our unbeatable prices. Find it cheaper, and we’ll match the price — that’s a promise.</p>
+                        <p>We pride ourselves on our fair prices, expertise, and simplicity. Meaning you won’t find better value elsewhere, thanks to our unbeatable prices. Find it cheaper, and we’ll match the price — that’s a promise.</p>
                         <div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-[#6F48FF]" />
                       </div>
                     )}

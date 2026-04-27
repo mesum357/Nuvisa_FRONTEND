@@ -30,7 +30,7 @@ const DocumentUploadSection = ({
       id: 2,
       title: "Bank statements (last 3 months)",
       description:
-        "Last 3 months showing sufficient funds (recommended £50–£80 per day per person)",
+        "Last 3 months showing sufficient funds (recommended £60–£100 per day per person)",
       required: true,
       field: "bankStatements",
     },

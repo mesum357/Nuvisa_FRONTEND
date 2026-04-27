@@ -380,6 +380,22 @@ const StickyBottomBar = ({ triggerElementId } ) => {
     visaPriceDisplay?.traditionalPerTraveler,
   ]);
 
+  const schengenMaxDiscountPercent = useMemo(() => {
+    const schengenQtyForDisplay = quantities.schengen > 0 ? quantities.schengen : 1;
+    const maxStrikePerTraveler = Math.max(
+      Number(visaPriceDisplay?.originalPerTraveler || 0),
+      Number(visaPriceDisplay?.traditionalPerTraveler || 0)
+    );
+    const maxStrikeTotal = maxStrikePerTraveler * schengenQtyForDisplay;
+    if (maxStrikeTotal <= 0) return 0;
+    return Math.round((schengenMaxDiscountAmount / maxStrikeTotal) * 100);
+  }, [
+    schengenMaxDiscountAmount,
+    quantities.schengen,
+    visaPriceDisplay?.originalPerTraveler,
+    visaPriceDisplay?.traditionalPerTraveler,
+  ]);
+
 // console.log("visa state",visaState)
   // Memoize handleAddToCart to prevent unnecessary re-renders
   const handleAddToCart = useCallback(() => {
@@ -526,7 +542,7 @@ useEffect(() => {
                       </span>
                       {!!visaPriceDisplay?.discountedLabel && (
                         <span className="text-[10px] text-gray-500 font-medium">
-                          {visaPriceDisplay.discountedLabel} {schengenMaxDiscountAmount.toFixed(2)}
+                          {visaPriceDisplay.discountedLabel} {schengenMaxDiscountPercent}%
                         </span>
                       )}
                     </div>
@@ -736,7 +752,7 @@ useEffect(() => {
                         </span>
                         {!!visaPriceDisplay?.discountedLabel && (
                           <span className="text-[10px] text-gray-500 font-medium">
-                            {visaPriceDisplay.discountedLabel} {schengenMaxDiscountAmount.toFixed(2)}
+                            {visaPriceDisplay.discountedLabel} {schengenMaxDiscountPercent}%
                           </span>
                         )}
                       </div>
