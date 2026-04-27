@@ -41,6 +41,19 @@ const defaultContactCards = {
   },
 };
 
+const defaultTopDestinationContent = {
+  title: "Top Destinations",
+  subtitle: "Explore our most popular visa destinations loved by travellers worldwide.",
+};
+
+const defaultTopDestinationCountries = [
+  { name: "France", bgColor: "#5f9aff", isHidden: false },
+  { name: "Spain", bgColor: "#ff8e59", isHidden: false },
+  { name: "Italy", bgColor: "#daee69", isHidden: false },
+  { name: "Germany", bgColor: "#fdfd55", isHidden: false },
+  { name: "Netherlands", bgColor: "#ffb1ee", isHidden: false },
+];
+
 const defaultVisaSolutionContent = {
   title: "Everyday Steals",
   subtitle:
@@ -64,6 +77,8 @@ const Index = () => {
   const [isMobile, setIsMobile] = useState(false);
   const tooltipRef = useRef(null);
   const [contactCards, setContactCards] = useState(defaultContactCards);
+  const [topDestinationContent, setTopDestinationContent] = useState(defaultTopDestinationContent);
+  const [topDestinationCountries, setTopDestinationCountries] = useState(defaultTopDestinationCountries);
   const [visaSolutionContent, setVisaSolutionContent] = useState(defaultVisaSolutionContent);
   const [everydayStealsCountries, setEverydayStealsCountries] = useState(defaultEverydayStealsCountries);
   const [occasionContent, setOccasionContent] = useState(null);
@@ -157,6 +172,33 @@ const Index = () => {
           setEverydayStealsCountries(
             parsedCountries.length > 0 ? parsedCountries : defaultEverydayStealsCountries
           );
+
+          setTopDestinationContent({
+            title: byKey.topdestination_title || defaultTopDestinationContent.title,
+            subtitle: byKey.topdestination_subtitle || defaultTopDestinationContent.subtitle,
+          });
+
+          let parsedTopCountries = [];
+          if (byKey.topdestination_countries) {
+            try {
+              const parsed = JSON.parse(byKey.topdestination_countries);
+              if (Array.isArray(parsed)) {
+                parsedTopCountries = parsed
+                  .map((item) => ({
+                    name: String(item?.name || "").trim(),
+                    bgColor: String(item?.bgColor || "").trim() || "#5f9aff",
+                    isHidden: Boolean(item?.isHidden),
+                  }))
+                  .filter((item) => item.name);
+              }
+            } catch {
+              // Keep defaults if malformed.
+            }
+          }
+
+          setTopDestinationCountries(
+            parsedTopCountries.length > 0 ? parsedTopCountries : defaultTopDestinationCountries
+          );
         }
 
       } catch (_error) {
@@ -166,6 +208,14 @@ const Index = () => {
 
     fetchHomepageDynamicContent();
   }, []);
+
+  const topDestinationSectionCountries = topDestinationCountries
+    .filter((country) => !country.isHidden)
+    .map((country) => ({
+      name: country.name,
+      image: buildCountryImagePath(country.name),
+      bgColor: country.bgColor,
+    }));
 
   const secondSectionCountries = everydayStealsCountries
     .filter((country) => !country.isHidden)
@@ -242,7 +292,11 @@ const Index = () => {
 
         <CountryCardsSection urgentDescription={urgentDescription} />
       </div>
-      <VisaSolution />
+      <VisaSolution
+        title={topDestinationContent.title}
+        subtitle={topDestinationContent.subtitle}
+        countriesData={topDestinationSectionCountries}
+      />
       <FAQSection />
 
       
