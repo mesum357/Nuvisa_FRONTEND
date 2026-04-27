@@ -8,10 +8,8 @@ import GetTheVisaButton from "./layout/GetTheVisaButton";
 const OurMission = ({ className }) => {
   const pathname = usePathname();
 
-  const buttonText = pathname === "/get-the-visa" ? "Get The Visa" : "Check Required Documents";
-  const targetHref = pathname === "/get-the-visa"
-    ? "/get-the-visa"
-    : "/get-the-visa#required-documents";
+  const buttonText = "Check Required Documents";
+  const targetHref = "/get-the-visa#required-documents";
 
   return (
     <div
@@ -20,7 +18,6 @@ const OurMission = ({ className }) => {
     >
       {/* Top Section */}
       <div className="relative z-10 max-w-[1200px] w-full px-6 pt-0 md:pt-20 pb-8">
-        <p className="text-2xl font-medium text-[#29003D] mb-4">Our vision:</p>
         <h1 className="text-[28px] lg:text-[32px] font-gilroy-bold mb-8 leading-tight text-[#29003D]">
           We believe quality travel can elevate your life.
         </h1>
@@ -57,7 +54,7 @@ const OurMission = ({ className }) => {
         </Link>
       </div>
 
-      <div className="w-full max-w-8xl px-6 md:px-20 pb-10 md:pb-20">
+      {/* <div className="w-full max-w-8xl px-6 md:px-20 pb-10 md:pb-20">
         <div className="w-full overflow-hidden">
           <div className="flex flex-col md:flex-row md:justify-around items-center">
              <div className="md:w-[38%] w-full py-8 md:px-10 md:py-10 flex flex-col items-center justify-center gap-6">
@@ -79,7 +76,7 @@ const OurMission = ({ className }) => {
            
           </div>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 };

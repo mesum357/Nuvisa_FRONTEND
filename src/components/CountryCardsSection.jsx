@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import Image from "next/image";
 import { ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -19,6 +19,7 @@ import { getAdminApiBase } from "@/utils/adminApiBase";
 
 const CountryCardsSection = ({ specificCountries, image, id, occasionContent, occasionSubtitle, urgentDescription }) => {
   const [showAll, setShowAll] = useState(false);
+  const seeMoreRef = useRef(null);
   const [sectionContent, setSectionContent] = useState({
     title: "Choose Your Country",
     description: "We support 20 countries over all the visa centres in the UK",
@@ -487,7 +488,7 @@ const CountryCardsSection = ({ specificCountries, image, id, occasionContent, oc
 
       {/* See More Button - Only for Country view */}
       {id !== "everyday-steals" && !image && !showAll && homepageCountries.length > (isMobile ? 5 : 9) && (
-        <div className="text-center mt-12">
+        <div ref={seeMoreRef} className="text-center mt-12">
           <button
             onClick={() => setShowAll(true)}
             className="inline-flex items-center gap-2 bg-white text-gray-900 px-8 py-3 rounded-full font-medium hover:bg-gray-100 transition-colors duration-300 shadow-lg hover:shadow-xl"
@@ -502,7 +503,12 @@ const CountryCardsSection = ({ specificCountries, image, id, occasionContent, oc
       {id !== "everyday-steals" && showAll && homepageCountries.length > (isMobile ? 5 : 9) && (
         <div className="text-center mt-12">
           <button
-            onClick={() => setShowAll(false)}
+            onClick={() => {
+              setShowAll(false);
+              setTimeout(() => {
+                seeMoreRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+              }, 0);
+            }}
             className="inline-flex items-center gap-2 bg-gray-700 text-white px-8 py-3 rounded-full font-medium hover:bg-gray-600 transition-colors duration-300"
           >
             Show Less

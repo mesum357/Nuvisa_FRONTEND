@@ -188,7 +188,7 @@ const ComparisonSection = () => {
                   <button
                     key={sIdx}
                     onClick={() => setActiveTab(sIdx)}
-                    className={`text-sm md:text-base font-gilroy-bold text-white leading-tight tracking-widest uppercase transition-all relative pb-4 ${activeTab === sIdx ? "opacity-100" : "opacity-40 hover:opacity-60"
+                    className={`text-sm md:text-[13px] font-gilroy-bold text-white leading-tight tracking-widest uppercase transition-all relative pb-4 ${activeTab === sIdx ? "opacity-100" : "opacity-40 hover:opacity-60"
                       }`}
                   >
                     {section.title}
@@ -230,7 +230,7 @@ const ComparisonSection = () => {
           {/* Middle Column */}
           <div className="flex flex-col order-1 lg:order-2 lg:px-6 lg:border-r border-white">
             <div className="pb-4 flex items-center gap-2">
-              <h3 className="text-sm md:text-base font-gilroy-bold font-bold text-white leading-tight tracking-tight uppercase">
+              <h3 className="text-sm md:text-[13px] font-gilroy-bold font-bold text-white leading-tight tracking-tight uppercase">
                 {data.title || "BEYOND COMPARE"}
               </h3>
               {data.tooltip && <Tooltip text={data.tooltip} />}
@@ -317,7 +317,7 @@ const ComparisonSection = () => {
           {/* Right Column */}
           <div className="flex flex-col order-3 lg:order-3 lg:pl-6">
             <div className="pb-4">
-              <h3 className="text-sm md:text-base font-gilroy-bold text-white leading-tight tracking-tight uppercase">
+              <h3 className="text-sm md:text-[13px] font-gilroy-bold text-white leading-tight tracking-tight uppercase">
                 {data.experienceTitle || "THE EXPERIENCE"}
               </h3>
             </div>

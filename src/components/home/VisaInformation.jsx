@@ -225,7 +225,7 @@ const VisaInformation = () => {
 
           <FAQSection />
           <SeamlessExperience />
-          <div id="klarna-section" className=" bg-[#F3E6FF] px-5 pt-15 mt-16 w-full flex items-center justify-center overflow-x-hidden">
+          <div id="klarna-section" className=" bg-[#F3E6FF] px-5 py-15 mt-16 w-full flex items-center justify-center overflow-x-hidden">
             <div className="max-w-[88rem] bg-[#1E1E27] text-white w-full rounded-3xl py-12 px-10 text-center shadow-2xl">
               <h2 className="text-[26px] max-md:px-8 lg:text-[38px] font-gilroy-bold text-white mb-2 leading-tight flex items-center gap-3 justify-center lg:flex-row flex-col">
                 <Image src="/icons/klarna.png" alt="Klarna" width={100} height={40} className="" priority />
