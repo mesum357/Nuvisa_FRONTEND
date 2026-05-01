@@ -354,7 +354,7 @@ const ApplicationCompletedSection = ({
                 })}
               </p>
               <p className="text-xs text-gray-400 mt-1">
-                We review applications within 24 working hours
+                We aim to review applications within 3 working hours
               </p>
             </div>
             <div>

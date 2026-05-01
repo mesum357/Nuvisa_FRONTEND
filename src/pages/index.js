@@ -257,23 +257,20 @@ const Index = () => {
                 {loading ? (
                   "Flat £200 fee, faster processing, dedicated support"
                 ) : heroContent.description?.includes("+Link+") ? (
-                  heroContent.description.split(" I ").map((part, index, array) => {
-                    const isLast = index === array.length - 1;
+                  heroContent.description.split(" I ").map((part, index) => {
                     if (part.includes("+Link+")) {
                       const [text, url] = part.split("+Link+");
                       return (
-                        <span key={index}>
-                          <Link href={url.trim()} className="hover:underline decoration-white/50 transition-all">
+                        <span key={index} className="mr-3">
+                          <Link href={url.trim()} className="hover:underline decoration-white/50 transition-all border rounded-4xl px-5 py-3 text-xl">
                             {text.trim()}
                           </Link>
-                          {!isLast && " I "}
                         </span>
                       );
                     }
                     return (
-                      <span key={index}>
+                      <span key={index} className="mr-3">
                         {part}
-                        {!isLast && " I "}
                       </span>
                     );
                   })
@@ -356,7 +353,7 @@ const Index = () => {
                 </div>
 
                 <p className="text-gray-400 text-sm md:text-md max-w-2xl font-gilroy-medium">
-                  At NUvisa, we want you to get your Schengen visa with total confidence, that's why we regularly review our prices. In fact, we guarantee to beat any like-for-like Schengen visa price, so you can apply with peace of mind.
+                  At NUvisa, we want you to get your Schengen visa with total confidence, that's why we regularly review our prices. In fact, we promise to match any like-for-like Schengen visa price, so you can apply with peace of mind.
                 </p>
               </div>
             </div>

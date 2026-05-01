@@ -126,7 +126,7 @@ const StatusTracker = ({ applicationId, className = "", initialStatus = null, on
           }]
         : [{
             id: 'decision',
-            title: 'Decision',
+            title: 'Decision made, passport dispatched/ready',
             description: 'Final decision on your application',
             completed: progress >= 100,
             current: progress === 100
