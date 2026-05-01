@@ -1,18 +1,36 @@
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import OurMission from "@/components/OurMission";
-import React from "react";
+import Image from "next/image";
+import React, { useState, useEffect } from "react";
 
 const OurGuarantee = () => {
+  const [scrollY, setScrollY] = useState(0);
+
+  useEffect(() => {
+    const onScroll = () => setScrollY(window.scrollY);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#f7f3ff]">
-      <div className="pri_bg text-white pb-12">
+      <div className="pri_bg text-white pb-12 overflow-visible">
         <Navbar />
 
-        <section className="max-w-6xl mx-auto mb-4 pt-10 md:pt-16 text-center">
-          <h1 className="font-gilroy-bold text-4xl md:text-6xl leading-tight mb-4">
+        <section className="relative max-w-6xl mx-auto mb-4 pt-10 md:pt-16 text-center flex items-center flex-col overflow-visible">
+          <div
+            className="absolute -top-5 left-[45%] pointer-events-none"
+            style={{ transform: `translateY(${-scrollY * 0.1}px)` }}
+          >
+            <Image src="/image/quill.png" width={250} height={250} alt="Quill" />
+          </div>
+          <h1 className="z-10 font-gilroy-bold text-4xl md:text-6xl leading-tight">
             Our Guarantee
           </h1>
+          <p className="z-10 text-neutral-300 max-w-2xl mx-auto text-base md:text-lg">
+            Professional support built around one goal: your visa approval.
+          </p>
         </section>
       </div>
       <main className="-mt-6 md:-mt-10 mb-6 md:mb-10">
@@ -26,7 +44,7 @@ const OurGuarantee = () => {
 
                 Suppose the application is unsuccessful, you will receive a full refund.<br /><br />
 
-                This is not just a guarantee; it is a reflection of the confidence we have in our process. Our success is built on a practice of approaching each application with the highest level of care and attention to detail, and before anything is submitted, it is thoroughly reviewed by our experts to give your application 100% chance of approval.<br /><br />
+                This is not just a guarantee; it is a reflection of the confidence we have in our process. Our success is built on a practice of approaching each application with the highest level of care and attention to detail, and before anything is submitted, it is thoroughly reviewed by experts to give your application 100% chance of approval.<br /><br />
               </p>
             </div>
 

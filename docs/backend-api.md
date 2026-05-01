@@ -640,7 +640,7 @@ Derived payload shape returned by helper:
     "id": "app_uuid",
     "status": "appointment_booked",
     "submittedAt": "2026-04-05T10:30:00.000Z",
-    "estimatedProcessingTime": "24 working hours",
+    "estimatedProcessingTime": "3 working hours",
     "orderId": "12345",
     "formattedApplicationId": "AI00001234",
     "formattedOrderId": "ORD012345",

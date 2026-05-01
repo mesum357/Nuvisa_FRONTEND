@@ -690,7 +690,7 @@ const ProgressTimeline = ({ currentStatus, applicant, allTravelers = [], current
     { id: "under_review", label: "Under Review", icon: <FileText size={20} /> },
     { id: "appointment_booked", label: "Appointment booked", icon: <CalendarDays size={20} /> },
     { id: "at_embassy", label: "At embassy", icon: <Building2 size={20} /> },
-    { id: "decision_made", label: "Decision made", icon: <CheckCircle2 size={20} /> },
+    { id: "decision_made", label: "Decision made, passport dispatched/ready", icon: <CheckCircle2 size={20} /> },
   ];
 
   const getCurrentStepIndex = (statusOrProgress) => {

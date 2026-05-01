@@ -35,13 +35,11 @@ const OurMission = ({ className }) => {
       ></div>
 
       {/* Bottom Section */}
-      {/* <div className="relative z-10 text-center pb-5 md:pb-10">
-        <h2 className="text-5xl max-md:tracking-tighter text-[#29003D]  md:text-6xl lg:text-8xl font-gilroy-bold leading-tight">
-          Visa Process,
-          <br />
-          <span className="">Supercharged.</span>
+      <div className="relative z-10 text-center pb-5 md:pb-10">
+        <h2 className="text-[28px] sm:text-[36px] md:text-[48px] max-md:tracking-tighter text-[#29003D] font-gilroy-bold leading-tight">
+          Built for approval, embassy-grade precision
         </h2>
-      </div> */}
+      </div>
 
       <div className="mb-10 md:mb-20">
         <Link href={targetHref}>

@@ -6,6 +6,7 @@ import { useAppSelector, useAppDispatch } from "@/store";
 import { setTravelers, setReduxInsuranceCount, setReduxGiftCardCount, setRecommendedItems, setRequiredDocuments, setVisaFees, setInsuranceFees, setGiftCardFees, setTotalAmount, setInsuranceOnly, triggerDocumentValidation } from "@/store/visaSlice";
 import { useToast } from "@/contexts/ToastContext";
 import Drawer from "./Drawer";
+import { getAdminApiBase } from "@/utils/adminApiBase";
 
 
 const StickyBottomBar = ({ triggerElementId } ) => {
@@ -43,7 +44,54 @@ const StickyBottomBar = ({ triggerElementId } ) => {
 
   const perDayInsurancePrice = 2;
   const DEFAULT_INSURANCE_DAYS = 15;
-  
+
+  const [belgiumBasePrice, setBelgiumBasePrice] = useState(null);
+  const [belgiumStrikeOutPrice, setBelgiumStrikeOutPrice] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const fetchBelgiumPrice = async () => {
+      try {
+        const apiBase = String(process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+        const adminBase = getAdminApiBase();
+        const candidates = [
+          `/api/visa-pricing`,
+          `${apiBase}/api/public/visa-pricing`,
+          `${apiBase}/api/public/visa_pricing`,
+          `${adminBase}/api/public/visa-pricing`,
+          `${adminBase}/api/public/visa_pricing`,
+          `${adminBase}/api/visa_pricing`,
+        ].filter((url) => /^https?:\/\//i.test(url) || url.startsWith("/"));
+
+        for (const endpoint of candidates) {
+          try {
+            const res = await fetch(endpoint);
+            if (!res.ok) continue;
+            const json = await res.json();
+            const results = json?.data?.results;
+            if (!Array.isArray(results)) continue;
+            const belgium = results.find(
+              (r) => String(r?.name || "").trim().toLowerCase() === "belgium"
+            );
+            if (belgium) {
+              if (mounted && Number.isFinite(Number(belgium.basePrice)))
+                setBelgiumBasePrice(Number(belgium.basePrice));
+              if (mounted && Number.isFinite(Number(belgium.strikeOutPrice)) && Number(belgium.strikeOutPrice) > 0)
+                setBelgiumStrikeOutPrice(Number(belgium.strikeOutPrice));
+            }
+            break;
+          } catch {
+            // try next
+          }
+        }
+      } catch {
+        // silently fail
+      }
+    };
+    fetchBelgiumPrice();
+    return () => { mounted = false; };
+  }, []);
+
   // Memoize visa fee calculation
   const visaFeePerTraveler = useMemo(() => {
     if (visaState.selectedVisaType?.priceGBP)
@@ -54,8 +102,12 @@ const StickyBottomBar = ({ triggerElementId } ) => {
       );
       if (converted > 0) return converted;
     }
+    if (visaState.visaFees > 0) {
+      return Math.round(visaState.visaFees / Math.max(1, visaState.travelers || 1));
+    }
+    if (belgiumBasePrice !== null) return belgiumBasePrice;
     return 129;
-  }, [visaState.selectedVisaType?.priceGBP, visaState.selectedVisaType?.price]);
+  }, [visaState.selectedVisaType?.priceGBP, visaState.selectedVisaType?.price, visaState.visaFees, visaState.travelers, belgiumBasePrice]);
 
   // Memoize insurance days calculation
   const insuranceDays = useMemo(() => {
@@ -538,7 +590,7 @@ useEffect(() => {
                   <div className="flex flex-wrap items-start gap-3">
                     <div className="flex flex-col">
                       <span className="text-white font-bold">
-                        £{quantities[item.id] > 0 ? getItemDiscountedPrice(item.id).toFixed(2) : item.currentPrice}
+                        £{quantities[item.id] > 0 ? getItemDiscountedPrice(item.id).toFixed(2) : visaFeePerTraveler}
                       </span>
                       {!!visaPriceDisplay?.discountedLabel && (
                         <span className="text-[10px] text-gray-500 font-medium">
@@ -548,7 +600,7 @@ useEffect(() => {
                     </div>
                     <div className="flex gap-1 flex-col">
                       <span className={` ${visaPriceDisplay?.traditionalPerTraveler ? 'text-red-400' : ''} line-through text-sm`}>
-                        £{((Number(visaPriceDisplay?.originalPerTraveler || item.originalPrice)) * (quantities[item.id] > 0 ? quantities[item.id] : 1)).toFixed(2)}
+                        £{((Number(visaPriceDisplay?.originalPerTraveler || belgiumStrikeOutPrice || item.originalPrice)) * (quantities[item.id] > 0 ? quantities[item.id] : 1)).toFixed(2)}
                       </span>
                       {!!visaPriceDisplay?.originalLabel && (
                         <span className="text-[10px] text-gray-500 font-medium">
@@ -748,7 +800,7 @@ useEffect(() => {
                     <div className="flex flex-wrap items-start gap-2">
                       <div className="flex flex-col">
                         <span className="text-white font-bold">
-                          £{quantities[item.id] > 0 ? getItemDiscountedPrice(item.id).toFixed(2) : item.currentPrice}
+                          £{quantities[item.id] > 0 ? getItemDiscountedPrice(item.id).toFixed(2) : visaFeePerTraveler}
                         </span>
                         {!!visaPriceDisplay?.discountedLabel && (
                           <span className="text-[10px] text-gray-500 font-medium">
@@ -758,7 +810,7 @@ useEffect(() => {
                       </div>
                       <div className="flex gap-1 flex-col">
                         <span className="text-gray-400 line-through text-sm">
-                          £{((Number(visaPriceDisplay?.originalPerTraveler || item.originalPrice)) * (quantities[item.id] > 0 ? quantities[item.id] : 1)).toFixed(2)}
+                          £{((Number(visaPriceDisplay?.originalPerTraveler || belgiumStrikeOutPrice || item.originalPrice)) * (quantities[item.id] > 0 ? quantities[item.id] : 1)).toFixed(2)}
                         </span>
                         {!!visaPriceDisplay?.originalLabel && (
                           <span className="text-[10px] text-gray-500 font-medium">

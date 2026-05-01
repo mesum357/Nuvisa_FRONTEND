@@ -125,7 +125,7 @@ export const getApplicationStatus = async (token, applicationId) => {
           id: applicationData.id || applicationId,
           status: derivedStatus,
           submittedAt: applicationData.createdAt || new Date().toISOString(),
-          estimatedProcessingTime: '24 working hours',
+          estimatedProcessingTime: '3 working hours',
           orderId: applicationData.orderId,
           formattedApplicationId: formatApplicationId(applicationData.id || applicationId),
           formattedOrderId: formatOrderId(applicationData.orderId),

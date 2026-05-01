@@ -4169,7 +4169,6 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                 className={`bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden transition-all duration-300 hover:bg-white/10 ${validationErrors.size > 0
                   ? "!bg-red-500/10 border !border-red-500 shadow-lg"
                   : ""
-                  } ${isHighlighted ? "bg-white/80 border-white" : ""
                   }`}
               >
                 <h2
@@ -4272,7 +4271,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                         </div>
                         <div className="flex-1">
                           <span className="text-base font-medium max-sm:text-sm">
-                            UK Visa
+                            UK eVisa / BRP
                           </span>
                           <p className="text-sm text-white/70 mt-1 max-sm:text-xs max-sm:mt-0.5">
                             Valid 3+ months after Schengen trip
