@@ -1232,12 +1232,12 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
     sticker:
       "A visa sticker is a physical visa label attached to your passport. It contains your personal details, visa type, validity period, and number of entries allowed.",
     duration: [
-      "You can stay for a maximum of 90 days for any 180 day period.",
-      "If your visa is valid for less than 90 days, you can only stay upto your visa validity.",
+      "Your visa will show how many days you are allowed to stay, which can be up to 90 days within a 180-day period.",
+      "If your visa is valid for less than 90 days, you can only stay until your visa expires."
     ],
     term: "Short-term visas are typically issued for visits under 90 days. They're commonly used for tourism, business trips, or visiting family/friends.",
     entry:
-      "Multiple entry allows you to enter the country multiple times during the visa validity period without needing to apply for a new visa each time.",
+      "Multiple entry lets you enter the Schengen Area multiple times. Single entry permits to enter once during the visa's validity period.",
   };
 
   const _handleTravelerChange = (increment) => {
@@ -3614,7 +3614,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                         onMouseLeave={() => setActiveTooltip(null)}
                       >
                         <div className="flex items-center max-sm:justify-between">
-                          <span className="max-sm:text-sm whitespace-nowrap">90 Days</span>
+                          <span className="max-sm:text-sm whitespace-nowrap">Upto 90 Days</span>
                         </div>
 
                         {activeTooltip === "duration" && (
@@ -3663,7 +3663,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                         onMouseLeave={() => setActiveTooltip(null)}
                       >
                         <div className="flex items-center max-sm:justify-between">
-                          <span className="max-sm:text-sm whitespace-nowrap">Multiple</span>
+                          <span className="max-sm:text-sm whitespace-nowrap">Multiple or Single</span>
                         </div>
 
                         {activeTooltip === "entry" && (
@@ -4271,7 +4271,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                         </div>
                         <div className="flex-1">
                           <span className="text-base font-medium max-sm:text-sm">
-                            UK eVisa / BRP
+                            UK eVisa/BRP
                           </span>
                           <p className="text-sm text-white/70 mt-1 max-sm:text-xs max-sm:mt-0.5">
                             Valid 3+ months after Schengen trip
