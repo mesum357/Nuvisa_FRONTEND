@@ -2580,10 +2580,10 @@ const VisaCheckout = () => {
             )}
 
             {/* Subtotal */}
-            <div className="flex justify-between text-sm pt-2 border-t border-gray-700">
+            {/* <div className="flex justify-between text-sm pt-2 border-t border-gray-700">
               <span>Subtotal</span>
               <span>{formatCurrency(subtotalGBP, "GBP")}</span>
-            </div>
+            </div> */}
 
             {/* Discount */}
             {/* {appliedDiscount && (
@@ -2596,10 +2596,10 @@ const VisaCheckout = () => {
             )} */}
 
             {/* You Save */}
-            <div className="flex justify-between text-sm text-green-400">
+            {/* <div className="flex justify-between text-sm text-green-400">
               <span>You save</span>
               <span>{formatCurrency(totalSavingsGBP, "GBP")}</span>
-            </div>
+            </div> */}
 
             {/* Total */}
             <div className="flex justify-between font-gilroy-bold text-xl pt-2 border-t border-gray-700">

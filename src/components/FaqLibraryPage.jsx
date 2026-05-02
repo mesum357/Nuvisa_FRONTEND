@@ -274,7 +274,7 @@ const FaqLibraryPage = () => {
                           }`}
                       >
                         <div className="overflow-hidden">
-                          <pre className="px-4 md:px-5 pt-2 pb-4 text-neutral-700 text-sm md:text-[15px] leading-relaxed whitespace-pre-wrap">
+                          <pre className="px-4 md:px-5 pt-2 pb-4 text-neutral-700 text-sm md:text-[15px] leading-relaxed whitespace-pre-wrap font-sans">
                             {item.answer}
                           </pre>
                         </div>

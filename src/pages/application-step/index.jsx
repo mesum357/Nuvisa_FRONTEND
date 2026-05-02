@@ -2108,7 +2108,7 @@ const MultiStepAccordion = () => {
                     : "United Kingdom Visa Application"}
                 </ClientOnly>
               </h2>
-              <p className="text-gray-300">6 Months Short-Term Tourist Visa</p>
+              {/* <p className="text-gray-300">Short-Term Tourist Visa</p> */}
             </div>
           </div>
         </div>

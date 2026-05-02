@@ -60,13 +60,14 @@ export default function HeaderSearchSection() {
     (app) => {
       const status = app?.applicationStatus?.toLowerCase();
       // Include all active processing states, approved applications, and rejected applications
-      return status === "submitted" || 
-             status === "under_review" || 
-             status === "appointment_booked" || 
-             status === "at_embassy" || 
+      return status === "submitted" ||
+             status === "under_review" ||
+             status === "appointment_booked" ||
+             status === "at_embassy" ||
              status === "processing" ||
              status === "approved" ||
              status === "rejected" ||
+             status === "decision_made" ||
              status === "cancelled";
     }
   ).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -686,11 +687,11 @@ function ApplicationCard({
 
 const ProgressTimeline = ({ currentStatus, applicant, allTravelers = [], currentLabel }) => {
   const steps = [
-    { id: "submitted", label: "Submitted", icon: <CheckCircle2 size={20} /> },
-    { id: "under_review", label: "Under Review", icon: <FileText size={20} /> },
-    { id: "appointment_booked", label: "Appointment booked", icon: <CalendarDays size={20} /> },
-    { id: "at_embassy", label: "At embassy", icon: <Building2 size={20} /> },
-    { id: "decision_made", label: "Decision made, passport dispatched/ready", icon: <CheckCircle2 size={20} /> },
+    { id: "submitted", label: "Submitted", shortLabel: "Submitted", icon: <CheckCircle2 size={16} /> },
+    { id: "under_review", label: "Under Review", shortLabel: "Review", icon: <FileText size={16} /> },
+    { id: "appointment_booked", label: "Appointment booked", shortLabel: "Appt.", icon: <CalendarDays size={16} /> },
+    { id: "at_embassy", label: "At embassy", shortLabel: "Embassy", icon: <Building2 size={16} /> },
+    { id: "decision_made", label: "Decision made, passport dispatched/ready", shortLabel: "Decision", icon: <CheckCircle2 size={16} /> },
   ];
 
   const getCurrentStepIndex = (statusOrProgress) => {
@@ -736,38 +737,37 @@ const ProgressTimeline = ({ currentStatus, applicant, allTravelers = [], current
 
   return (
     <div>
-      <div className="flex justify-between items-center">
-        {steps.map((step, index) => {
-          const isCompleted = index < currentStepIndex;
-          const isCurrent = index === currentStepIndex;
-          return (
-            <div
-              key={step.id}
-              className="flex-1 flex flex-col items-center relative"
-            >
-              {index > 0 && (
-                <div
-                  className={`absolute top-4 right-1/2 w-full h-0.5 ${isCompleted || isCurrent ? "bg-green-500" : "bg-[#423577]"
-                    }`}
-                />
-              )}
+      <div className="overflow-x-auto -mx-1 px-1 pb-1">
+        <div className="flex justify-between items-start min-w-[320px]">
+          {steps.map((step, index) => {
+            const isCompleted = index < currentStepIndex;
+            const isCurrent = index === currentStepIndex;
+            return (
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center z-10 ${isCompleted || isCurrent
-                  ? "bg-[#4A3B65] text-green-400"
-                  : "bg-[#4A3B65] text-[#C1A2F4]"
-                  }`}
+                key={step.id}
+                className="flex-1 flex flex-col items-center relative"
               >
-                {isCompleted ? <CheckCircle2 size={20} /> : step.icon}
+                {index > 0 && (
+                  <div
+                    className={`absolute top-3 right-1/2 w-full h-0.5 ${isCompleted || isCurrent ? "bg-green-500" : "bg-[#423577]"}`}
+                  />
+                )}
+                <div
+                  className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center z-10 ${isCompleted || isCurrent
+                    ? "bg-[#4A3B65] text-green-400"
+                    : "bg-[#4A3B65] text-[#C1A2F4]"
+                    }`}
+                >
+                  {isCompleted ? <CheckCircle2 size={14} /> : step.icon}
+                </div>
+                <p className={`text-[10px] sm:text-xs mt-1 sm:mt-2 text-center leading-tight max-w-14 sm:max-w-none ${isCompleted || isCurrent ? "text-green-400" : "text-white/60"}`}>
+                  <span className="sm:hidden">{step.shortLabel}</span>
+                  <span className="hidden sm:inline">{step.label}</span>
+                </p>
               </div>
-              <p
-                className={`text-xs mt-2 text-center ${isCompleted || isCurrent ? "text-green-400" : "text-white/60"
-                  }`}
-              >
-                {step.label}
-              </p>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
       <div className="mt-6 space-y-3">
