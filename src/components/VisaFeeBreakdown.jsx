@@ -386,14 +386,14 @@ const VisaFeeBreakdown = ({
               </p>
             ) : null}
 
-            <div className="flex justify-between text-sm pt-2 border-t border-white/15">
+            {/* <div className="flex justify-between text-sm pt-2 border-t border-white/15">
               <span>Subtotal</span>
               <span>{formatFeeAmount(subtotalAmount)}</span>
-            </div>
+            </div> */}
 
             <div className="flex justify-between text-sm text-green-400">
               <span>You save</span>
-              <span>{formatFeeAmount(totalSaveAmount)}</span>
+              <span>{(totalSaveAmount/effectiveTravelersComparisonTotal * 100 || 0).toFixed(2)}%</span>
             </div>
 
             <div className="flex justify-between font-gilroy-bold text-xl pt-2 border-t border-white/15">

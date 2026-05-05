@@ -2596,10 +2596,11 @@ const VisaCheckout = () => {
             )} */}
 
             {/* You Save */}
-            {/* <div className="flex justify-between text-sm text-green-400">
+            <div className="flex justify-between text-sm text-green-400">
               <span>You save</span>
-              <span>{formatCurrency(totalSavingsGBP, "GBP")}</span>
-            </div> */}
+              {console.log('💰 Total Savings:', { totalSavingsGBP, travellerStrikeGBP, travelers })}
+              <span>{(totalSavingsGBP/travellerStrikeGBP*100 || 0).toFixed(2)}%</span>
+            </div>
 
             {/* Total */}
             <div className="flex justify-between font-gilroy-bold text-xl pt-2 border-t border-gray-700">
