@@ -37,7 +37,38 @@ const OurMission = ({ className }) => {
       {/* Bottom Section */}
       <div className="relative z-10 text-center pb-5 md:pb-10">
         <h2 className="text-[28px] sm:text-[36px] md:text-[48px] max-md:tracking-tighter text-[#29003D] font-gilroy-bold leading-tight">
-          Built for approval, embassy-grade precision
+          Built for <span className="relative ">
+            <span className="relative inline-block px-1">
+              approval
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 420 110"
+                aria-hidden="true"
+                className="absolute pointer-events-none"
+                style={{
+                  width: "138%",
+                  left: "55%",
+                  top: "45%",
+                  transform: "translate(-50%, -50%) rotate(-2deg)",
+                }}
+                preserveAspectRatio="xMidYMid meet"
+              >
+                <path
+                  fill="none"
+                  stroke="rgb(240,58,47)"
+                  strokeWidth="5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d=" M42 66
+                      C78 92, 170 96, 255 87
+                      C315 80, 355 61, 345 44
+                      C332 25, 282 20, 210 23
+                      C138 27, 82 40, 55 54
+                      C35 63, 34 74, 42 66"
+                />
+              </svg>
+            </span>
+          </span>, embassy-grade precision
         </h2>
       </div>
 

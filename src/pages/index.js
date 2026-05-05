@@ -270,7 +270,7 @@ const Index = () => {
                 {loading ? (
                   "Flat £200 fee, faster processing, dedicated support"
                 ) : heroContent.description?.includes("+Link+") ? (
-                  <span className="inline-flex flex-wrap items-center gap-x-1 sm:gap-x-3 gap-y-2 border rounded-4xl px-3 py-1.5 sm:px-5 sm:py-3">
+                  <span className="inline-flex items-center gap-x-1 sm:gap-x-3 gap-y-2 border rounded-4xl px-2 sm:px-3 py-1.5 sm:px-5 sm:py-3">
                     {heroContent.description.split(" I ").map((part, index, array) => {
                       const isLast = index === array.length - 1;
                       if (part.includes("+Link+")) {
@@ -278,7 +278,7 @@ const Index = () => {
                         const isGuarantee = text.trim().toLowerCase() === "our guarantee";
                         return (
                           <span key={index} className="inline-flex items-center gap-x-1 sm:gap-x-3">
-                            <span className={isGuarantee ? "relative inline-block guarantee-wrapper" : ""} style={isGuarantee ? { overflow: "visible" } : {}}>
+                            <span className={isGuarantee ? "relative inline-block guarantee-wrapper text-nowrap" : "text-nowrap"} style={isGuarantee ? { overflow: "visible" } : {}}>
                               <Link href={url.trim()} className={`hover:underline decoration-white/50 transition-all text-xs sm:text-xl${isGuarantee ? " relative z-10" : ""}`}>
                                 {text.trim()}
                               </Link>
@@ -287,8 +287,8 @@ const Index = () => {
                                   xmlns="http://www.w3.org/2000/svg"
                                   viewBox="0 0 620 280"
                                   aria-hidden="true"
-                                  className="absolute pointer-events-none"
-                                  style={{ width: "135%", height: "auto", left: "50%", top: "50%", transform: "translate(-50%, -50%)" }}
+                                  className="absolute pointer-events-none h-auto sm:h-[200%]"
+                                  style={{ width: "135%",  left: "50%", top: "50%", transform: "translate(-50%, -50%)" }}
                                   preserveAspectRatio="xMidYMid meet"
                                 >
                                   <defs>
