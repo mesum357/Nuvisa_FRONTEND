@@ -540,21 +540,25 @@ useEffect(() => {
                       <span className="text-white font-bold">
                         £{quantities[item.id] > 0 ? getItemDiscountedPrice(item.id).toFixed(2) : item.currentPrice}
                       </span>
-                      {!!visaPriceDisplay?.discountedLabel && (
+                      {!!visaPriceDisplay?.discountedLabel ? (
                         <span className="text-[10px] text-gray-500 font-medium">
                           {visaPriceDisplay.discountedLabel} {schengenMaxDiscountPercent}%
                         </span>
-                      )}
+                      ) : <span className="text-[10px] text-gray-500 font-medium">
+                          {item.currentPrice < item.originalPrice ? 'You saved '+ (item.currentPrice/item.originalPrice * 100).toFixed(0) + '%' : 'Current Price'}
+                        </span>}
                     </div>
                     <div className="flex gap-1 flex-col">
                       <span className={` ${visaPriceDisplay?.traditionalPerTraveler ? 'text-red-400' : ''} line-through text-sm`}>
                         £{((Number(visaPriceDisplay?.originalPerTraveler || item.originalPrice)) * (quantities[item.id] > 0 ? quantities[item.id] : 1)).toFixed(2)}
                       </span>
-                      {!!visaPriceDisplay?.originalLabel && (
+                      {!!visaPriceDisplay?.originalLabel ? (
                         <span className="text-[10px] text-gray-500 font-medium">
                           {visaPriceDisplay.originalLabel}
                         </span>
-                      )}
+                      ): <span className="text-[10px] text-gray-500 font-medium">
+                          {'Traditional fee'}
+                        </span>}
                     </div>
                     {Number(visaPriceDisplay?.traditionalPerTraveler || 0) > 0 && (
                       <div className="flex  gap-1 flex-col">

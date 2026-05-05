@@ -191,7 +191,7 @@ const FAQSection = () => {
               No FAQs available in this section yet.
             </div>
           ) : (
-            (showAll ? activeFaqs : activeFaqs.slice(0, 4)).map((faq, index) => (
+            (showAll ? activeFaqs : activeFaqs.slice(0, 3)).map((faq, index) => (
               <div
                 key={faq.id || `${activeTab}-${index}`}
                 ref={(el) => { itemRefs.current[index] = el; }}

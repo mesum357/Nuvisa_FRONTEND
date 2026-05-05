@@ -10,6 +10,27 @@ import GetTheVisaButton from "@/components/layout/GetTheVisaButton";
 import { fetchFAQs as fetchFAQsFromAPI } from "@/api/faqs";
 import { toSlug } from "@/utils/toSlug";
 
+const ANSWER_LINKS = [
+  { keyword: "Guarantee", href: "/our-guarantee" },
+];
+
+const renderAnswer = (text) => {
+  if (!text) return null;
+  let parts = [text];
+  ANSWER_LINKS.forEach(({ keyword, href }) => {
+    parts = parts.flatMap((part) => {
+      if (typeof part !== "string") return [part];
+      const segments = part.split(keyword);
+      return segments.flatMap((seg, i) =>
+        i < segments.length - 1
+          ? [seg, <Link key={`${keyword}-${i}`} href={href} className="text-[#7350FF] underline hover:opacity-80 transition-opacity">{keyword}</Link>]
+          : [seg]
+      );
+    });
+  });
+  return parts;
+};
+
 const FAQ_CARD_ICON_MAP = {
   general_information: "/icons/faq/icon-1-general-information.svg",
   eligibility_requirements: "/icons/faq/icon-2-eligibility-requirements.svg",
@@ -54,7 +75,7 @@ const FAQ_CARD_CONTENT = [
     icon: "embassy_appointment",
   },
   {
-    title: "Digital gift card",
+    title: "Price match promise",
     description:
       "Discover how our digital gift card works and how it can be used as a gift of unforgettable memories",
     icon: "digital_gift_card",
@@ -147,6 +168,10 @@ const FaqLibraryPage = () => {
 
     return ordered;
   }, [faqs]);
+
+
+  // render faqs answers
+   
 
   const faqCategoryCards = useMemo(() => {
     const groupsBySlug = new Map(groupedFaqs.map((group) => [toSlug(group.name), group]));
@@ -275,7 +300,7 @@ const FaqLibraryPage = () => {
                       >
                         <div className="overflow-hidden">
                           <pre className="px-4 md:px-5 pt-2 pb-4 text-neutral-700 text-sm md:text-[15px] leading-relaxed whitespace-pre-wrap font-sans">
-                            {item.answer}
+                            {renderAnswer(item.answer)}
                           </pre>
                         </div>
                       </div>

@@ -3599,7 +3599,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
 
                         {activeTooltip === "sticker" && (
                           <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200 max-sm:w-48 max-sm:-left-20">
-                            <p className="text-sm max-sm:text-xs">
+                            <p className="text-xs max-sm:text-xs">
                               {tooltips.sticker}
                             </p>
                             <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200 max-sm:left-20"></div>
@@ -3619,7 +3619,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
 
                         {activeTooltip === "duration" && (
                           <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200 max-sm:w-48 max-sm:-left-20">
-                            <div className="text-sm max-sm:text-xs">
+                            <div className="text-xs max-sm:text-xs">
                               {tooltips.duration.map((line, index) => (
                                 <p
                                   key={index}
@@ -3648,7 +3648,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
 
                         {activeTooltip === "term" && (
                           <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200 max-sm:w-48 max-sm:-left-20">
-                            <p className="text-sm max-sm:text-xs">
+                            <p className="text-xs max-sm:text-xs">
                               {tooltips.term}
                             </p>
                             <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200 max-sm:left-20"></div>
@@ -3668,7 +3668,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
 
                         {activeTooltip === "entry" && (
                           <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200 max-sm:w-48 max-sm:-left-20">
-                            <p className="text-sm max-sm:text-xs">
+                            <p className="text-xs max-sm:text-xs">
                               {tooltips.entry}
                             </p>
                             <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200 max-sm:left-20"></div>
