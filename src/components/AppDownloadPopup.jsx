@@ -144,36 +144,67 @@ const AppDownloadPopup = () => {
     const showOnDates = Array.isArray(dbContent.showOnDates) ? dbContent.showOnDates : [];
     const matchesDateRule = showOnDates.length === 0 || showOnDates.includes(today);
     const delayMs = Math.max(0, Number(dbContent.triggerDelaySeconds) || 45) * 1000;
-    
-    // DEBUGGING LOGS
-    console.log("=== POPUP VISIBILITY DEBUG ===");
-    console.log("1. isActive:", dbContent.isActive);
-    console.log("2. matchesDateRule:", matchesDateRule, "showOnDates:", showOnDates, "today:", today);
-    console.log("3. isHomePage:", isHomePage, "router.pathname:", router.pathname);
-    console.log("4. hasInteractedThisSession:", hasInteractedThisSession);
-    console.log("5. Will show popup?", isHomePage && hasInteractedThisSession !== "hidden");
-    console.log("6. delayMs:", delayMs);
-    console.log("=============================");
-    
+
     if (!dbContent.isActive || !matchesDateRule) {
-      console.log("❌ Popup hidden: isActive or matchesDateRule failed");
       setIsVisible(false);
       setIsAnimating(false);
       return;
     }
 
-    if (isHomePage && hasInteractedThisSession !== "hidden") {
-      console.log("✅ Popup will show after delay:", delayMs, "ms");
-      const timer = setTimeout(() => {
-        setIsVisible(true);
-        setTimeout(() => setIsAnimating(true), 10);
-      }, delayMs);
-      return () => clearTimeout(timer);
+    if (!isHomePage || hasInteractedThisSession === "hidden") {
+      setIsVisible(false);
+      setIsAnimating(false);
+      return;
     }
 
-    console.log("❌ Popup hidden: Not on home page or user already interacted");
-    setIsVisible(false);
-    setIsAnimating(false);
+    let shown = false;
+
+    const showPopup = () => {
+      if (shown) return;
+      shown = true;
+      setIsVisible(true);
+      setTimeout(() => setIsAnimating(true), 10);
+    };
+
+    // Timer-based trigger
+    const timer = setTimeout(showPopup, delayMs);
+
+    // Exit intent: mouse moves toward the top browser UI (tabs / address bar / close button)
+    // clientY <= 5 is more lenient than 0 — Firefox/Safari can report 1–4px on exit
+    const handleMouseLeave = (e) => {
+      if (e.clientY <= 5) {
+        clearTimeout(timer);
+        showPopup();
+      }
+    };
+
+    // Fallback for Safari: mouseout fires more reliably than mouseleave in WebKit.
+    // relatedTarget === null means the pointer truly left the document (not just moved
+    // between elements), and we only trigger when exiting toward the top.
+    const handleMouseOut = (e) => {
+      if (!e.relatedTarget && !e.toElement && e.clientY <= 5) {
+        clearTimeout(timer);
+        showPopup();
+      }
+    };
+
+    // Mobile / tab-switch: page becomes hidden before timer fires
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        showPopup();
+      }
+    };
+
+    document.addEventListener('mouseleave', handleMouseLeave);
+    document.addEventListener('mouseout', handleMouseOut);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('mouseleave', handleMouseLeave);
+      document.removeEventListener('mouseout', handleMouseOut);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [router.pathname, router.isReady, dbContent]);
   useEffect(() => {
     setError("");

@@ -1,6 +1,6 @@
 import { ArrowUpRight } from "lucide-react";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import { useAppDispatch } from "@/store";
 import {
@@ -13,6 +13,7 @@ import { getCountryConfig } from "@/constants/countryConfig";
 import GetTheVisaButton from "./layout/GetTheVisaButton";
 import { getAdminApiBase } from "@/utils/adminApiBase";
 import { useCountriesWithAppointmentTexts } from "@/hooks/useCountriesWithAppointmentTexts";
+import Link from "next/link";
 
 const VisaSolution = ({
   video = false,
@@ -25,6 +26,8 @@ const VisaSolution = ({
   const [isDragging, setIsDragging] = useState(false);
   const startXRef = useRef(0);
   const scrollLeftRef = useRef(0);
+
+  const pathname = usePathname();
 
   const hasDraggedRef = useRef(false);
 
@@ -392,7 +395,17 @@ const VisaSolution = ({
         </div>
       </div>
 
-      <GetTheVisaButton />
+      {
+        pathname !== "/" &&
+        <Link href={"/get-the-visa"}>
+          <button className="group flex items-center bg-[#6B4EFF] text-white gap-[16px] font-medium px-[24px] py-3 rounded-3xl cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb]">
+            <span className="mr-3 text-xl md:text-2xl uppercase">Start Application</span>
+            <span className="bg-white rounded-full p-1.5 transition-transform duration-300 group-hover:rotate-45 group-hover:translate-x-1">
+              <ArrowUpRight className="w-5 h-5 text-[#6B4EFF]" />
+            </span>
+          </button>
+        </Link>
+      }
     </section>
   );
 };

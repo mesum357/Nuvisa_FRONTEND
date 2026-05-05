@@ -768,49 +768,49 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
   };
 
   // Handle date changes with validation and Redux updates
- const handleArrivalDateChange = (date) => {
-  const safeDate = isValidDate(date) ? date : null;
-  setArrivalDateLocal(safeDate);
-  const dateString = safeDate ? safeDate.toISOString().split("T")[0] : "";
-  dispatch(setArrivalDate(dateString));
+  const handleArrivalDateChange = (date) => {
+    const safeDate = isValidDate(date) ? date : null;
+    setArrivalDateLocal(safeDate);
+    const dateString = safeDate ? safeDate.toISOString().split("T")[0] : "";
+    dispatch(setArrivalDate(dateString));
 
-  // Auto-set end date to 15 days total (start + 14 days), editable by user later.
-  let nextDeparture = departureDate;
-  if (safeDate) {
-    nextDeparture = new Date(safeDate);
-    nextDeparture.setDate(nextDeparture.getDate() + 14);
-  } else {
-    nextDeparture = null;
-  }
+    // Auto-set end date to 15 days total (start + 14 days), editable by user later.
+    let nextDeparture = departureDate;
+    if (safeDate) {
+      nextDeparture = new Date(safeDate);
+      nextDeparture.setDate(nextDeparture.getDate() + 14);
+    } else {
+      nextDeparture = null;
+    }
 
-  // Respect visa max duration if needed.
-  if (
-    selectedVisaType?.duration_permitted &&
-    safeDate &&
-    nextDeparture
-  ) {
-    const maxDays = parseDurationDays(selectedVisaType.duration_permitted);
-    const tripDays = Math.ceil(
-      (nextDeparture - safeDate) / (1000 * 60 * 60 * 24)
+    // Respect visa max duration if needed.
+    if (
+      selectedVisaType?.duration_permitted &&
+      safeDate &&
+      nextDeparture
+    ) {
+      const maxDays = parseDurationDays(selectedVisaType.duration_permitted);
+      const tripDays = Math.ceil(
+        (nextDeparture - safeDate) / (1000 * 60 * 60 * 24)
+      );
+
+      if (maxDays && tripDays > maxDays) {
+        nextDeparture = new Date(
+          safeDate.getTime() + (maxDays - 1) * 24 * 60 * 60 * 1000
+        );
+      }
+    }
+
+    setDepartureDateLocal(nextDeparture);
+    dispatch(
+      setDepartureDate(
+        nextDeparture ? nextDeparture.toISOString().split("T")[0] : ""
+      )
     );
 
-    if (maxDays && tripDays > maxDays) {
-      nextDeparture = new Date(
-        safeDate.getTime() + (maxDays - 1) * 24 * 60 * 60 * 1000
-      );
-    }
-  }
-
-  setDepartureDateLocal(nextDeparture);
-  dispatch(
-    setDepartureDate(
-      nextDeparture ? nextDeparture.toISOString().split("T")[0] : ""
-    )
-  );
-
-  const errors = validateDates(safeDate, nextDeparture, selectedVisaType);
-  setDateValidationErrors(errors);
-};
+    const errors = validateDates(safeDate, nextDeparture, selectedVisaType);
+    setDateValidationErrors(errors);
+  };
   const handleDepartureDateChange = (date) => {
     const safeDate = isValidDate(date) ? date : null;
     setDepartureDateLocal(safeDate);
@@ -1232,12 +1232,12 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
     sticker:
       "A visa sticker is a physical visa label attached to your passport. It contains your personal details, visa type, validity period, and number of entries allowed.",
     duration: [
-      "You can stay for a maximum of 90 days for any 180 day period.",
-      "If your visa is valid for less than 90 days, you can only stay upto your visa validity.",
+      "Your visa will show how many days you are allowed to stay, which can be up to 90 days within a 180-day period.",
+      "If your visa is valid for less than 90 days, you can only stay until your visa expires."
     ],
     term: "Short-term visas are typically issued for visits under 90 days. They're commonly used for tourism, business trips, or visiting family/friends.",
     entry:
-      "Multiple entry allows you to enter the country multiple times during the visa validity period without needing to apply for a new visa each time.",
+      "Multiple entry lets you enter the Schengen Area multiple times. Single entry permits to enter once during the visa's validity period.",
   };
 
   const _handleTravelerChange = (increment) => {
@@ -1371,12 +1371,21 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
         setSelectedCountryLocal(countryFromUrl);
         dispatch(setReduxSelectedCountry(String(countryFromUrl)));
       }
+    } else if (router.query.occasionIdx !== undefined) {
+      const matchedCountry = dropdownCountries.find(
+        (country) => normalizeCountryName(country) === normalizeCountryName("Switzerland")
+      );
+      if (matchedCountry) {
+        setSelectedCountryLocal(matchedCountry);
+        dispatch(setReduxSelectedCountry(String(matchedCountry)));
+      }
     }
-  }, [router.query.selectedCountry, dropdownCountries, normalizeCountryName, dispatch]);
+  }, [router.query.selectedCountry, router.query.occasionIdx, dropdownCountries, normalizeCountryName, dispatch]);
 
   // Apply admin-configured default country when URL does not force one
   useEffect(() => {
     if (router.query.selectedCountry) return;
+    if (router.query.occasionIdx !== undefined) return;
     if (!adminDefaultCountry || !dropdownCountries.length) return;
 
     const matchedCountry = dropdownCountries.find(
@@ -1890,7 +1899,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
       // Occasion pricing is already a promotional visa price tier.
       // Skip extra 3+ traveler/group visa discount to avoid double discounting.
       const travelersQualify =
-        !hasOnlyInsurance && travelers >= 3 ;
+        !hasOnlyInsurance && travelers >= 3;
       const hasStudentDiscount = discount?.code === "STUDENT10";
       const hasGroupDiscount = discount?.code === "GROUP20";
 
@@ -2432,7 +2441,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
       travelers,
       updatedVisaFees,
     });
-  
+
     dispatch(setVisaFees(updatedVisaFees));
 
     setCouponError("");
@@ -3605,7 +3614,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                         onMouseLeave={() => setActiveTooltip(null)}
                       >
                         <div className="flex items-center max-sm:justify-between">
-                          <span className="max-sm:text-sm whitespace-nowrap">90 Days</span>
+                          <span className="max-sm:text-sm whitespace-nowrap">Upto 90 Days</span>
                         </div>
 
                         {activeTooltip === "duration" && (
@@ -3654,7 +3663,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                         onMouseLeave={() => setActiveTooltip(null)}
                       >
                         <div className="flex items-center max-sm:justify-between">
-                          <span className="max-sm:text-sm whitespace-nowrap">Multiple</span>
+                          <span className="max-sm:text-sm whitespace-nowrap">Multiple or Single</span>
                         </div>
 
                         {activeTooltip === "entry" && (
@@ -3850,29 +3859,29 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                       )}
                     </div>
                   ) : (
-                  /* Default 2-tier pricing */
-                  <div className="flex gap-12 max-sm:w-full max-sm:justify-between items-center">
-                    <div className="flex flex-col items-center">
-                      <span className="text-2xl font-gilroy-bold max-sm:text-xl">
-                        £{visaOnlyPrice.toFixed(2)}
-                      </span>
-                      {Number(calculateOriginalPrice()) > visaOnlyPrice && (
-                        <span className="text-[12px] text-gray-500 font-medium max-sm:text-[11px]">
-                         {sliderContent?.slider_save}{Math.round(((Number(calculateOriginalPrice()) - visaOnlyPrice)))}
+                    /* Default 2-tier pricing */
+                    <div className="flex gap-12 max-sm:w-full max-sm:justify-between items-center">
+                      <div className="flex flex-col items-center">
+                        <span className="text-2xl font-gilroy-bold max-sm:text-xl">
+                          £{visaOnlyPrice.toFixed(2)}
                         </span>
-                      )}
-                    </div>
-                    <div className="flex flex-col items-center">
-                      <span className="text-2xl font-semibold max-sm:text-base line-through decoration-2 decoration-neutral-400 text-gray-500">
-                        £{calculateOriginalPrice()}
-                      </span>
-                      {Number(calculateOriginalPrice()) > visaOnlyPrice && (
-                        <span className="text-[12px] text-gray-500 font-medium max-sm:text-[11px]">
-                          {sliderContent?.slider_traditional}
+                        {Number(calculateOriginalPrice()) > visaOnlyPrice && (
+                          <span className="text-[12px] text-gray-500 font-medium max-sm:text-[11px]">
+                            {sliderContent?.slider_save}{Math.round(((Number(calculateOriginalPrice()) - visaOnlyPrice) / Number(calculateOriginalPrice())) * 100)}%
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex flex-col items-center">
+                        <span className="text-2xl font-semibold max-sm:text-base line-through decoration-2 decoration-neutral-400 text-gray-500">
+                          £{calculateOriginalPrice()}
                         </span>
-                      )}
+                        {Number(calculateOriginalPrice()) > visaOnlyPrice && (
+                          <span className="text-[12px] text-gray-500 font-medium max-sm:text-[11px]">
+                            {sliderContent?.slider_traditional}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
                   )
                 ) : (
                   <div className="flex items-center h-[48px]">
@@ -4160,7 +4169,6 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                 className={`bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden transition-all duration-300 hover:bg-white/10 ${validationErrors.size > 0
                   ? "!bg-red-500/10 border !border-red-500 shadow-lg"
                   : ""
-                  } ${isHighlighted ? "bg-white/80 border-white" : ""
                   }`}
               >
                 <h2
@@ -4263,7 +4271,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                         </div>
                         <div className="flex-1">
                           <span className="text-base font-medium max-sm:text-sm">
-                            UK Visa
+                            UK eVisa/BRP
                           </span>
                           <p className="text-sm text-white/70 mt-1 max-sm:text-xs max-sm:mt-0.5">
                             Valid 3+ months after Schengen trip
@@ -4326,7 +4334,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                             Bank Statements
                           </span>
                           <p className="text-sm text-white/70 mt-1 max-sm:text-xs max-sm:mt-0.5">
-                            Last 3 months showing sufficient funds £50–£80/day
+                            Last 3 months showing sufficient funds £60–£100/day
                             per person
                           </p>
                         </div>
@@ -4636,64 +4644,146 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
 
           <ExpertSection checked={isExpertSelected} onChange={setIsExpertSelected} />
 
-          {/* Free Offer Banner */}
-          <div className="border rounded-3xl border-white/20 bg-white/5 backdrop-blur-sm overflow-hidden max-sm:rounded-2xl mt-5">
-            <div className="flex items-center gap-4 p-4 border-b border-white/10 max-sm:p-3 max-sm:gap-3">
-              <div
-                className="h-4 w-4 rounded-full 
-              bg-purple-500
-               min-w-4 animate-pulse max-sm:h-3 max-sm:w-3"
-              ></div>
-              <div>
-                <div
-                  className="text-sm font-medium text-white max-sm:text-xs"
-                  dangerouslySetInnerHTML={{ __html: freeOfferBannerText }}
-                />
-              </div>
-            </div>
-            <div className="p-4 max-sm:p-3">
-              <div className="grid grid-cols-3 gap-3 max-sm:gap-2">
-                {/* August slots */}
-                <div className="text-center">
-                  <div className="text-xs text-white/70 mb-2 font-medium max-sm:text-xs max-sm:mb-1">
-                    {getDynamicMonthText(sliderContent["slot1_label"], -1)}
-                  </div>
-                  <div className="bg-[#1e1e27] rounded-full p-2 max-sm:p-1.5">
-                    <div className="text-xs text-white font-semibold max-sm:text-xs">
-                      {sliderContent["slot1_status"]}
+          {/* Recommended Section */}
+          <div className="mt-6">
+            <h2 className="text-xl font-gilroy-bold mb-4 max-sm:text-lg">
+              {more_to_love.title}
+            </h2>
+
+            {/* Insurance Certificate & Gift Card Section */}
+            <div className="w-full mb-4 max-sm:mb-3">
+              <div className="flex gap-4 max-sm:gap-3 items-stretch">
+
+                {/* 1. Insurance Certificate Box */}
+                {/* Insurance Certificate & Gift Card Section */}
+                <div className="w-full mb-4 max-sm:mb-3">
+                  <div className="flex gap-4 max-sm:gap-3 items-stretch">
+
+                    {/* 1. Insurance Certificate Box */}
+                    <div className={`flex-1 flex flex-col border px-4  pt-3 max-sm:px-2  rounded-2xl text-white transition-all overflow-hidden bg-white/5 ${recommendedItems.insuranceCertificate ? "border-[#7350FF] bg-white/10 ring-1 ring-[#7350FF]/50" : "border-white/20"
+                      }`}>
+
+                      {/* Top Section: Checkbox (Left) & 15 Days Badge (Right) */}
+                      <div className="w-full flex justify-between items-center h-5 pb-2">
+                        <div
+                          className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all cursor-pointer border flex-shrink-0 ${recommendedItems.insuranceCertificate ? "border-transparent bg-[#7350FF]" : "border-gray-400 bg-white"
+                            }`}
+                          onClick={() => toggleRecommendedItem("insuranceCertificate")}
+                        >
+                          {recommendedItems.insuranceCertificate && <Check className="w-3 h-3 text-white" />}
+                        </div>
+                        <span className="bg-[#7350FF]/20 border border-[#7350FF]/50 px-2 py-1 rounded-full text-[9px] text-purple-200 font-bold leading-none shadow-sm">
+                          {insuranceDays} Days
+                        </span>
+                      </div>
+
+                      {/* Center Content */}
+                      <div className="flex flex-col items-center justify-center pb-4">
+                        <div className="w-[50%] aspect-[16/9] mb-3 overflow-hidden rounded-lg shadow-lg">
+                          <Image
+                            src="/image/image1.png"
+                            alt="Insurance"
+                            width={100}
+                            height={56}
+                            className="w-full h-full object-cover"
+                            priority
+                          />
+                        </div>
+                        <h3 className="font-bold whitespace-nowrap text-base max-sm:text-[14px] leading-tight text-center px-1">
+                          {more_to_love.leftTitle}
+                        </h3>
+                        {more_to_love.leftSubtitle && (
+                          <p className="mt-1 text-[11px] text-gray-300 text-center leading-snug">
+                            {more_to_love.leftSubtitle}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Bottom: Qty & Price */}
+                      <div className="mt-4 flex flex-col items-center gap-2">
+                        <QtyInput
+                          value={insuranceCount}
+                          onIncrement={() => handleInsuranceChange(1)}
+                          onDecrement={() => handleInsuranceChange(-1)}
+                          min={0}
+                        />
+                        <div className="flex items-center gap-2 justify-center">
+                          <span className="text-[15px] text-gray-400 line-through">£{originalInsuranceBase.toFixed(2)}</span>
+                          <span className="font-bold text-base text-white">£{discountedInsurancePrice.toFixed(2)}</span>
+                        </div>
+                      </div>
                     </div>
+
+                    {/* 2. Gift Card Box */}
+                    <div className={`flex-1 flex flex-col border px-4 pt-3 max-sm:px-2 rounded-2xl text-white transition-all overflow-hidden bg-white/5 ${recommendedItems.giftCard ? "border-[#7350FF] bg-white/10 ring-1 ring-[#7350FF]/50" : "border-white/20"
+                      }`}>
+
+                      {/* Top Section: Checkbox Only (Matching Height) */}
+                      <div className="w-full flex justify-start items-center  h-5">
+                        <div
+                          className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all cursor-pointer border flex-shrink-0 ${recommendedItems.giftCard ? "border-transparent bg-[#7350FF]" : "border-gray-400 bg-white"
+                            }`}
+                          onClick={() => toggleRecommendedItem("giftCard")}
+                        >
+                          {recommendedItems.giftCard && <Check className="w-3 h-3 text-white" />}
+                        </div>
+                      </div>
+
+                      {/* Center Content */}
+                      <div className="flex flex-col items-center justify-center pb-4">
+                        <div className="w-[50%] aspect-[16/9] mb-3 overflow-hidden rounded-lg shadow-lg bg-white/5">
+                          <Image
+                            src="/image/gitftnewcard.png"
+                            alt="Gift Card"
+                            width={100}
+                            height={56}
+                            className="w-full h-full object-cover"
+                            priority
+                          />
+                        </div>
+                        <h3 className="font-bold text-base max-sm:text-[14px] leading-tight text-center px-1">
+                          {more_to_love.rightTitle}
+                        </h3>
+                        {more_to_love.rightSubtitle && (
+                          <p className="mt-1 text-[11px] text-gray-300 text-center leading-snug">
+                            {more_to_love.rightSubtitle}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Bottom: Qty & Price */}
+                      <div className="mt-4 flex flex-col items-center gap-2 pb-4">
+                        <QtyInput
+                          value={giftCardCount}
+                          onIncrement={() => handleGiftCardChange(1)}
+                          onDecrement={() => handleGiftCardChange(-1)}
+                          min={0}
+                        />
+                        <div className="flex items-center gap-2 justify-center">
+                          <span className="text-[15px] text-gray-400 line-through">£{(245 * giftCardCount).toFixed(2)}</span>
+                          <span className="font-bold text-base text-white">£{discountedGiftCardPrice.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </div>
+
                   </div>
                 </div>
 
-                {/* September slots */}
-                <div className="text-center">
-                  <div className="text-xs text-white/70 mb-2 font-medium max-sm:text-xs max-sm:mb-1">
-                    {getDynamicMonthText(sliderContent["slot2_label"], 0)}
-                  </div>
-                  <div className="bg-[#5a3ddb] rounded-full p-2 max-sm:p-1.5">
-                    <div className="text-xs text-white font-semibold max-sm:text-xs">
-                      {currentWeekReservedText}
-                    </div>
-                  </div>
-                </div>
-
-                {/* October slots */}
-                <div className="text-center">
-                  <div className="text-xs text-white/70 mb-2 font-medium max-sm:text-xs max-sm:mb-1">
-                    {getDynamicMonthText(sliderContent["slot3_label"], 1)}
-                  </div>
-                  <div className="bg-[#1e1e27] rounded-full p-2 max-sm:p-1.5">
-                    <div className="text-xs text-white font-semibold max-sm:text-xs">
-                      {sliderContent["slot3_status"]}
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
+
+            {/* Alert Message */}
+            {validationErrors.size > 0 && (
+              <div className="mb-4 p-3 bg-red-500/20 border border-red-500 rounded-lg max-sm:p-2 max-sm:mb-3">
+                <p className="text-red-300 text-sm font-medium max-sm:text-xs">
+                  Confirm required documents
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Discount Code Section */}
-          <div className="space-y-4 mt-5">
+          <div className="space-y-4 -mt-2">
             <h2 className="font-medium text-lg max-sm:text-base">
               Discount Code
             </h2>
@@ -4879,193 +4969,108 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
               </div>
             )}
 
-          {/* Recommended Section */}
-          <div className="mt-3">
-            <h2 className="text-xl font-gilroy-bold mb-4 max-sm:text-lg">
-              {more_to_love.title}
-            </h2>
-
-            {/* Insurance Certificate & Gift Card Section */}
-            <div className="w-full mb-4 max-sm:mb-3">
-              <div className="flex gap-4 max-sm:gap-3 items-stretch">
-
-                {/* 1. Insurance Certificate Box */}
-                {/* Insurance Certificate & Gift Card Section */}
-                <div className="w-full mb-4 max-sm:mb-3">
-                  <div className="flex gap-4 max-sm:gap-3 items-stretch">
-
-                    {/* 1. Insurance Certificate Box */}
-                    <div className={`flex-1 flex flex-col border px-4  pt-3 max-sm:px-2  rounded-2xl text-white transition-all overflow-hidden bg-white/5 ${recommendedItems.insuranceCertificate ? "border-[#7350FF] bg-white/10 ring-1 ring-[#7350FF]/50" : "border-white/20"
-                      }`}>
-
-                      {/* Top Section: Checkbox (Left) & 15 Days Badge (Right) */}
-                      <div className="w-full flex justify-between items-center h-5 pb-2">
-                        <div
-                          className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all cursor-pointer border flex-shrink-0 ${recommendedItems.insuranceCertificate ? "border-transparent bg-[#7350FF]" : "border-gray-400 bg-white"
-                            }`}
-                          onClick={() => toggleRecommendedItem("insuranceCertificate")}
-                        >
-                          {recommendedItems.insuranceCertificate && <Check className="w-3 h-3 text-white" />}
-                        </div>
-                        <span className="bg-[#7350FF]/20 border border-[#7350FF]/50 px-2 py-1 rounded-full text-[9px] text-purple-200 font-bold leading-none shadow-sm">
-                          {insuranceDays} Days
-                        </span>
-                      </div>
-
-                      {/* Center Content */}
-                      <div className="flex flex-col items-center justify-center pb-4">
-                        <div className="w-[50%] aspect-[16/9] mb-3 overflow-hidden rounded-lg shadow-lg">
-                          <Image
-                            src="/image/image1.png"
-                            alt="Insurance"
-                            width={100}
-                            height={56}
-                            className="w-full h-full object-cover"
-                            priority
-                          />
-                        </div>
-                        <h3 className="font-bold whitespace-nowrap text-base max-sm:text-[14px] leading-tight text-center px-1">
-                        {more_to_love.leftTitle}
-                        </h3>
-                        {more_to_love.leftSubtitle && (
-                          <p className="mt-1 text-[11px] text-gray-300 text-center leading-snug">
-                            {more_to_love.leftSubtitle}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Bottom: Qty & Price */}
-                      <div className="mt-4 flex flex-col items-center gap-2">
-                        <QtyInput
-                          value={insuranceCount}
-                          onIncrement={() => handleInsuranceChange(1)}
-                          onDecrement={() => handleInsuranceChange(-1)}
-                          min={0}
-                        />
-                        <div className="flex items-center gap-2 justify-center">
-                          <span className="text-[15px] text-gray-400 line-through">£{originalInsuranceBase.toFixed(2)}</span>
-                          <span className="font-bold text-base text-white">£{discountedInsurancePrice.toFixed(2)}</span>
-                        </div>
-                      </div>
+          {/* Free Offer Banner */}
+          <div className="border rounded-3xl border-white/20 bg-white/5 backdrop-blur-sm overflow-hidden max-sm:rounded-2xl mt-5">
+            <div className="flex items-center gap-4 p-4 border-b border-white/10 max-sm:p-3 max-sm:gap-3">
+              <div
+                className="h-4 w-4 rounded-full 
+              bg-purple-500
+               min-w-4 animate-pulse max-sm:h-3 max-sm:w-3"
+              ></div>
+              <div>
+                <div
+                  className="text-sm font-medium text-white max-sm:text-xs"
+                  dangerouslySetInnerHTML={{ __html: freeOfferBannerText }}
+                />
+              </div>
+            </div>
+            <div className="p-4 max-sm:p-3">
+              <div className="grid grid-cols-3 gap-3 max-sm:gap-2">
+                {/* August slots */}
+                <div className="text-center">
+                  <div className="text-xs text-white/70 mb-2 font-medium max-sm:text-xs max-sm:mb-1">
+                    {getDynamicMonthText(sliderContent["slot1_label"], -1)}
+                  </div>
+                  <div className="bg-[#1e1e27] rounded-full p-2 max-sm:p-1.5">
+                    <div className="text-xs text-white font-semibold max-sm:text-xs">
+                      {sliderContent["slot1_status"]}
                     </div>
-
-                    {/* 2. Gift Card Box */}
-                    <div className={`flex-1 flex flex-col border px-4 pt-3 max-sm:px-2 rounded-2xl text-white transition-all overflow-hidden bg-white/5 ${recommendedItems.giftCard ? "border-[#7350FF] bg-white/10 ring-1 ring-[#7350FF]/50" : "border-white/20"
-                      }`}>
-
-                      {/* Top Section: Checkbox Only (Matching Height) */}
-                      <div className="w-full flex justify-start items-center  h-5">
-                        <div
-                          className={`w-4 h-4 rounded-sm flex items-center justify-center transition-all cursor-pointer border flex-shrink-0 ${recommendedItems.giftCard ? "border-transparent bg-[#7350FF]" : "border-gray-400 bg-white"
-                            }`}
-                          onClick={() => toggleRecommendedItem("giftCard")}
-                        >
-                          {recommendedItems.giftCard && <Check className="w-3 h-3 text-white" />}
-                        </div>
-                      </div>
-
-                      {/* Center Content */}
-                      <div className="flex flex-col items-center justify-center pb-4">
-                        <div className="w-[50%] aspect-[16/9] mb-3 overflow-hidden rounded-lg shadow-lg bg-white/5">
-                          <Image
-                            src="/image/gitftnewcard.png"
-                            alt="Gift Card"
-                            width={100}
-                            height={56}
-                            className="w-full h-full object-cover"
-                            priority
-                          />
-                        </div>
-                        <h3 className="font-bold text-base max-sm:text-[14px] leading-tight text-center px-1">
-                          {more_to_love.rightTitle}
-                        </h3>
-                        {more_to_love.rightSubtitle && (
-                          <p className="mt-1 text-[11px] text-gray-300 text-center leading-snug">
-                            {more_to_love.rightSubtitle}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Bottom: Qty & Price */}
-                      <div className="mt-4 flex flex-col items-center gap-2 pb-4">
-                        <QtyInput
-                          value={giftCardCount}
-                          onIncrement={() => handleGiftCardChange(1)}
-                          onDecrement={() => handleGiftCardChange(-1)}
-                          min={0}
-                        />
-                        <div className="flex items-center gap-2 justify-center">
-                          <span className="text-[15px] text-gray-400 line-through">£{(245 * giftCardCount).toFixed(2)}</span>
-                          <span className="font-bold text-base text-white">£{discountedGiftCardPrice.toFixed(2)}</span>
-                        </div>
-                      </div>
-                    </div>
-
                   </div>
                 </div>
 
+                {/* September slots */}
+                <div className="text-center">
+                  <div className="text-xs text-white/70 mb-2 font-medium max-sm:text-xs max-sm:mb-1">
+                    {getDynamicMonthText(sliderContent["slot2_label"], 0)}
+                  </div>
+                  <div className="bg-[#5a3ddb] rounded-full p-2 max-sm:p-1.5">
+                    <div className="text-xs text-white font-semibold max-sm:text-xs">
+                      {currentWeekReservedText}
+                    </div>
+                  </div>
+                </div>
+
+                {/* October slots */}
+                <div className="text-center">
+                  <div className="text-xs text-white/70 mb-2 font-medium max-sm:text-xs max-sm:mb-1">
+                    {getDynamicMonthText(sliderContent["slot3_label"], 1)}
+                  </div>
+                  <div className="bg-[#1e1e27] rounded-full p-2 max-sm:p-1.5">
+                    <div className="text-xs text-white font-semibold max-sm:text-xs">
+                      {sliderContent["slot3_status"]}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-
-            {/* Alert Message */}
-            {validationErrors.size > 0 && (
-              <div className="mb-4 p-3 bg-red-500/20 border border-red-500 rounded-lg max-sm:p-2 max-sm:mb-3">
-                <p className="text-red-300 text-sm font-medium max-sm:text-xs">
-                  Confirm required documents
-                </p>
-              </div>
-            )}
-
-
-
-
-            {/* Checkout Button */}
-            <button
-              onClick={() => handleGetVisa()}
-              className="group flex w-full justify-between items-center bg-[#6B4EFF] text-white gap-[16px] font-medium px-[20px] py-4 rounded-full cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb] max-sm:py-3.5 max-sm:px-4 mt-3"
-            >
-              <span className="mr-3 text-xl font-semibold max-sm:text-lg max-sm:mr-2">
-                {selectedPaymentMethod === "stripe"
-                  ? "CONTINUE WITH CREDIT CARD"
-                  : selectedPaymentMethod === "klarna"
-                    ? "CONTINUE WITH KLARNA"
-                    : "CONTINUE TO CHECKOUT"}
-              </span>
-              <span className="bg-white rounded-full p-1.5 transition-transform duration-300 group-hover:rotate-45 group-hover:translate-x-1 group-hover:-translate-y-0 max-sm:p-1">
-                <ArrowUpRight className="w-5 h-5 text-[#6B4EFF] max-sm:w-4 max-sm:h-4" />
-              </span>
-            </button>
-
-            {/* Footer Info */}
-            <div className="mt-6 space-y-2 max-sm:space-y-1.5">
-              <div className="flex items-center space-x-2 text-sm max-sm:text-xs">
-                <MedalIcon className="size-5 text-white/70 max-sm:w-4 max-sm:h-4" />
-                <span>{checkoutButtonDescription.subtitleOne}</span>
-              </div>
-              <div className="flex items-center space-x-2 text-sm max-sm:text-xs">
-                <ShieldCheckIcon className="size-5 text-white/70 max-sm:w-4 max-sm:h-4" />
-                <span>{checkoutButtonDescription.subtitleTwo}</span>
-              </div>
-            </div>
-
-            {/* Get Help Button */}
-            <a
-              href="https://wa.me/447388120901?text=Hello%20NUvisa!%20I%20would%20like%20assistance."
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-4 w-fit rounded-full border border-white text-white py-1.5 hover:border-purple-500 transition-colors text-sm px-4 cursor-pointer max-sm:mt-3 max-sm:py-1 max-sm:px-3 max-sm:text-xs flex items-center"
-            >
-              <Image
-                src="/icons/whatsapp.svg"
-                alt="Get Help"
-                width={20}
-                height={20}
-                className="inline-block mr-1 size-5 text-white max-sm:w-4 max-sm:h-4"
-                priority
-              />
-              Get Help
-            </a>
           </div>
+
+          {/* Checkout Button */}
+          <button
+            onClick={() => handleGetVisa()}
+            className="group flex w-full justify-between items-center bg-[#6B4EFF] text-white gap-[16px] font-medium px-[20px] py-4 rounded-full cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb] max-sm:py-3.5 max-sm:px-4 mt-8"
+          >
+            <span className="mr-3 text-xl font-semibold max-sm:text-lg max-sm:mr-2">
+              {selectedPaymentMethod === "stripe"
+                ? "CONTINUE WITH CREDIT CARD"
+                : selectedPaymentMethod === "klarna"
+                  ? "CONTINUE WITH KLARNA"
+                  : "CONTINUE TO CHECKOUT"}
+            </span>
+            <span className="bg-white rounded-full p-1.5 transition-transform duration-300 group-hover:rotate-45 group-hover:translate-x-1 group-hover:-translate-y-0 max-sm:p-1">
+              <ArrowUpRight className="w-5 h-5 text-[#6B4EFF] max-sm:w-4 max-sm:h-4" />
+            </span>
+          </button>
+
+          {/* Footer Info */}
+          <div className="mt-6 space-y-2 max-sm:space-y-1.5">
+            <div className="flex items-center space-x-2 text-sm max-sm:text-xs">
+              <MedalIcon className="size-5 text-white/70 max-sm:w-4 max-sm:h-4" />
+              <span>{checkoutButtonDescription.subtitleOne}</span>
+            </div>
+            <div className="flex items-center space-x-2 text-sm max-sm:text-xs">
+              <ShieldCheckIcon className="size-5 text-white/70 max-sm:w-4 max-sm:h-4" />
+              <span>{checkoutButtonDescription.subtitleTwo}</span>
+            </div>
+          </div>
+
+          {/* Get Help Button */}
+          <a
+            href="https://wa.me/447388120901?text=Hello%20NUvisa!%20I%20would%20like%20assistance."
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-4 w-fit rounded-full border border-white text-white py-1.5 hover:border-purple-500 transition-colors text-sm px-4 cursor-pointer max-sm:mt-3 max-sm:py-1 max-sm:px-3 max-sm:text-xs flex items-center"
+          >
+            <Image
+              src="/icons/whatsapp.svg"
+              alt="Get Help"
+              width={20}
+              height={20}
+              className="inline-block mr-1 size-5 text-white max-sm:w-4 max-sm:h-4"
+              priority
+            />
+            Get Help
+          </a>
         </section>
       </div>
     </div>

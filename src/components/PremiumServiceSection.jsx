@@ -146,8 +146,8 @@ const PremiumServiceSection = ({ contactCardsData }) => {
                 <p className="text-[15px] md:text-[16px] font-medium opacity-90 max-w-3xl mb-6">
                   {contactCards.reduce.description}
                 </p>
-                <Link href="/get-the-visa" className="w-fit px-6 md:px-8 py-2.5 md:py-3 border border-black rounded-full text-xs font-bold text-black hover:bg-black hover:text-white transition-all duration-300 uppercase">
-                  Get It Now
+                <Link href="/our-guarantee" className="w-fit px-6 md:px-8 py-2.5 md:py-3 border border-black rounded-full text-xs font-bold text-black hover:bg-black hover:text-white transition-all duration-300 uppercase">
+                  Our Guarantee
                 </Link>
               </div>
               <div className="w-full md:w-1/2 flex justify-center md:justify-end">
@@ -228,7 +228,7 @@ const PremiumServiceSection = ({ contactCardsData }) => {
 
         <Link href={"/get-the-visa"}>
           <button className="group flex items-center bg-[#6B4EFF] text-white gap-[16px] font-medium px-[24px] py-3 rounded-3xl cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb]">
-            <span className="mr-3 text-xl md:text-2xl uppercase">Get the visa</span>
+            <span className="mr-3 text-xl md:text-2xl uppercase">Start Application</span>
             <span className="bg-white rounded-full p-1.5 transition-transform duration-300 group-hover:rotate-45 group-hover:translate-x-1">
               <ArrowUpRight className="w-5 h-5 text-[#6B4EFF]" />
             </span>

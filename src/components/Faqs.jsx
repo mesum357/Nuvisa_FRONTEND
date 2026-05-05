@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import {
   ChevronDown,
   ChevronUp,
@@ -6,6 +6,27 @@ import {
 import { fetchFAQs as fetchFAQsFromAPI } from '@/api/faqs';
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
+
+const ANSWER_LINKS = [
+  { keyword: "Guarantee", href: "/our-guarantee" },
+];
+
+const renderAnswer = (text) => {
+  if (!text) return null;
+  let parts = [text];
+  ANSWER_LINKS.forEach(({ keyword, href }) => {
+    parts = parts.flatMap((part) => {
+      if (typeof part !== "string") return [part];
+      const segments = part.split(keyword);
+      return segments.flatMap((seg, i) =>
+        i < segments.length - 1
+          ? [seg, <Link key={`${keyword}-${i}`} href={href} className="text-[#7350FF] underline hover:opacity-80 transition-opacity">{keyword}</Link>]
+          : [seg]
+      );
+    });
+  });
+  return parts;
+};
 
 const FAQSection = () => {
   const [activeIndex, setActiveIndex] = useState(null);
@@ -82,8 +103,16 @@ const FAQSection = () => {
     }
   }, [faqTabs, activeTab]);
 
+  const itemRefs = useRef({});
+
   const toggleAccordion = (index) => {
-    setActiveIndex(activeIndex === index ? null : index);
+    const isOpening = activeIndex !== index;
+    setActiveIndex(isOpening ? index : null);
+    if (isOpening) {
+      setTimeout(() => {
+        itemRefs.current[index]?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 50);
+    }
   };
 
   const faqsByType = useMemo(() => {
@@ -126,7 +155,7 @@ const FAQSection = () => {
           </Link>
         </h2>
 
-        <div className="mb-6 border-b border-[#D8C7FF] flex flex-wrap gap-6 sm:gap-8">
+        <div className="mb-6 border-b border-[#D8C7FF] flex flex-wrap gap-6 sm:gap-8 w-fit">
           {faqTabs.map((tab) => (
             <button
               key={tab.value}
@@ -165,6 +194,7 @@ const FAQSection = () => {
             (showAll ? activeFaqs : activeFaqs.slice(0, 4)).map((faq, index) => (
               <div
                 key={faq.id || `${activeTab}-${index}`}
+                ref={(el) => { itemRefs.current[index] = el; }}
                 className="border border-gray-200 rounded-lg overflow-hidden transition-all duration-300 w-full"
               >
                 <button
@@ -183,7 +213,7 @@ const FAQSection = () => {
 
                 {activeIndex === index && (
                   <div className="p-5 bg-white text-gray-600 ">
-                    <pre class="font-sans whitespace-pre-wrap">{faq.answer}</pre>
+                    <p className="font-sans whitespace-pre-wrap">{renderAnswer(faq.answer)}</p>
                   </div>
                 )}
               </div>
