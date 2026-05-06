@@ -6,6 +6,8 @@ import { useAppSelector, useAppDispatch } from "@/store";
 import { setTravelers, setReduxInsuranceCount, setReduxGiftCardCount, setRecommendedItems, setRequiredDocuments, setVisaFees, setInsuranceFees, setGiftCardFees, setTotalAmount, setInsuranceOnly, triggerDocumentValidation } from "@/store/visaSlice";
 import { useToast } from "@/contexts/ToastContext";
 import Drawer from "./Drawer";
+import { getAdminApiBase } from "@/utils/adminApiBase";
+import { title } from "process";
 
 
 const StickyBottomBar = ({ triggerElementId } ) => {
@@ -44,6 +46,35 @@ const StickyBottomBar = ({ triggerElementId } ) => {
   const perDayInsurancePrice = 2;
   const DEFAULT_INSURANCE_DAYS = 15;
   
+  const [items, setItems] = useState([
+    {
+      id: 'schengen',
+      title: 'Schengen visa from the UK',
+      originalPrice: 200,
+      currentPrice: 129,
+      badge: 'Travellers',
+    
+    },
+    {
+      id: 'insurance',
+      title: 'Insurance Certificate',
+      originalPrice: 45,
+      currentPrice: 30,
+      badge: null,
+      badgeCount: null
+    },
+    {
+      id: 'giftCard',
+      title: 'NUvisa Digital Gift Card',
+      originalPrice: 245,
+      currentPrice: 159,
+      badge: null,
+      badgeCount: null
+    }
+  ]);
+  //
+const [countryPricingList, setCountryPricingList] = useState([]);
+
   // Memoize visa fee calculation
   const visaFeePerTraveler = useMemo(() => {
     if (visaState.selectedVisaType?.priceGBP)
@@ -54,8 +85,8 @@ const StickyBottomBar = ({ triggerElementId } ) => {
       );
       if (converted > 0) return converted;
     }
-    return 129;
-  }, [visaState.selectedVisaType?.priceGBP, visaState.selectedVisaType?.price]);
+    return items.find(item => item.id === 'schengen')?.currentPrice || 129;
+  }, [visaState.selectedVisaType?.priceGBP, visaState.selectedVisaType?.price, items[0].currentPrice]);
 
   // Memoize insurance days calculation
   const insuranceDays = useMemo(() => {
@@ -172,32 +203,81 @@ const StickyBottomBar = ({ triggerElementId } ) => {
     }
   }, [giftCardCount, showSuccess]);
 
-  const items = [
-    {
-      id: 'schengen',
-      title: 'Schengen visa from the UK',
-      originalPrice: 200,
-      currentPrice: 129,
-      badge: 'Travellers',
-    
-    },
-    {
-      id: 'insurance',
-      title: 'Insurance Certificate',
-      originalPrice: 45,
-      currentPrice: 30,
-      badge: null,
-      badgeCount: null
-    },
-    {
-      id: 'giftCard',
-      title: 'NUvisa Digital Gift Card',
-      originalPrice: 245,
-      currentPrice: 159,
-      badge: null,
-      badgeCount: null
-    }
-  ];
+
+
+    useEffect(() => {
+      let mounted = true;
+  
+      const fetchVisaPricing = async () => {
+        try {
+          const apiBase = String(process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+          const adminBase = getAdminApiBase();
+          const candidates = [
+            `/api/visa-pricing`,
+            `${apiBase}/visa_pricing`,
+            `${apiBase}/api/visa_pricing`,
+            `${apiBase}/api/public/visa_pricing`,
+            `${apiBase}/api/public/visa-pricing`,
+            `${adminBase}/api/visa_pricing`,
+            `${adminBase}/visa_pricing`,
+            `${adminBase}/api/public/visa_pricing`,
+            `${adminBase}/api/public/visa-pricing`,
+          ].filter((url) => /^https?:\/\//i.test(url) || url.startsWith("/"));
+  
+          let payload = null;
+          for (const endpoint of candidates) {
+            try {
+              const res = await fetch(endpoint, { method: "GET" });
+              if (!res.ok) continue;
+              const json = await res.json();
+              const status = String(json?.status || "").toUpperCase();
+              if (status === "ERROR") continue;
+              payload = json?.data?.results || [];
+              if (Array.isArray(payload)) break;
+            } catch {
+              // Try next endpoint
+            }
+          }
+  
+          if (!mounted) return;
+          if (!Array.isArray(payload) || payload.length === 0) {
+            setCountryPricingList([]);
+            return;
+          }
+  
+          const normalized = payload
+            .map((item) => ({
+              id: 'schengen', // Override ID to match our internal logic
+              originalPrice: Number(item?.strikeOutPrice),
+              currentPrice: Number(item?.basePrice),              
+            })).slice(0,1)
+
+            setItems((prevItems) => {
+              const otherItems = prevItems.filter(item => item.id !== 'schengen');
+              return [{...prevItems[0], ...normalized[0]}, ...otherItems];
+            });
+
+          setCountryPricingList(normalized);
+        } catch (error) {
+          console.error("Failed to fetch visa pricing:", error);
+        } finally {
+          
+        }
+      };
+      
+      fetchVisaPricing();
+      return () => {
+        mounted = false;
+      };
+    }, []);
+
+
+    useEffect(() => {
+      console.log("country pricing list", countryPricingList)
+    }, [countryPricingList])
+
+
+
 
   // Memoize updateQuantity to prevent unnecessary re-renders
   const updateQuantity = useCallback((itemId, change) => {
@@ -487,7 +567,7 @@ useEffect(() => {
 }, [triggerElementId]);
 
 
-
+console.log("items", items)
   // Measure sticky bar height to offset drawer
   useEffect(() => {
     if (!isVisible) return;
@@ -520,7 +600,7 @@ useEffect(() => {
   }, [isDrawerOpen]);
 
   if (!isVisible) return null;
-
+  console.log(quantities)
   return (
     <>
     <div ref={barRef} className={`fixed bottom-0 left-0 right-0 z-[70] bg-[#1e1e27] ${isDrawerOpen ? 'shadow-none' : 'shadow-2xl'} animate-slide-up`}>
@@ -545,7 +625,7 @@ useEffect(() => {
                           {visaPriceDisplay.discountedLabel} {schengenMaxDiscountPercent}%
                         </span>
                       ) : <span className="text-[10px] text-gray-500 font-medium">
-                          {item.currentPrice < item.originalPrice ? 'You saved '+ (item.currentPrice/item.originalPrice * 100).toFixed(0) + '%' : 'Current Price'}
+                          {item.currentPrice < item.originalPrice ? 'You saved '+ ((item.originalPrice-item.currentPrice)/item.originalPrice * 100).toFixed(0) + '%' : 'Current Price'}
                         </span>}
                     </div>
                     <div className="flex gap-1 flex-col">
