@@ -48,14 +48,14 @@ const OurMission = ({ className }) => {
                 style={{
                   width: "138%",
                   left: "55%",
-                  top: "45%",
+                  top: "65%",
                   transform: "translate(-50%, -50%) rotate(-2deg)",
                 }}
                 preserveAspectRatio="xMidYMid meet"
               >
                 <path
                   fill="none"
-                  stroke="rgb(240,58,47)"
+                  stroke="rgb(85, 51, 222)"
                   strokeWidth="5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
