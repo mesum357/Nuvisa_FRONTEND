@@ -76,7 +76,22 @@ const StickyBottomBar = ({ triggerElementId } ) => {
 const [countryPricingList, setCountryPricingList] = useState([]);
 
   // Memoize visa fee calculation
+  // Prioritize API pricing when visaState is empty or on homepage
+  // Otherwise use Redux selectedVisaType pricing
   const visaFeePerTraveler = useMemo(() => {
+    // Check if visaState has selected visa type data
+    const hasVisaTypeData = visaState.selectedVisaType?.priceGBP || visaState.selectedVisaType?.price;
+    
+    // If no visa type data, use API pricing from countryPricingList
+    if (!hasVisaTypeData) {
+      // Check if we have API data in countryPricingList
+      if (Array.isArray(countryPricingList) && countryPricingList.length > 0) {
+        return Number(countryPricingList[0].currentPrice) || 129;
+      }
+      // Fallback to items state (which is also updated from API)
+      return items.find(item => item.id === 'schengen')?.currentPrice || 129;
+    }
+    // Use Redux pricing if available
     if (visaState.selectedVisaType?.priceGBP)
       return Number(visaState.selectedVisaType.priceGBP);
     if (visaState.selectedVisaType?.price) {
@@ -85,8 +100,10 @@ const [countryPricingList, setCountryPricingList] = useState([]);
       );
       if (converted > 0) return converted;
     }
+    
+    // Final fallback
     return items.find(item => item.id === 'schengen')?.currentPrice || 129;
-  }, [visaState.selectedVisaType?.priceGBP, visaState.selectedVisaType?.price, items[0].currentPrice]);
+  }, [visaState.selectedVisaType?.priceGBP, visaState.selectedVisaType?.price, countryPricingList, items[0].currentPrice]);
 
   // Memoize insurance days calculation
   const insuranceDays = useMemo(() => {
@@ -618,7 +635,7 @@ console.log("items", items)
                   <div className="flex flex-wrap items-start gap-3">
                     <div className="flex flex-col">
                       <span className="text-white font-bold">
-                        £{quantities[item.id] > 0 ? getItemDiscountedPrice(item.id).toFixed(2) : item.currentPrice}
+                        £{quantities[item.id] > 0 ? getItemDiscountedPrice(item.id).toFixed(2) : visaFeePerTraveler}
                       </span>
                       {!!visaPriceDisplay?.discountedLabel ? (
                         <span className="text-[10px] text-gray-500 font-medium">
@@ -832,7 +849,7 @@ console.log("items", items)
                     <div className="flex flex-wrap items-start gap-2">
                       <div className="flex flex-col">
                         <span className="text-white font-bold">
-                          £{quantities[item.id] > 0 ? getItemDiscountedPrice(item.id).toFixed(2) : item.currentPrice}
+                          £{quantities[item.id] > 0 ? getItemDiscountedPrice(item.id).toFixed(2) : visaFeePerTraveler}
                         </span>
                         {!!visaPriceDisplay?.discountedLabel && (
                           <span className="text-[10px] text-gray-500 font-medium">
