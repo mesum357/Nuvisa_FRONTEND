@@ -50,8 +50,8 @@ const StickyBottomBar = ({ triggerElementId } ) => {
     {
       id: 'schengen',
       title: 'Schengen visa from the UK',
-      originalPrice: 200,
-      currentPrice: 129,
+      originalPrice: 295,
+      currentPrice: 90,
       badge: 'Travellers',
     
     },
@@ -81,13 +81,11 @@ const [countryPricingList, setCountryPricingList] = useState([]);
   const visaFeePerTraveler = useMemo(() => {
     // Check if visaState has selected visa type data
     const hasVisaTypeData = visaState.selectedVisaType?.priceGBP || visaState.selectedVisaType?.price;
-    
+    console.log("calculating visa fee per traveler, has visa type data:", hasVisaTypeData, "visaState selectedVisaType:", visaState.selectedVisaType);
     // If no visa type data, use API pricing from countryPricingList
     if (!hasVisaTypeData) {
-      // Check if we have API data in countryPricingList
-      if (Array.isArray(countryPricingList) && countryPricingList.length > 0) {
-        return Number(countryPricingList[0].currentPrice) || 129;
-      }
+      // 
+      console.log(" falling back to items state for visa fee, ", items);
       // Fallback to items state (which is also updated from API)
       return items.find(item => item.id === 'schengen')?.currentPrice || 129;
     }
@@ -266,13 +264,26 @@ const [countryPricingList, setCountryPricingList] = useState([]);
             .map((item) => ({
               id: 'schengen', // Override ID to match our internal logic
               originalPrice: Number(item?.strikeOutPrice),
-              currentPrice: Number(item?.basePrice),              
-            })).slice(0,1)
-
+              currentPrice: Number(item?.basePrice),
+              country: item?.name || ""
+            }))
+            // find belgium item and select that one if it exists, otherwise take the first item
+            const defaultCountry= "Belgium";
+            console.log(normalized)
+          const defaultItem = normalized.find(item => item.country === defaultCountry);
+            console.log(" selected country and default", defaultItem, "Belgium");
+            if (defaultItem) {
+            setItems((prevItems) => {
+              const otherItems = prevItems.filter(item => item.id !== 'schengen');
+              return [{...prevItems[0], ...defaultItem}, ...otherItems];
+            });
+          }
+          else {
             setItems((prevItems) => {
               const otherItems = prevItems.filter(item => item.id !== 'schengen');
               return [{...prevItems[0], ...normalized[0]}, ...otherItems];
             });
+          }
 
           setCountryPricingList(normalized);
         } catch (error) {
@@ -360,6 +371,9 @@ const [countryPricingList, setCountryPricingList] = useState([]);
     const effectiveVisaFeePerTraveler = canUseReduxVisaFees
       ? reduxVisaFees / travelerCount
       : visaFeePerTraveler;
+
+    console.log("visa fee per traveler for discount calculation", effectiveVisaFeePerTraveler, "can use redux visa fees:", canUseReduxVisaFees, "redux visa fees:", reduxVisaFees, "traveler count:", travelerCount)
+    console.log("base discount" ,effectiveVisaFeePerTraveler);
     const baseDiscountedVisaFees = effectiveVisaFeePerTraveler * quantities.schengen;
     const baseDiscountedInsuranceFees = insuranceBaseFees;
     const baseDiscountedGiftCardFees = recommendedItems?.giftCard ? 159 * quantities.giftCard : 0;
