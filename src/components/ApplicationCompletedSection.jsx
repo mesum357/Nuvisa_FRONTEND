@@ -22,6 +22,12 @@ import { getApplicationStatus } from "@/api/applicationStatus";
 import { localStorageGateway } from "@/gateways/localStoragegateway";
 import { localStorageEnums } from "@/enums/localstorage.enums";
 
+const normalizeStatus = (status) =>
+  String(status || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+
 const ApplicationCompletedSection = ({
   parentVisaApplication = null,
   onAddTraveler = null,
@@ -92,7 +98,7 @@ const ApplicationCompletedSection = ({
       }
 
       const statusToProgress = (status) => {
-        const s = (status || "").toString().toLowerCase();
+        const s = normalizeStatus(status);
         switch (s) {
           case "submitted":
             return 25;
@@ -104,6 +110,9 @@ const ApplicationCompletedSection = ({
           case "at_embassy":
           case "at embassy":
             return 90;
+          case "decision_made":
+          case "decision made":
+            return 100;
           case "payment_required":
             return 75;
           case "approved":
@@ -118,7 +127,7 @@ const ApplicationCompletedSection = ({
 
       return {
         id: app.id,
-        status: app.applicationStatus || app.status || app.applicationData?.applicationStatus || "submitted",
+        status: normalizeStatus(app.applicationStatus || app.status || app.applicationData?.applicationStatus || "submitted"),
         submittedAt: app.createdAt || app.submittedAt || app.applicationData?.createdAt || null,
         estimatedProcessingTime: app.estimatedProcessingTime || null,
         orderId: app.orderId || app.order_id || app.applicationData?.orderId || null,
@@ -240,6 +249,14 @@ const ApplicationCompletedSection = ({
           borderColor: "border-yellow-400/20",
           icon: AlertCircle,
           message: "Payment Required"
+        };
+      case "decision_made":
+        return {
+          color: "text-green-400",
+          bgColor: "bg-green-400/10",
+          borderColor: "border-green-400/20",
+          icon: CheckCircle,
+          message: "Decision Made"
         };
       case "approved":
         return {

@@ -14,6 +14,12 @@ import { getApplicationStatus } from "@/api/applicationStatus";
 import { localStorageGateway } from "@/gateways/localStoragegateway";
 import { localStorageEnums } from "@/enums/localstorage.enums";
 
+const normalizeStatus = (status) =>
+  String(status || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+
 const StatusTracker = ({ applicationId, className = "", initialStatus = null, onRefresh = null }) => {
   const [status, setStatus] = useState(initialStatus);
   const [loading, setLoading] = useState(!initialStatus);
@@ -61,7 +67,7 @@ const StatusTracker = ({ applicationId, className = "", initialStatus = null, on
 
   const getStatusSteps = () => {
     const statusToProgress = (s) => {
-      const v = (s || '').toString().trim().toLowerCase();
+      const v = normalizeStatus(s);
       switch (v) {
         case 'submitted':
           return 25;
@@ -79,6 +85,7 @@ const StatusTracker = ({ applicationId, className = "", initialStatus = null, on
           return 90;
         case 'approved':
         case 'rejected':
+        case 'decision_made':
           return 100;
         default:
           return 0;
@@ -116,11 +123,19 @@ const StatusTracker = ({ applicationId, className = "", initialStatus = null, on
         completed: progress >= 90,
         current: progress >= 75 && progress < 100
       },
-      ...(status?.status === 'approved' || status?.status === 'rejected'
+      ...(['approved', 'rejected', 'decision_made'].includes(normalizeStatus(status?.status))
         ? [{
-            id: status.status,
-            title: status.status === 'approved' ? 'Approved' : 'Rejected',
-            description: status.status === 'approved' ? 'Your application has been approved' : 'Your application has been rejected',
+            id: normalizeStatus(status?.status),
+            title: normalizeStatus(status?.status) === 'approved'
+              ? 'Approved'
+              : normalizeStatus(status?.status) === 'rejected'
+                ? 'Rejected'
+                : 'Decision made',
+            description: normalizeStatus(status?.status) === 'approved'
+              ? 'Your application has been approved'
+              : normalizeStatus(status?.status) === 'rejected'
+                ? 'Your application has been rejected'
+                : 'A final decision has been made on your application',
             completed: progress >= 100,
             current: progress === 100
           }]

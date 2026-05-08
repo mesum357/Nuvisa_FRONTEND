@@ -46,9 +46,10 @@ const OurMission = ({ className }) => {
                 aria-hidden="true"
                 className="absolute pointer-events-none"
                 style={{
-                  width: "138%",
+                  width: "148%",
+                  height: "250%",
                   left: "55%",
-                  top: "65%",
+                  top: "55%",
                   transform: "translate(-50%, -50%) rotate(-2deg)",
                 }}
                 preserveAspectRatio="xMidYMid meet"

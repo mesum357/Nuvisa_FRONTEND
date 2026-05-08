@@ -27,6 +27,12 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { countryCodeMap } from "@/utils/countryCodeMap";
 
+const normalizeApplicationStatus = (status) =>
+  String(status || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+
 export default function HeaderSearchSection() {
   const token = localStorageGateway("token", localStorageEnums.GET);
   const [activeTab, setActiveTab] = useState("all");
@@ -51,14 +57,14 @@ export default function HeaderSearchSection() {
   // Comprehensive status filtering with proper categorization
   const newApplications = filteredApplications.filter(
     (app) => {
-      const status = app?.applicationStatus?.toLowerCase();
+      const status = normalizeApplicationStatus(app?.applicationStatus);
       return status === "new" || status === "draft" || status === "pending";
     }
   ).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   const submittedApplications = filteredApplications.filter(
     (app) => {
-      const status = app?.applicationStatus?.toLowerCase();
+      const status = normalizeApplicationStatus(app?.applicationStatus);
       // Include all active processing states, approved applications, and rejected applications
       return status === "submitted" ||
              status === "under_review" ||
@@ -74,21 +80,21 @@ export default function HeaderSearchSection() {
 
   const approvedApplications = filteredApplications.filter(
     (app) => {
-      const status = app?.applicationStatus?.toLowerCase();
+      const status = normalizeApplicationStatus(app?.applicationStatus);
       return status === "approved";
     }
   ).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   const rejectedApplications = filteredApplications.filter(
     (app) => {
-      const status = app?.applicationStatus?.toLowerCase();
+      const status = normalizeApplicationStatus(app?.applicationStatus);
       return status === "rejected" || status === "cancelled";
     }
   ).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   const completedApplications = filteredApplications.filter(
     (app) => {
-      const status = app?.applicationStatus?.toLowerCase();
+      const status = normalizeApplicationStatus(app?.applicationStatus);
       return status === "completed";
     }
   ).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -706,7 +712,7 @@ const ProgressTimeline = ({ currentStatus, applicant, allTravelers = [], current
       return -1;
     }
 
-    const s = String(statusOrProgress).toLowerCase();
+    const s = normalizeApplicationStatus(statusOrProgress);
     const mapping = {
       submitted: "submitted",
       new: "submitted",
@@ -724,6 +730,7 @@ const ProgressTimeline = ({ currentStatus, applicant, allTravelers = [], current
       "at embassy": "at_embassy",
       embassy: "at_embassy",
       decision_made: "decision_made",
+      "decision made": "decision_made",
       approved: "decision_made",
       rejected: "decision_made",
       payment_required: "appointment_booked",

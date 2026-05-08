@@ -1,6 +1,12 @@
 import { backendApiEnums } from "@/enums/backendApi.enums";
 import { apigateway } from "@/gateways/apigateway";
 
+const normalizeStatus = (status) =>
+  String(status || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+
 // Fetch application status using existing getApplicationById endpoint
 export const getApplicationStatus = async (token, applicationId) => {
   try {
@@ -18,7 +24,7 @@ export const getApplicationStatus = async (token, applicationId) => {
         response.data.results?.application || response.data.application || response.data;
 
       // Derive richer status with sub-states for appointment and embassy
-      const rawStatus = String(applicationData.applicationStatus || "submitted").toLowerCase();
+      const rawStatus = normalizeStatus(applicationData.applicationStatus || "submitted");
 
       // Extract appointment preferences (top-level or first traveler fallback)
       const appointment = applicationData.appointment || (Array.isArray(applicationData.travelersData) && applicationData.travelersData[0]?.appointment) || null;
@@ -34,7 +40,7 @@ export const getApplicationStatus = async (token, applicationId) => {
       const atEmbassy = currentStepKey === 'at_embassy' || currentStageText === 'at embassy';
 
       let derivedStatus = rawStatus;
-      if (rawStatus === 'approved' || rawStatus === 'rejected') {
+      if (rawStatus === 'approved' || rawStatus === 'rejected' || rawStatus === 'decision_made') {
         derivedStatus = rawStatus;
       } else if (atEmbassy) {
         derivedStatus = 'at_embassy';
@@ -172,6 +178,8 @@ const getStatusStage = (status) => {
       return "Appointment Booked";
     case "at_embassy":
       return "At Embassy";
+    case "decision_made":
+      return "Decision Made";
     case "payment_required":
       return "Payment Processing";
     case "approved":
@@ -194,6 +202,8 @@ const getStatusProgress = (status) => {
       return 75;
     case "at_embassy":
       return 90;
+    case "decision_made":
+      return 100;
     case "payment_required":
       return 75;
     case "approved":
@@ -227,6 +237,11 @@ const getNextSteps = (status) => {
     case "at_embassy":
       return [
         "Await decision",
+      ];
+    case "decision_made":
+      return [
+        "Final decision has been made",
+        "Check your email for passport dispatch or collection updates",
       ];
     case "payment_required":
       return [
@@ -266,6 +281,8 @@ const getStatusDescription = (status) => {
       return "Your visa appointment has been booked";
     case "at_embassy":
       return "Your documents are with the embassy";
+    case "decision_made":
+      return "A final decision has been made on your application";
     case "payment_required":
       return "Additional payment required to complete processing";
     case "approved":
