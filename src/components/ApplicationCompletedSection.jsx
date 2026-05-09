@@ -256,7 +256,7 @@ const ApplicationCompletedSection = ({
           bgColor: "bg-green-400/10",
           borderColor: "border-green-400/20",
           icon: CheckCircle,
-          message: "Decision Made"
+          message: "Decision made, passport dispatched/ready"
         };
       case "approved":
         return {

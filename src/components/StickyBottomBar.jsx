@@ -656,7 +656,7 @@ console.log("items", items)
                           {visaPriceDisplay.discountedLabel} {schengenMaxDiscountPercent}%
                         </span>
                       ) : <span className="text-[10px] text-gray-500 font-medium">
-                          {item.currentPrice < item.originalPrice ? 'You saved '+ ((item.originalPrice-item.currentPrice)/item.originalPrice * 100).toFixed(0) + '%' : 'Current Price'}
+                          {item.currentPrice < item.originalPrice ? 'You save '+ ((item.originalPrice-item.currentPrice)/item.originalPrice * 100).toFixed(0) + '%' : 'Current Price'}
                         </span>}
                     </div>
                     <div className="flex gap-1 flex-col">
