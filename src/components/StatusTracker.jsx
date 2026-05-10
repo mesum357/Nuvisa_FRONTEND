@@ -130,7 +130,7 @@ const StatusTracker = ({ applicationId, className = "", initialStatus = null, on
               ? 'Approved'
               : normalizeStatus(status?.status) === 'rejected'
                 ? 'Rejected'
-                : 'Decision made',
+                : 'Decision made, passport dispatched/ready',
             description: normalizeStatus(status?.status) === 'approved'
               ? 'Your application has been approved'
               : normalizeStatus(status?.status) === 'rejected'

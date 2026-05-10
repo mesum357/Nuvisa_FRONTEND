@@ -77,7 +77,7 @@ const FAQ_CARD_CONTENT = [
   {
     title: "Price match promise",
     description:
-      "Discover how our digital gift card works and how it can be used as a gift of unforgettable memories",
+      "We are committed to offering you the best value — spot a lower price? We will match it.",
     icon: "digital_gift_card",
   },
   {
