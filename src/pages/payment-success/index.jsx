@@ -15,6 +15,7 @@ import { createOrUpdateApplication } from "@/api/visaApplications";
 import { localStorageEnums } from "@/enums/localstorage.enums";
 import { localStorageGateway } from "@/gateways/localStoragegateway";
 import { decrementExpertSpotsOnSuccessfulCheckout } from "@/utils/expertSpots";
+import { trackPurchase } from "@/lib/gtag";
 
 const PaymentSuccess = () => {
   const router = useRouter();
@@ -476,6 +477,21 @@ const PaymentSuccess = () => {
           applicationResponse?.status === 200 ||
           applicationResponse?.status === 201
         ) {
+          // GA4: purchase — application created, payment confirmed
+          trackPurchase({
+            transactionId: stripePaymentId || applicationResponse?.data?.data?.results?.application?.id || `TXN_${Date.now()}`,
+            country: mergedData.selectedCountry || "",
+            travelers: numberOfTravelers,
+            visaFeePerTraveler: numberOfTravelers > 0
+              ? Number(mergedData.paymentWithoutInsurance || 0) / numberOfTravelers
+              : 0,
+            insurance: hasInsurance,
+            insuranceFeeTotal: hasInsurance ? Number(mergedData.insurancePayment || 0) : 0,
+            totalValue: Number(mergedData.totalAmount || 0),
+            coupon: mergedData.storedMetadata?.couponCode || undefined,
+            currency: "GBP",
+          });
+
           // Application created successfully, redirect to application-step
           setTimeout(() => {
             router.replace(

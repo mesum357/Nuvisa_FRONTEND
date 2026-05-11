@@ -43,6 +43,7 @@ import { validateGiftCardCode, redeemGiftCardCode } from "@/api/giftCard";
 import { getDynamicMonthText } from "@/utils/getDynamicMonthText";
 import { getCurrentWeekSlotPercentage } from "@/utils/getCurrentWeekSlotPercentage";
 import { decrementExpertSpotsOnSuccessfulCheckout } from "@/utils/expertSpots";
+import { trackAddToCart, trackBeginCheckout } from "@/lib/gtag";
 
 const DEFAULT_REQUIRED_DOCUMENTS = {
   passport: false,
@@ -1258,6 +1259,18 @@ const VisaCheckout = () => {
       }
     }
 
+    // GA4: begin_checkout — user has passed validation and is proceeding to pay
+    trackBeginCheckout({
+      country: selectedCountry || "",
+      travelers,
+      visaFeePerTraveler: currentVisaFeePerTraveler,
+      insurance: includeInsurance,
+      insuranceFeeTotal: includeInsurance ? discountedInsuranceFeesGBP : 0,
+      totalValue: total,
+      coupon: appliedDiscount?.code || couponCode || undefined,
+      currency: "GBP",
+    });
+
     // For Stripe card, show inline payment form (email validation handled by Stripe form)
     if (selectedPaymentMethod === "stripe") {
       setShowInlineStripeForm(true);
@@ -1452,6 +1465,20 @@ const VisaCheckout = () => {
     decrementExpertSpotsOnSuccessfulCheckout(sessionId);
   }
 }, []);
+
+  // GA4: fire add_to_cart once when the checkout page mounts
+  useEffect(() => {
+    trackAddToCart({
+      country: selectedCountry || "",
+      travelers,
+      visaFeePerTraveler: currentVisaFeePerTraveler,
+      insurance: includeInsurance,
+      insuranceFeeTotal: includeInsurance ? finalInsuranceFees : 0,
+      totalValue: total,
+      currency: "GBP",
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentionally run once on mount
 
   // Apple Pay / Google Pay handled by Stripe Payment Request button
 

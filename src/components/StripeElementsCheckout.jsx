@@ -10,6 +10,7 @@ import { createPaymentIntent } from "@/api/stripePayment";
 import StripePaymentForm from "./StripePaymentForm";
 import Cookies from "js-cookie";
 import { Loader } from "lucide-react";
+import { trackAddPaymentInfo } from "@/lib/gtag";
 
 const StripeElementsCheckout = forwardRef(({
   email,
@@ -194,6 +195,18 @@ const StripeElementsCheckout = forwardRef(({
   const handlePaymentSuccess = async (paymentIntent) => {
     try {
       setProcessing(true);
+
+      // GA4: add_payment_info — card details confirmed, payment succeeded
+      trackAddPaymentInfo({
+        country: country || "",
+        travelers: travelers || 1,
+        visaFeePerTraveler: travelers > 0 ? (amount / travelers) : amount,
+        insurance: insurance || false,
+        insuranceFeeTotal: 0, // insurance fee is part of total amount
+        totalValue: amount || 0,
+        paymentType: "Credit Card",
+        currency: "GBP",
+      });
 
       // Store the payment intent ID so payment-success can use it as the stripePaymentId
       // idempotency key when creating the application (prevents double creation with webhook)
