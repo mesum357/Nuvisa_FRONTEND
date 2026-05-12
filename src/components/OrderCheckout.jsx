@@ -1268,6 +1268,7 @@ const VisaCheckout = () => {
       insuranceFeeTotal: includeInsurance ? discountedInsuranceFeesGBP : 0,
       totalValue: total,
       coupon: appliedDiscount?.code || couponCode || undefined,
+      discount: visaDiscountAmount || 0,
       currency: "GBP",
     });
 
@@ -1475,6 +1476,8 @@ const VisaCheckout = () => {
       insurance: includeInsurance,
       insuranceFeeTotal: includeInsurance ? finalInsuranceFees : 0,
       totalValue: total,
+      coupon: appliedDiscount?.code || undefined,
+      discount: visaDiscountAmount || 0,
       currency: "GBP",
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps

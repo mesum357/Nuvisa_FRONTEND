@@ -167,7 +167,7 @@ const PaymentSuccess = () => {
 
         // Clear the stored intent ID so it's not reused on a future visit
         if (embeddedPaymentIntentId && typeof window !== "undefined") {
-          try { sessionStorage.removeItem("stripePaymentIntentId"); } catch {}
+          try { sessionStorage.removeItem("stripePaymentIntentId"); } catch { }
         }
 
         // Successful checkout should reduce "spots left" once per unique payment.
@@ -489,6 +489,10 @@ const PaymentSuccess = () => {
             insuranceFeeTotal: hasInsurance ? Number(mergedData.insurancePayment || 0) : 0,
             totalValue: Number(mergedData.totalAmount || 0),
             coupon: mergedData.storedMetadata?.couponCode || undefined,
+            discount: 0,
+            tax: 0,
+            shipping: 0,
+            customerType: "new",
             currency: "GBP",
           });
 
@@ -521,10 +525,10 @@ const PaymentSuccess = () => {
 
   // Show gift card purchase confirmation
   if (paymentType === "gift_card") {
-    const userEmail = typeof window !== "undefined" 
+    const userEmail = typeof window !== "undefined"
       ? localStorageGateway("userEmail", localStorageEnums.GET) || ""
       : "";
-    
+
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
