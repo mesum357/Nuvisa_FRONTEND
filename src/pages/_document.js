@@ -1,9 +1,7 @@
 import { Html, Head, Main, NextScript } from "next/document";
 
 // Analytics IDs
-const GTM_ID = 'GTM-K2KZ5XR4';
-const GA4_ID = 'G-QZ8V1X83W';
-const META_PIXEL_ID = '8743860119455304';
+const GTM_ID = "GTM-K2KZ5XR4";
 
 export default function Document() {
   return (
@@ -22,66 +20,47 @@ export default function Document() {
           }}
         />
 
-        {/* ===== GOOGLE ANALYTICS (GA4) ===== */}
-        <script async src={`https://www.googletagmanager.com/gtag/js?id=${GA4_ID}`} />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', '${GA4_ID}', {
-                page_path: window.location.pathname,
-              });
-            `,
-          }}
-        />
-
-        {/* ===== META PIXEL ===== */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              !function(f,b,e,v,n,t,s)
-              {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-              n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-              if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-              n.queue=[];t=b.createElement(e);t.async=!0;
-              t.src=v;s=b.getElementsByTagName(e)[0];
-              s.parentNode.insertBefore(t,s)}(window, document,'script',
-              'https://connect.facebook.net/en_US/fbevents.js');
-              fbq('init', '${META_PIXEL_ID}');
-              fbq('track', 'PageView');
-            `,
-          }}
-        />
-
-        <noscript>
-          <img
-            height="1"
-            width="1"
-            style={{ display: 'none' }}
-            src={`https://www.facebook.com/tr?id=${META_PIXEL_ID}&ev=PageView&noscript=1`}
-            alt=""
-          />
-        </noscript>
-
         {/* ===== FAVICONS ===== */}
         <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2" />
-        
         <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
-
-        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=2" />
-        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=2" />
-
-        <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png?v=2" />
-        <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png?v=2" />
-
-        <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=2" />
-        <link rel="icon" type="image/png" sizes="512x512" href="/favicon-512x512.png?v=2" />
-
+        <link
+          rel="icon"
+          type="image/png"
+          sizes="16x16"
+          href="/favicon-16x16.png?v=2"
+        />
+        <link
+          rel="icon"
+          type="image/png"
+          sizes="32x32"
+          href="/favicon-32x32.png?v=2"
+        />
+        <link
+          rel="icon"
+          type="image/png"
+          sizes="48x48"
+          href="/favicon-48x48.png?v=2"
+        />
+        <link
+          rel="icon"
+          type="image/png"
+          sizes="96x96"
+          href="/favicon-96x96.png?v=2"
+        />
+        <link
+          rel="icon"
+          type="image/png"
+          sizes="192x192"
+          href="/favicon-192x192.png?v=2"
+        />
+        <link
+          rel="icon"
+          type="image/png"
+          sizes="512x512"
+          href="/favicon-512x512.png?v=2"
+        />
         <link rel="apple-touch-icon" href="/favicon-192x192.png?v=2" />
         <link rel="manifest" href="/manifest.json?v=2" />
-
 
         {/* ===== META / SOCIAL ===== */}
         <meta name="theme-color" content="#7350FF" />
@@ -99,7 +78,6 @@ export default function Document() {
         {/* ===== SCRIPTS ===== */}
         <script async src="https://pay.google.com/gp/p/js/pay.js" />
         <script async src="https://js.stripe.com/v3/"></script>
-
       </Head>
       <body className="antialiased">
         {/* GTM noscript fallback */}
@@ -108,7 +86,7 @@ export default function Document() {
             src={`https://www.googletagmanager.com/ns.html?id=${GTM_ID}`}
             height="0"
             width="0"
-            style={{ display: 'none', visibility: 'hidden' }}
+            style={{ display: "none", visibility: "hidden" }}
           />
         </noscript>
 
