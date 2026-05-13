@@ -43,8 +43,11 @@ import { validateGiftCardCode, redeemGiftCardCode } from "@/api/giftCard";
 import { getDynamicMonthText } from "@/utils/getDynamicMonthText";
 import { getCurrentWeekSlotPercentage } from "@/utils/getCurrentWeekSlotPercentage";
 import { decrementExpertSpotsOnSuccessfulCheckout } from "@/utils/expertSpots";
-import { trackAddToCart, trackBeginCheckout } from "@/lib/gtag";
-
+import {
+  trackAddToCart,
+  trackBeginCheckout,
+  trackAddPaymentInfo,
+} from "@/lib/gtag";
 const DEFAULT_REQUIRED_DOCUMENTS = {
   passport: false,
   ukVisa: false,
@@ -69,18 +72,18 @@ const VisaCheckout = () => {
   const visaState = useAppSelector((state) => state.visa);
   const recommendedItems = visaState.recommendedItems || {};
   const visaPriceDisplay = visaState.visaPriceDisplay;
-  
+
   const [insuranceCount, setInsuranceCount] = useState(
     visaState.insuranceCount || 0
   );
-  console.log('🛡️ INITIAL Insurance Count:', visaState.insuranceCount);
+  console.log("🛡️ INITIAL Insurance Count:", visaState.insuranceCount);
   // Use the current visa fee from Redux when available, otherwise fall back to the selected visa type.
   const fallbackVisaFeePerTraveler =
     visaState.selectedVisaType && visaState.selectedVisaType.priceGBP
       ? Number(visaState.selectedVisaType.priceGBP)
       : visaState.selectedVisaType && visaState.selectedVisaType.price
-        ? Math.round(Number(visaState.selectedVisaType.price) / 100)
-        : 129;
+      ? Math.round(Number(visaState.selectedVisaType.price) / 100)
+      : 129;
 
   const selectedCountry = visaState.selectedCountry;
   const selectedVisaType = visaState.selectedVisaType;
@@ -92,11 +95,10 @@ const VisaCheckout = () => {
       ? storedVisaFees / travelerCountForVisa
       : fallbackVisaFeePerTraveler;
   const hasOccasionPricing = Boolean(visaPriceDisplay?.isOccasion);
-  const comparisonVisaFeePerTraveler = Number(
-    visaPriceDisplay?.originalPerTraveler || 0
-  ) > 0
-    ? Number(visaPriceDisplay?.originalPerTraveler)
-    : currentVisaFeePerTraveler;
+  const comparisonVisaFeePerTraveler =
+    Number(visaPriceDisplay?.originalPerTraveler || 0) > 0
+      ? Number(visaPriceDisplay?.originalPerTraveler)
+      : currentVisaFeePerTraveler;
   const traditionalVisaFeePerTraveler = Number(
     visaPriceDisplay?.traditionalPerTraveler || 0
   );
@@ -115,7 +117,11 @@ const VisaCheckout = () => {
     dispatch(setTravelers(normalizedCount));
 
     // Keep visa fee total in sync with traveler changes to avoid stale derived per-traveler pricing.
-    dispatch(setVisaFees(Number((currentVisaFeePerTraveler * normalizedCount).toFixed(2))));
+    dispatch(
+      setVisaFees(
+        Number((currentVisaFeePerTraveler * normalizedCount).toFixed(2))
+      )
+    );
   };
   let travelDays = 15;
   try {
@@ -155,7 +161,7 @@ const VisaCheckout = () => {
   const [includeInsurance, setIncludeInsurance] = useState(
     visaState.recommendedItems?.insuranceCertificate || false
   );
-  console.log('🔍 INITIAL Insurance:', {
+  console.log("🔍 INITIAL Insurance:", {
     includeInsurance: visaState.recommendedItems?.insuranceCertificate || false,
     insuranceCount: visaState.insuranceCount,
   });
@@ -166,8 +172,8 @@ const VisaCheckout = () => {
   const [emailNewsOffers, setEmailNewsOffers] = useState(false);
   const initialPaymentMethod =
     visaState.selectedPaymentMethod &&
-      visaState.selectedPaymentMethod.trim() !== "" &&
-      visaState.selectedPaymentMethod !== "stripe"
+    visaState.selectedPaymentMethod.trim() !== "" &&
+    visaState.selectedPaymentMethod !== "stripe"
       ? visaState.selectedPaymentMethod
       : "";
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
@@ -186,13 +192,21 @@ const VisaCheckout = () => {
 
   // Calculate total benefits from all redeemed gift cards
   const totalGiftCardBenefits = useMemo(() => {
-    return redeemedGiftCards.reduce((total, card) => ({
-      freeTraveler: total.freeTraveler + (card.benefits?.freeTraveler || 0),
-      freeInsurance: total.freeInsurance + (card.benefits?.freeInsurance || 0),
-    }), { freeTraveler: 0, freeInsurance: 0 });
+    return redeemedGiftCards.reduce(
+      (total, card) => ({
+        freeTraveler: total.freeTraveler + (card.benefits?.freeTraveler || 0),
+        freeInsurance:
+          total.freeInsurance + (card.benefits?.freeInsurance || 0),
+      }),
+      { freeTraveler: 0, freeInsurance: 0 }
+    );
   }, [redeemedGiftCards]);
 
-  const giftCardBenefits = totalGiftCardBenefits.freeTraveler > 0 || totalGiftCardBenefits.freeInsurance > 0 ? totalGiftCardBenefits : null;
+  const giftCardBenefits =
+    totalGiftCardBenefits.freeTraveler > 0 ||
+    totalGiftCardBenefits.freeInsurance > 0
+      ? totalGiftCardBenefits
+      : null;
   const [isRedeemingGiftCard, setIsRedeemingGiftCard] = useState(false);
 
   const { showSuccess, showError } = useToast();
@@ -208,7 +222,8 @@ const VisaCheckout = () => {
     applePay: false,
     googlePay: false,
   });
-  const [isExpressCheckoutRefreshing, setIsExpressCheckoutRefreshing] = useState(false);
+  const [isExpressCheckoutRefreshing, setIsExpressCheckoutRefreshing] =
+    useState(false);
   const hasCheckedAvailabilityRef = useRef(false);
   const selectedPaymentMethodRef = useRef(selectedPaymentMethod);
   const userClosedStripeFormRef = useRef(false);
@@ -233,7 +248,11 @@ const VisaCheckout = () => {
   useEffect(() => {
     const shouldShowForm = selectedPaymentMethod === "stripe";
 
-    if (shouldShowForm && !showInlineStripeForm && !userClosedStripeFormRef.current) {
+    if (
+      shouldShowForm &&
+      !showInlineStripeForm &&
+      !userClosedStripeFormRef.current
+    ) {
       setShowInlineStripeForm(true);
       userClosedStripeFormRef.current = false; // Reset the flag when showing
       // Scroll to the payment form after a short delay
@@ -258,7 +277,11 @@ const VisaCheckout = () => {
 
   // Auto-show Klarna form when Klarna is selected
   useEffect(() => {
-    if (selectedPaymentMethod === "klarna" && !showKlarnaForm && !userClosedKlarnaFormRef.current) {
+    if (
+      selectedPaymentMethod === "klarna" &&
+      !showKlarnaForm &&
+      !userClosedKlarnaFormRef.current
+    ) {
       setShowKlarnaForm(true);
       userClosedKlarnaFormRef.current = false; // Reset the flag when showing
       // Scroll to the Klarna form after a short delay
@@ -363,7 +386,7 @@ const VisaCheckout = () => {
             if (typeof showSuccess === "function") {
               showSuccess("Email verified — student discount applied.");
             }
-          } catch { }
+          } catch {}
 
           if (pendingCheckoutQuery) {
             window.location.href = `/visa-checkout`;
@@ -399,13 +422,13 @@ const VisaCheckout = () => {
             if (typeof showSuccess === "function") {
               showSuccess("Email verified — student discount applied.");
             }
-          } catch { }
+          } catch {}
 
           if (pendingCheckoutQuery) {
             window.location.href = `/visa-checkout`;
           }
         }
-      } catch { }
+      } catch {}
     };
 
     window.addEventListener("message", onMessage);
@@ -445,7 +468,7 @@ const VisaCheckout = () => {
           }
         }
       }
-    } catch { }
+    } catch {}
   }, []);
 
   useEffect(() => {
@@ -513,7 +536,9 @@ const VisaCheckout = () => {
     // Only show toast if value changed and crossed the threshold
     if (prevInsurance !== currentInsurance) {
       if (prevInsurance < 3 && currentInsurance >= 3) {
-        showSuccess("Insurance group discount unlocked! 20% off for 3+ insurances");
+        showSuccess(
+          "Insurance group discount unlocked! 20% off for 3+ insurances"
+        );
         setAppliedInsuranceDiscount({
           code: "GROUP20",
           percentage: 20,
@@ -522,7 +547,9 @@ const VisaCheckout = () => {
         setInsuranceCouponCode("GROUP20");
         setCouponError("");
       } else if (prevInsurance >= 3 && currentInsurance < 3) {
-        showSuccess("Insurance group discount removed — fewer than 3 insurances");
+        showSuccess(
+          "Insurance group discount removed — fewer than 3 insurances"
+        );
         setAppliedInsuranceDiscount(null);
         setInsuranceCouponCode("");
         if (appliedDiscount && couponCode === "STUDENT10") {
@@ -611,55 +638,83 @@ const VisaCheckout = () => {
         // First validate the gift card code
         const validateResponse = await validateGiftCardCode(codeUpper);
 
-        if (validateResponse.status === "ERROR" || !validateResponse.data?.results?.valid) {
+        if (
+          validateResponse.status === "ERROR" ||
+          !validateResponse.data?.results?.valid
+        ) {
           setCouponError(validateResponse.message || "Invalid gift card code");
           setIsRedeemingGiftCard(false);
           return;
         }
 
         // If valid, redeem it
-        const redeemResponse = await redeemGiftCardCode(codeUpper, email || undefined);
+        const redeemResponse = await redeemGiftCardCode(
+          codeUpper,
+          email || undefined
+        );
 
         // Handle different response structures
-        const isSuccess = redeemResponse.status === "SUCCESS" || redeemResponse.status === "success";
-        const hasSuccessData = redeemResponse.data?.success || redeemResponse.data?.results?.success;
+        const isSuccess =
+          redeemResponse.status === "SUCCESS" ||
+          redeemResponse.status === "success";
+        const hasSuccessData =
+          redeemResponse.data?.success || redeemResponse.data?.results?.success;
 
         if (isSuccess && hasSuccessData) {
           // Store gift card benefits in Redux - add to array of redeemed cards
           // Benefits are now based on quantity from backend (e.g., 2 gift cards = 2 free travelers + 2 free insurance)
-          const benefits = redeemResponse.data?.benefits || redeemResponse.data?.results?.benefits || { freeTraveler: 1, freeInsurance: 1 };
-          const quantity = redeemResponse.data?.giftCard?.quantity || redeemResponse.data?.results?.giftCard?.quantity || 1;
+          const benefits = redeemResponse.data?.benefits ||
+            redeemResponse.data?.results?.benefits || {
+              freeTraveler: 1,
+              freeInsurance: 1,
+            };
+          const quantity =
+            redeemResponse.data?.giftCard?.quantity ||
+            redeemResponse.data?.results?.giftCard?.quantity ||
+            1;
 
           // Check if this code is already redeemed
-          const alreadyRedeemed = redeemedGiftCards.some(card => card.code === codeUpper);
+          const alreadyRedeemed = redeemedGiftCards.some(
+            (card) => card.code === codeUpper
+          );
           if (alreadyRedeemed) {
             setCouponError("This gift card code has already been redeemed.");
             setIsRedeemingGiftCard(false);
             return;
           }
 
-          dispatch(addRedeemedGiftCard({
-            code: codeUpper,
-            benefits,
-            quantity,
-          }));
+          dispatch(
+            addRedeemedGiftCard({
+              code: codeUpper,
+              benefits,
+              quantity,
+            })
+          );
           setCouponCodeLocal(""); // Clear input after successful redemption
           setCouponError(""); // Clear any error
 
           // Dynamic success message based on actual benefits
           const freeTravelerCount = benefits.freeTraveler || 1;
           const freeInsuranceCount = benefits.freeInsurance || 1;
-          const travelerText = freeTravelerCount === 1 ? "traveller" : "travellers";
-          const insuranceText = freeInsuranceCount === 1 ? "insurance" : "insurances";
-          showSuccess(`Gift card ${codeUpper} applied! You get ${freeTravelerCount} free ${travelerText} and ${freeInsuranceCount} free ${insuranceText}.`);
+          const travelerText =
+            freeTravelerCount === 1 ? "traveller" : "travellers";
+          const insuranceText =
+            freeInsuranceCount === 1 ? "insurance" : "insurances";
+          showSuccess(
+            `Gift card ${codeUpper} applied! You get ${freeTravelerCount} free ${travelerText} and ${freeInsuranceCount} free ${insuranceText}.`
+          );
         } else {
-          setCouponError(redeemResponse.message || "Failed to redeem gift card");
+          setCouponError(
+            redeemResponse.message || "Failed to redeem gift card"
+          );
           setIsRedeemingGiftCard(false);
           return;
         }
       } catch (error) {
         console.error("Gift card redemption error:", error);
-        setCouponError(error.message || "Failed to redeem gift card. Please try again.");
+        setCouponError(
+          error.message || "Failed to redeem gift card. Please try again."
+        );
         setIsRedeemingGiftCard(false);
         return;
       } finally {
@@ -767,7 +822,7 @@ const VisaCheckout = () => {
   const [giftCardCount, setGiftCardCount] = useState(
     visaState.giftCardCount || 0
   );
-  console.log('🎁 INITIAL GiftCard:', {
+  console.log("🎁 INITIAL GiftCard:", {
     includeGiftCard: visaState.recommendedItems?.giftCard || false,
     giftCardCount: visaState.giftCardCount || 0,
   });
@@ -775,7 +830,10 @@ const VisaCheckout = () => {
   // Sync local state with Redux state when it changes - Gift Card
   useEffect(() => {
     const reduxGiftCardCount = visaState.giftCardCount || 0;
-    console.log('🎁 Redux gift card sync effect:', { reduxValue: reduxGiftCardCount, localValue: giftCardCount });
+    console.log("🎁 Redux gift card sync effect:", {
+      reduxValue: reduxGiftCardCount,
+      localValue: giftCardCount,
+    });
     if (reduxGiftCardCount !== giftCardCount) {
       setGiftCardCount(reduxGiftCardCount);
     }
@@ -796,9 +854,13 @@ const VisaCheckout = () => {
     // Only show toast if value changed and crossed the threshold
     if (prevGiftCard !== currentGiftCard) {
       if (prevGiftCard < 3 && currentGiftCard >= 3) {
-        showSuccess("Gift card group discount unlocked! 20% off for 3+ gift cards");
+        showSuccess(
+          "Gift card group discount unlocked! 20% off for 3+ gift cards"
+        );
       } else if (prevGiftCard >= 3 && currentGiftCard < 3) {
-        showSuccess("Gift card group discount removed — fewer than 3 gift cards");
+        showSuccess(
+          "Gift card group discount removed — fewer than 3 gift cards"
+        );
       }
       prevGiftCardCountRef.current = currentGiftCard;
     }
@@ -821,13 +883,20 @@ const VisaCheckout = () => {
       missingDocs.length === REQUIRED_DOCUMENT_FIELDS.length;
 
     return insuranceOnlyNoTravelers;
-  }, [requiredDocuments, recommendedItems, includeInsurance, includeGiftCard, travelers]);
+  }, [
+    requiredDocuments,
+    recommendedItems,
+    includeInsurance,
+    includeGiftCard,
+    travelers,
+  ]);
 
   const validateBeforeExpressPayment = useCallback(() => {
     // Check for required documents first
     if (!isDocumentsValid) {
       dispatch(triggerDocumentValidation());
-      const message = "Please complete all required documents before proceeding with payment.";
+      const message =
+        "Please complete all required documents before proceeding with payment.";
       showError(message);
       return message;
     }
@@ -849,16 +918,22 @@ const VisaCheckout = () => {
 
   const handleGiftCardChange = (increment) => {
     const newValue = giftCardCount + increment;
-    console.log('🎁 handleGiftCardChange:', { current: giftCardCount, increment, newValue, min: 0, passes: newValue >= 0 });
+    console.log("🎁 handleGiftCardChange:", {
+      current: giftCardCount,
+      increment,
+      newValue,
+      min: 0,
+      passes: newValue >= 0,
+    });
     if (newValue >= 0) {
       setGiftCardCount(newValue);
       dispatch(setReduxGiftCardCount(Number(newValue)));
 
       if (newValue > 0 && !includeGiftCard) {
-        console.log('🎁 Auto-enabling gift card');
+        console.log("🎁 Auto-enabling gift card");
         setIncludeGiftCard(true);
       } else if (newValue === 0 && includeGiftCard) {
-        console.log('🎁 Auto-disabling gift card');
+        console.log("🎁 Auto-disabling gift card");
         setIncludeGiftCard(false);
       }
     }
@@ -866,18 +941,25 @@ const VisaCheckout = () => {
 
   const handleInsuranceChange = (increment) => {
     const proposed = insuranceCount + increment;
-    console.log('🛡️ handleInsuranceChange:', { current: insuranceCount, increment, proposed, travelers, min: 0, passes: proposed >= 0 });
+    console.log("🛡️ handleInsuranceChange:", {
+      current: insuranceCount,
+      increment,
+      proposed,
+      travelers,
+      min: 0,
+      passes: proposed >= 0,
+    });
     if (proposed < 0) return;
     const cappedValue = Math.min(proposed, travelers);
-    console.log('🛡️ cappedValue:', cappedValue);
+    console.log("🛡️ cappedValue:", cappedValue);
     if (cappedValue !== insuranceCount) {
       setInsuranceCount(cappedValue);
       dispatch(setReduxInsuranceCount(Number(cappedValue)));
       if (cappedValue > 0 && !includeInsurance) {
-        console.log('🛡️ Auto-enabling insurance');
+        console.log("🛡️ Auto-enabling insurance");
         setIncludeInsurance(true);
       } else if (cappedValue === 0 && includeInsurance) {
-        console.log('🛡️ Auto-disabling insurance');
+        console.log("🛡️ Auto-disabling insurance");
         setIncludeInsurance(false);
       }
     }
@@ -931,28 +1013,28 @@ const VisaCheckout = () => {
   };
 
   // SUBTOTAL: Original prices (no discounts applied)
-  const originalVisaFees = (traditionalVisaFeePerTraveler > 0
-    ? traditionalVisaFeePerTraveler
-    : comparisonVisaFeePerTraveler) * travelers;
+  const originalVisaFees =
+    (traditionalVisaFeePerTraveler > 0
+      ? traditionalVisaFeePerTraveler
+      : comparisonVisaFeePerTraveler) * travelers;
   const originalInsuranceFees = includeInsurance
     ? originalPerDayInsurancePrice * travelDays * insuranceCount
     : 0; // Dynamic strike price based on travel days
   const originalGiftCardFees = includeGiftCard ? 245 * giftCardCount : 0; // £245 per gift card
   const eVisaFees = 0; // Currently free
   const subtotal =
-    originalVisaFees +
-    originalInsuranceFees +
-    originalGiftCardFees +
-    eVisaFees;
+    originalVisaFees + originalInsuranceFees + originalGiftCardFees + eVisaFees;
 
   // TOTAL: Start with discounted base prices
   // Apply gift card benefits: 1 free traveller and 1 free insurance
-  const effectiveTravelers = giftCardRedeemed && travelers > 0
-    ? Math.max(0, travelers - (giftCardBenefits?.freeTraveler || 0))
-    : travelers;
-  const effectiveInsuranceCountForCalc = giftCardRedeemed && insuranceCount > 0
-    ? Math.max(0, insuranceCount - (giftCardBenefits?.freeInsurance || 0))
-    : insuranceCount;
+  const effectiveTravelers =
+    giftCardRedeemed && travelers > 0
+      ? Math.max(0, travelers - (giftCardBenefits?.freeTraveler || 0))
+      : travelers;
+  const effectiveInsuranceCountForCalc =
+    giftCardRedeemed && insuranceCount > 0
+      ? Math.max(0, insuranceCount - (giftCardBenefits?.freeInsurance || 0))
+      : insuranceCount;
 
   const baseDiscountedVisaFees = currentVisaFeePerTraveler * effectiveTravelers; // Dynamic per traveler (with gift card benefit)
   const baseDiscountedInsuranceFees = includeInsurance
@@ -969,8 +1051,10 @@ const VisaCheckout = () => {
   const giftCardQualify = giftCardCount >= 3;
 
   // Check if student discount applies
-  const hasStudentDiscount = appliedDiscount && appliedDiscount.code === "STUDENT10";
-  const hasGroupDiscount = appliedDiscount && appliedDiscount.code === "GROUP20";
+  const hasStudentDiscount =
+    appliedDiscount && appliedDiscount.code === "STUDENT10";
+  const hasGroupDiscount =
+    appliedDiscount && appliedDiscount.code === "GROUP20";
 
   // Calculate discounts sequentially (compound): First 20% quantity discount, then 10% student discount on discounted price
   let finalVisaFees = baseDiscountedVisaFees;
@@ -998,11 +1082,19 @@ const VisaCheckout = () => {
         const quantityDiscount = (finalVisaFees * 20) / 100;
         finalVisaFees = finalVisaFees - quantityDiscount;
       }
-      if (insuranceQualify && includeInsurance && finalInsuranceFees === baseDiscountedInsuranceFees) {
+      if (
+        insuranceQualify &&
+        includeInsurance &&
+        finalInsuranceFees === baseDiscountedInsuranceFees
+      ) {
         const quantityDiscount = (finalInsuranceFees * 20) / 100;
         finalInsuranceFees = finalInsuranceFees - quantityDiscount;
       }
-      if (giftCardQualify && includeGiftCard && finalGiftCardFees === baseDiscountedGiftCardFees) {
+      if (
+        giftCardQualify &&
+        includeGiftCard &&
+        finalGiftCardFees === baseDiscountedGiftCardFees
+      ) {
         const quantityDiscount = (finalGiftCardFees * 20) / 100;
         finalGiftCardFees = finalGiftCardFees - quantityDiscount;
       }
@@ -1024,10 +1116,7 @@ const VisaCheckout = () => {
   }
 
   const total =
-    finalVisaFees +
-    finalInsuranceFees +
-    finalGiftCardFees +
-    eVisaFees;
+    finalVisaFees + finalInsuranceFees + finalGiftCardFees + eVisaFees;
 
   // YOU SAVE: Subtotal minus Total
   const totalSavingsAmount = subtotal - total;
@@ -1094,7 +1183,8 @@ const VisaCheckout = () => {
   const totalAmount = total;
 
   useEffect(() => {
-    const isTwoTierNonOccasion = !hasOccasionPricing && traditionalVisaFeePerTraveler <= 0;
+    const isTwoTierNonOccasion =
+      !hasOccasionPricing && traditionalVisaFeePerTraveler <= 0;
     console.log("[OrderCheckout][PricingDebug]", {
       country: selectedCountry,
       travelers,
@@ -1129,7 +1219,8 @@ const VisaCheckout = () => {
   useEffect(() => {
     const checkAvailableMethods = () => {
       if (expressPaymentButtonRef.current?.getIsRefreshingRequest) {
-        const refreshing = expressPaymentButtonRef.current.getIsRefreshingRequest();
+        const refreshing =
+          expressPaymentButtonRef.current.getIsRefreshingRequest();
         setIsExpressCheckoutRefreshing(!!refreshing);
       }
 
@@ -1153,11 +1244,7 @@ const VisaCheckout = () => {
   // Auto-deselection was causing UX issues where user selection was cleared after clicking
 
   const handleProceedToCheckout = async () => {
-    localStorageGateway(
-      "paymentAmount",
-      localStorageEnums.SET,
-      String(total)
-    );
+    localStorageGateway("paymentAmount", localStorageEnums.SET, String(total));
 
     localStorageGateway(
       "insurancePaymentMetadata",
@@ -1316,7 +1403,8 @@ const VisaCheckout = () => {
       if (!triggerResult?.success) {
         const fallbackMessage =
           triggerResult?.message ||
-          `${selectedPaymentMethod === "apple" ? "Apple" : "Google"
+          `${
+            selectedPaymentMethod === "apple" ? "Apple" : "Google"
           } Pay is not available on this device. Please select another payment method.`;
         showError(fallbackMessage);
       }
@@ -1326,7 +1414,8 @@ const VisaCheckout = () => {
     try {
       // Detect if this is a gift card-only purchase (only gift cards, no visa fees)
       // Check if the total amount is only from gift cards (no visa fees)
-      const isGiftCardOnlyPurchase = includeGiftCard && finalVisaFees === 0 && !includeInsurance;
+      const isGiftCardOnlyPurchase =
+        includeGiftCard && finalVisaFees === 0 && !includeInsurance;
 
       // Determine payment type - include "gift_card" if gift cards are being purchased
       let paymentTypeValue = undefined;
@@ -1343,7 +1432,11 @@ const VisaCheckout = () => {
         amount: String(total),
         travellers: isGiftCardOnlyPurchase ? "1" : String(travelers), // Required field (can be "1" for gift cards)
         country: countryToUse || "", // Use validated country
-        insurance: isGiftCardOnlyPurchase ? false : (includeInsurance ? true : false), // Required field
+        insurance: isGiftCardOnlyPurchase
+          ? false
+          : includeInsurance
+          ? true
+          : false, // Required field
         phone: phone,
         paymentMethod: selectedPaymentMethod,
         paymentType: paymentTypeValue, // Set paymentType for gift card purchases
@@ -1352,10 +1445,17 @@ const VisaCheckout = () => {
         noOfInsurance: insuranceCount,
         insurancePaymentAmount: discountedInsuranceFeesGBP,
         uiMode: "hosted", // Always hosted for other methods
-        successUrl: isGiftCardOnlyPurchase ? "/payment-success?payment_type=gift_card" : undefined,
+        successUrl: isGiftCardOnlyPurchase
+          ? "/payment-success?payment_type=gift_card"
+          : undefined,
         cancelUrl: isGiftCardOnlyPurchase ? "/visa-checkout" : undefined,
         // Include gift card quantity when gift cards are being purchased
-        ...(includeGiftCard && giftCardCount > 0 ? { quantity: String(giftCardCount), noOfGiftCards: String(giftCardCount) } : {}),
+        ...(includeGiftCard && giftCardCount > 0
+          ? {
+              quantity: String(giftCardCount),
+              noOfGiftCards: String(giftCardCount),
+            }
+          : {}),
       });
 
       const results = statusResult?.data;
@@ -1396,7 +1496,11 @@ const VisaCheckout = () => {
         results?.data?.results?.url || results?.results?.url || results?.url;
 
       if (redirectUrl) {
-        decrementExpertSpotsOnSuccessfulCheckout(results?.data?.results?.sessionId || results?.results?.sessionId || Date.now().toString());
+        decrementExpertSpotsOnSuccessfulCheckout(
+          results?.data?.results?.sessionId ||
+            results?.results?.sessionId ||
+            Date.now().toString()
+        );
         window.location.href = redirectUrl;
       } else {
         console.error("No redirect URL returned from checkout session");
@@ -1460,12 +1564,13 @@ const VisaCheckout = () => {
   };
 
   useEffect(() => {
-  const urlParams = new URLSearchParams(window.location.search);
-  const sessionId = urlParams.get("session_id") || urlParams.get("payment_intent");
-  if (sessionId) {
-    decrementExpertSpotsOnSuccessfulCheckout(sessionId);
-  }
-}, []);
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionId =
+      urlParams.get("session_id") || urlParams.get("payment_intent");
+    if (sessionId) {
+      decrementExpertSpotsOnSuccessfulCheckout(sessionId);
+    }
+  }, []);
 
   // GA4: fire add_to_cart once when the checkout page mounts
   useEffect(() => {
@@ -1583,8 +1688,8 @@ const VisaCheckout = () => {
                       includeGiftCard && finalVisaFees > 0
                         ? "application_creation,gift_card"
                         : includeGiftCard && finalVisaFees === 0
-                          ? "gift_card"
-                          : "application_creation"
+                        ? "gift_card"
+                        : "application_creation"
                     }
                     onBeforePayment={validateBeforeExpressPayment}
                     // Pass all values needed for localStorage/Redux setup (same as handleProceedToCheckout)
@@ -1606,23 +1711,33 @@ const VisaCheckout = () => {
                       availablePaymentMethods.googlePay ||
                       process.env.NODE_ENV === "development" ||
                       process.env.NEXT_PUBLIC_NODE_ENV === "development";
-                    const availableCount = (isApplePayAvailable ? 1 : 0) + (isGooglePayAvailable ? 1 : 0);
-                    const gridCols = availableCount === 1 ? "grid-cols-1" : "grid-cols-2";
+                    const availableCount =
+                      (isApplePayAvailable ? 1 : 0) +
+                      (isGooglePayAvailable ? 1 : 0);
+                    const gridCols =
+                      availableCount === 1 ? "grid-cols-1" : "grid-cols-2";
                     const isExpressPayDisabled = isExpressCheckoutRefreshing;
 
                     return (
-                      <div className={`grid ${gridCols} gap-3 max-sm:grid-cols-1 max-sm:gap-2`}>
+                      <div
+                        className={`grid ${gridCols} gap-3 max-sm:grid-cols-1 max-sm:gap-2`}
+                      >
                         {/* Apple Pay Button */}
                         {isApplePayAvailable && (
                           <button
                             disabled={isExpressPayDisabled}
                             onClick={() => {
                               if (isExpressPayDisabled) {
-                                showError("Updating checkout total. Please try again in a moment.");
+                                showError(
+                                  "Updating checkout total. Please try again in a moment."
+                                );
                                 return;
                               }
 
-                              if (!expressPaymentButtonRef.current?.triggerPaymentRequest) {
+                              if (
+                                !expressPaymentButtonRef.current
+                                  ?.triggerPaymentRequest
+                              ) {
                                 showError(
                                   "Payment system is not initialized. Please refresh and try again."
                                 );
@@ -1638,10 +1753,11 @@ const VisaCheckout = () => {
                                 showError(fallbackMessage);
                               }
                             }}
-                            className={`group relative flex items-center justify-center bg-black text-white rounded-full px-6 py-3 text-sm font-medium transition-all duration-200 shadow-sm w-full max-sm:py-2.5 ${isExpressPayDisabled
+                            className={`group relative flex items-center justify-center bg-black text-white rounded-full px-6 py-3 text-sm font-medium transition-all duration-200 shadow-sm w-full max-sm:py-2.5 ${
+                              isExpressPayDisabled
                                 ? "opacity-60 cursor-not-allowed"
                                 : "hover:opacity-90"
-                              }`}
+                            }`}
                             style={{
                               backgroundColor: "#000",
                               minHeight: "44px",
@@ -1671,11 +1787,16 @@ const VisaCheckout = () => {
                             disabled={isExpressPayDisabled}
                             onClick={() => {
                               if (isExpressPayDisabled) {
-                                showError("Updating checkout total. Please try again in a moment.");
+                                showError(
+                                  "Updating checkout total. Please try again in a moment."
+                                );
                                 return;
                               }
 
-                              if (!expressPaymentButtonRef.current?.triggerPaymentRequest) {
+                              if (
+                                !expressPaymentButtonRef.current
+                                  ?.triggerPaymentRequest
+                              ) {
                                 showError(
                                   "Payment system is not initialized. Please refresh and try again."
                                 );
@@ -1691,13 +1812,15 @@ const VisaCheckout = () => {
                                 showError(fallbackMessage);
                               }
                             }}
-                            className={`group relative flex items-center justify-center bg-white text-gray-800 rounded-full px-6 py-3 text-sm font-medium transition-all duration-200 shadow-sm border border-gray-200 w-full max-sm:py-2.5 ${isExpressPayDisabled
+                            className={`group relative flex items-center justify-center bg-white text-gray-800 rounded-full px-6 py-3 text-sm font-medium transition-all duration-200 shadow-sm border border-gray-200 w-full max-sm:py-2.5 ${
+                              isExpressPayDisabled
                                 ? "opacity-60 cursor-not-allowed"
                                 : "hover:shadow-md"
-                              }`}
+                            }`}
                             style={{
                               minHeight: "44px",
-                              background: "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)",
+                              background:
+                                "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)",
                             }}
                           >
                             <div className="flex items-center gap-2">
@@ -1756,11 +1879,13 @@ const VisaCheckout = () => {
                     onChange={(e) => setEmail(e.target.value)}
                     onBlur={handleEmailBlur}
                     placeholder="name@example.com"
-                    className={`w-full border ${emailError ? "border-red-400" : "border-gray-300"
-                      } rounded-md p-2 text-sm  ${emailError
+                    className={`w-full border ${
+                      emailError ? "border-red-400" : "border-gray-300"
+                    } rounded-md p-2 text-sm  ${
+                      emailError
                         ? "outline-none ring-2 ring-red-400"
                         : "focus:outline-none focus:ring-2 focus:ring-black"
-                      }`}
+                    }`}
                   />
                   {emailError && (
                     <span className="text-sm text-red-400 mt-1">
@@ -1783,10 +1908,11 @@ const VisaCheckout = () => {
                     onChange={(e) => setPhone(e.target.value)}
                     onBlur={handlePhoneBlur}
                     placeholder="e.g. 0123456789"
-                    className={`w-full border ${phoneError
+                    className={`w-full border ${
+                      phoneError
                         ? "border-red-400 outline-none ring-2 ring-red-400"
                         : "border-gray-300 focus:outline-none focus:ring-2 focus:ring-black"
-                      } rounded-md p-2 text-sm`}
+                    } rounded-md p-2 text-sm`}
                   />
                   {phoneError && (
                     <span className="text-sm text-red-400 mt-1">
@@ -1821,10 +1947,11 @@ const VisaCheckout = () => {
               <h2 className="font-medium text-lg">Payment Method</h2>
               <div className="space-y-2">
                 <div
-                  className={`border rounded-md p-3 cursor-pointer ${selectedPaymentMethod === "stripe"
+                  className={`border rounded-md p-3 cursor-pointer ${
+                    selectedPaymentMethod === "stripe"
                       ? "border-black bg-gray-50"
                       : "border-gray-300"
-                    }`}
+                  }`}
                   onClick={() => {
                     userClosedStripeFormRef.current = false;
                     setSelectedPaymentMethod("stripe");
@@ -1952,8 +2079,8 @@ const VisaCheckout = () => {
                             includeGiftCard && finalVisaFees > 0
                               ? "application_creation,gift_card"
                               : includeGiftCard && finalVisaFees === 0
-                                ? "gift_card"
-                                : "application_creation"
+                              ? "gift_card"
+                              : "application_creation"
                           }
                           noOfInsurance={insuranceCount}
                           insurancePaymentAmount={discountedInsuranceFeesGBP}
@@ -1961,7 +2088,9 @@ const VisaCheckout = () => {
                           includeGiftCard={includeGiftCard}
                           giftCardCount={giftCardCount}
                           onPaymentSuccess={(paymentIntentId) => {
-                            decrementExpertSpotsOnSuccessfulCheckout(paymentIntentId);
+                            decrementExpertSpotsOnSuccessfulCheckout(
+                              paymentIntentId
+                            );
                           }}
                         />
                       </StripeProvider>
@@ -1970,10 +2099,11 @@ const VisaCheckout = () => {
                 </div>
 
                 <div
-                  className={`border rounded-md p-3 cursor-pointer ${selectedPaymentMethod === "klarna"
+                  className={`border rounded-md p-3 cursor-pointer ${
+                    selectedPaymentMethod === "klarna"
                       ? "border-black bg-gray-50"
                       : "border-gray-300"
-                    }`}
+                  }`}
                   onClick={() => {
                     userClosedKlarnaFormRef.current = false;
                     setSelectedPaymentMethod("klarna");
@@ -2051,8 +2181,8 @@ const VisaCheckout = () => {
                           includeGiftCard && finalVisaFees > 0
                             ? "application_creation,gift_card"
                             : includeGiftCard && finalVisaFees === 0
-                              ? "gift_card"
-                              : "application_creation"
+                            ? "gift_card"
+                            : "application_creation"
                         }
                         applicationId={undefined}
                         travelerIndex={undefined}
@@ -2078,89 +2208,91 @@ const VisaCheckout = () => {
                 {(availablePaymentMethods.applePay ||
                   process.env.NODE_ENV === "development" ||
                   process.env.NEXT_PUBLIC_NODE_ENV === "development") && (
-                    <div
-                      className={`border rounded-md p-3 cursor-pointer ${selectedPaymentMethod === "apple"
-                          ? "border-black bg-gray-50"
-                          : "border-gray-300"
-                        }`}
-                      onClick={() => setSelectedPaymentMethod("apple")}
-                    >
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="radio"
-                          name="payment"
-                          value="apple"
-                          checked={selectedPaymentMethod === "apple"}
-                          onChange={(e) =>
-                            setSelectedPaymentMethod(e.target.value)
-                          }
-                          className="h-4 w-4"
-                        />
-                        <svg
-                          width="20"
-                          height="20"
-                          viewBox="0 0 24 24"
-                          fill="currentColor"
-                          className="text-black"
-                        >
-                          <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
-                        </svg>
-                        <span className="text-sm font-medium">Apple Pay</span>
-                      </div>
+                  <div
+                    className={`border rounded-md p-3 cursor-pointer ${
+                      selectedPaymentMethod === "apple"
+                        ? "border-black bg-gray-50"
+                        : "border-gray-300"
+                    }`}
+                    onClick={() => setSelectedPaymentMethod("apple")}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        name="payment"
+                        value="apple"
+                        checked={selectedPaymentMethod === "apple"}
+                        onChange={(e) =>
+                          setSelectedPaymentMethod(e.target.value)
+                        }
+                        className="h-4 w-4"
+                      />
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                        className="text-black"
+                      >
+                        <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
+                      </svg>
+                      <span className="text-sm font-medium">Apple Pay</span>
                     </div>
-                  )}
+                  </div>
+                )}
 
                 {/* Google Pay Option - Only show if available (or in development mode) */}
                 {(availablePaymentMethods.googlePay ||
                   process.env.NODE_ENV === "development" ||
                   process.env.NEXT_PUBLIC_NODE_ENV === "development") && (
-                    <div
-                      className={`border rounded-md p-3 cursor-pointer ${selectedPaymentMethod === "google"
-                          ? "border-black bg-gray-50"
-                          : "border-gray-300"
-                        }`}
-                      onClick={() => setSelectedPaymentMethod("google")}
-                    >
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="radio"
-                          name="payment"
-                          value="google"
-                          checked={selectedPaymentMethod === "google"}
-                          onChange={(e) =>
-                            setSelectedPaymentMethod(e.target.value)
-                          }
-                          className="h-4 w-4"
-                        />
-                        <svg
-                          width="20"
-                          height="20"
-                          viewBox="0 0 18 18"
-                          className="shrink-0"
-                        >
-                          <g fill="none" fillRule="evenodd">
-                            <path
-                              fill="#4285F4"
-                              d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
-                            />
-                            <path
-                              fill="#34A853"
-                              d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"
-                            />
-                            <path
-                              fill="#FBBC05"
-                              d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"
-                            />
-                            <path
-                              fill="#EA4335"
-                              d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"
-                            />
-                          </g>
-                        </svg>
-                        <span className="text-sm font-medium">Google Pay</span>
-                      </div>
+                  <div
+                    className={`border rounded-md p-3 cursor-pointer ${
+                      selectedPaymentMethod === "google"
+                        ? "border-black bg-gray-50"
+                        : "border-gray-300"
+                    }`}
+                    onClick={() => setSelectedPaymentMethod("google")}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        name="payment"
+                        value="google"
+                        checked={selectedPaymentMethod === "google"}
+                        onChange={(e) =>
+                          setSelectedPaymentMethod(e.target.value)
+                        }
+                        className="h-4 w-4"
+                      />
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 18 18"
+                        className="shrink-0"
+                      >
+                        <g fill="none" fillRule="evenodd">
+                          <path
+                            fill="#4285F4"
+                            d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
+                          />
+                          <path
+                            fill="#34A853"
+                            d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"
+                          />
+                          <path
+                            fill="#FBBC05"
+                            d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"
+                          />
+                          <path
+                            fill="#EA4335"
+                            d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"
+                          />
+                        </g>
+                      </svg>
+                      <span className="text-sm font-medium">Google Pay</span>
                     </div>
-                  )}
+                  </div>
+                )}
               </div>
 
               <button
@@ -2192,6 +2324,22 @@ const VisaCheckout = () => {
                       return;
                     }
 
+                    // 🔥 FIRE ADD PAYMENT INFO EVENT HERE (STRIPE) 🔥
+                    trackAddPaymentInfo({
+                      country: selectedCountry || "",
+                      travelers,
+                      visaFeePerTraveler: currentVisaFeePerTraveler,
+                      insurance: includeInsurance,
+                      insuranceFeeTotal: includeInsurance
+                        ? discountedInsuranceFeesGBP
+                        : 0,
+                      totalValue: total,
+                      coupon: appliedDiscount?.code || couponCode || undefined,
+                      discount: visaDiscountAmount || 0,
+                      paymentType: "Credit Card",
+                      currency: "GBP",
+                    });
+
                     // Create PaymentIntent if not already created
                     if (
                       stripeElementsCheckoutRef.current?.createPaymentIntent
@@ -2218,6 +2366,22 @@ const VisaCheckout = () => {
                     selectedPaymentMethod === "klarna" &&
                     showKlarnaForm
                   ) {
+                    // 🔥 FIRE ADD PAYMENT INFO EVENT HERE (KLARNA) 🔥
+                    trackAddPaymentInfo({
+                      country: selectedCountry || "",
+                      travelers,
+                      visaFeePerTraveler: currentVisaFeePerTraveler,
+                      insurance: includeInsurance,
+                      insuranceFeeTotal: includeInsurance
+                        ? discountedInsuranceFeesGBP
+                        : 0,
+                      totalValue: total,
+                      coupon: appliedDiscount?.code || couponCode || undefined,
+                      discount: visaDiscountAmount || 0,
+                      paymentType: "Klarna",
+                      currency: "GBP",
+                    });
+
                     // Trigger Klarna form submission
                     const klarnaForm = document.getElementById(
                       "klarna-payment-form"
@@ -2229,7 +2393,26 @@ const VisaCheckout = () => {
                     selectedPaymentMethod === "apple" ||
                     selectedPaymentMethod === "google"
                   ) {
-                    // 🔥 TRIGGER Apple/Google Pay just like express button does
+                    // 🔥 FIRE ADD PAYMENT INFO EVENT HERE (APPLE/GOOGLE PAY) 🔥
+                    trackAddPaymentInfo({
+                      country: selectedCountry || "",
+                      travelers,
+                      visaFeePerTraveler: currentVisaFeePerTraveler,
+                      insurance: includeInsurance,
+                      insuranceFeeTotal: includeInsurance
+                        ? discountedInsuranceFeesGBP
+                        : 0,
+                      totalValue: total,
+                      coupon: appliedDiscount?.code || couponCode || undefined,
+                      discount: visaDiscountAmount || 0,
+                      paymentType:
+                        selectedPaymentMethod === "apple"
+                          ? "Apple Pay"
+                          : "Google Pay",
+                      currency: "GBP",
+                    });
+
+                    // TRIGGER Apple/Google Pay just like express button does
                     if (
                       !expressPaymentButtonRef.current?.triggerPaymentRequest
                     ) {
@@ -2244,7 +2427,8 @@ const VisaCheckout = () => {
                     if (!triggerResult?.success) {
                       const fallbackMessage =
                         triggerResult?.message ||
-                        `${selectedPaymentMethod === "apple" ? "Apple" : "Google"
+                        `${
+                          selectedPaymentMethod === "apple" ? "Apple" : "Google"
                         } Pay is not available on this device. Please select another method.`;
                       showError(fallbackMessage);
                     }
@@ -2253,16 +2437,17 @@ const VisaCheckout = () => {
                     handleProceedToCheckout();
                   }
                 }}
-                className={`w-full bg-black text-white py-3 rounded-md font-semibold hover:bg-gray-900 transition-colors ${cretingDynamicCheckout ||
-                    (appliedDiscount &&
-                      appliedDiscount.description &&
-                      appliedDiscount.description
-                        .toLowerCase()
-                        .includes("student") &&
-                      !studentVerified)
+                className={`w-full bg-black text-white py-3 rounded-md font-semibold hover:bg-gray-900 transition-colors ${
+                  cretingDynamicCheckout ||
+                  (appliedDiscount &&
+                    appliedDiscount.description &&
+                    appliedDiscount.description
+                      .toLowerCase()
+                      .includes("student") &&
+                    !studentVerified)
                     ? "cursor-not-allowed opacity-50"
                     : "cursor-pointer"
-                  }`}
+                }`}
               >
                 {cretingDynamicCheckout || isKlarnaSubmitting ? (
                   "Processing..."
@@ -2281,9 +2466,7 @@ const VisaCheckout = () => {
                 ) : selectedPaymentMethod === "klarna" && showKlarnaForm ? (
                   <div className="flex items-center justify-center space-x-2">
                     <SiKlarna />
-                    <span>
-                      Pay {formatCurrency(total, "GBP")} with Klarna
-                    </span>
+                    <span>Pay {formatCurrency(total, "GBP")} with Klarna</span>
                   </div>
                 ) : selectedPaymentMethod === "apple" ? (
                   <div className="flex items-center justify-center space-x-2">
@@ -2401,7 +2584,6 @@ const VisaCheckout = () => {
             </div>
 
             <div className="flex items-center gap-3 justify-end flex-wrap">
-             
               {traditionalVisaFeePerTraveler > 0 && (
                 <div className="flex flex-col items-end">
                   <span className="line-through">
@@ -2410,14 +2592,15 @@ const VisaCheckout = () => {
                       "GBP"
                     )}
                   </span>
-                  {visaPriceDisplay?.isOccasion && !!visaPriceDisplay?.traditionalLabel && (
-                    <span className="text-[10px] text-gray-400 font-medium">
-                      {/* {visaPriceDisplay.traditionalLabel} */}
-                    </span>
-                  )}
+                  {visaPriceDisplay?.isOccasion &&
+                    !!visaPriceDisplay?.traditionalLabel && (
+                      <span className="text-[10px] text-gray-400 font-medium">
+                        {/* {visaPriceDisplay.traditionalLabel} */}
+                      </span>
+                    )}
                 </div>
               )}
-               <div className="flex flex-col items-end">
+              <div className="flex flex-col items-end">
                 <span className="line-through">
                   {formatCurrency(travellerStrikeGBP, "GBP")}
                 </span>
@@ -2452,8 +2635,12 @@ const VisaCheckout = () => {
                 <span className="text-sm">Appointment fee</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="line-through">{formatCurrency(100, "GBP")}</span>
-                <span className="text-sm font-medium">{formatCurrency(0, "GBP")}</span>
+                <span className="line-through">
+                  {formatCurrency(100, "GBP")}
+                </span>
+                <span className="text-sm font-medium">
+                  {formatCurrency(0, "GBP")}
+                </span>
               </div>
             </div>
 
@@ -2470,8 +2657,12 @@ const VisaCheckout = () => {
                 <span className="text-sm">Concierge assistance</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="line-through">{formatCurrency(35, "GBP")}</span>
-                <span className="text-sm font-medium">{formatCurrency(0, "GBP")}</span>
+                <span className="line-through">
+                  {formatCurrency(35, "GBP")}
+                </span>
+                <span className="text-sm font-medium">
+                  {formatCurrency(0, "GBP")}
+                </span>
               </div>
             </div>
 
@@ -2480,7 +2671,10 @@ const VisaCheckout = () => {
               <div
                 className="flex items-center space-x-2 cursor-pointer"
                 onClick={() => {
-                  console.log('🛡️ Insurance checkbox clicked:', { current: includeInsurance, newVal: !includeInsurance });
+                  console.log("🛡️ Insurance checkbox clicked:", {
+                    current: includeInsurance,
+                    newVal: !includeInsurance,
+                  });
                   setIncludeInsurance(!includeInsurance);
                   if (!includeInsurance) {
                     setInsuranceCount(1);
@@ -2537,9 +2731,14 @@ const VisaCheckout = () => {
               </p>
               <div className="space-y-1">
                 {EMBASSY_FEE_REFERENCE.map((item) => (
-                  <div key={item.label} className="flex items-center justify-between text-xs">
+                  <div
+                    key={item.label}
+                    className="flex items-center justify-between text-xs"
+                  >
                     <span className="text-gray-400">{item.label}</span>
-                    <span className="font-semibold">{formatCurrency(item.amount, "GBP")}</span>
+                    <span className="font-semibold">
+                      {formatCurrency(item.amount, "GBP")}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -2551,7 +2750,10 @@ const VisaCheckout = () => {
               <div
                 className="flex items-center space-x-2 cursor-pointer"
                 onClick={() => {
-                  console.log('🎁 GiftCard checkbox clicked:', { current: includeGiftCard, newVal: !includeGiftCard });
+                  console.log("🎁 GiftCard checkbox clicked:", {
+                    current: includeGiftCard,
+                    newVal: !includeGiftCard,
+                  });
                   setIncludeGiftCard(!includeGiftCard);
                   if (!includeGiftCard) {
                     setGiftCardCount(1);
@@ -2567,7 +2769,10 @@ const VisaCheckout = () => {
                   id="giftCard"
                   checked={includeGiftCard}
                   onChange={(e) => {
-                    console.log('🎁 GiftCard onChange:', { checked: e.target.checked, current: giftCardCount });
+                    console.log("🎁 GiftCard onChange:", {
+                      checked: e.target.checked,
+                      current: giftCardCount,
+                    });
                     setIncludeGiftCard(e.target.checked);
                     if (e.target.checked && giftCardCount === 0) {
                       setGiftCardCount(1);
@@ -2628,8 +2833,15 @@ const VisaCheckout = () => {
             {/* You Save */}
             <div className="flex justify-between text-sm text-green-400">
               <span>You save</span>
-              {console.log('💰 Total Savings:', { totalSavingsGBP, travellerStrikeGBP, travelers })}
-              <span>{(totalSavingsGBP/travellerStrikeGBP*100 || 0).toFixed(2)}%</span>
+              {console.log("💰 Total Savings:", {
+                totalSavingsGBP,
+                travellerStrikeGBP,
+                travelers,
+              })}
+              <span>
+                {((totalSavingsGBP / travellerStrikeGBP) * 100 || 0).toFixed(2)}
+                %
+              </span>
             </div>
 
             {/* Total */}
@@ -2695,7 +2907,7 @@ const VisaCheckout = () => {
                     {/* Slot 2 */}
                     <div className="text-center">
                       <div className="text-xs text-white/70 mb-2 font-medium max-sm:text-xs max-sm:mb-1">
-                         {getDynamicMonthText(sliderContent["slot2_label"], 0)}
+                        {getDynamicMonthText(sliderContent["slot2_label"], 0)}
                       </div>
                       <div className="bg-[#5a3ddb] rounded-full p-2 max-sm:p-1.5">
                         <div className="text-xs text-white font-semibold max-sm:text-xs">
@@ -2732,17 +2944,19 @@ const VisaCheckout = () => {
                         setCouponCodeLocal(e.target.value.toUpperCase())
                       }
                       placeholder="Discount Code"
-                      className={`w-full border text-white placeholder-white ${(giftCardRedeemed || appliedDiscount)
+                      className={`w-full border text-white placeholder-white ${
+                        giftCardRedeemed || appliedDiscount
                           ? "border-green-400"
                           : couponError
-                            ? "border-red-400"
-                            : "border-gray-300"
-                        } rounded-md p-2 text-sm ${(giftCardRedeemed || appliedDiscount)
+                          ? "border-red-400"
+                          : "border-gray-300"
+                      } rounded-md p-2 text-sm ${
+                        giftCardRedeemed || appliedDiscount
                           ? "outline-none ring-2 ring-green-400"
                           : couponError
-                            ? "outline-none ring-2 ring-red-400"
-                            : "focus:outline-none focus:ring-2 focus:ring-black"
-                        }`}
+                          ? "outline-none ring-2 ring-red-400"
+                          : "focus:outline-none focus:ring-2 focus:ring-black"
+                      }`}
                       disabled={appliedDiscount || isRedeemingGiftCard}
                     />
                   </div>
@@ -2779,14 +2993,23 @@ const VisaCheckout = () => {
                 {redeemedGiftCards.length > 0 && (
                   <div className="space-y-2">
                     {redeemedGiftCards.map((card) => {
-                      const freeTravelerCount = card.benefits?.freeTraveler || 0;
-                      const freeInsuranceCount = card.benefits?.freeInsurance || 0;
-                      const travelerText = freeTravelerCount === 1 ? "traveller" : "travellers";
-                      const insuranceText = freeInsuranceCount === 1 ? "insurance" : "insurances";
+                      const freeTravelerCount =
+                        card.benefits?.freeTraveler || 0;
+                      const freeInsuranceCount =
+                        card.benefits?.freeInsurance || 0;
+                      const travelerText =
+                        freeTravelerCount === 1 ? "traveller" : "travellers";
+                      const insuranceText =
+                        freeInsuranceCount === 1 ? "insurance" : "insurances";
                       return (
-                        <div key={card.code} className="flex items-center justify-between text-sm text-green-600 bg-green-50 p-2 rounded-md">
+                        <div
+                          key={card.code}
+                          className="flex items-center justify-between text-sm text-green-600 bg-green-50 p-2 rounded-md"
+                        >
                           <span>
-                            ✓ Gift card {card.code} applied! {freeTravelerCount} free {travelerText} and {freeInsuranceCount} free {insuranceText}.
+                            ✓ Gift card {card.code} applied! {freeTravelerCount}{" "}
+                            free {travelerText} and {freeInsuranceCount} free{" "}
+                            {insuranceText}.
                           </span>
                           <button
                             type="button"
