@@ -392,8 +392,8 @@ const ExpressPaymentRequestButton = forwardRef(
             currency: currency.toUpperCase(),
             noOfInsurance: insuranceCount || 0,
             insurancePaymentAmount: discountedInsuranceFeesGBP || insurancePaymentAmount || 0,
-            successUrl: `${window.location.origin}/payment-success`,
-            cancelUrl: `${window.location.origin}/visa-checkout`,
+            successUrl: "/payment-success",
+            cancelUrl: "/visa-checkout",
             // Include gift card quantity when paymentType includes "gift_card"
             ...(paymentType && paymentType.includes("gift_card") && includeGiftCard && giftCardCount > 0
               ? { quantity: String(giftCardCount), noOfGiftCards: String(giftCardCount) }

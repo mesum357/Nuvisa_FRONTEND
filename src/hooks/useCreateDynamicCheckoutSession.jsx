@@ -50,9 +50,17 @@ const useCreateDynamicCheckoutSession = () => {
 
     // Note: orderId may be provided via sessionStorage or generated below if needed
 
-    const toAbsoluteUrl = (url) => {
-      if (!url || typeof window === "undefined") return url;
-      return new URL(url, window.location.origin).toString();
+    const toReturnPath = (url) => {
+      if (!url) return url;
+      const value = String(url).trim();
+      if (!/^https?:\/\//i.test(value)) return value;
+
+      try {
+        const parsed = new URL(value);
+        return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+      } catch {
+        return value;
+      }
     };
 
     let successUrl = successUrlOverride || "/payment-success";
@@ -174,8 +182,8 @@ const useCreateDynamicCheckoutSession = () => {
 
     const payload = {
       email: String(email || ""),
-      successUrl: toAbsoluteUrl(successUrl),
-      cancelUrl: toAbsoluteUrl(cancelUrl),
+      successUrl: toReturnPath(successUrl),
+      cancelUrl: toReturnPath(cancelUrl),
       amount: normalizedAmount,
       travellers: normalizedTravellers,
       country: countryForSession,
