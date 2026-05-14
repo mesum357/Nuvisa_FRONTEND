@@ -215,6 +215,7 @@ const VisaCheckout = () => {
   const [studentVerified, setStudentVerified] = useState(false);
   const [isSendingVerification, setIsSendingVerification] = useState(false);
   const verificationPollRef = useRef(null);
+  const emailInputRef = useRef(null);
   const expressPaymentButtonRef = useRef(null);
   const stripeElementsCheckoutRef = useRef(null);
   const [pendingCheckoutQuery, setPendingCheckoutQuery] = useState(null);
@@ -998,6 +999,40 @@ const VisaCheckout = () => {
     }
   };
 
+  const focusEmailInput = () => {
+    setTimeout(() => {
+      if (emailInputRef.current) {
+        emailInputRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+        emailInputRef.current.focus({ preventScroll: true });
+      }
+    }, 0);
+  };
+
+  const validateCheckoutEmail = (
+    requiredMessage = "Email is required for checkout",
+    invalidMessage = "Please enter a valid email for checkout"
+  ) => {
+    const normalizedEmail = String(email || "").trim();
+
+    if (!normalizedEmail) {
+      setEmailError(requiredMessage);
+      focusEmailInput();
+      return false;
+    }
+
+    if (!validateEmail(normalizedEmail)) {
+      setEmailError(invalidMessage);
+      focusEmailInput();
+      return false;
+    }
+
+    setEmailError("");
+    return true;
+  };
+
   const handlePhoneBlur = () => {
     if (!phone || !phone.trim()) {
       setPhoneError("");
@@ -1348,21 +1383,30 @@ const VisaCheckout = () => {
 
     if (cretingDynamicCheckout) return;
 
-    // Email is only required for credit card payment
-    // For other payment methods (Apple Pay, Google Pay, Klarna), email is optional
+    // Email is required before hosted checkout methods create sessions.
     if (selectedPaymentMethod === "stripe") {
-      if (!email) {
-        setEmailError("Email is required for credit card payment");
+      if (
+        !validateCheckoutEmail(
+          "Email is required for credit card payment",
+          "Please enter a valid email for checkout"
+        )
+      ) {
         return;
       }
-      if (!validateEmail(email)) {
-        setEmailError("Please enter a valid email for checkout");
+    } else if (selectedPaymentMethod === "klarna") {
+      if (
+        !validateCheckoutEmail(
+          "Email is required for Klarna payment",
+          "Please enter a valid email for Klarna payment"
+        )
+      ) {
         return;
       }
     } else {
       // For other payment methods, validate format if email is provided
       if (email && !validateEmail(email)) {
         setEmailError("Please enter a valid email");
+        focusEmailInput();
         return;
       }
     }
@@ -1791,13 +1835,21 @@ const VisaCheckout = () => {
                     htmlFor="email"
                     className="block text-sm font-medium mb-1"
                   >
-                    Email {selectedPaymentMethod === "stripe" ? "*" : ""}
+                    Email{" "}
+                    {selectedPaymentMethod === "stripe" ||
+                    selectedPaymentMethod === "klarna"
+                      ? "*"
+                      : ""}
                   </label>
                   <input
                     type="email"
                     id="email"
+                    ref={emailInputRef}
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (emailError) setEmailError("");
+                    }}
                     onBlur={handleEmailBlur}
                     placeholder="name@example.com"
                     className={`w-full border ${
@@ -2116,7 +2168,7 @@ const VisaCheckout = () => {
                         }}
                         onError={(error) => {
                           console.error("Klarna form error:", error);
-                          showSuccess(
+                          showError(
                             "Error creating Klarna checkout. Please try again."
                           );
                         }}
@@ -2233,15 +2285,12 @@ const VisaCheckout = () => {
                     selectedPaymentMethod === "stripe" &&
                     showInlineStripeForm
                   ) {
-                    // Validate email first
-                    if (!email) {
-                      setEmailError(
-                        "Email is required for credit card payment"
-                      );
-                      return;
-                    }
-                    if (!validateEmail(email)) {
-                      setEmailError("Please enter a valid email for checkout");
+                    if (
+                      !validateCheckoutEmail(
+                        "Email is required for credit card payment",
+                        "Please enter a valid email for checkout"
+                      )
+                    ) {
                       return;
                     }
 
@@ -2319,6 +2368,15 @@ const VisaCheckout = () => {
                     selectedPaymentMethod === "klarna" &&
                     showKlarnaForm
                   ) {
+                    if (
+                      !validateCheckoutEmail(
+                        "Email is required for Klarna payment",
+                        "Please enter a valid email for Klarna payment"
+                      )
+                    ) {
+                      return;
+                    }
+
                     // 🔥 FIRE ADD PAYMENT INFO EVENT HERE (KLARNA) 🔥
                     if (typeof window !== "undefined" && window.dataLayer) {
                       const paymentItems = [];

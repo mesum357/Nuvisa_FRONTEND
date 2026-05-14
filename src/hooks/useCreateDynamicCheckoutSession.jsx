@@ -1,4 +1,8 @@
 import { createDynamicPaymentSession } from "@/api/payment";
+import {
+  countryForStripeSession,
+  currencyForStripeSession,
+} from "@/utils/stripeHostedCheckoutUk";
 import React, { useState } from "react";
 
 const useCreateDynamicCheckoutSession = () => {
@@ -24,6 +28,7 @@ const useCreateDynamicCheckoutSession = () => {
     klarnaFormData, // Form data for Klarna
     quantity, // Number of gift cards purchased
     noOfGiftCards, // Alternative field name for quantity
+    phone,
     ...options // Additional options
   }) => {
     setCreatingDynamicCheckout(true);
@@ -134,9 +139,19 @@ const useCreateDynamicCheckoutSession = () => {
         ? undefined
         : String(travelerIndex);
 
+    const countryForSession = countryForStripeSession(normalizedCountry);
+    const currencyForSession = currencyForStripeSession(
+      normalizedCountry,
+      currency
+    );
+
     const cancelUrl = applicationId 
       ? `/application-step?application_id=${encodeURIComponent(applicationId)}`
       : "/visa-checkout";
+
+    const normalizedPm = String(paymentMethod || "")
+      .trim()
+      .toLowerCase();
 
     const payload = {
       email: String(email || ""),
@@ -144,15 +159,15 @@ const useCreateDynamicCheckoutSession = () => {
       cancelUrl,
       amount: normalizedAmount,
       travellers: normalizedTravellers,
-      country: normalizedCountry,
+      country: countryForSession,
       insurance: normalizedInsurance,
       applicationId: normalizedApplicationId,
       travelerIndex: normalizedTravelerIndex,
       // use normalized payment type
       paymentType: normalizedPaymentType,
       visaTypeId: visaTypeId ? String(visaTypeId) : undefined,
-      // Ensure currency is passed to backend (default to GBP)
-      currency: (currency || "GBP").toString(),
+      // UK: always `gbp`; other regions: lowercase ISO4217 (Nest/Stripe contract)
+      currency: currencyForSession,
       // UI mode for checkout (embedded or hosted)
       uiMode: uiMode || "hosted",
       // ensure an orderId exists for server-side bookkeeping
@@ -160,8 +175,16 @@ const useCreateDynamicCheckoutSession = () => {
         (typeof window !== "undefined" &&
           window.sessionStorage?.getItem("lastOrderId")) ||
         undefined,
-      // Payment method (klarna, stripe, etc.)
-      paymentMethod: paymentMethod || undefined,
+      // Do not send Klarna hints on non-Klarna checkouts
+      ...(normalizedPm === "klarna"
+        ? {
+            paymentMethod: "klarna",
+            payment_method_types: ["klarna"],
+            stripePaymentMethodTypes: ["klarna"],
+          }
+        : paymentMethod
+          ? { paymentMethod: String(paymentMethod).trim() }
+          : {}),
       // Additional metadata (like Klarna form data)
       ...(klarnaFormData ? { klarnaFormData: klarnaFormData } : {}),
       // Insurance-related fields
@@ -170,6 +193,9 @@ const useCreateDynamicCheckoutSession = () => {
       // Gift card quantity - include when paymentType includes "gift_card"
       ...(normalizedPaymentType && normalizedPaymentType.includes("gift_card") && (quantity || noOfGiftCards)
         ? { quantity: String(quantity || noOfGiftCards || "1"), noOfGiftCards: String(quantity || noOfGiftCards || "1") }
+        : {}),
+      ...(phone !== undefined && phone !== null && String(phone).trim() !== ""
+        ? { phone: String(phone).trim() }
         : {}),
     };
 
@@ -206,7 +232,12 @@ const useCreateDynamicCheckoutSession = () => {
 
       setCreatingDynamicCheckout(false);
 
-      if (redirectUrl && typeof window !== "undefined") {
+      // Klarna: `KlarnaForm` performs redirect after reading the same URL from the response.
+      if (
+        redirectUrl &&
+        typeof window !== "undefined" &&
+        normalizedPm !== "klarna"
+      ) {
         window.location.assign(redirectUrl);
         return response;
       }

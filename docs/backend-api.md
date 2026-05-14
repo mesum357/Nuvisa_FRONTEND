@@ -203,6 +203,20 @@ Response (as handled by frontend):
 - `POST /stripe_payment/confirm`
 - `POST /stripe_payment/session-metadata`
 
+#### Hosted Checkout — `POST /stripe_payment/session` (Klarna / UK)
+
+- **UK:** The storefront sends `country: "GB"` when the traveller/visa flow is UK (maps `UK`, `United Kingdom`, `GB`, `Great Britain`, case-insensitive) and **`currency: "gbp"`** (lowercase; do not rely on server default for UK).
+- **Klarna:** The body includes `paymentMethod: "klarna"` plus `payment_method_types: ["klarna"]` and `stripePaymentMethodTypes: ["klarna"]` so Nest can forward to Stripe. **Non-Klarna** checkouts must **not** send those Klarna-only fields (card / Apple Pay / Google Pay unchanged otherwise).
+- **`uiMode: "hosted"`** for redirect flows; `successUrl` / `cancelUrl` keep the existing app contract.
+- **Billing:** For Klarna sessions, Nest/Stripe should use **`billing_address_collection: "required"`** on Checkout Session creation where applicable (handled on the server).
+
+**Manual QA checklist (Klarna UK, Stripe test mode)**
+
+1. **Klarna:** From visa checkout, select Klarna → submit → follow returned Checkout `url` → UI must be **Klarna-capable** (not card-only).  
+2. **Card-only:** Hosted/card path must **not** include `payment_method_types` / `stripePaymentMethodTypes` for Klarna.  
+3. **Pay in 3 / instalments:** Options depend on Klarna eligibility (amount, shopper, region). In **test mode**, Stripe’s Klarna docs often suggest trying **£35.00** as a representative amount for broader option coverage — use **`"35"`** if `amount` is **major units (GBP)**, or match whatever minor-unit convention Nest maps to `unit_amount`.  
+4. If Stripe shows a **billing address** step for Klarna, complete it and confirm **`successUrl`** still matches the app.
+
 #### Example: Create Payment Intent
 
 Request:
