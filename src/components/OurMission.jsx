@@ -4,12 +4,44 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import GetTheVisaButton from "./layout/GetTheVisaButton";
+import { useAppSelector } from "@/store"; // 👉 ADD THIS
 
 const OurMission = ({ className }) => {
   const pathname = usePathname();
 
   const buttonText = "Check Required Documents";
   const targetHref = "/get-the-visa#required-documents";
+
+  const visaState = useAppSelector((state) => state.visa);
+
+  const handleCheckDocsClick = () => {
+    // Get the current country & price from Redux state (or fallback to defaults)
+    const currentCountry = visaState?.selectedCountry || "Schengen";
+    const currentFee = visaState?.visaFees || 129;
+
+    if (typeof window !== "undefined" && window.dataLayer) {
+      window.dataLayer.push({ ecommerce: null }); // Clear previous ecommerce data
+      window.dataLayer.push({
+        event: "view_item",
+        ecommerce: {
+          currency: "GBP",
+          value: currentFee,
+          items: [
+            {
+              item_id: `visa_${currentCountry
+                .toLowerCase()
+                .replace(/\s+/g, "_")}`,
+              item_name: `Visa - ${currentCountry}`,
+              item_category: "Schengen Visa",
+              item_brand: "NUvisa",
+              price: currentFee,
+              quantity: 1,
+            },
+          ],
+        },
+      });
+    }
+  };
 
   return (
     <div
@@ -37,7 +69,8 @@ const OurMission = ({ className }) => {
       {/* Bottom Section */}
       <div className="relative z-10 text-center pb-5 md:pb-10">
         <h2 className="text-[28px] sm:text-[36px] md:text-[48px] max-md:tracking-tighter text-[#29003D] font-gilroy-bold leading-tight">
-          Built for <span className="relative ">
+          Built for{" "}
+          <span className="relative ">
             <span className="relative inline-block px-1">
               approval
               <svg
@@ -69,14 +102,20 @@ const OurMission = ({ className }) => {
                 />
               </svg>
             </span>
-          </span>, embassy-grade precision
+          </span>
+          , embassy-grade precision
         </h2>
       </div>
 
       <div className="mb-10 md:mb-20">
         <Link href={targetHref}>
-          <button className="group flex items-center bg-[#6B4EFF] text-white  gap-[16px] font-medium px-[24px] py-3 rounded-3xl cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb]">
-            <span className="mr-3 text-md md:text-2xl uppercase">{buttonText}</span>
+          <button
+            onClick={handleCheckDocsClick} // 👉 ADD THIS
+            className="group flex items-center bg-[#6B4EFF] text-white  gap-[16px] font-medium px-[24px] py-3 rounded-3xl cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb]"
+          >
+            <span className="mr-3 text-md md:text-2xl uppercase">
+              {buttonText}
+            </span>
             <span className="bg-white rounded-full p-1.5 transition-transform duration-300 group-hover:rotate-45 group-hover:translate-x-1 group-hover:-translate-y-0">
               <ArrowUpRight className="w-5 h-5 text-[#6B4EFF]" />
             </span>

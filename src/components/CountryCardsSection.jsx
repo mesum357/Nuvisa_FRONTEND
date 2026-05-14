@@ -62,11 +62,25 @@ const CountryCardsSection = ({
     []
   );
 
-  // Memoize handleCountrySelect to prevent unnecessary re-renders
+  // 1. Move this UP here so the function below can see it!
+  const countryPricingLookup = useMemo(() => {
+    return countryPricingList.reduce((acc, item) => {
+      acc[normalizeCountryKey(item.name)] = item;
+      return acc;
+    }, {});
+  }, [countryPricingList, normalizeCountryKey]);
+
+  // 2. Updated function
   const handleCountrySelect = useCallback(
     (countryName) => {
-      // Get dynamic fees based on selected country
       const countryConfig = getCountryConfig(countryName);
+
+      // GRAB THE DYNAMIC PRICE (Matching what the user actually sees on the card)
+      const normalizedKey = normalizeCountryKey(countryName);
+      const dynamicPricing = countryPricingLookup[normalizedKey];
+      const finalVisaFee = dynamicPricing
+        ? dynamicPricing.basePrice
+        : countryConfig.visaFee || 129;
 
       // 🔥 GA4: Fire view_item event when country is selected
       if (typeof window !== "undefined" && window.dataLayer) {
@@ -75,7 +89,7 @@ const CountryCardsSection = ({
           event: "view_item",
           ecommerce: {
             currency: "GBP",
-            value: countryConfig.visaFee || 0,
+            value: finalVisaFee, // Track the actual dynamic price
             items: [
               {
                 item_id: `visa_${countryName
@@ -84,7 +98,7 @@ const CountryCardsSection = ({
                 item_name: `Visa - ${countryName}`,
                 item_category: "Schengen Visa",
                 item_brand: "NUvisa",
-                price: countryConfig.visaFee || 0,
+                price: finalVisaFee, // Track the actual dynamic price
                 quantity: 1,
               },
             ],
@@ -92,28 +106,31 @@ const CountryCardsSection = ({
         });
       }
 
-      // Preserve existing traveler count, default to 0 if not set
       const currentTravelerCount =
         visaState.travelers !== undefined && visaState.travelers !== null
           ? visaState.travelers
           : 0;
 
-      // Store the selected country and dynamic fees in Redux
       dispatch(setSelectedCountry(String(countryName)));
-      dispatch(setVisaFees(Number(countryConfig.visaFee)));
+      dispatch(setVisaFees(Number(finalVisaFee))); // Store dynamic price
       dispatch(setInsuranceFees(Number(countryConfig.insuranceFee)));
       dispatch(setTravelers(Number(currentTravelerCount)));
 
-      // Redirect to checkout with dynamic country information
       router.push(
         `/get-the-visa?selectedCountry=${encodeURIComponent(
           countryName
-        )}&visaFees=${countryConfig.visaFee}&insuranceFees=${
+        )}&visaFees=${finalVisaFee}&insuranceFees=${
           countryConfig.insuranceFee
         }&travelers=${currentTravelerCount}`
       );
     },
-    [visaState.travelers, dispatch, router]
+    [
+      visaState.travelers,
+      dispatch,
+      router,
+      countryPricingLookup,
+      normalizeCountryKey,
+    ]
   );
 
   const [dynamicSection, setDynamicSection] = useState(null);
@@ -130,18 +147,16 @@ const CountryCardsSection = ({
       try {
         const adminApiUrl =
           process.env.NEXT_PUBLIC_ADMIN_API_URL || "http://localhost:3001";
-        console.log(
-          `[DEBUG] Fetching from: ${adminApiUrl}/api/occasion-content`
-        );
 
-        // Fetch Occasion Content if this is the everyday-steals section
         if (id === "everyday-steals") {
-          // Add timestamp to bypass any browser/nextjs caching
           const url = `${adminApiUrl}/api/occasion-content?t=${Date.now()}`;
           const occRes = await fetch(url);
-          const occResult = await occRes.json();
 
-          console.log("[DEBUG] Occasion Result:", occResult);
+          // 🔥 ADD THIS CHECK: Don't parse JSON if the server returned a 404 HTML page
+          if (!occRes.ok)
+            throw new Error(`HTTP error! status: ${occRes.status}`);
+
+          const occResult = await occRes.json();
 
           if (occResult.success && occResult.data) {
             setDynamicSection(occResult.data);
@@ -153,16 +168,15 @@ const CountryCardsSection = ({
               occResult.data.occasions &&
               Array.isArray(occResult.data.occasions)
             ) {
-              console.log(
-                "[DEBUG] Setting occasions:",
-                occResult.data.occasions
-              );
               setOccasions(occResult.data.occasions);
             }
           }
         } else {
-          // Standard country section fetch
           const res = await fetch(`${adminApiUrl}/api/country-section`);
+
+          // 🔥 ADD THIS CHECK
+          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+
           const result = await res.json();
           if (result.success && result.data) {
             setDynamicSection(result.data);
@@ -173,7 +187,7 @@ const CountryCardsSection = ({
           }
         }
       } catch (error) {
-        console.error("Failed to fetch dynamic section:", error);
+        console.error("Failed to fetch dynamic section:", error.message); // Cleaner error log
       } finally {
         setIsDynamicLoading(false);
       }
@@ -249,13 +263,6 @@ const CountryCardsSection = ({
       mounted = false;
     };
   }, []);
-
-  const countryPricingLookup = useMemo(() => {
-    return countryPricingList.reduce((acc, item) => {
-      acc[normalizeCountryKey(item.name)] = item;
-      return acc;
-    }, {});
-  }, [countryPricingList, normalizeCountryKey]);
 
   const {
     countries: hookCountries,
@@ -473,6 +480,40 @@ const CountryCardsSection = ({
     };
   }, []);
 
+  // 🔥 GA4: Track view_item for "Check Required Document" button 🔥
+  const handleCheckDocsClick = () => {
+    // Get the current country from Redux state (or fallback)
+    const currentCountry = visaState.selectedCountry || "Schengen";
+
+    // Grab the dynamic price for this country
+    const normalizedKey = normalizeCountryKey(currentCountry);
+    const dynamicPricing = countryPricingLookup[normalizedKey];
+    const finalVisaFee = dynamicPricing ? dynamicPricing.basePrice : 129;
+
+    if (typeof window !== "undefined" && window.dataLayer) {
+      window.dataLayer.push({ ecommerce: null }); // Clear previous ecommerce data
+      window.dataLayer.push({
+        event: "view_item",
+        ecommerce: {
+          currency: "GBP",
+          value: finalVisaFee,
+          items: [
+            {
+              item_id: `visa_${currentCountry
+                .toLowerCase()
+                .replace(/\s+/g, "_")}`,
+              item_name: `Visa - ${currentCountry}`,
+              item_category: "Schengen Visa",
+              item_brand: "NUvisa",
+              price: finalVisaFee,
+              quantity: 1,
+            },
+          ],
+        },
+      });
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto px-6" id={id}>
       {id === "everyday-steals" && (
@@ -673,7 +714,10 @@ const CountryCardsSection = ({
 
         <div className="mb-10 md:mb-20">
           <Link href={"/get-the-visa#required-documents"}>
-            <button className="group flex items-center bg-[#6B4EFF] text-white gap-[12px] font-medium px-[24px] py-3 rounded-3xl cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb]">
+            <button
+              onClick={handleCheckDocsClick} // 👉 ADD THIS LINE HERE
+              className="group flex items-center bg-[#6B4EFF] text-white gap-[12px] font-medium px-[24px] py-3 rounded-3xl cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb]"
+            >
               <span className="mr-3 text-md md:text-2xl uppercase">
                 Check Required Document
               </span>

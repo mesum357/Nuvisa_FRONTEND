@@ -150,45 +150,6 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
     setExpertSpotsDefaultFromApi(sliderContent["slots_left"]);
   }, [sliderContent]);
 
-  // 🔥 1. GA4: Track View Item on Initial Load 🔥
-
-  const hasTrackedInitialView = useRef(false); // Add this lock!
-
-  useEffect(() => {
-    if (
-      !hasTrackedInitialView.current && // Check the lock
-      !isVisaPricingLoading &&
-      selectedCountry &&
-      Object.keys(countryPricingLookup).length > 0
-    ) {
-      hasTrackedInitialView.current = true; // Lock it so it never fires again!
-
-      const countryName = getCountryParam(selectedCountry);
-      const dynamicPricing =
-        countryPricingLookup[normalizeCountryKey(countryName)] || null;
-
-      if (typeof window !== "undefined" && window.dataLayer) {
-        window.dataLayer.push({ ecommerce: null });
-        window.dataLayer.push({
-          event: "view_item",
-          ecommerce: {
-            currency: "GBP",
-            value: dynamicPricing?.basePrice || 129,
-            items: [
-              {
-                item_id: `visa_${countryName.toLowerCase()}`,
-                item_name: `Visa - ${countryName}`,
-                item_category: "Schengen Visa",
-                price: dynamicPricing?.basePrice || 129,
-                quantity: 1,
-              },
-            ],
-          },
-        });
-      }
-    }
-  }, [isVisaPricingLoading, countryPricingLookup, selectedCountry]);
-
   const nriBadgeText = sliderContent["nri_badge_text"] || "";
   const dailyNriBadgeText = useMemo(() => {
     const textOptions = nriBadgeText
@@ -328,13 +289,6 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
       mounted = false;
     };
   }, []);
-
-  const countryPricingLookup = useMemo(() => {
-    return countryPricingList.reduce((acc, item) => {
-      acc[normalizeCountryKey(item.name)] = item;
-      return acc;
-    }, {});
-  }, [countryPricingList]);
 
   const isVisaPricingEmpty =
     !isVisaPricingLoading &&
@@ -651,6 +605,13 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
     if (!raw) return "";
     return raw.includes(",") ? raw.split(", ")[1] : raw;
   };
+
+  const countryPricingLookup = useMemo(() => {
+    return countryPricingList.reduce((acc, item) => {
+      acc[normalizeCountryKey(item.name)] = item;
+      return acc;
+    }, {});
+  }, [countryPricingList]);
 
   const selectedCountryPricing = useMemo(() => {
     const countryName = getCountryParam(selectedCountry) || "Belgium";
@@ -3311,6 +3272,108 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
 
     return insuranceOnlyNoTravelers;
   }, [requiredDocuments, recommendedItems, travelers]);
+
+  // ////////////////////
+  // 🔥 GA4: Track Add To Cart automatically when 5 documents are selected 🔥
+  const hasTrackedAddToCartRef = useRef(false);
+
+  useEffect(() => {
+    const requiredFields = [
+      "passport",
+      "ukVisa",
+      "photos",
+      "bankStatements",
+      "employmentProof",
+    ];
+
+    // Count how many required documents are currently checked
+    const selectedDocsCount = requiredFields.filter(
+      (field) => requiredDocuments[field]
+    ).length;
+
+    // Check if only insurance is selected
+    const hasOnlyInsurance =
+      recommendedItems.insuranceCertificate &&
+      !recommendedItems.giftCard &&
+      selectedDocsCount === 0;
+
+    // Fire event IF 5 documents are selected OR it's an insurance-only cart
+    if (
+      (selectedDocsCount >= 5 || hasOnlyInsurance) &&
+      !hasTrackedAddToCartRef.current
+    ) {
+      hasTrackedAddToCartRef.current = true; // Lock it so it doesn't spam GA4
+
+      const countryName = getCountryParam(selectedCountry) || "Germany";
+
+      // Calculate final exact fees matching the checkout logic
+      const visaFees = calculateDiscountedVisaFee({
+        discount: appliedDiscount,
+        hasOnlyInsurance,
+      });
+      const insuranceFees = discountedInsuranceBase;
+      const giftCardFees = recommendedItems.giftCard ? 159 * giftCardCount : 0;
+      const totalAmount = visaFees + insuranceFees + giftCardFees;
+
+      if (typeof window !== "undefined" && window.dataLayer) {
+        const cartItems = [];
+
+        if (!hasOnlyInsurance) {
+          cartItems.push({
+            item_id: `visa_${countryName.toLowerCase().replace(/\s+/g, "_")}`,
+            item_name: `Visa - ${countryName}`,
+            price: travelers > 0 ? visaFees / travelers : visaFees,
+            quantity: travelers,
+          });
+        }
+
+        if (insuranceCount > 0) {
+          cartItems.push({
+            item_id: "insurance_certificate",
+            item_name: "Insurance Certificate",
+            price: insuranceFees / insuranceCount,
+            quantity: insuranceCount,
+          });
+        }
+
+        if (giftCardCount > 0) {
+          cartItems.push({
+            item_id: "digital_gift_card",
+            item_name: "NUvisa Digital Gift Card",
+            price: giftCardFees / giftCardCount,
+            quantity: giftCardCount,
+          });
+        }
+
+        window.dataLayer.push({ ecommerce: null }); // Clear previous
+        window.dataLayer.push({
+          event: "add_to_cart",
+          ecommerce: {
+            currency: "GBP",
+            value: totalAmount,
+            coupon: appliedDiscount?.code || couponCode || undefined,
+            items: cartItems,
+          },
+        });
+      }
+    }
+
+    // Reset the lock if they uncheck documents, so it can fire again if they re-complete it
+    if (selectedDocsCount < 5 && !hasOnlyInsurance) {
+      hasTrackedAddToCartRef.current = false;
+    }
+  }, [
+    requiredDocuments,
+    selectedCountry,
+    travelers,
+    insuranceCount,
+    giftCardCount,
+    appliedDiscount,
+    couponCode,
+    discountedInsuranceBase,
+    recommendedItems,
+    calculateDiscountedVisaFee,
+  ]);
 
   // Validation function to check before payment (called when user clicks Apple Pay/Google Pay)
   const validateBeforeExpressPayment = useCallback(() => {

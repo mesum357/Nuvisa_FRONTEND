@@ -605,7 +605,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
     dispatch(setRequiredDocuments(requiredDocuments));
     dispatch(setRecommendedItems(recommendedItems));
 
-    // 🔥 GTM: FIRE ADD TO CART EVENT HERE 🔥
+    // 🔥 GTM: FIRE VIEW ITEM EVENT HERE (Changed from add_to_cart) 🔥
     if (typeof window !== "undefined" && window.dataLayer) {
       const cartItems = [];
 
@@ -636,7 +636,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
 
       window.dataLayer.push({ ecommerce: null }); // Clear previous ecommerce object
       window.dataLayer.push({
-        event: "add_to_cart",
+        event: "view_item", // CHANGED HERE to act as the "View Country" step
         ecommerce: {
           currency: "GBP",
           value: Math.round(discountedPrices.total),
@@ -655,6 +655,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
     router,
     quantities,
   ]);
+
   // Note: Added 'quantities' to the dependency array above so it has the latest cart numbers!
   useEffect(() => {
     // If section-based trigger is provided, DO NOT run old logic
