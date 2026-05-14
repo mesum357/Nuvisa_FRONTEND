@@ -56,10 +56,33 @@ export default function CountrySelector() {
     // Get dynamic fees based on selected country
     const countryConfig = getCountryConfig(countryName);
 
+    // 🔥 GA4: Fire view_item event when country is selected
+    if (typeof window !== "undefined" && window.dataLayer) {
+      window.dataLayer.push({ ecommerce: null }); // Clear previous ecommerce data
+      window.dataLayer.push({
+        event: "view_item",
+        ecommerce: {
+          currency: "GBP",
+          value: countryConfig.visaFee || 0,
+          items: [
+            {
+              item_id: `visa_${countryName.toLowerCase().replace(/\s+/g, "_")}`,
+              item_name: `Visa - ${countryName}`,
+              item_category: "Schengen Visa",
+              item_brand: "NUvisa",
+              price: countryConfig.visaFee || 0,
+              quantity: 1,
+            },
+          ],
+        },
+      });
+    }
+
     // Preserve existing traveler count, default to 0 if not set
-    const currentTravelerCount = visaState.travelers !== undefined && visaState.travelers !== null
-      ? visaState.travelers 
-      : 0;
+    const currentTravelerCount =
+      visaState.travelers !== undefined && visaState.travelers !== null
+        ? visaState.travelers
+        : 0;
 
     // Store the selected country and dynamic fees in Redux
     dispatch(setSelectedCountry(countryName));

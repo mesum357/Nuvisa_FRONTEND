@@ -15,7 +15,6 @@ import { createOrUpdateApplication } from "@/api/visaApplications";
 import { localStorageEnums } from "@/enums/localstorage.enums";
 import { localStorageGateway } from "@/gateways/localStoragegateway";
 import { decrementExpertSpotsOnSuccessfulCheckout } from "@/utils/expertSpots";
-import { trackPurchase } from "@/lib/gtag";
 
 const PaymentSuccess = () => {
   const router = useRouter();
@@ -37,10 +36,8 @@ const PaymentSuccess = () => {
       hasProcessedPayment.current = true;
 
       try {
-
         // Get payment data from current session
         const currentData = await getCurrentPaymentData();
-
 
         const sessionId = searchParams?.get("session_id") || null;
         if (
@@ -103,7 +100,7 @@ const PaymentSuccess = () => {
         // Otherwise fallback to localStorage data for application creation
         const finalPaymentType =
           paymentTypeParam || currentData.paymentType || "application_creation";
-        const finalApplicationId = applicationId
+        const finalApplicationId = applicationId;
 
         setPaymentType(finalPaymentType);
 
@@ -167,7 +164,9 @@ const PaymentSuccess = () => {
 
         // Clear the stored intent ID so it's not reused on a future visit
         if (embeddedPaymentIntentId && typeof window !== "undefined") {
-          try { sessionStorage.removeItem("stripePaymentIntentId"); } catch { }
+          try {
+            sessionStorage.removeItem("stripePaymentIntentId");
+          } catch {}
         }
 
         // Successful checkout should reduce "spots left" once per unique payment.
@@ -181,11 +180,20 @@ const PaymentSuccess = () => {
         if (stripePaymentId && process.env.NEXT_PUBLIC_API_URL) {
           try {
             const res = await fetch(
-              `${process.env.NEXT_PUBLIC_API_URL}/stripe_payment/session-metadata?payment_id=${encodeURIComponent(stripePaymentId)}`
+              `${
+                process.env.NEXT_PUBLIC_API_URL
+              }/stripe_payment/session-metadata?payment_id=${encodeURIComponent(
+                stripePaymentId
+              )}`
             );
             const json = await res.json();
-            const meta = json?.data?.results?.metadata || json?.results?.metadata || {};
-            if (meta && typeof meta === "object" && Object.keys(meta).length > 0) {
+            const meta =
+              json?.data?.results?.metadata || json?.results?.metadata || {};
+            if (
+              meta &&
+              typeof meta === "object" &&
+              Object.keys(meta).length > 0
+            ) {
               sessionMetadata = meta;
             }
           } catch (e) {
@@ -198,12 +206,21 @@ const PaymentSuccess = () => {
         const mergedData = {
           ...currentData,
           email: sessionMetadata.email || currentData.email,
-          selectedCountry: sessionMetadata.country || currentData.selectedCountry || currentData.paymentMetadata?.country,
+          selectedCountry:
+            sessionMetadata.country ||
+            currentData.selectedCountry ||
+            currentData.paymentMetadata?.country,
           travelers: sessionMetadata.travellers ?? currentData.travelers,
           totalAmount: sessionMetadata.amount || currentData.totalAmount,
-          insurancePayment: sessionMetadata.insurance !== undefined ? sessionMetadata.insurance : currentData.insurancePayment,
+          insurancePayment:
+            sessionMetadata.insurance !== undefined
+              ? sessionMetadata.insurance
+              : currentData.insurancePayment,
           paymentWithoutInsurance: currentData.paymentWithoutInsurance,
-          visaTypeId: sessionMetadata.visaTypeId || currentData.selectedVisaType || visaState.visaTypeId,
+          visaTypeId:
+            sessionMetadata.visaTypeId ||
+            currentData.selectedVisaType ||
+            visaState.visaTypeId,
           amountWithDiscount: currentData.amountWithDiscount,
           storedMetadata: currentData.storedMetadata,
           paymentMetadata: currentData.paymentMetadata,
@@ -243,8 +260,8 @@ const PaymentSuccess = () => {
         // Use the actual insurance selection boolean, fallback to fee check for backward compatibility
         const hasInsurance =
           mergedData.insuranceSelected === "true" ||
-            (mergedData.insuranceSelected === undefined &&
-              Number(mergedData.insurancePayment) > 0)
+          (mergedData.insuranceSelected === undefined &&
+            Number(mergedData.insurancePayment) > 0)
             ? true
             : false;
 
@@ -253,18 +270,22 @@ const PaymentSuccess = () => {
           finalPaymentType === "application_creation" ||
           (!finalPaymentType && !applicationId); // No payment type means initial checkout
 
-        const insurancePayload = numberOfTravelers === mergedData?.storedMetadata?.insuranceCount ? {
-          insurance: hasInsurance,
-          insuranceDetails:
-            hasInsurance ? { selected: true } : null,
-          insuranceCertificate: null,
-          orderId: null,
-          paymentAmount: hasInsurance ? Number(mergedData.insurancePayment) || 0 : 0,
-          paidInCheckout: hasInsurance && isCheckoutPayment,
-          insuranceSource: hasInsurance && isCheckoutPayment ? "checkout" : null,
-          insurancePaymentCompleted: hasInsurance,
-        } : {}
-
+        const insurancePayload =
+          numberOfTravelers === mergedData?.storedMetadata?.insuranceCount
+            ? {
+                insurance: hasInsurance,
+                insuranceDetails: hasInsurance ? { selected: true } : null,
+                insuranceCertificate: null,
+                orderId: null,
+                paymentAmount: hasInsurance
+                  ? Number(mergedData.insurancePayment) || 0
+                  : 0,
+                paidInCheckout: hasInsurance && isCheckoutPayment,
+                insuranceSource:
+                  hasInsurance && isCheckoutPayment ? "checkout" : null,
+                insurancePaymentCompleted: hasInsurance,
+              }
+            : {};
 
         const initialTravelersData = Array.from(
           { length: numberOfTravelers },
@@ -319,7 +340,13 @@ const PaymentSuccess = () => {
             fullPayment: {
               paymentStatus: "completed",
               paymentCompleted: true,
-              paymentAmount: Number((Number(mergedData?.amountWithDiscount || 149) / numberOfTravelers).toFixed(2)) || 0,
+              paymentAmount:
+                Number(
+                  (
+                    Number(mergedData?.amountWithDiscount || 149) /
+                    numberOfTravelers
+                  ).toFixed(2)
+                ) || 0,
               paymentDate: new Date().toISOString(),
               paymentMethod: "stripe",
               includeInsurance: hasInsurance,
@@ -329,18 +356,22 @@ const PaymentSuccess = () => {
           })
         );
 
-
         const applicationPayload = {
           type: "createApplication",
           email: mergedData.email,
-          insuranceDetails: numberOfTravelers === mergedData?.storedMetadata?.insuranceCount ? null : {
-            paidInCheckout: {
-              noOfInsurance: mergedData?.storedMetadata?.insuranceCount || 0,
-              paymentAmount: mergedData?.storedMetadata?.insurancePaymentAmount || 0,
-            },
-            certificateCount: 0,
-            certificate: [],
-          }, // Keep for backward compatibility during transition (string value)
+          insuranceDetails:
+            numberOfTravelers === mergedData?.storedMetadata?.insuranceCount
+              ? null
+              : {
+                  paidInCheckout: {
+                    noOfInsurance:
+                      mergedData?.storedMetadata?.insuranceCount || 0,
+                    paymentAmount:
+                      mergedData?.storedMetadata?.insurancePaymentAmount || 0,
+                  },
+                  certificateCount: 0,
+                  certificate: [],
+                }, // Keep for backward compatibility during transition (string value)
           country: mergedData.selectedCountry,
           amountPaid: mergedData.totalAmount?.toString(),
           paymentWithoutInsurance: Number(mergedData?.paymentWithoutInsurance),
@@ -354,7 +385,9 @@ const PaymentSuccess = () => {
           travelStartDate: visaState.arrivalDate || "",
           travelEndDate: visaState.departureDate || "",
           insurancePaymentCompleted: hasInsurance,
-          initialInsurancePaidTotal: hasInsurance ? (Number(mergedData.insurancePayment) || 0).toString() : "0",
+          initialInsurancePaidTotal: hasInsurance
+            ? (Number(mergedData.insurancePayment) || 0).toString()
+            : "0",
           // Idempotency key: the webhook checks this column before creating; whichever runs first wins
           stripePaymentId: stripePaymentId || undefined,
         };
@@ -411,13 +444,13 @@ const PaymentSuccess = () => {
                   travelersData: initialTravelersData.map((traveler, index) =>
                     index === Number(travelerIndex)
                       ? {
-                        ...traveler,
-                        insurance: {
-                          orderId: postOrderId || null,
-                          paymentAmount: postAmount,
-                          insurancePaymentCompleted: true,
-                        },
-                      }
+                          ...traveler,
+                          insurance: {
+                            orderId: postOrderId || null,
+                            paymentAmount: postAmount,
+                            insurancePaymentCompleted: true,
+                          },
+                        }
                       : traveler
                   ),
                   insurancePaymentCompleted: true,
@@ -478,29 +511,69 @@ const PaymentSuccess = () => {
           applicationResponse?.status === 201
         ) {
           // GA4: purchase — application created, payment confirmed
-          trackPurchase({
-            transactionId: stripePaymentId || applicationResponse?.data?.data?.results?.application?.id || `TXN_${Date.now()}`,
-            country: mergedData.selectedCountry || "",
-            travelers: numberOfTravelers,
-            visaFeePerTraveler: numberOfTravelers > 0
-              ? Number(mergedData.paymentWithoutInsurance || 0) / numberOfTravelers
-              : 0,
-            insurance: hasInsurance,
-            insuranceFeeTotal: hasInsurance ? Number(mergedData.insurancePayment || 0) : 0,
-            totalValue: Number(mergedData.totalAmount || 0),
-            coupon: mergedData.storedMetadata?.couponCode || undefined,
-            discount: 0,
-            tax: 0,
-            shipping: 0,
-            customerType: "new",
-            currency: "GBP",
-          });
+          // 🔥 REPLACE trackPurchase({...}) WITH THIS RAW DATALAYER PUSH 🔥
+          if (typeof window !== "undefined" && window.dataLayer) {
+            const purchaseItems = [];
+
+            if (numberOfTravelers > 0) {
+              purchaseItems.push({
+                item_id: "schengen_visa",
+                item_name: "Schengen visa from the UK",
+                price:
+                  Number(mergedData.paymentWithoutInsurance || 0) /
+                  numberOfTravelers,
+                quantity: numberOfTravelers,
+              });
+            }
+
+            if (hasInsurance && Number(mergedData.insurancePayment) > 0) {
+              const insCount =
+                mergedData?.storedMetadata?.insuranceCount || numberOfTravelers;
+              purchaseItems.push({
+                item_id: "insurance_certificate",
+                item_name: "Insurance Certificate",
+                price: Number(mergedData.insurancePayment) / insCount,
+                quantity: insCount,
+              });
+            }
+
+            const giftCardCount = Math.max(
+              Number(visaState.giftCardCount || 0),
+              0
+            );
+            if (giftCardCount > 0) {
+              purchaseItems.push({
+                item_id: "digital_gift_card",
+                item_name: "NUvisa Digital Gift Card",
+                price: (Number(visaState.giftCardFees) || 0) / giftCardCount,
+                quantity: giftCardCount,
+              });
+            }
+
+            window.dataLayer.push({ ecommerce: null });
+            window.dataLayer.push({
+              event: "purchase",
+              ecommerce: {
+                transaction_id:
+                  stripePaymentId ||
+                  applicationResponse?.data?.data?.results?.application?.id ||
+                  `TXN_${Date.now()}`,
+                value: Number(mergedData.totalAmount || 0),
+                currency: "GBP",
+                coupon:
+                  mergedData.storedMetadata?.couponCode ||
+                  visaState.appliedDiscount?.code ||
+                  undefined,
+                items: purchaseItems,
+              },
+            });
+          }
 
           // Application created successfully, redirect to application-step
           setTimeout(() => {
             router.replace(
               "/application-step/?application_id=" +
-              applicationResponse?.data?.data?.results?.application?.id
+                applicationResponse?.data?.data?.results?.application?.id
             );
           }, 2000); // 2 second delay
         } else {
@@ -525,9 +598,10 @@ const PaymentSuccess = () => {
 
   // Show gift card purchase confirmation
   if (paymentType === "gift_card") {
-    const userEmail = typeof window !== "undefined"
-      ? localStorageGateway("userEmail", localStorageEnums.GET) || ""
-      : "";
+    const userEmail =
+      typeof window !== "undefined"
+        ? localStorageGateway("userEmail", localStorageEnums.GET) || ""
+        : "";
 
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -580,9 +654,7 @@ const PaymentSuccess = () => {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#7350FF] mx-auto mb-4"></div>
-        <p className="text-gray-600">
-          Creating your visa application..
-        </p>
+        <p className="text-gray-600">Creating your visa application..</p>
       </div>
     </div>
   );
