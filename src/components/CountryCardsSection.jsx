@@ -1,4 +1,10 @@
-import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useState,
+  useCallback,
+  useRef,
+} from "react";
 import Image from "next/image";
 import { ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -17,7 +23,14 @@ import { staticCountries } from "@/constants/staticCountries";
 import Link from "next/link";
 import { getAdminApiBase } from "@/utils/adminApiBase";
 
-const CountryCardsSection = ({ specificCountries, image, id, occasionContent, occasionSubtitle, urgentDescription }) => {
+const CountryCardsSection = ({
+  specificCountries,
+  image,
+  id,
+  occasionContent,
+  occasionSubtitle,
+  urgentDescription,
+}) => {
   const [showAll, setShowAll] = useState(false);
   const seeMoreRef = useRef(null);
   const [sectionContent, setSectionContent] = useState({
@@ -41,50 +54,88 @@ const CountryCardsSection = ({ specificCountries, image, id, occasionContent, oc
 
   const [occasions, setOccasions] = useState([]);
 
-  const normalizeCountryKey = useCallback((value) => String(value || "").trim().toLowerCase(), []);
+  const normalizeCountryKey = useCallback(
+    (value) =>
+      String(value || "")
+        .trim()
+        .toLowerCase(),
+    []
+  );
 
   // Memoize handleCountrySelect to prevent unnecessary re-renders
-  const handleCountrySelect = useCallback((countryName) => {
-    // Get dynamic fees based on selected country
-    const countryConfig = getCountryConfig(countryName);
+  const handleCountrySelect = useCallback(
+    (countryName) => {
+      // Get dynamic fees based on selected country
+      const countryConfig = getCountryConfig(countryName);
 
-    // Preserve existing traveler count, default to 0 if not set
-    const currentTravelerCount = visaState.travelers !== undefined && visaState.travelers !== null
-      ? visaState.travelers
-      : 0;
+      // 🔥 GA4: Fire view_item event when country is selected
+      if (typeof window !== "undefined" && window.dataLayer) {
+        window.dataLayer.push({ ecommerce: null }); // Clear previous ecommerce data
+        window.dataLayer.push({
+          event: "view_item",
+          ecommerce: {
+            currency: "GBP",
+            value: countryConfig.visaFee || 0,
+            items: [
+              {
+                item_id: `visa_${countryName
+                  .toLowerCase()
+                  .replace(/\s+/g, "_")}`,
+                item_name: `Visa - ${countryName}`,
+                item_category: "Schengen Visa",
+                item_brand: "NUvisa",
+                price: countryConfig.visaFee || 0,
+                quantity: 1,
+              },
+            ],
+          },
+        });
+      }
 
-    // Store the selected country and dynamic fees in Redux
-    dispatch(setSelectedCountry(String(countryName)));
-    dispatch(setVisaFees(Number(countryConfig.visaFee)));
-    dispatch(setInsuranceFees(Number(countryConfig.insuranceFee)));
-    dispatch(setTravelers(Number(currentTravelerCount)));
+      // Preserve existing traveler count, default to 0 if not set
+      const currentTravelerCount =
+        visaState.travelers !== undefined && visaState.travelers !== null
+          ? visaState.travelers
+          : 0;
 
-    // Redirect to checkout with dynamic country information
-    router.push(
-      `/get-the-visa?selectedCountry=${encodeURIComponent(
-        countryName
-      )}&visaFees=${countryConfig.visaFee}&insuranceFees=${countryConfig.insuranceFee
-      }&travelers=${currentTravelerCount}`
-    );
-  }, [visaState.travelers, dispatch, router]);
+      // Store the selected country and dynamic fees in Redux
+      dispatch(setSelectedCountry(String(countryName)));
+      dispatch(setVisaFees(Number(countryConfig.visaFee)));
+      dispatch(setInsuranceFees(Number(countryConfig.insuranceFee)));
+      dispatch(setTravelers(Number(currentTravelerCount)));
+
+      // Redirect to checkout with dynamic country information
+      router.push(
+        `/get-the-visa?selectedCountry=${encodeURIComponent(
+          countryName
+        )}&visaFees=${countryConfig.visaFee}&insuranceFees=${
+          countryConfig.insuranceFee
+        }&travelers=${currentTravelerCount}`
+      );
+    },
+    [visaState.travelers, dispatch, router]
+  );
 
   const [dynamicSection, setDynamicSection] = useState(null);
   const [isDynamicLoading, setIsDynamicLoading] = useState(true);
 
   useEffect(() => {
     // Only fetch dynamic section for "everyday-steals" section
-    if (id !== 'everyday-steals') {
+    if (id !== "everyday-steals") {
       setIsDynamicLoading(false);
       return;
     }
 
     const fetchDynamicSection = async () => {
       try {
-        const adminApiUrl = process.env.NEXT_PUBLIC_ADMIN_API_URL || 'http://localhost:3001';
-        console.log(`[DEBUG] Fetching from: ${adminApiUrl}/api/occasion-content`);
+        const adminApiUrl =
+          process.env.NEXT_PUBLIC_ADMIN_API_URL || "http://localhost:3001";
+        console.log(
+          `[DEBUG] Fetching from: ${adminApiUrl}/api/occasion-content`
+        );
 
         // Fetch Occasion Content if this is the everyday-steals section
-        if (id === 'everyday-steals') {
+        if (id === "everyday-steals") {
           // Add timestamp to bypass any browser/nextjs caching
           const url = `${adminApiUrl}/api/occasion-content?t=${Date.now()}`;
           const occRes = await fetch(url);
@@ -96,15 +147,20 @@ const CountryCardsSection = ({ specificCountries, image, id, occasionContent, oc
             setDynamicSection(occResult.data);
             setSectionContent({
               title: occResult.data.title,
-              description: occResult.data.description
+              description: occResult.data.description,
             });
-            if (occResult.data.occasions && Array.isArray(occResult.data.occasions)) {
-              console.log("[DEBUG] Setting occasions:", occResult.data.occasions);
+            if (
+              occResult.data.occasions &&
+              Array.isArray(occResult.data.occasions)
+            ) {
+              console.log(
+                "[DEBUG] Setting occasions:",
+                occResult.data.occasions
+              );
               setOccasions(occResult.data.occasions);
             }
           }
-        }
-        else {
+        } else {
           // Standard country section fetch
           const res = await fetch(`${adminApiUrl}/api/country-section`);
           const result = await res.json();
@@ -112,7 +168,7 @@ const CountryCardsSection = ({ specificCountries, image, id, occasionContent, oc
             setDynamicSection(result.data);
             setSectionContent({
               title: result.data.title,
-              description: result.data.description
+              description: result.data.description,
             });
           }
         }
@@ -132,7 +188,10 @@ const CountryCardsSection = ({ specificCountries, image, id, occasionContent, oc
     const fetchVisaPricing = async () => {
       try {
         setIsVisaPricingLoading(true);
-        const apiBase = String(process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+        const apiBase = String(process.env.NEXT_PUBLIC_API_URL || "").replace(
+          /\/+$/,
+          ""
+        );
         const adminBase = getAdminApiBase();
         const candidates = [
           `/api/visa-pricing`,
@@ -174,10 +233,7 @@ const CountryCardsSection = ({ specificCountries, image, id, occasionContent, oc
             basePrice: Number(item?.basePrice),
           }))
           .filter(
-            (item) =>
-              item.id &&
-              item.name &&
-              Number.isFinite(item.basePrice)
+            (item) => item.id && item.name && Number.isFinite(item.basePrice)
           );
 
         setCountryPricingList(normalized);
@@ -223,14 +279,14 @@ const CountryCardsSection = ({ specificCountries, image, id, occasionContent, oc
     if (appointmentTexts && appointmentTexts.length > 0) {
       const recordWithSectionContent =
         appointmentTexts.find(
-          record => record.sectionTitle && record.sectionDescription
+          (record) => record.sectionTitle && record.sectionDescription
         ) || appointmentTexts[0];
 
       setSectionContent({
         title: recordWithSectionContent.sectionTitle || "Choose Your Country",
         description:
           recordWithSectionContent.sectionDescription ||
-          "We support 20 countries over all the visa centres in the UK"
+          "We support 20 countries over all the visa centres in the UK",
       });
       return;
     }
@@ -239,25 +295,35 @@ const CountryCardsSection = ({ specificCountries, image, id, occasionContent, oc
       setSectionContent({
         title: "Choose Your Country",
         description:
-          "We support 20 countries over all the visa centres in the UK"
+          "We support 20 countries over all the visa centres in the UK",
       });
     }
   }, [appointmentTexts, loading, dynamicSection]);
 
   const homepageCountries = useMemo(() => {
     // If we have dynamic section data (only for everyday-steals), use it
-    if (dynamicSection && dynamicSection.countries && dynamicSection.countries.length > 0) {
+    if (
+      dynamicSection &&
+      dynamicSection.countries &&
+      dynamicSection.countries.length > 0
+    ) {
       // Merge dynamic items with rich data from hookCountries (especially images)
-      return dynamicSection.countries.map(dynCountry => {
+      return dynamicSection.countries.map((dynCountry) => {
         const richMatch = hookCountries.find(
-          h => h.name.toLowerCase() === dynCountry.name.toLowerCase()
+          (h) => h.name.toLowerCase() === dynCountry.name.toLowerCase()
         );
         return {
           ...richMatch,
           ...dynCountry,
           // Ensure image falls back to richMatch if dynCountry is missing it
-          image: dynCountry.image || richMatch?.image || "/image/country/Germany.jpg",
-          appointmentText: dynCountry.appointmentText || richMatch?.appointmentText || "Appointment in 10 days or less"
+          image:
+            dynCountry.image ||
+            richMatch?.image ||
+            "/image/country/Germany.jpg",
+          appointmentText:
+            dynCountry.appointmentText ||
+            richMatch?.appointmentText ||
+            "Appointment in 10 days or less",
         };
       });
     }
@@ -276,8 +342,8 @@ const CountryCardsSection = ({ specificCountries, image, id, occasionContent, oc
     return showAll ? list : list.slice(0, limit);
   }, [homepageCountries, showAll, dynamicSection, isMobile]);
 
-// console.log("homepage coutries", homepageCountries);
-// console.log("displayed countries", displayedCountries, loading, error);
+  // console.log("homepage coutries", homepageCountries);
+  // console.log("displayed countries", displayedCountries, loading, error);
   // Resolve occasion dates: use admin-set dates if available, otherwise derive from title
   const getOccasionDates = useCallback((occ) => {
     if (occ.arrivalDate && occ.departureDate) {
@@ -289,24 +355,59 @@ const CountryCardsSection = ({ specificCountries, image, id, occasionContent, oc
     const title = (occ.title || "").toLowerCase().trim();
 
     // Map occasion titles to sensible date ranges
-    const monthNames = ["january","february","march","april","may","june","july","august","september","october","november","december"];
-    const monthShort = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
+    const monthNames = [
+      "january",
+      "february",
+      "march",
+      "april",
+      "may",
+      "june",
+      "july",
+      "august",
+      "september",
+      "october",
+      "november",
+      "december",
+    ];
+    const monthShort = [
+      "jan",
+      "feb",
+      "mar",
+      "apr",
+      "may",
+      "jun",
+      "jul",
+      "aug",
+      "sep",
+      "oct",
+      "nov",
+      "dec",
+    ];
 
     // Check if title is a month name (e.g. "April", "May")
-    let monthIndex = monthNames.findIndex(m => title.includes(m));
-    if (monthIndex === -1) monthIndex = monthShort.findIndex(m => title === m || title.startsWith(m + " "));
+    let monthIndex = monthNames.findIndex((m) => title.includes(m));
+    if (monthIndex === -1)
+      monthIndex = monthShort.findIndex(
+        (m) => title === m || title.startsWith(m + " ")
+      );
     if (monthIndex !== -1) {
       let year = currentYear;
       // Extract year from title if present (e.g. "April 27")
       const yearMatch = title.match(/\b(\d{2})\b/);
       if (yearMatch) year = 2000 + parseInt(yearMatch[1]);
       // If month is in the past this year, use next year
-      else if (monthIndex < now.getMonth() || (monthIndex === now.getMonth() && now.getDate() > 15)) {
+      else if (
+        monthIndex < now.getMonth() ||
+        (monthIndex === now.getMonth() && now.getDate() > 15)
+      ) {
         year = currentYear + 1;
       }
       const arrival = `${year}-${String(monthIndex + 1).padStart(2, "0")}-01`;
       const lastDay = new Date(year, monthIndex + 1, 0).getDate();
-      const departure = `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+      const departure = `${year}-${String(monthIndex + 1).padStart(
+        2,
+        "0"
+      )}-${String(lastDay).padStart(2, "0")}`;
       return { arrivalDate: arrival, departureDate: departure };
     }
 
@@ -314,9 +415,14 @@ const CountryCardsSection = ({ specificCountries, image, id, occasionContent, oc
     if (title.includes("easter")) {
       // Easter 2026 is April 5
       let year = currentYear;
-      const easterDates = { 2025: [4, 20], 2026: [4, 5], 2027: [3, 28], 2028: [4, 16] };
+      const easterDates = {
+        2025: [4, 20],
+        2026: [4, 5],
+        2027: [3, 28],
+        2028: [4, 16],
+      };
       const entry = easterDates[year] || easterDates[year + 1];
-      if (entry && (new Date(year, entry[0] - 1, entry[1]) < now)) year++;
+      if (entry && new Date(year, entry[0] - 1, entry[1]) < now) year++;
       const e = easterDates[year] || [4, 5];
       const arrival = new Date(year, e[0] - 1, e[1] - 3); // 3 days before Easter
       const departure = new Date(year, e[0] - 1, e[1] + 4); // 4 days after Easter
@@ -341,7 +447,10 @@ const CountryCardsSection = ({ specificCountries, image, id, occasionContent, oc
       const yearMatch = title.match(/\b(\d{2})\b/);
       if (yearMatch) year = 2000 + parseInt(yearMatch[1]);
       else if (now.getMonth() === 0 && now.getDate() > 5) year++;
-      return { arrivalDate: `${year}-12-28`, departureDate: `${year + 1}-01-05` };
+      return {
+        arrivalDate: `${year}-12-28`,
+        departureDate: `${year + 1}-01-05`,
+      };
     }
 
     // Half Term (February half term by default)
@@ -366,15 +475,19 @@ const CountryCardsSection = ({ specificCountries, image, id, occasionContent, oc
 
   return (
     <div className="max-w-6xl mx-auto px-6" id={id}>
-      {id === "everyday-steals" &&
-
-        <div className='w-full px-4 pt-10 pb-5'>
-          <div className='bg-[#fdfd55] md:flex-row flex-col text-center md:text-start flex items-center justify-center py-6 px-6 rounded-4xl -mt-8 gap-3 md:gap-6'>
-
-            <Image src={"/image/nu-logo.png"} className="rounded-full" width={75} height={75} alt="Badge Icon" />
-            <div className='flex flex-col text-white items-center justify-center'>
-              <div className='flex items-center gap-2'>
-                <p className='text-[24px] lg:text-[26px] font-gilroy-bold text-black leading-tight'>
+      {id === "everyday-steals" && (
+        <div className="w-full px-4 pt-10 pb-5">
+          <div className="bg-[#fdfd55] md:flex-row flex-col text-center md:text-start flex items-center justify-center py-6 px-6 rounded-4xl -mt-8 gap-3 md:gap-6">
+            <Image
+              src={"/image/nu-logo.png"}
+              className="rounded-full"
+              width={75}
+              height={75}
+              alt="Badge Icon"
+            />
+            <div className="flex flex-col text-white items-center justify-center">
+              <div className="flex items-center gap-2">
+                <p className="text-[24px] lg:text-[26px] font-gilroy-bold text-black leading-tight">
                   {occasionContent || "Grab £50 off your advance booking"}
                 </p>
               </div>
@@ -386,7 +499,8 @@ const CountryCardsSection = ({ specificCountries, image, id, occasionContent, oc
               </div>
             </div>
           </div>
-        </div>}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
         {/* Large 2x2 Image Card (Visible on lg screens) */}
@@ -402,10 +516,18 @@ const CountryCardsSection = ({ specificCountries, image, id, occasionContent, oc
             <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent"></div>
             <div className="absolute bottom-4 left-4 text-white">
               <h3 className="text-xl font-gilroy-bold mb-0.5">
-                {dynamicSection ? dynamicSection.title : (image ? "Everyday Steals" : sectionContent.title)}
+                {dynamicSection
+                  ? dynamicSection.title
+                  : image
+                  ? "Everyday Steals"
+                  : sectionContent.title}
               </h3>
               <p className="text-xs opacity-90">
-                {dynamicSection ? dynamicSection.description : (image ? "Best deals on flights and hotels" : sectionContent.description)}
+                {dynamicSection
+                  ? dynamicSection.description
+                  : image
+                  ? "Best deals on flights and hotels"
+                  : sectionContent.description}
               </p>
             </div>
           </div>
@@ -414,28 +536,33 @@ const CountryCardsSection = ({ specificCountries, image, id, occasionContent, oc
         {id === "everyday-steals" ? (
           <div className="lg:col-span-3 grid grid-cols-2 gap-4 h-full">
             {occasions.map((occ, idx) => (
-              <div key={idx} className="flex flex-col gap-2 h-full"
+              <div
+                key={idx}
+                className="flex flex-col gap-2 h-full"
                 onClick={() => {
                   const dates = getOccasionDates(occ);
                   const params = new URLSearchParams();
-                  if (dates.arrivalDate) params.set('arrivalDate', dates.arrivalDate);
-                  if (dates.departureDate) params.set('departureDate', dates.departureDate);
-                  params.set('occasionIdx', String(idx));
+                  if (dates.arrivalDate)
+                    params.set("arrivalDate", dates.arrivalDate);
+                  if (dates.departureDate)
+                    params.set("departureDate", dates.departureDate);
+                  params.set("occasionIdx", String(idx));
                   const qs = params.toString();
-                  router.push(`/get-the-visa${qs ? `?${qs}` : ''}`);
+                  router.push(`/get-the-visa${qs ? `?${qs}` : ""}`);
                 }}
               >
                 <div
                   style={{
                     backgroundColor: `${occ.bgColor}`,
                   }}
-
                   className="relative flex-1 min-h-[150px] rounded-xl flex items-center justify-center p-4 text-center cursor-pointer hover:scale-[1.02] transition-transform duration-300 shadow-md overflow-hidden group"
                 >
-
                   <div className="absolute inset-0 transition-colors"></div>
 
-                  <h4 style={{ color: occ.textColor }} className="relative z-10 text-[14px] md:text-[16px] font-gilroy-bold leading-tight uppercase drop-shadow-lg">
+                  <h4
+                    style={{ color: occ.textColor }}
+                    className="relative z-10 text-[14px] md:text-[16px] font-gilroy-bold leading-tight uppercase drop-shadow-lg"
+                  >
                     {occ.title}
                   </h4>
                 </div>
@@ -447,7 +574,9 @@ const CountryCardsSection = ({ specificCountries, image, id, occasionContent, oc
           </div>
         ) : (
           // RENDER COUNTRIES (Top Section)
-          !loading && !error && displayedCountries.map((country, index) => (
+          !loading &&
+          !error &&
+          displayedCountries.map((country, index) => (
             <div
               key={index}
               onClick={() => handleCountrySelect(country.name)}
@@ -475,11 +604,17 @@ const CountryCardsSection = ({ specificCountries, image, id, occasionContent, oc
                   {country.appointmentText}
                 </div>
 
-                {!isVisaPricingLoading && country.isActive !== false && countryPricingLookup[normalizeCountryKey(country.name)] && (
-                  <div className="mt-1 text-white text-[10px] font-gilroy-bold">
-                    {country.price_from} £{countryPricingLookup[normalizeCountryKey(country.name)].basePrice}
-                  </div>
-                )}
+                {!isVisaPricingLoading &&
+                  country.isActive !== false &&
+                  countryPricingLookup[normalizeCountryKey(country.name)] && (
+                    <div className="mt-1 text-white text-[10px] font-gilroy-bold">
+                      {country.price_from} £
+                      {
+                        countryPricingLookup[normalizeCountryKey(country.name)]
+                          .basePrice
+                      }
+                    </div>
+                  )}
               </div>
             </div>
           ))
@@ -487,45 +622,61 @@ const CountryCardsSection = ({ specificCountries, image, id, occasionContent, oc
       </div>
 
       {/* See More Button - Only for Country view */}
-      {id !== "everyday-steals" && !image && !showAll && homepageCountries.length > (isMobile ? 5 : 9) && (
-        <div ref={seeMoreRef} className="text-center mt-12">
-          <button
-            onClick={() => setShowAll(true)}
-            className="inline-flex items-center gap-2 bg-white text-gray-900 px-8 py-3 rounded-full font-medium hover:bg-gray-100 transition-colors duration-300 shadow-lg hover:shadow-xl"
-          >
-            See More
-            <ChevronDown className="w-5 h-5" />
-          </button>
-        </div>
-      )}
+      {id !== "everyday-steals" &&
+        !image &&
+        !showAll &&
+        homepageCountries.length > (isMobile ? 5 : 9) && (
+          <div ref={seeMoreRef} className="text-center mt-12">
+            <button
+              onClick={() => setShowAll(true)}
+              className="inline-flex items-center gap-2 bg-white text-gray-900 px-8 py-3 rounded-full font-medium hover:bg-gray-100 transition-colors duration-300 shadow-lg hover:shadow-xl"
+            >
+              See More
+              <ChevronDown className="w-5 h-5" />
+            </button>
+          </div>
+        )}
 
       {/* Show Less Button - Only for Country view */}
-      {id !== "everyday-steals" && showAll && homepageCountries.length > (isMobile ? 5 : 9) && (
-        <div className="text-center mt-12">
-          <button
-            onClick={() => {
-              setShowAll(false);
-              setTimeout(() => {
-                seeMoreRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-              }, 0);
-            }}
-            className="inline-flex items-center gap-2 bg-gray-700 text-white px-8 py-3 rounded-full font-medium hover:bg-gray-600 transition-colors duration-300"
-          >
-            Show Less
-            <ChevronDown className="w-5 h-5 rotate-180" />
-          </button>
-        </div>
-      )}
+      {id !== "everyday-steals" &&
+        showAll &&
+        homepageCountries.length > (isMobile ? 5 : 9) && (
+          <div className="text-center mt-12">
+            <button
+              onClick={() => {
+                setShowAll(false);
+                setTimeout(() => {
+                  seeMoreRef.current?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "end",
+                  });
+                }, 0);
+              }}
+              className="inline-flex items-center gap-2 bg-gray-700 text-white px-8 py-3 rounded-full font-medium hover:bg-gray-600 transition-colors duration-300"
+            >
+              Show Less
+              <ChevronDown className="w-5 h-5 rotate-180" />
+            </button>
+          </div>
+        )}
 
       <div className="my-14 sm:mt-12 sm:mb-0 max-sm:w-full flex items-center justify-center flex-col gap-10">
-        <p className={`text-[18px] mt-3 ${image ? "text-white" : "text-white"} font-gilroy-bold text-center`}>
-          {id !== "everyday-steals" && urgentDescription ? urgentDescription : ""}
+        <p
+          className={`text-[18px] mt-3 ${
+            image ? "text-white" : "text-white"
+          } font-gilroy-bold text-center`}
+        >
+          {id !== "everyday-steals" && urgentDescription
+            ? urgentDescription
+            : ""}
         </p>
 
         <div className="mb-10 md:mb-20">
           <Link href={"/get-the-visa#required-documents"}>
             <button className="group flex items-center bg-[#6B4EFF] text-white gap-[12px] font-medium px-[24px] py-3 rounded-3xl cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb]">
-              <span className="mr-3 text-md md:text-2xl uppercase">Check Required Document</span>
+              <span className="mr-3 text-md md:text-2xl uppercase">
+                Check Required Document
+              </span>
               <span className="bg-white rounded-full p-1.5 transition-transform duration-300 group-hover:rotate-45 group-hover:translate-x-1 group-hover:-translate-y-0">
                 <ArrowUpRight className="w-5 h-5 text-[#6B4EFF]" />
               </span>
