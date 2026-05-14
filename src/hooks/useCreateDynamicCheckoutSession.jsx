@@ -29,6 +29,8 @@ const useCreateDynamicCheckoutSession = () => {
     quantity, // Number of gift cards purchased
     noOfGiftCards, // Alternative field name for quantity
     phone,
+    successUrl: successUrlOverride,
+    cancelUrl: cancelUrlOverride,
     ...options // Additional options
   }) => {
     setCreatingDynamicCheckout(true);
@@ -48,20 +50,30 @@ const useCreateDynamicCheckoutSession = () => {
 
     // Note: orderId may be provided via sessionStorage or generated below if needed
 
-    let successUrl = "/payment-success";
+    const toAbsoluteUrl = (url) => {
+      if (!url || typeof window === "undefined") return url;
+      return new URL(url, window.location.origin).toString();
+    };
+
+    let successUrl = successUrlOverride || "/payment-success";
 
     if (normalizedPaymentType === "application_creation") {
       if (applicationId) {
-        successUrl = `/application-step?application_id=${encodeURIComponent(
-          applicationId
-        )}`;
+        successUrl =
+          successUrlOverride ||
+          `/application-step?application_id=${encodeURIComponent(
+            applicationId
+          )}`;
       } else {
-        successUrl = "/payment-success";
+        successUrl = successUrlOverride || "/payment-success";
       }
     } else if (normalizedPaymentType === "gift_card") {
       // Gift card-only purchase - redirect to payment-success with payment_type parameter
-      successUrl = "/payment-success";
-      successUrl += `?payment_type=${encodeURIComponent(normalizedPaymentType)}`;
+      successUrl =
+        successUrlOverride ||
+        `/payment-success?payment_type=${encodeURIComponent(
+          normalizedPaymentType
+        )}`;
       
       // Store payment metadata in localStorage as backup
       const paymentMetadata = {
@@ -89,12 +101,13 @@ const useCreateDynamicCheckoutSession = () => {
       normalizedPaymentType === "full_payment" ||
       normalizedPaymentType === "additional_traveler"
     ) {
-      successUrl = "/payment-success-full";
-      successUrl += `?payment_type=${encodeURIComponent(
-        normalizedPaymentType
-      )}`;
-      successUrl += `&application_id=${encodeURIComponent(applicationId)}`;
-      successUrl += `&traveler_index=${encodeURIComponent(travelerIndex)}`;
+      successUrl =
+        successUrlOverride ||
+        `/payment-success-full?payment_type=${encodeURIComponent(
+          normalizedPaymentType
+        )}&application_id=${encodeURIComponent(
+          applicationId
+        )}&traveler_index=${encodeURIComponent(travelerIndex)}`;
 
 
 
@@ -145,18 +158,24 @@ const useCreateDynamicCheckoutSession = () => {
       currency
     );
 
-    const cancelUrl = applicationId 
-      ? `/application-step?application_id=${encodeURIComponent(applicationId)}`
-      : "/visa-checkout";
-
     const normalizedPm = String(paymentMethod || "")
       .trim()
       .toLowerCase();
 
+    const cancelUrl =
+      cancelUrlOverride ||
+      (normalizedPm === "klarna"
+        ? "/visa-checkout"
+        : applicationId
+        ? `/application-step?application_id=${encodeURIComponent(
+            applicationId
+          )}`
+        : "/visa-checkout");
+
     const payload = {
       email: String(email || ""),
-      successUrl,
-      cancelUrl,
+      successUrl: toAbsoluteUrl(successUrl),
+      cancelUrl: toAbsoluteUrl(cancelUrl),
       amount: normalizedAmount,
       travellers: normalizedTravellers,
       country: countryForSession,
