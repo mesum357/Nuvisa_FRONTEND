@@ -85,14 +85,12 @@ const StripeElementsCheckout = forwardRef(
             travelerIndex: travelerIndex || undefined,
             noOfInsurance: noOfInsurance || 0,
             insurancePaymentAmount: insurancePaymentAmount || 0,
-            successUrl: `${window.location.origin}/payment-success`,
+            successUrl: "/payment-success",
             cancelUrl: applicationId
-              ? `${
-                  window.location.origin
-                }/application-step/?application_id=${encodeURIComponent(
+              ? `/application-step/?application_id=${encodeURIComponent(
                   applicationId
                 )}`
-              : `${window.location.origin}/visa-checkout`,
+              : "/visa-checkout",
             // Include gift card quantity when paymentType includes "gift_card"
             ...(paymentType &&
             paymentType.includes("gift_card") &&
