@@ -52,7 +52,9 @@ const useCreateDynamicCheckoutSession = () => {
 
     const toReturnPath = (url) => {
       if (!url) return url;
-      const value = String(url).trim();
+      const value = String(url)
+        .trim()
+        .replace(/^(https?)\/\//i, "$1://");
       if (!/^https?:\/\//i.test(value)) return value;
 
       try {
