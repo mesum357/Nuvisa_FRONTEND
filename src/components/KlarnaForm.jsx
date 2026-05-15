@@ -187,10 +187,8 @@ const KlarnaForm = ({
       }
 
       if (redirectUrl) {
-        console.log(
-          "Klarna checkout URL received, redirecting...",
-          redirectUrl
-        );
+        console.log("[Klarna] Checkout URL received, redirecting to Stripe-hosted Klarna page:", redirectUrl);
+        console.log("[Klarna] successUrl (return_url) will be /payment-success, paymentType:", paymentType);
         try {
           sessionStorage.setItem(
             "nuvisa.pendingKlarnaCheckout",
