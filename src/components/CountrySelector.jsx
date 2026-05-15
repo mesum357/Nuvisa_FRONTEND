@@ -63,14 +63,14 @@ export default function CountrySelector() {
         event: "view_item",
         ecommerce: {
           currency: "GBP",
-          value: countryConfig.visaFee || 0,
+          value: Number((countryConfig.visaFee || 0).toFixed(2)),
           items: [
             {
               item_id: `visa_${countryName.toLowerCase().replace(/\s+/g, "_")}`,
               item_name: `Visa - ${countryName}`,
               item_category: "Schengen Visa",
               item_brand: "NUvisa",
-              price: countryConfig.visaFee || 0,
+              price: Number((countryConfig.visaFee || 0).toFixed(2)),
               quantity: 1,
             },
           ],

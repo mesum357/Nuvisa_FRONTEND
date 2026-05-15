@@ -325,14 +325,14 @@ const AppDownloadPopup = () => {
               event: "view_item",
               ecommerce: {
                 currency: "GBP",
-                value: numericPrice,
+                value: Number(numericPrice.toFixed(2)),
                 items: [
                   {
                     item_id: "popup_offer_package",
                     item_name: "New Customer Offer Package",
                     item_category: "Promotional Package",
                     item_brand: "NUvisa",
-                    price: numericPrice,
+                    price: Number(numericPrice.toFixed(2)),
                     quantity: 1,
                   },
                 ],

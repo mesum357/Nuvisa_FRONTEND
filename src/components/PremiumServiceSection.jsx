@@ -53,7 +53,7 @@ const PremiumServiceSection = ({ contactCardsData }) => {
         event: "view_item",
         ecommerce: {
           currency: "GBP",
-          value: currentFee,
+          value: Number(currentFee.toFixed(2)),
           items: [
             {
               item_id: `visa_${currentCountry
@@ -62,7 +62,7 @@ const PremiumServiceSection = ({ contactCardsData }) => {
               item_name: `Visa - ${currentCountry}`,
               item_category: "Schengen Visa",
               item_brand: "NUvisa",
-              price: currentFee,
+              price: Number(currentFee.toFixed(2)),
               quantity: 1,
             },
           ],

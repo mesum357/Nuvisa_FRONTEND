@@ -1228,7 +1228,7 @@ const VisaCheckout = () => {
           checkoutItems.push({
             item_id: "schengen_visa",
             item_name: "Schengen visa from the UK",
-            price: finalVisaFees / travelers,
+            price: Number((finalVisaFees / travelers).toFixed(2)),
             quantity: travelers,
           });
         }
@@ -1236,7 +1236,7 @@ const VisaCheckout = () => {
           checkoutItems.push({
             item_id: "insurance_certificate",
             item_name: "Insurance Certificate",
-            price: discountedInsuranceFeesGBP / insuranceCount,
+            price: Number((discountedInsuranceFeesGBP / insuranceCount).toFixed(2)),
             quantity: insuranceCount,
           });
         }
@@ -1244,7 +1244,7 @@ const VisaCheckout = () => {
           checkoutItems.push({
             item_id: "digital_gift_card",
             item_name: "NUvisa Digital Gift Card",
-            price: giftCardFees / giftCardCount,
+            price: Number((giftCardFees / giftCardCount).toFixed(2)),
             quantity: giftCardCount,
           });
         }
@@ -1254,7 +1254,7 @@ const VisaCheckout = () => {
           event: "begin_checkout",
           ecommerce: {
             currency: "GBP",
-            value: total,
+            value: Number((total).toFixed(2)),
             coupon: appliedDiscount?.code || couponCode || undefined,
             items: checkoutItems,
           },
@@ -1628,32 +1628,43 @@ const VisaCheckout = () => {
                                   paymentItems.push({
                                     item_id: "schengen_visa",
                                     item_name: "Schengen visa from the UK",
-                                    price: finalVisaFees / travelers,
+                                      price: Number((finalVisaFees / travelers).toFixed(2)),
                                     quantity: travelers,
                                   });
                                 if (includeInsurance && insuranceCount > 0)
                                   paymentItems.push({
                                     item_id: "insurance_certificate",
                                     item_name: "Insurance Certificate",
-                                    price:
-                                      discountedInsuranceFeesGBP /
-                                      insuranceCount,
+                                      price: Number((discountedInsuranceFeesGBP / insuranceCount).toFixed(2)),
                                     quantity: insuranceCount,
                                   });
                                 if (includeGiftCard && giftCardCount > 0)
                                   paymentItems.push({
                                     item_id: "digital_gift_card",
                                     item_name: "NUvisa Digital Gift Card",
-                                    price: giftCardFees / giftCardCount,
+                                      price: Number((giftCardFees / giftCardCount).toFixed(2)),
                                     quantity: giftCardCount,
                                   });
 
                                 window.dataLayer.push({ ecommerce: null });
                                 window.dataLayer.push({
+                                  event: "begin_checkout",
+                                  ecommerce: {
+                                    currency: "GBP",
+                                      value: Number((totalAmount).toFixed(2)),
+                                    coupon:
+                                      appliedDiscount?.code ||
+                                      couponCode ||
+                                      undefined,
+                                    items: paymentItems,
+                                  },
+                                });
+                                window.dataLayer.push({ ecommerce: null });
+                                window.dataLayer.push({
                                   event: "add_payment_info",
                                   ecommerce: {
                                     currency: "GBP",
-                                    value: totalAmount,
+                                      value: Number((totalAmount).toFixed(2)),
                                     payment_type: "Apple Pay",
                                     coupon:
                                       appliedDiscount?.code ||
@@ -1732,32 +1743,43 @@ const VisaCheckout = () => {
                                   paymentItems.push({
                                     item_id: "schengen_visa",
                                     item_name: "Schengen visa from the UK",
-                                    price: finalVisaFees / travelers,
+                                      price: Number((finalVisaFees / travelers).toFixed(2)),
                                     quantity: travelers,
                                   });
                                 if (includeInsurance && insuranceCount > 0)
                                   paymentItems.push({
                                     item_id: "insurance_certificate",
                                     item_name: "Insurance Certificate",
-                                    price:
-                                      discountedInsuranceFeesGBP /
-                                      insuranceCount,
+                                      price: Number((discountedInsuranceFeesGBP / insuranceCount).toFixed(2)),
                                     quantity: insuranceCount,
                                   });
                                 if (includeGiftCard && giftCardCount > 0)
                                   paymentItems.push({
                                     item_id: "digital_gift_card",
                                     item_name: "NUvisa Digital Gift Card",
-                                    price: giftCardFees / giftCardCount,
+                                      price: Number((giftCardFees / giftCardCount).toFixed(2)),
                                     quantity: giftCardCount,
                                   });
 
                                 window.dataLayer.push({ ecommerce: null });
                                 window.dataLayer.push({
+                                  event: "begin_checkout",
+                                  ecommerce: {
+                                    currency: "GBP",
+                                      value: Number((totalAmount).toFixed(2)),
+                                    coupon:
+                                      appliedDiscount?.code ||
+                                      couponCode ||
+                                      undefined,
+                                    items: paymentItems,
+                                  },
+                                });
+                                window.dataLayer.push({ ecommerce: null });
+                                window.dataLayer.push({
                                   event: "add_payment_info",
                                   ecommerce: {
                                     currency: "GBP",
-                                    value: totalAmount,
+                                      value: Number((totalAmount).toFixed(2)),
                                     payment_type: "Google Pay",
                                     coupon:
                                       appliedDiscount?.code ||
@@ -2167,6 +2189,49 @@ const VisaCheckout = () => {
                         onSubmittingChange={setIsKlarnaSubmitting}
                         onSuccess={(data) => {
                           console.log("Klarna form submitted:", data);
+                          if (
+                            typeof window !== "undefined" &&
+                            window.dataLayer
+                          ) {
+                            const paymentItems = [];
+                            if (travelers > 0)
+                              paymentItems.push({
+                                item_id: "schengen_visa",
+                                item_name: "Schengen visa from the UK",
+                                price: Number((finalVisaFees / travelers).toFixed(2)),
+                                quantity: travelers,
+                              });
+                            if (includeInsurance && insuranceCount > 0)
+                              paymentItems.push({
+                                item_id: "insurance_certificate",
+                                item_name: "Insurance Certificate",
+                                price: Number((discountedInsuranceFeesGBP / insuranceCount).toFixed(2)),
+                                quantity: insuranceCount,
+                              });
+                            if (includeGiftCard && giftCardCount > 0)
+                              paymentItems.push({
+                                item_id: "digital_gift_card",
+                                item_name: "NUvisa Digital Gift Card",
+                                price: Number((giftCardFees / giftCardCount).toFixed(2)),
+                                quantity: giftCardCount,
+                              });
+
+                            window.dataLayer.push({ ecommerce: null });
+                            window.dataLayer.push({
+                              event: "purchase",
+                              ecommerce: {
+                                transaction_id:
+                                  data?.order_id || `klarna_${Date.now()}`,
+                                currency: "GBP",
+                                value: Number((total).toFixed(2)),
+                                coupon:
+                                  appliedDiscount?.code ||
+                                  couponCode ||
+                                  undefined,
+                                items: paymentItems,
+                              },
+                            });
+                          }
                         }}
                         onError={(error) => {
                           console.error("Klarna form error:", error);
@@ -2304,21 +2369,21 @@ const VisaCheckout = () => {
                         paymentItems.push({
                           item_id: "schengen_visa",
                           item_name: "Schengen visa from the UK",
-                          price: finalVisaFees / travelers,
+                          price: Number((finalVisaFees / travelers).toFixed(2)),
                           quantity: travelers,
                         });
                       if (includeInsurance && insuranceCount > 0)
                         paymentItems.push({
                           item_id: "insurance_certificate",
                           item_name: "Insurance Certificate",
-                          price: discountedInsuranceFeesGBP / insuranceCount,
+                          price: Number((discountedInsuranceFeesGBP / insuranceCount).toFixed(2)),
                           quantity: insuranceCount,
                         });
                       if (includeGiftCard && giftCardCount > 0)
                         paymentItems.push({
                           item_id: "digital_gift_card",
                           item_name: "NUvisa Digital Gift Card",
-                          price: giftCardFees / giftCardCount,
+                          price: Number((giftCardFees / giftCardCount).toFixed(2)),
                           quantity: giftCardCount,
                         });
 
@@ -2335,7 +2400,7 @@ const VisaCheckout = () => {
                         event: "add_payment_info",
                         ecommerce: {
                           currency: "GBP",
-                          value: total,
+                          value: Number((total).toFixed(2)),
                           payment_type: ga4PaymentType,
                           coupon:
                             appliedDiscount?.code || couponCode || undefined,
@@ -2386,21 +2451,21 @@ const VisaCheckout = () => {
                         paymentItems.push({
                           item_id: "schengen_visa",
                           item_name: "Schengen visa from the UK",
-                          price: finalVisaFees / travelers,
+                          price: Number((finalVisaFees / travelers).toFixed(2)),
                           quantity: travelers,
                         });
                       if (includeInsurance && insuranceCount > 0)
                         paymentItems.push({
                           item_id: "insurance_certificate",
                           item_name: "Insurance Certificate",
-                          price: discountedInsuranceFeesGBP / insuranceCount,
+                          price: Number((discountedInsuranceFeesGBP / insuranceCount).toFixed(2)),
                           quantity: insuranceCount,
                         });
                       if (includeGiftCard && giftCardCount > 0)
                         paymentItems.push({
                           item_id: "digital_gift_card",
                           item_name: "NUvisa Digital Gift Card",
-                          price: giftCardFees / giftCardCount,
+                          price: Number((giftCardFees / giftCardCount).toFixed(2)),
                           quantity: giftCardCount,
                         });
 
@@ -2409,7 +2474,7 @@ const VisaCheckout = () => {
                         event: "add_payment_info",
                         ecommerce: {
                           currency: "GBP",
-                          value: total,
+                          value: Number((total).toFixed(2)),
                           payment_type: "Klarna",
                           coupon:
                             appliedDiscount?.code || couponCode || undefined,
@@ -2436,21 +2501,21 @@ const VisaCheckout = () => {
                         paymentItems.push({
                           item_id: "schengen_visa",
                           item_name: "Schengen visa from the UK",
-                          price: finalVisaFees / travelers,
+                          price: Number((finalVisaFees / travelers).toFixed(2)),
                           quantity: travelers,
                         });
                       if (includeInsurance && insuranceCount > 0)
                         paymentItems.push({
                           item_id: "insurance_certificate",
                           item_name: "Insurance Certificate",
-                          price: discountedInsuranceFeesGBP / insuranceCount,
+                          price: Number((discountedInsuranceFeesGBP / insuranceCount).toFixed(2)),
                           quantity: insuranceCount,
                         });
                       if (includeGiftCard && giftCardCount > 0)
                         paymentItems.push({
                           item_id: "digital_gift_card",
                           item_name: "NUvisa Digital Gift Card",
-                          price: giftCardFees / giftCardCount,
+                          price: Number((giftCardFees / giftCardCount).toFixed(2)),
                           quantity: giftCardCount,
                         });
 
@@ -2459,7 +2524,7 @@ const VisaCheckout = () => {
                         event: "add_payment_info",
                         ecommerce: {
                           currency: "GBP",
-                          value: total,
+                          value: Number((total).toFixed(2)),
                           payment_type:
                             selectedPaymentMethod === "apple"
                               ? "Apple Pay"
