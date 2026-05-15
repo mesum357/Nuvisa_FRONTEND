@@ -253,12 +253,6 @@ const PaymentSuccess = () => {
           paymentMetadata: currentData.paymentMetadata,
         };
    
-        if (!mergedData.email || !mergedData.selectedCountry) {
-          console.error("[PaymentSuccess] Insufficient data, redirecting to checkout");
-          router.replace("/visa-checkout?reason=data_missing");
-          return;
-        }
-   
         const paymentInfo = {
           sessionId,
           email: mergedData.email,
