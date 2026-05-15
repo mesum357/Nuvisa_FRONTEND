@@ -2181,6 +2181,8 @@ const VisaCheckout = () => {
                         }
                         applicationId={undefined}
                         travelerIndex={undefined}
+                        paymentWithoutInsurance={visaFeesGBP}
+                        paymentWithDiscount={total - discountedInsuranceFeesGBP}
                         onCreateCheckoutSession={
                           handleCreateDynamicCheckoutSession
                         }
