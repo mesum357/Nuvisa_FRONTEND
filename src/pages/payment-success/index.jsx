@@ -20,6 +20,7 @@ import {
   isStripeRedirectReturn,
   resolveKlarnaRedirectSuccess,
 } from "@/utils/stripeRedirectPayment";
+import { resolveVisaCountryName } from "@/utils/visaCountry";
 import Cookies from "js-cookie";
 
 const PaymentSuccess = () => {
@@ -267,10 +268,16 @@ const PaymentSuccess = () => {
           }
         }
    
+        const resolvedCountry = resolveVisaCountryName(
+          sessionMetadata.country ||
+            currentData.selectedCountry ||
+            currentData.paymentMetadata?.country
+        );
+
         const mergedData = {
           ...currentData,
           email: sessionMetadata.email || currentData.email,
-          selectedCountry: sessionMetadata.country || currentData.selectedCountry || currentData.paymentMetadata?.country,
+          selectedCountry: resolvedCountry,
           travelers: sessionMetadata.travellers ?? currentData.travelers,
           totalAmount: sessionMetadata.amount || currentData.totalAmount,
           insurancePayment:

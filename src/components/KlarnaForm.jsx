@@ -107,25 +107,28 @@ const KlarnaForm = ({
       // Determine currency based on country for Klarna
       // Klarna is only available for certain countries/currencies
       // Not available for US (USD), Canada (CAD), Australia (AUD)
-      const countryCode = formData.country || country || "GB";
+      // Billing country (Klarna) vs visa destination (Schengen country from checkout)
+      const billingCountryCode = formData.country || "GB";
+      const visaDestination = String(country || "").trim();
+
       let currency = "GBP"; // Default to GBP for UK
 
       // Klarna supported countries and their currencies
-      if (countryCode === "GB") {
+      if (billingCountryCode === "GB") {
         currency = "GBP";
       } else if (
         ["DE", "FR", "IT", "ES", "NL", "BE", "AT", "FI", "IE", "PT"].includes(
-          countryCode
+          billingCountryCode
         )
       ) {
         currency = "EUR";
-      } else if (countryCode === "SE") {
+      } else if (billingCountryCode === "SE") {
         currency = "SEK";
-      } else if (countryCode === "NO") {
+      } else if (billingCountryCode === "NO") {
         currency = "NOK";
-      } else if (countryCode === "DK") {
+      } else if (billingCountryCode === "DK") {
         currency = "DKK";
-      } else if (countryCode === "PL") {
+      } else if (billingCountryCode === "PL") {
         currency = "PLN";
       } else {
         // For unsupported countries (US, CA, AU, etc.), Klarna won't work
@@ -133,7 +136,7 @@ const KlarnaForm = ({
         if (onError) {
           onError(
             new Error(
-              `Klarna is not available for ${countryCode}. Please select a supported country (GB, DE, FR, IT, ES, NL, SE, NO, DK, PL, etc.) or use a different payment method.`
+              `Klarna is not available for ${billingCountryCode}. Please select a supported country (GB, DE, FR, IT, ES, NL, SE, NO, DK, PL, etc.) or use a different payment method.`
             )
           );
         }
@@ -148,7 +151,7 @@ const KlarnaForm = ({
         email,
         amount,
         travellers: travelers,
-        country: countryCode,
+        country: visaDestination,
         insurance,
         paymentType,
         applicationId,
@@ -165,7 +168,8 @@ const KlarnaForm = ({
         email,
         amount,
         travellers: travelers,
-        country: countryCode, // Use the country from form
+        country: visaDestination,
+        billingCountry: billingCountryCode,
         insurance: insurance,
         visaTypeId: visaTypeId,
         paymentType: paymentType,
@@ -190,7 +194,7 @@ const KlarnaForm = ({
           address: formData.address,
           city: formData.city,
           postalCode: formData.postalCode,
-          country: countryCode, // Ensure country code is used
+          country: billingCountryCode,
         },
         noOfInsurance: insuranceCount,
         insurancePaymentAmount: insurancePaymentAmount,
@@ -227,7 +231,7 @@ const KlarnaForm = ({
             email,
             amount,
             travellers: travelers,
-            country: countryCode,
+            country: visaDestination,
             insurance,
             paymentType,
             applicationId,
