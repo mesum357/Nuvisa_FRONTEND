@@ -74,6 +74,13 @@ const MultiStepAccordion = () => {
 
   useEffect(() => {
     try {
+      const klarnaSucceeded =
+        sessionStorage.getItem("nuvisa.klarnaPaymentSucceeded") === "1";
+      if (klarnaSucceeded) {
+        sessionStorage.removeItem("nuvisa.pendingKlarnaCheckout");
+        return;
+      }
+
       const raw = sessionStorage.getItem("nuvisa.pendingKlarnaCheckout");
       if (!raw) return;
 
@@ -82,6 +89,10 @@ const MultiStepAccordion = () => {
       const isFresh = startedAt && Date.now() - startedAt < 30 * 60 * 1000;
 
       if (isFresh) {
+        console.log(
+          "[application-step] Abandoned Klarna checkout — redirecting to",
+          pending?.cancelUrl || "/visa-checkout"
+        );
         sessionStorage.removeItem("nuvisa.pendingKlarnaCheckout");
         router.replace(pending?.cancelUrl || "/visa-checkout");
       } else {
