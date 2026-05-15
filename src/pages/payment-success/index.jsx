@@ -17,6 +17,7 @@ import { localStorageEnums } from "@/enums/localstorage.enums";
 import { localStorageGateway } from "@/gateways/localStoragegateway";
 import { decrementExpertSpotsOnSuccessfulCheckout } from "@/utils/expertSpots";
 import {
+  isExplicitKlarnaRedirectFailure,
   isStripeRedirectReturn,
   resolveKlarnaRedirectSuccess,
 } from "@/utils/stripeRedirectPayment";
@@ -30,7 +31,24 @@ const PaymentSuccess = () => {
   const { getCurrentPaymentData, addPaymentToHistory } = usePaymentData();
   const [isCreatingApplication, setIsCreatingApplication] = useState(false);
   const [paymentType, setPaymentType] = useState("application_creation");
+  /** verifying_payment | creating_application | redirecting_checkout */
+  const [pagePhase, setPagePhase] = useState(() => {
+    if (typeof window === "undefined") return "loading";
+    const params = new URLSearchParams(window.location.search);
+    return params.get("payment_intent") || params.get("redirect_status")
+      ? "verifying_payment"
+      : "creating_application";
+  });
   const hasProcessedPayment = useRef(false);
+
+  const redirectToCheckout = () => {
+    setPagePhase("redirecting_checkout");
+    if (typeof window !== "undefined") {
+      window.location.replace("/visa-checkout");
+      return;
+    }
+    router.replace("/visa-checkout");
+  };
 
   const persistAuthFromResponse = async (response) => {
     const results =
@@ -105,6 +123,23 @@ const PaymentSuccess = () => {
         return;
       }
 
+      if (isKlarnaRedirect) {
+        setPagePhase("verifying_payment");
+      }
+
+      if (isKlarnaRedirect && isExplicitKlarnaRedirectFailure(redirectStatus)) {
+        hasProcessedPayment.current = true;
+        try {
+          sessionStorage.removeItem("nuvisa.pendingKlarnaCheckout");
+          sessionStorage.removeItem("nuvisa.klarnaPaymentSucceeded");
+        } catch {}
+        console.log(
+          "[PaymentSuccess] Klarna payment not completed (redirect_status) — checkout"
+        );
+        redirectToCheckout();
+        return;
+      }
+
       hasProcessedPayment.current = true;
 
       try {
@@ -115,6 +150,8 @@ const PaymentSuccess = () => {
             redirectStatus,
             paymentIntentId: paymentIntentParam,
             paymentIntentClientSecret,
+            maxPollAttempts: 5,
+            pollIntervalMs: 800,
           });
 
           console.log("[PaymentSuccess] Klarna redirect outcome:", klarnaOutcome);
@@ -128,7 +165,7 @@ const PaymentSuccess = () => {
               "[PaymentSuccess] Klarna verification failed — redirecting to /visa-checkout",
               klarnaOutcome
             );
-            router.replace("/visa-checkout");
+            redirectToCheckout();
             return;
           }
 
@@ -313,6 +350,7 @@ const PaymentSuccess = () => {
           dispatch(setTravelers(Number(mergedData.travelers)));
         }
    
+        setPagePhase("creating_application");
         setIsCreatingApplication(true);
    
         const numberOfTravelers = Number(mergedData.travelers) || 1;
@@ -656,7 +694,13 @@ const PaymentSuccess = () => {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#7350FF] mx-auto mb-4"></div>
-        <p className="text-gray-600">Creating your visa application..</p>
+        <p className="text-gray-600">
+          {pagePhase === "creating_application"
+            ? "Creating your visa application.."
+            : pagePhase === "redirecting_checkout"
+              ? "Returning to checkout..."
+              : "Confirming your payment..."}
+        </p>
       </div>
     </div>
   );
