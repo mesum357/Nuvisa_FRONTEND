@@ -36,6 +36,7 @@ const useCreateDynamicCheckoutSession = () => {
     quantity, // Number of gift cards purchased
     noOfGiftCards, // Alternative field name for quantity
     phone,
+    billingCountry,
     successUrl: successUrlOverride,
     cancelUrl: cancelUrlOverride,
     ...options // Additional options
@@ -181,9 +182,12 @@ const useCreateDynamicCheckoutSession = () => {
         ? undefined
         : String(travelerIndex);
 
-    const countryForSession = countryForStripeSession(normalizedCountry);
+    const visaCountryName = String(normalizedCountry || "").trim();
+    const billingIso = billingCountry
+      ? countryForStripeSession(billingCountry)
+      : countryForStripeSession(visaCountryName);
     const currencyForSession = currencyForStripeSession(
-      normalizedCountry,
+      billingCountry || normalizedCountry,
       currency
     );
 
@@ -206,7 +210,10 @@ const useCreateDynamicCheckoutSession = () => {
       ...(useAbsoluteKlarnaUrls ? { checkoutOrigin } : {}),
       amount: normalizedAmount,
       travellers: normalizedTravellers,
-      country: countryForSession,
+      country: visaCountryName,
+      ...(normalizedPm === "klarna" && billingIso
+        ? { billingCountry: billingIso }
+        : {}),
       insurance: normalizedInsurance,
       applicationId: normalizedApplicationId,
       travelerIndex: normalizedTravelerIndex,

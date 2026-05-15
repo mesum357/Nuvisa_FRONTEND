@@ -31,6 +31,10 @@ import { useToast } from "@/contexts/ToastContext";
 import BookingAppointment from "@/components/BookingAppointment";
 import useCreateDynamicCheckoutSession from "@/hooks/useCreateDynamicCheckoutSession";
 import { countryCodeMap } from "@/utils/countryCodeMap";
+import {
+  getFlagCodeForVisaCountry,
+  resolveVisaCountryName,
+} from "@/utils/visaCountry";
 import { useRouter } from "next/router";
 import { XIcon } from "lucide-react";
 import { useSendStudentVerification } from "@/hooks/useSendStudentVerification";
@@ -2125,9 +2129,8 @@ const MultiStepAccordion = () => {
           <div className="flex items-center gap-4">
             <ClientOnly>
               <img
-                src={`https://flagcdn.com/w80/${countryCodeMap[parentVisaApplication?.country]
-                  }.png`}
-                alt="United Kingdom Flag"
+                src={`https://flagcdn.com/w80/${getFlagCodeForVisaCountry(parentVisaApplication?.country) || "gb"}.png`}
+                alt={`${resolveVisaCountryName(parentVisaApplication?.country) || "Visa"} flag`}
                 width={40}
                 height={30}
                 className="rounded-md border border-gray-200 w-[50px] h-[42px]"
@@ -2135,10 +2138,10 @@ const MultiStepAccordion = () => {
             </ClientOnly>
             <div>
               <h2 className="text-2xl font-gilroy-bold text-white">
-                <ClientOnly fallback="United Kingdom Visa Application">
-                  {parentVisaApplication?.country
-                    ? `${parentVisaApplication?.country} Visa Application`
-                    : "United Kingdom Visa Application"}
+                <ClientOnly fallback="Visa Application">
+                  {resolveVisaCountryName(parentVisaApplication?.country)
+                    ? `${resolveVisaCountryName(parentVisaApplication?.country)} Visa Application`
+                    : "Visa Application"}
                 </ClientOnly>
               </h2>
               {/* <p className="text-gray-300">Short-Term Tourist Visa</p> */}
