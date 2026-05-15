@@ -89,7 +89,7 @@ const CountryCardsSection = ({
           event: "view_item",
           ecommerce: {
             currency: "GBP",
-            value: finalVisaFee, // Track the actual dynamic price
+            value: Number(finalVisaFee.toFixed(2)), // Track the actual dynamic price
             items: [
               {
                 item_id: `visa_${countryName
@@ -98,7 +98,7 @@ const CountryCardsSection = ({
                 item_name: `Visa - ${countryName}`,
                 item_category: "Schengen Visa",
                 item_brand: "NUvisa",
-                price: finalVisaFee, // Track the actual dynamic price
+                price: Number(finalVisaFee.toFixed(2)), // Track the actual dynamic price
                 quantity: 1,
               },
             ],

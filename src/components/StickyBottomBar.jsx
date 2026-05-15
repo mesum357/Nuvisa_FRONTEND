@@ -613,7 +613,9 @@ const StickyBottomBar = ({ triggerElementId }) => {
         cartItems.push({
           item_id: "schengen_visa",
           item_name: "Schengen visa from the UK",
-          price: discountedPrices.visa / quantities.schengen,
+          price: Number(
+            (discountedPrices.visa / quantities.schengen).toFixed(2)
+          ),
           quantity: quantities.schengen,
         });
       }
@@ -621,7 +623,9 @@ const StickyBottomBar = ({ triggerElementId }) => {
         cartItems.push({
           item_id: "insurance_certificate",
           item_name: "Insurance Certificate",
-          price: discountedPrices.insurance / quantities.insurance,
+          price: Number(
+            (discountedPrices.insurance / quantities.insurance).toFixed(2)
+          ),
           quantity: quantities.insurance,
         });
       }
@@ -629,7 +633,9 @@ const StickyBottomBar = ({ triggerElementId }) => {
         cartItems.push({
           item_id: "digital_gift_card",
           item_name: "NUvisa Digital Gift Card",
-          price: discountedPrices.giftCard / quantities.giftCard,
+          price: Number(
+            (discountedPrices.giftCard / quantities.giftCard).toFixed(2)
+          ),
           quantity: quantities.giftCard,
         });
       }
@@ -639,7 +645,8 @@ const StickyBottomBar = ({ triggerElementId }) => {
         event: "view_item", // CHANGED HERE to act as the "View Country" step
         ecommerce: {
           currency: "GBP",
-          value: Math.round(discountedPrices.total),
+          // 👇 ADDED Number() and .toFixed(2) below:
+          value: Number(Math.round(discountedPrices.total).toFixed(2)),
           items: cartItems,
         },
       });
