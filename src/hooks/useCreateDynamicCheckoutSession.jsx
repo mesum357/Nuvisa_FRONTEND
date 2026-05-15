@@ -3,6 +3,7 @@ import {
   countryForStripeSession,
   currencyForStripeSession,
 } from "@/utils/stripeHostedCheckoutUk";
+import { buildCheckoutReturnUrl } from "@/utils/checkoutOrigin";
 import { localStorageEnums } from "@/enums/localstorage.enums";
 import { localStorageGateway } from "@/gateways/localStoragegateway";
 import { useAppDispatch } from "@/store";
@@ -77,8 +78,14 @@ const useCreateDynamicCheckoutSession = () => {
 
     let successUrl = successUrlOverride || "/payment-success";
 
+    const checkoutOrigin =
+      typeof window !== "undefined"
+        ? window.location.origin.replace(/\/+$/, "")
+        : "";
+
     if (normalizedPm === "klarna") {
-      successUrl = successUrlOverride || "/payment-success";
+      successUrl =
+        successUrlOverride || buildCheckoutReturnUrl("/payment-success");
     } else if (normalizedPaymentType === "application_creation") {
       if (applicationId) {
         successUrl =
@@ -183,17 +190,20 @@ const useCreateDynamicCheckoutSession = () => {
     const cancelUrl =
       cancelUrlOverride ||
       (normalizedPm === "klarna"
-        ? "/visa-checkout"
+        ? buildCheckoutReturnUrl("/visa-checkout")
         : applicationId
         ? `/application-step?application_id=${encodeURIComponent(
             applicationId
           )}`
         : "/visa-checkout");
 
+    const useAbsoluteKlarnaUrls = normalizedPm === "klarna" && checkoutOrigin;
+
     const payload = {
       email: String(email || ""),
-      successUrl: toReturnPath(successUrl),
-      cancelUrl: toReturnPath(cancelUrl),
+      successUrl: useAbsoluteKlarnaUrls ? successUrl : toReturnPath(successUrl),
+      cancelUrl: useAbsoluteKlarnaUrls ? cancelUrl : toReturnPath(cancelUrl),
+      ...(useAbsoluteKlarnaUrls ? { checkoutOrigin } : {}),
       amount: normalizedAmount,
       travellers: normalizedTravellers,
       country: countryForSession,
@@ -224,6 +234,22 @@ const useCreateDynamicCheckoutSession = () => {
           : {}),
       // Additional metadata (like Klarna form data)
       ...(klarnaFormData ? { klarnaFormData: klarnaFormData } : {}),
+      ...(normalizedPm === "klarna" && klarnaFormData
+        ? {
+            billingName:
+              klarnaFormData.firstName && klarnaFormData.lastName
+                ? `${klarnaFormData.firstName} ${klarnaFormData.lastName}`.trim()
+                : undefined,
+            name:
+              klarnaFormData.firstName && klarnaFormData.lastName
+                ? `${klarnaFormData.firstName} ${klarnaFormData.lastName}`.trim()
+                : undefined,
+            phone: klarnaFormData.phone,
+            address: klarnaFormData.address,
+            city: klarnaFormData.city,
+            postalCode: klarnaFormData.postalCode,
+          }
+        : {}),
       // Insurance-related fields
       noOfInsurance: noOfInsurance || undefined,
       insurancePaymentAmount: insurancePaymentAmount || undefined,

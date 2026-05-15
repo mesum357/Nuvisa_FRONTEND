@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/router";
 import { useAppDispatch, useAppSelector } from "@/store";
-import { useSearchParams } from "next/navigation";
+import { readPaymentReturnQuery } from "@/utils/paymentReturnQuery";
 import {
   setSelectedCountry,
   setInsuranceFees,
@@ -16,12 +16,15 @@ import { createOrUpdateApplication } from "@/api/visaApplications";
 import { localStorageEnums } from "@/enums/localstorage.enums";
 import { localStorageGateway } from "@/gateways/localStoragegateway";
 import { decrementExpertSpotsOnSuccessfulCheckout } from "@/utils/expertSpots";
+import {
+  isStripeRedirectReturn,
+  resolveKlarnaRedirectSuccess,
+} from "@/utils/stripeRedirectPayment";
 import Cookies from "js-cookie";
 
 const PaymentSuccess = () => {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const searchParams = useSearchParams();
   const visaState = useAppSelector((state) => state.visa);
   const { getCurrentPaymentData, addPaymentToHistory } = usePaymentData();
   const [isCreatingApplication, setIsCreatingApplication] = useState(false);
@@ -56,55 +59,83 @@ const PaymentSuccess = () => {
       }
     }
   };
-  console.log(searchParams)
   useEffect(() => {
-    if (!searchParams) return;
-   
+    if (!router.isReady) {
+      console.log("[PaymentSuccess] waiting for router.isReady");
+      return;
+    }
+
     const storePaymentDataAndRedirect = async () => {
-      try {
-        sessionStorage.removeItem("nuvisa.pendingKlarnaCheckout");
-      } catch {}
-   
       if (hasProcessedPayment.current) {
         return;
       }
-   
+
+      const returnQuery = readPaymentReturnQuery(router);
+      const {
+        sessionId,
+        redirectStatus,
+        paymentIntentId: paymentIntentParam,
+        paymentIntentClientSecret,
+        paymentType: paymentTypeFromUrl,
+        applicationId: applicationIdFromUrl,
+        travelerIndex: travelerIndexFromUrl,
+      } = returnQuery;
+
+      const isKlarnaRedirect = isStripeRedirectReturn({
+        redirectStatus,
+        paymentIntentId: paymentIntentParam,
+      });
+
+      console.log("[PaymentSuccess] URL params:", {
+        asPath: router.asPath,
+        sessionId,
+        redirectStatus,
+        paymentIntentParam,
+        isKlarnaRedirect,
+      });
+
+      if (
+        isKlarnaRedirect &&
+        !paymentIntentParam &&
+        !redirectStatus &&
+        !paymentIntentClientSecret
+      ) {
+        console.log("[PaymentSuccess] Klarna return but query not ready yet");
+        return;
+      }
+
       hasProcessedPayment.current = true;
-   
+
       try {
         const currentData = await getCurrentPaymentData();
-   
-        const sessionId = searchParams.get("session_id") || null;
-        const redirectStatus = searchParams.get("redirect_status") || null;
-        const paymentIntentParam = searchParams.get("payment_intent") || null;
-        const paymentIntentClientSecret = searchParams.get("payment_intent_client_secret") || null;
-   
-        const isKlarnaRedirect = !!(redirectStatus || paymentIntentParam);
-   
-        console.log("[PaymentSuccess] URL params:", {
-          sessionId,
-          redirectStatus,
-          paymentIntentParam,
-          isKlarnaRedirect,
-        }); 
-   
-        if (isKlarnaRedirect) {
-          if (redirectStatus !== "succeeded") {
-            console.log("[PaymentSuccess] Klarna failed/canceled:", redirectStatus);
-            router.replace("/visa-checkout");
-            console.log("redirecting /visa-checkout")
-            return;
-          }
-          console.log("[PaymentSuccess] Klarna succeeded, continuing...");
-        }
 
-        if(!isKlarnaRedirect){
-          if (redirectStatus !== "succeeded"){
-            console.log("Klarna failed/canceled:", redirectStatus);
+        if (isKlarnaRedirect) {
+          const klarnaOutcome = await resolveKlarnaRedirectSuccess({
+            redirectStatus,
+            paymentIntentId: paymentIntentParam,
+            paymentIntentClientSecret,
+          });
+
+          console.log("[PaymentSuccess] Klarna redirect outcome:", klarnaOutcome);
+
+          if (!klarnaOutcome.succeeded) {
+            try {
+              sessionStorage.removeItem("nuvisa.pendingKlarnaCheckout");
+              sessionStorage.removeItem("nuvisa.klarnaPaymentSucceeded");
+            } catch {}
+            console.error(
+              "[PaymentSuccess] Klarna verification failed — redirecting to /visa-checkout",
+              klarnaOutcome
+            );
             router.replace("/visa-checkout");
-            console.log("redirecting /visa-checkout")
             return;
           }
+
+          try {
+            sessionStorage.removeItem("nuvisa.pendingKlarnaCheckout");
+            sessionStorage.setItem("nuvisa.klarnaPaymentSucceeded", "1");
+          } catch {}
+          console.log("[PaymentSuccess] Klarna succeeded — continuing application flow");
         }
    
         if (
@@ -118,9 +149,9 @@ const PaymentSuccess = () => {
    
         const klarnaPaymentIntentId = paymentIntentParam || null;
    
-        let paymentTypeParam = searchParams.get("payment_type") || null;
-        let applicationId = searchParams.get("application_id") || null;
-        let travelerIndex = searchParams.get("traveler_index") || null;
+        let paymentTypeParam = paymentTypeFromUrl || null;
+        let applicationId = applicationIdFromUrl || null;
+        let travelerIndex = travelerIndexFromUrl || null;
    
         let usedStoredInsuranceMetadata = null;
         if (!paymentTypeParam || !applicationId) {
@@ -536,6 +567,9 @@ const PaymentSuccess = () => {
           }
    
           setTimeout(() => {
+            try {
+              sessionStorage.setItem("nuvisa.klarnaPaymentSucceeded", "1");
+            } catch {}
             router.replace(
               "/application-step/?application_id=" +
                 applicationResponse?.data?.data?.results?.application?.id
@@ -555,7 +589,7 @@ const PaymentSuccess = () => {
     };
    
     storePaymentDataAndRedirect();
-  }, [searchParams]); // Empty dependency array to run only once
+  }, [router.isReady, router.asPath]);
 
   // Show gift card purchase confirmation
   if (paymentType === "gift_card") {

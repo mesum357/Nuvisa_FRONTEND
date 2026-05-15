@@ -26,6 +26,8 @@
 
 import React, { useState } from "react";
 import { SiKlarna } from "react-icons/si";
+import { persistCheckoutPaymentContext } from "@/utils/persistCheckoutPaymentContext";
+import { buildCheckoutReturnUrl } from "@/utils/checkoutOrigin";
 
 const KlarnaForm = ({
   email,
@@ -39,6 +41,8 @@ const KlarnaForm = ({
   paymentType = "application_creation",
   applicationId,
   travelerIndex,
+  paymentWithoutInsurance,
+  paymentWithDiscount,
   onCreateCheckoutSession,
   onSuccess,
   onError,
@@ -140,6 +144,22 @@ const KlarnaForm = ({
         return;
       }
 
+      await persistCheckoutPaymentContext({
+        email,
+        amount,
+        travellers: travelers,
+        country: countryCode,
+        insurance,
+        paymentType,
+        applicationId,
+        insuranceCount,
+        insurancePaymentAmount,
+        paymentWithoutInsurance,
+        paymentWithDiscount,
+      });
+
+      const billingName = `${formData.firstName.trim()} ${formData.lastName.trim()}`.trim();
+
       // Create Stripe checkout session for Klarna
       const response = await onCreateCheckoutSession({
         email,
@@ -154,8 +174,14 @@ const KlarnaForm = ({
         currency: currency, // Match currency to country
         uiMode: "hosted",
         paymentMethod: "klarna", // This tells backend to use Klarna
-        successUrl: "/payment-success",
-        cancelUrl: "/visa-checkout",
+        successUrl: buildCheckoutReturnUrl("/payment-success"),
+        cancelUrl: buildCheckoutReturnUrl("/visa-checkout"),
+        phone: formData.phone,
+        billingName,
+        name: billingName,
+        address: formData.address,
+        city: formData.city,
+        postalCode: formData.postalCode,
         // Include form data in metadata
         klarnaFormData: {
           firstName: formData.firstName,
@@ -187,8 +213,32 @@ const KlarnaForm = ({
       }
 
       if (redirectUrl) {
+        const paymentIntentId =
+          response?.data?.data?.results?.paymentIntentId ||
+          response?.data?.results?.paymentIntentId ||
+          response?.data?.paymentIntentId ||
+          null;
+
         console.log("[Klarna] Checkout URL received, redirecting to Stripe-hosted Klarna page:", redirectUrl);
         console.log("[Klarna] successUrl (return_url) will be /payment-success, paymentType:", paymentType);
+
+        if (paymentIntentId) {
+          await persistCheckoutPaymentContext({
+            email,
+            amount,
+            travellers: travelers,
+            country: countryCode,
+            insurance,
+            paymentType,
+            applicationId,
+            paymentIntentId,
+            insuranceCount,
+            insurancePaymentAmount,
+            paymentWithoutInsurance,
+            paymentWithDiscount,
+          });
+        }
+
         try {
           sessionStorage.setItem(
             "nuvisa.pendingKlarnaCheckout",
@@ -196,6 +246,7 @@ const KlarnaForm = ({
               startedAt: Date.now(),
               cancelUrl: "/visa-checkout",
               paymentType,
+              paymentIntentId,
             })
           );
         } catch {}
