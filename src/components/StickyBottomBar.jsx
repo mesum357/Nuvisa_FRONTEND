@@ -646,7 +646,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
         ecommerce: {
           currency: "GBP",
           // 👇 ADDED Number() and .toFixed(2) below:
-          value: Number(Math.round(discountedPrices.total).toFixed(2)),
+          value: Number(discountedPrices.total.toFixed(2)),
           items: cartItems,
         },
       });
