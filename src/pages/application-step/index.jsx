@@ -72,6 +72,28 @@ const MultiStepAccordion = () => {
   });
   const currentStep = router.query.step;
 
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("nuvisa.pendingKlarnaCheckout");
+      if (!raw) return;
+
+      const pending = JSON.parse(raw);
+      const startedAt = Number(pending?.startedAt || 0);
+      const isFresh = startedAt && Date.now() - startedAt < 30 * 60 * 1000;
+
+      if (isFresh) {
+        sessionStorage.removeItem("nuvisa.pendingKlarnaCheckout");
+        router.replace(pending?.cancelUrl || "/visa-checkout");
+      } else {
+        sessionStorage.removeItem("nuvisa.pendingKlarnaCheckout");
+      }
+    } catch {
+      try {
+        sessionStorage.removeItem("nuvisa.pendingKlarnaCheckout");
+      } catch {}
+    }
+  }, [router]);
+
   const isOwner = parentVisaApplication?.email === userEmail;
 
   const totalTraveler =
