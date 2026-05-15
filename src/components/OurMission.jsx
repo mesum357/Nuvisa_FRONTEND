@@ -4,44 +4,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import GetTheVisaButton from "./layout/GetTheVisaButton";
-import { useAppSelector } from "@/store"; // 👉 ADD THIS
 
 const OurMission = ({ className }) => {
   const pathname = usePathname();
 
   const buttonText = "Check Required Documents";
   const targetHref = "/get-the-visa#required-documents";
-
-  const visaState = useAppSelector((state) => state.visa);
-
-  const handleCheckDocsClick = () => {
-    // Get the current country & price from Redux state (or fallback to defaults)
-    const currentCountry = visaState?.selectedCountry || "Schengen";
-    const currentFee = visaState?.visaFees || 129;
-
-    if (typeof window !== "undefined" && window.dataLayer) {
-      window.dataLayer.push({ ecommerce: null }); // Clear previous ecommerce data
-      window.dataLayer.push({
-        event: "view_item",
-        ecommerce: {
-          currency: "GBP",
-          value: currentFee,
-          items: [
-            {
-              item_id: `visa_${currentCountry
-                .toLowerCase()
-                .replace(/\s+/g, "_")}`,
-              item_name: `Visa - ${currentCountry}`,
-              item_category: "Schengen Visa",
-              item_brand: "NUvisa",
-              price: currentFee,
-              quantity: 1,
-            },
-          ],
-        },
-      });
-    }
-  };
 
   return (
     <div
@@ -109,10 +77,7 @@ const OurMission = ({ className }) => {
 
       <div className="mb-10 md:mb-20">
         <Link href={targetHref}>
-          <button
-            onClick={handleCheckDocsClick} // 👉 ADD THIS
-            className="group flex items-center bg-[#6B4EFF] text-white  gap-[16px] font-medium px-[24px] py-3 rounded-3xl cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb]"
-          >
+          <button className="group flex items-center bg-[#6B4EFF] text-white  gap-[16px] font-medium px-[24px] py-3 rounded-3xl cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb]">
             <span className="mr-3 text-md md:text-2xl uppercase">
               {buttonText}
             </span>

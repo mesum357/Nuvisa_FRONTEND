@@ -480,40 +480,6 @@ const CountryCardsSection = ({
     };
   }, []);
 
-  // 🔥 GA4: Track view_item for "Check Required Document" button 🔥
-  const handleCheckDocsClick = () => {
-    // Get the current country from Redux state (or fallback)
-    const currentCountry = visaState.selectedCountry || "Schengen";
-
-    // Grab the dynamic price for this country
-    const normalizedKey = normalizeCountryKey(currentCountry);
-    const dynamicPricing = countryPricingLookup[normalizedKey];
-    const finalVisaFee = dynamicPricing ? dynamicPricing.basePrice : 129;
-
-    if (typeof window !== "undefined" && window.dataLayer) {
-      window.dataLayer.push({ ecommerce: null }); // Clear previous ecommerce data
-      window.dataLayer.push({
-        event: "view_item",
-        ecommerce: {
-          currency: "GBP",
-          value: finalVisaFee,
-          items: [
-            {
-              item_id: `visa_${currentCountry
-                .toLowerCase()
-                .replace(/\s+/g, "_")}`,
-              item_name: `Visa - ${currentCountry}`,
-              item_category: "Schengen Visa",
-              item_brand: "NUvisa",
-              price: finalVisaFee,
-              quantity: 1,
-            },
-          ],
-        },
-      });
-    }
-  };
-
   return (
     <div className="max-w-6xl mx-auto px-6" id={id}>
       {id === "everyday-steals" && (
@@ -714,10 +680,7 @@ const CountryCardsSection = ({
 
         <div className="mb-10 md:mb-20">
           <Link href={"/get-the-visa#required-documents"}>
-            <button
-              onClick={handleCheckDocsClick} // 👉 ADD THIS LINE HERE
-              className="group flex items-center bg-[#6B4EFF] text-white gap-[12px] font-medium px-[24px] py-3 rounded-3xl cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb]"
-            >
+            <button className="group flex items-center bg-[#6B4EFF] text-white gap-[12px] font-medium px-[24px] py-3 rounded-3xl cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb]">
               <span className="mr-3 text-md md:text-2xl uppercase">
                 Check Required Document
               </span>
