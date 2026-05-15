@@ -1,9 +1,22 @@
 import { loadStripe } from "@stripe/stripe-js";
 
-const TERMINAL_FAILURE_PI_STATUSES = new Set([
+const KLARNA_FAILURE_REDIRECT_STATUSES = new Set([
+  "failed",
   "canceled",
   "requires_payment_method",
 ]);
+
+const TERMINAL_FAILURE_PI_STATUSES = new Set([
+  "canceled",
+  "requires_payment_method",
+  "failed",
+]);
+
+export function isExplicitKlarnaRedirectFailure(redirectStatus) {
+  return Boolean(
+    redirectStatus && KLARNA_FAILURE_REDIRECT_STATUSES.has(redirectStatus)
+  );
+}
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -109,6 +122,14 @@ export async function resolveKlarnaRedirectSuccess({
 
   if (redirectStatus === "succeeded") {
     return { succeeded: true, source: "redirect_status" };
+  }
+
+  if (isExplicitKlarnaRedirectFailure(redirectStatus)) {
+    return {
+      succeeded: false,
+      source: "redirect_status",
+      redirectStatus,
+    };
   }
 
   const tryStatus = (status, source) => {
