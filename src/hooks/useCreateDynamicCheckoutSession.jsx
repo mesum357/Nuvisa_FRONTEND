@@ -3,9 +3,15 @@ import {
   countryForStripeSession,
   currencyForStripeSession,
 } from "@/utils/stripeHostedCheckoutUk";
+import { localStorageEnums } from "@/enums/localstorage.enums";
+import { localStorageGateway } from "@/gateways/localStoragegateway";
+import { useAppDispatch } from "@/store";
+import { setAuthId, setAuthState } from "@/store/authSlice";
+import Cookies from "js-cookie";
 import React, { useState } from "react";
 
 const useCreateDynamicCheckoutSession = () => {
+  const dispatch = useAppDispatch();
   const [cretingDynamicCheckout, setCreatingDynamicCheckout] = useState(false);
 
   const handleCreateDynamicCheckoutSession = async ({
@@ -248,6 +254,35 @@ const useCreateDynamicCheckoutSession = () => {
         payload,
         successCallbackFunction
       );
+
+      const results =
+        response?.data?.data?.results ||
+        response?.data?.results ||
+        response?.data ||
+        {};
+
+      if (results?.token) {
+        await localStorageGateway("token", localStorageEnums.SET, results.token);
+        await Cookies.set("token", results.token);
+        dispatch(setAuthState(true));
+      }
+
+      if (results?.user) {
+        await Cookies.set("user", JSON.stringify(results.user));
+        await localStorageGateway(
+          "user",
+          localStorageEnums.SET,
+          JSON.stringify(results.user)
+        );
+        if (results.user.id) {
+          dispatch(setAuthId(results.user.id));
+        }
+      }
+
+      if (email) {
+        await localStorageGateway("userEmail", localStorageEnums.SET, email);
+        await Cookies.set("userEmail", email);
+      }
 
 
 

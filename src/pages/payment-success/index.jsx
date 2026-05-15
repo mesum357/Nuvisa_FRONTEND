@@ -9,12 +9,14 @@ import {
   setInsuranceFees,
   setTravelers,
 } from "@/store/visaSlice";
+import { setAuthId, setAuthState } from "@/store/authSlice";
 import usePaymentData from "@/hooks/usePaymentData";
 import { createApplication } from "@/api/visa";
 import { createOrUpdateApplication } from "@/api/visaApplications";
 import { localStorageEnums } from "@/enums/localstorage.enums";
 import { localStorageGateway } from "@/gateways/localStoragegateway";
 import { decrementExpertSpotsOnSuccessfulCheckout } from "@/utils/expertSpots";
+import Cookies from "js-cookie";
 
 const PaymentSuccess = () => {
   const router = useRouter();
@@ -25,6 +27,35 @@ const PaymentSuccess = () => {
   const [isCreatingApplication, setIsCreatingApplication] = useState(false);
   const [paymentType, setPaymentType] = useState("application_creation");
   const hasProcessedPayment = useRef(false);
+
+  const persistAuthFromResponse = async (response) => {
+    const results =
+      response?.data?.data?.results ||
+      response?.data?.results ||
+      response?.data ||
+      {};
+
+    const token = results?.token;
+    const user = results?.user;
+
+    if (token) {
+      await localStorageGateway("token", localStorageEnums.SET, token);
+      await Cookies.set("token", token);
+      dispatch(setAuthState(true));
+    }
+
+    if (user) {
+      await Cookies.set("user", JSON.stringify(user));
+      await localStorageGateway(
+        "user",
+        localStorageEnums.SET,
+        JSON.stringify(user)
+      );
+      if (user.id) {
+        dispatch(setAuthId(user.id));
+      }
+    }
+  };
 
   useEffect(() => {
     const storePaymentDataAndRedirect = async () => {
@@ -506,6 +537,7 @@ const PaymentSuccess = () => {
         }
 
         const applicationResponse = await createApplication(applicationPayload);
+        await persistAuthFromResponse(applicationResponse);
         if (
           applicationResponse?.status === 200 ||
           applicationResponse?.status === 201
