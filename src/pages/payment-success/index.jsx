@@ -59,6 +59,10 @@ const PaymentSuccess = () => {
 
   useEffect(() => {
     const storePaymentDataAndRedirect = async () => {
+      try {
+        sessionStorage.removeItem("nuvisa.pendingKlarnaCheckout");
+      } catch {}
+
       // Prevent multiple executions
       if (hasProcessedPayment.current) {
         return;

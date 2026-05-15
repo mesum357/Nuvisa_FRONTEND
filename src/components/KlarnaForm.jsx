@@ -154,6 +154,8 @@ const KlarnaForm = ({
         currency: currency, // Match currency to country
         uiMode: "hosted",
         paymentMethod: "klarna", // This tells backend to use Klarna
+        successUrl: "/payment-success",
+        cancelUrl: "/visa-checkout",
         // Include form data in metadata
         klarnaFormData: {
           firstName: formData.firstName,
@@ -189,6 +191,16 @@ const KlarnaForm = ({
           "Klarna checkout URL received, redirecting...",
           redirectUrl
         );
+        try {
+          sessionStorage.setItem(
+            "nuvisa.pendingKlarnaCheckout",
+            JSON.stringify({
+              startedAt: Date.now(),
+              cancelUrl: "/visa-checkout",
+              paymentType,
+            })
+          );
+        } catch {}
         if (onSuccess) {
           onSuccess(klarnaData);
         }
