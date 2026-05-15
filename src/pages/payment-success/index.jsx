@@ -63,7 +63,6 @@ const PaymentSuccess = () => {
         sessionStorage.removeItem("nuvisa.pendingKlarnaCheckout");
       } catch {}
 
-      // Prevent multiple executions
       if (hasProcessedPayment.current) {
         return;
       }
@@ -71,18 +70,43 @@ const PaymentSuccess = () => {
       hasProcessedPayment.current = true;
 
       try {
-        // Get payment data from current session
         const currentData = await getCurrentPaymentData();
 
         const sessionId = searchParams?.get("session_id") || null;
+
+        const redirectStatus = searchParams?.get("redirect_status") || null;
+        const paymentIntentParam = searchParams?.get("payment_intent") || null;
+        const paymentIntentClientSecret = searchParams?.get("payment_intent_client_secret") || null;
+
+        const isKlarnaRedirect = !!(redirectStatus || paymentIntentParam);
+
+        console.log("[PaymentSuccess] URL params:", {
+          sessionId,
+          redirectStatus,
+          paymentIntentParam,
+          isKlarnaRedirect,
+        });
+
+        if (isKlarnaRedirect) {
+          if (redirectStatus !== "succeeded") {
+            console.log("[PaymentSuccess] Klarna payment not succeeded, redirectStatus:", redirectStatus, "- redirecting to /visa-checkout");
+            router.replace("/visa-checkout");
+            return;
+          }
+          console.log("[PaymentSuccess] Klarna payment succeeded, continuing to application creation");
+        }
+
         if (
           !sessionId &&
+          !isKlarnaRedirect &&
           (!currentData ||
             (!currentData.totalAmount && !currentData.applicationId))
         ) {
           setTimeout(() => router.replace("/dashboard"), 800);
           return;
         }
+
+        const klarnaPaymentIntentId = paymentIntentParam || null;
 
         // Check if this is a traveler insurance payment (both regular and additional)
         // Prioritize URL parameters over localStorage data for insurance payments
@@ -191,7 +215,7 @@ const PaymentSuccess = () => {
           typeof window !== "undefined"
             ? sessionStorage.getItem("stripePaymentIntentId") || null
             : null;
-        const stripePaymentId = sessionId || embeddedPaymentIntentId || null;
+        const stripePaymentId = sessionId || klarnaPaymentIntentId || embeddedPaymentIntentId || null;
         const dedupePaymentId =
           stripePaymentId ||
           currentData?.paymentMetadata?.paymentIntentId ||

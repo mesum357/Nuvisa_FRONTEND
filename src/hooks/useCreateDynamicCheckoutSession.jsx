@@ -71,9 +71,15 @@ const useCreateDynamicCheckoutSession = () => {
       }
     };
 
+    const normalizedPm = String(paymentMethod || "")
+      .trim()
+      .toLowerCase();
+
     let successUrl = successUrlOverride || "/payment-success";
 
-    if (normalizedPaymentType === "application_creation") {
+    if (normalizedPm === "klarna") {
+      successUrl = successUrlOverride || "/payment-success";
+    } else if (normalizedPaymentType === "application_creation") {
       if (applicationId) {
         successUrl =
           successUrlOverride ||
@@ -173,10 +179,6 @@ const useCreateDynamicCheckoutSession = () => {
       normalizedCountry,
       currency
     );
-
-    const normalizedPm = String(paymentMethod || "")
-      .trim()
-      .toLowerCase();
 
     const cancelUrl =
       cancelUrlOverride ||
