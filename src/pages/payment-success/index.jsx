@@ -56,82 +56,83 @@ const PaymentSuccess = () => {
       }
     }
   };
-
+  console.log(searchParams)
   useEffect(() => {
+    if (!searchParams) return;
+   
     const storePaymentDataAndRedirect = async () => {
       try {
         sessionStorage.removeItem("nuvisa.pendingKlarnaCheckout");
       } catch {}
-
+   
       if (hasProcessedPayment.current) {
         return;
       }
-
+   
       hasProcessedPayment.current = true;
-
+   
       try {
         const currentData = await getCurrentPaymentData();
-
-        const sessionId = searchParams?.get("session_id") || null;
-
-        const redirectStatus = searchParams?.get("redirect_status") || null;
-        const paymentIntentParam = searchParams?.get("payment_intent") || null;
-        const paymentIntentClientSecret = searchParams?.get("payment_intent_client_secret") || null;
-
+   
+        const sessionId = searchParams.get("session_id") || null;
+        const redirectStatus = searchParams.get("redirect_status") || null;
+        const paymentIntentParam = searchParams.get("payment_intent") || null;
+        const paymentIntentClientSecret = searchParams.get("payment_intent_client_secret") || null;
+   
         const isKlarnaRedirect = !!(redirectStatus || paymentIntentParam);
-
+   
         console.log("[PaymentSuccess] URL params:", {
           sessionId,
           redirectStatus,
           paymentIntentParam,
           isKlarnaRedirect,
-        });
-
+        }); 
+   
         if (isKlarnaRedirect) {
           if (redirectStatus !== "succeeded") {
-            console.log("[PaymentSuccess] Klarna payment not succeeded, redirectStatus:", redirectStatus, "- redirecting to /visa-checkout");
+            console.log("[PaymentSuccess] Klarna failed/canceled:", redirectStatus);
             router.replace("/visa-checkout");
+            console.log("redirecting /visa-checkout")
             return;
           }
-          console.log("[PaymentSuccess] Klarna payment succeeded, continuing to application creation");
+          console.log("[PaymentSuccess] Klarna succeeded, continuing...");
         }
 
+        if(!isKlarnaRedirect){
+          if (redirectStatus !== "succeeded"){
+            console.log("Klarna failed/canceled:", redirectStatus);
+            router.replace("/visa-checkout");
+            console.log("redirecting /visa-checkout")
+            return;
+          }
+        }
+   
         if (
           !sessionId &&
           !isKlarnaRedirect &&
-          (!currentData ||
-            (!currentData.totalAmount && !currentData.applicationId))
+          (!currentData || (!currentData.totalAmount && !currentData.applicationId))
         ) {
           setTimeout(() => router.replace("/dashboard"), 800);
           return;
         }
-
+   
         const klarnaPaymentIntentId = paymentIntentParam || null;
-
-        // Check if this is a traveler insurance payment (both regular and additional)
-        // Prioritize URL parameters over localStorage data for insurance payments
-        let paymentTypeParam = searchParams?.get("payment_type") || null;
-        let applicationId = searchParams?.get("application_id") || null;
-        let travelerIndex = searchParams?.get("traveler_index") || null;
-
-        // If URL parameters are missing, check for stored insurance payment metadata
-        // Keep a copy of the used stored metadata so we can include orderId/paymentAmount
+   
+        let paymentTypeParam = searchParams.get("payment_type") || null;
+        let applicationId = searchParams.get("application_id") || null;
+        let travelerIndex = searchParams.get("traveler_index") || null;
+   
         let usedStoredInsuranceMetadata = null;
         if (!paymentTypeParam || !applicationId) {
           try {
-            const storedMetadata = localStorage.getItem(
-              "insurancePaymentMetadata"
-            );
+            const storedMetadata = localStorage.getItem("insurancePaymentMetadata");
             if (storedMetadata) {
               const metadata = JSON.parse(storedMetadata);
-              // Only use stored metadata if it's recent (within last 5 minutes)
               if (Date.now() - metadata.timestamp < 5 * 60 * 1000) {
                 paymentTypeParam = paymentTypeParam || metadata.paymentType;
                 applicationId = applicationId || metadata.applicationId;
                 travelerIndex = travelerIndex || metadata.travelerIndex;
-                usedStoredInsuranceMetadata = metadata; // preserve for later POST
-
-                // Clean up the stored metadata after use
+                usedStoredInsuranceMetadata = metadata;
                 localStorage.removeItem("insurancePaymentMetadata");
               }
             }
@@ -139,13 +140,11 @@ const PaymentSuccess = () => {
             console.error("Error retrieving stored payment metadata:", error);
           }
         }
-
-        // If paymentTypeParam is still missing, check paymentMetadata (used for gift cards and other payment types)
+   
         if (!paymentTypeParam) {
           try {
             if (currentData.paymentMetadata) {
               const metadata = currentData.paymentMetadata;
-              // Only use stored metadata if it's recent (within last 5 minutes)
               if (Date.now() - (metadata.timestamp || 0) < 5 * 60 * 1000) {
                 paymentTypeParam = metadata.paymentType;
               }
@@ -154,38 +153,35 @@ const PaymentSuccess = () => {
             console.error("Error retrieving paymentMetadata:", error);
           }
         }
-
-        // If URL parameters indicate insurance payment, use those values
-        // Otherwise fallback to localStorage data for application creation
-        const finalPaymentType =
-          paymentTypeParam || currentData.paymentType || "application_creation";
+   
+        const SKIP_APPLICATION_TYPES = [
+          "traveler_insurance",
+          "additional_traveler_insurance",
+          "full_payment",
+          "additional_traveler",
+          "gift_card",
+        ];
+   
+        const finalPaymentType = paymentTypeParam || currentData.paymentType || "application_creation";
         const finalApplicationId = applicationId;
-
+   
         setPaymentType(finalPaymentType);
-
-        // Check if this is a gift card purchase
+   
         if (finalPaymentType === "gift_card") {
-          // Gift card purchase - show confirmation message
-          // The backend webhook will automatically create the gift card and send email
           setPaymentType("gift_card");
-          return; // Don't create application for gift card purchases
+          return;
         }
-
-        // Check if this is a full payment or additional traveler payment
+   
         if (
           finalPaymentType === "full_payment" ||
           finalPaymentType === "additional_traveler"
         ) {
-          // Update the application payment status without marking fullPayment step as completed
-          // The step will only be completed when ALL travelers have paid
           try {
-            const updateResponse = await fetch(
+            await fetch(
               `${process.env.NEXT_PUBLIC_API_URL}/stripe_payment/test-insurance-payment`,
               {
                 method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   paymentType: finalPaymentType,
                   applicationId: finalApplicationId,
@@ -199,76 +195,51 @@ const PaymentSuccess = () => {
           } catch (error) {
             console.error("Error updating payment status:", error);
           }
-
+   
           if (finalApplicationId) {
-            router.replace(
-              `/application-step/?application_id=${finalApplicationId}`
-            );
+            router.replace(`/application-step/?application_id=${finalApplicationId}`);
           }
           return;
         }
-
-        // Resolve the Stripe payment ID to use as idempotency key.
-        // Hosted checkout:  session_id is in the URL (?session_id=cs_xxx)
-        // Embedded card:    paymentIntent.id was stored in sessionStorage by StripeElementsCheckout
+   
         const embeddedPaymentIntentId =
           typeof window !== "undefined"
             ? sessionStorage.getItem("stripePaymentIntentId") || null
             : null;
+   
         const stripePaymentId = sessionId || klarnaPaymentIntentId || embeddedPaymentIntentId || null;
-        const dedupePaymentId =
-          stripePaymentId ||
-          currentData?.paymentMetadata?.paymentIntentId ||
-          null;
-
-        // Clear the stored intent ID so it's not reused on a future visit
+        const dedupePaymentId = stripePaymentId || currentData?.paymentMetadata?.paymentIntentId || null;
+   
         if (embeddedPaymentIntentId && typeof window !== "undefined") {
           try {
             sessionStorage.removeItem("stripePaymentIntentId");
           } catch {}
         }
-
-        // Successful checkout should reduce "spots left" once per unique payment.
+   
         if (dedupePaymentId) {
           decrementExpertSpotsOnSuccessfulCheckout(dedupePaymentId);
         }
-
-        // Fetch session/payment-intent metadata from backend so we have country, travelers, etc.
-        // even when localStorage is empty after redirect (e.g. Apple Pay, new tab).
+   
         let sessionMetadata = {};
         if (stripePaymentId && process.env.NEXT_PUBLIC_API_URL) {
           try {
             const res = await fetch(
-              `${
-                process.env.NEXT_PUBLIC_API_URL
-              }/stripe_payment/session-metadata?payment_id=${encodeURIComponent(
-                stripePaymentId
-              )}`
+              `${process.env.NEXT_PUBLIC_API_URL}/stripe_payment/session-metadata?payment_id=${encodeURIComponent(stripePaymentId)}`
             );
             const json = await res.json();
-            const meta =
-              json?.data?.results?.metadata || json?.results?.metadata || {};
-            if (
-              meta &&
-              typeof meta === "object" &&
-              Object.keys(meta).length > 0
-            ) {
+            const meta = json?.data?.results?.metadata || json?.results?.metadata || {};
+            if (meta && typeof meta === "object" && Object.keys(meta).length > 0) {
               sessionMetadata = meta;
             }
           } catch (e) {
             console.warn("Could not fetch session metadata:", e);
           }
         }
-
-        // Merge session metadata into currentData so application is created with full info.
-        // Metadata from Stripe (stored at checkout) is the source of truth when present.
+   
         const mergedData = {
           ...currentData,
           email: sessionMetadata.email || currentData.email,
-          selectedCountry:
-            sessionMetadata.country ||
-            currentData.selectedCountry ||
-            currentData.paymentMetadata?.country,
+          selectedCountry: sessionMetadata.country || currentData.selectedCountry || currentData.paymentMetadata?.country,
           travelers: sessionMetadata.travellers ?? currentData.travelers,
           totalAmount: sessionMetadata.amount || currentData.totalAmount,
           insurancePayment:
@@ -276,16 +247,18 @@ const PaymentSuccess = () => {
               ? sessionMetadata.insurance
               : currentData.insurancePayment,
           paymentWithoutInsurance: currentData.paymentWithoutInsurance,
-          visaTypeId:
-            sessionMetadata.visaTypeId ||
-            currentData.selectedVisaType ||
-            visaState.visaTypeId,
+          visaTypeId: sessionMetadata.visaTypeId || currentData.selectedVisaType || visaState.visaTypeId,
           amountWithDiscount: currentData.amountWithDiscount,
           storedMetadata: currentData.storedMetadata,
           paymentMetadata: currentData.paymentMetadata,
         };
-
-        // Original application creation payment flow
+   
+        if (!mergedData.email || !mergedData.selectedCountry) {
+          console.error("[PaymentSuccess] Insufficient data, redirecting to checkout");
+          router.replace("/visa-checkout?reason=data_missing");
+          return;
+        }
+   
         const paymentInfo = {
           sessionId,
           email: mergedData.email,
@@ -295,11 +268,9 @@ const PaymentSuccess = () => {
           totalAmount: mergedData.totalAmount,
           paymentDate: new Date().toISOString(),
         };
-
-        // Add to payment history
+   
         await addPaymentToHistory(paymentInfo);
-
-        // Update Redux store (use mergedData so we have country etc. from session metadata when needed)
+   
         if (mergedData.selectedCountry) {
           dispatch(setSelectedCountry(mergedData.selectedCountry));
         }
@@ -309,26 +280,20 @@ const PaymentSuccess = () => {
         if (Number.isFinite(Number(mergedData.travelers))) {
           dispatch(setTravelers(Number(mergedData.travelers)));
         }
-
-        // Create visa application
+   
         setIsCreatingApplication(true);
-
-        // Initialize travelers data with insurance set for each initial traveler
+   
         const numberOfTravelers = Number(mergedData.travelers) || 1;
-
-        // Use the actual insurance selection boolean, fallback to fee check for backward compatibility
+   
         const hasInsurance =
           mergedData.insuranceSelected === "true" ||
-          (mergedData.insuranceSelected === undefined &&
-            Number(mergedData.insurancePayment) > 0)
+          (mergedData.insuranceSelected === undefined && Number(mergedData.insurancePayment) > 0)
             ? true
             : false;
-
-        // Determine if this is truly a checkout payment or application step payment
+   
         const isCheckoutPayment =
-          finalPaymentType === "application_creation" ||
-          (!finalPaymentType && !applicationId); // No payment type means initial checkout
-
+          finalPaymentType === "application_creation" || (!finalPaymentType && !applicationId);
+   
         const insurancePayload =
           numberOfTravelers === mergedData?.storedMetadata?.insuranceCount
             ? {
@@ -336,85 +301,74 @@ const PaymentSuccess = () => {
                 insuranceDetails: hasInsurance ? { selected: true } : null,
                 insuranceCertificate: null,
                 orderId: null,
-                paymentAmount: hasInsurance
-                  ? Number(mergedData.insurancePayment) || 0
-                  : 0,
+                paymentAmount: hasInsurance ? Number(mergedData.insurancePayment) || 0 : 0,
                 paidInCheckout: hasInsurance && isCheckoutPayment,
-                insuranceSource:
-                  hasInsurance && isCheckoutPayment ? "checkout" : null,
+                insuranceSource: hasInsurance && isCheckoutPayment ? "checkout" : null,
                 insurancePaymentCompleted: hasInsurance,
               }
             : {};
-
-        const initialTravelersData = Array.from(
-          { length: numberOfTravelers },
-          (_, index) => ({
-            id: `traveler_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
-            basicDetails: {
-              passportNumber: "",
-              firstName: "",
-              lastName: "",
-              sex: "",
-              dateOfBirth: "",
-              placeOfBirth: "",
-              passportIssuePlace: "",
-              passportIssueDate: "",
-              passportExpiryDate: "",
-              currentAddress1: "",
-              currentAddress2: "",
-              state: "",
-              city: "",
-              pincode: "",
-              passportFront: null,
-              passportBack: null,
-            },
-            visitDetails: {
-              visitingOtherSchengenCountries: [],
-              firstCountryOfEntry: "",
-              hasSchengenVisa: "",
-              lastVisaStartDate: "",
-              lastVisaEndDate: "",
-              hasDigitalFingerprints: "",
-              previousVisaNumber: "",
-              maritalStatus: "",
-              partnerFullName: "",
-              partnerDateOfBirth: "",
-              employmentStatus: "",
-              institutionName: "",
-              instituteEmail: "",
-              instituteAddress: "",
-              employerPhone: "",
-              employerName: "",
-              employerEmail: "",
-              employerAddress: "",
-              otherEmploymentStatus: "",
-              willAnyonePayForVisit: "",
-              fundingPersonName: "",
-              tripFundedBy: "",
-            },
-            documents: {
-              documents: {},
-            },
-            insurance: insurancePayload,
-            fullPayment: {
-              paymentStatus: "completed",
-              paymentCompleted: true,
-              paymentAmount:
-                Number(
-                  (
-                    Number(mergedData?.amountWithDiscount || 149) /
-                    numberOfTravelers
-                  ).toFixed(2)
-                ) || 0,
-              paymentDate: new Date().toISOString(),
-              paymentMethod: "stripe",
-              includeInsurance: hasInsurance,
-              insuranceType: hasInsurance ? "purchase" : "none",
-              paidInCheckout: isCheckoutPayment,
-            },
-          })
-        );
-
+   
+        const initialTravelersData = Array.from({ length: numberOfTravelers }, (_, index) => ({
+          id: `traveler_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+          basicDetails: {
+            passportNumber: "",
+            firstName: "",
+            lastName: "",
+            sex: "",
+            dateOfBirth: "",
+            placeOfBirth: "",
+            passportIssuePlace: "",
+            passportIssueDate: "",
+            passportExpiryDate: "",
+            currentAddress1: "",
+            currentAddress2: "",
+            state: "",
+            city: "",
+            pincode: "",
+            passportFront: null,
+            passportBack: null,
+          },
+          visitDetails: {
+            visitingOtherSchengenCountries: [],
+            firstCountryOfEntry: "",
+            hasSchengenVisa: "",
+            lastVisaStartDate: "",
+            lastVisaEndDate: "",
+            hasDigitalFingerprints: "",
+            previousVisaNumber: "",
+            maritalStatus: "",
+            partnerFullName: "",
+            partnerDateOfBirth: "",
+            employmentStatus: "",
+            institutionName: "",
+            instituteEmail: "",
+            instituteAddress: "",
+            employerPhone: "",
+            employerName: "",
+            employerEmail: "",
+            employerAddress: "",
+            otherEmploymentStatus: "",
+            willAnyonePayForVisit: "",
+            fundingPersonName: "",
+            tripFundedBy: "",
+          },
+          documents: { documents: {} },
+          insurance: insurancePayload,
+          fullPayment: {
+            paymentStatus: "completed",
+            paymentCompleted: true,
+            paymentAmount:
+              Number(
+                (Number(mergedData?.amountWithDiscount || 149) / numberOfTravelers).toFixed(2)
+              ) || 0,
+            paymentDate: new Date().toISOString(),
+            paymentMethod: "stripe",
+            includeInsurance: hasInsurance,
+            insuranceType: hasInsurance ? "purchase" : "none",
+            paidInCheckout: isCheckoutPayment,
+          },
+        }));
+   
         const applicationPayload = {
           type: "createApplication",
           email: mergedData.email,
@@ -423,22 +377,19 @@ const PaymentSuccess = () => {
               ? null
               : {
                   paidInCheckout: {
-                    noOfInsurance:
-                      mergedData?.storedMetadata?.insuranceCount || 0,
-                    paymentAmount:
-                      mergedData?.storedMetadata?.insurancePaymentAmount || 0,
+                    noOfInsurance: mergedData?.storedMetadata?.insuranceCount || 0,
+                    paymentAmount: mergedData?.storedMetadata?.insurancePaymentAmount || 0,
                   },
                   certificateCount: 0,
                   certificate: [],
-                }, // Keep for backward compatibility during transition (string value)
+                },
           country: mergedData.selectedCountry,
           amountPaid: mergedData.totalAmount?.toString(),
           paymentWithoutInsurance: Number(mergedData?.paymentWithoutInsurance),
           numberOfTravellers: numberOfTravelers,
-          travelersData: initialTravelersData, // Pass initialized travelers data
+          travelersData: initialTravelersData,
           visaTypeId: mergedData.visaTypeId || "66755c9f11e8e79f4c31d9e4",
           selectedVisaType: mergedData.visaTypeId || "66755c9f11e8e79f4c31d9e4",
-          // Add arrival and departure dates from Redux store for SMV order creation
           arrivalDate: visaState.arrivalDate,
           departureDate: visaState.departureDate,
           travelStartDate: visaState.arrivalDate || "",
@@ -447,10 +398,9 @@ const PaymentSuccess = () => {
           initialInsurancePaidTotal: hasInsurance
             ? (Number(mergedData.insurancePayment) || 0).toString()
             : "0",
-          // Idempotency key: the webhook checks this column before creating; whichever runs first wins
           stripePaymentId: stripePaymentId || undefined,
         };
-
+   
         if (
           (finalPaymentType === "additional_traveler_insurance" ||
             finalPaymentType === "traveler_insurance") &&
@@ -458,31 +408,18 @@ const PaymentSuccess = () => {
         ) {
           try {
             const postAmountRaw =
-              (usedStoredInsuranceMetadata &&
-                usedStoredInsuranceMetadata.paymentAmount) ||
-              (Number.isFinite(Number(currentData.totalAmount))
-                ? currentData.totalAmount
-                : "490");
+              (usedStoredInsuranceMetadata && usedStoredInsuranceMetadata.paymentAmount) ||
+              (Number.isFinite(Number(currentData.totalAmount)) ? currentData.totalAmount : "490");
             const postOrderId =
-              (usedStoredInsuranceMetadata &&
-                usedStoredInsuranceMetadata.orderId) ||
-              undefined;
-
+              (usedStoredInsuranceMetadata && usedStoredInsuranceMetadata.orderId) || undefined;
             const postAmount = Number(postAmountRaw);
-
-            // If travelerIndex is provided, notify backend for that traveler
-            if (
-              travelerIndex !== null &&
-              travelerIndex !== undefined &&
-              travelerIndex !== ""
-            ) {
+   
+            if (travelerIndex !== null && travelerIndex !== undefined && travelerIndex !== "") {
               await fetch(
                 `${process.env.NEXT_PUBLIC_API_URL}/stripe_payment/test-insurance-payment`,
                 {
                   method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
+                  headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
                     paymentType: finalPaymentType,
                     travelerIndex: travelerIndex,
@@ -493,40 +430,30 @@ const PaymentSuccess = () => {
                   }),
                 }
               );
-
-              // Update only the specific traveler locally via API
-              const insuranceUpdateResponse = await createOrUpdateApplication(
-                "",
-                {
-                  ...applicationPayload,
-                  insurance: true,
-                  travelersData: initialTravelersData.map((traveler, index) =>
-                    index === Number(travelerIndex)
-                      ? {
-                          ...traveler,
-                          insurance: {
-                            orderId: postOrderId || null,
-                            paymentAmount: postAmount,
-                            insurancePaymentCompleted: true,
-                          },
-                        }
-                      : traveler
-                  ),
-                  insurancePaymentCompleted: true,
-                }
-              );
-
-              const insuranceResult =
-                insuranceUpdateResponse?.data?.data?.results || {};
+   
+              await createOrUpdateApplication("", {
+                ...applicationPayload,
+                insurance: true,
+                travelersData: initialTravelersData.map((traveler, index) =>
+                  index === Number(travelerIndex)
+                    ? {
+                        ...traveler,
+                        insurance: {
+                          orderId: postOrderId || null,
+                          paymentAmount: postAmount,
+                          insurancePaymentCompleted: true,
+                        },
+                      }
+                    : traveler
+                ),
+                insurancePaymentCompleted: true,
+              });
             } else {
-              // No travelerIndex -> application-level insurance payment covering all travelers
               await fetch(
                 `${process.env.NEXT_PUBLIC_API_URL}/stripe_payment/test-insurance-payment`,
                 {
                   method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
+                  headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
                     paymentType: finalPaymentType,
                     applicationId: finalApplicationId,
@@ -536,59 +463,47 @@ const PaymentSuccess = () => {
                   }),
                 }
               );
-
-              // Mark insurance as completed at the application level
-              const insuranceUpdateResponse = await createOrUpdateApplication(
-                "",
-                {
-                  ...applicationPayload,
-                  insurance: true,
-                  insurancePaymentCompleted: true,
-                  amountPaid: postAmount,
-                  orderId: postOrderId || undefined,
-                }
-              );
+   
+              await createOrUpdateApplication("", {
+                ...applicationPayload,
+                insurance: true,
+                insurancePaymentCompleted: true,
+                amountPaid: postAmount,
+                orderId: postOrderId || undefined,
+              });
             }
           } catch (error) {
-            console.error(
-              "Error updating traveler/application insurance:",
-              error
-            );
+            console.error("Error updating traveler/application insurance:", error);
           }
-
+   
           setTimeout(() => {
-            router.replace(
-              `/application-step/?application_id=${finalApplicationId}`
-            );
+            router.replace(`/application-step/?application_id=${finalApplicationId}`);
           }, 2000);
           return;
         }
-
+   
+        if (SKIP_APPLICATION_TYPES.includes(finalPaymentType) && finalPaymentType !== "application_creation") {
+          return;
+        }
+   
         const applicationResponse = await createApplication(applicationPayload);
         await persistAuthFromResponse(applicationResponse);
-        if (
-          applicationResponse?.status === 200 ||
-          applicationResponse?.status === 201
-        ) {
-          // GA4: purchase — application created, payment confirmed
-          // 🔥 REPLACE trackPurchase({...}) WITH THIS RAW DATALAYER PUSH 🔥
+   
+        if (applicationResponse?.status === 200 || applicationResponse?.status === 201) {
           if (typeof window !== "undefined" && window.dataLayer) {
             const purchaseItems = [];
-
+   
             if (numberOfTravelers > 0) {
               purchaseItems.push({
                 item_id: "schengen_visa",
                 item_name: "Schengen visa from the UK",
-                price:
-                  Number(mergedData.paymentWithoutInsurance || 0) /
-                  numberOfTravelers,
+                price: Number(mergedData.paymentWithoutInsurance || 0) / numberOfTravelers,
                 quantity: numberOfTravelers,
               });
             }
-
+   
             if (hasInsurance && Number(mergedData.insurancePayment) > 0) {
-              const insCount =
-                mergedData?.storedMetadata?.insuranceCount || numberOfTravelers;
+              const insCount = mergedData?.storedMetadata?.insuranceCount || numberOfTravelers;
               purchaseItems.push({
                 item_id: "insurance_certificate",
                 item_name: "Insurance Certificate",
@@ -596,11 +511,8 @@ const PaymentSuccess = () => {
                 quantity: insCount,
               });
             }
-
-            const giftCardCount = Math.max(
-              Number(visaState.giftCardCount || 0),
-              0
-            );
+   
+            const giftCardCount = Math.max(Number(visaState.giftCardCount || 0), 0);
             if (giftCardCount > 0) {
               purchaseItems.push({
                 item_id: "digital_gift_card",
@@ -609,7 +521,7 @@ const PaymentSuccess = () => {
                 quantity: giftCardCount,
               });
             }
-
+   
             window.dataLayer.push({ ecommerce: null });
             window.dataLayer.push({
               event: "purchase",
@@ -628,23 +540,18 @@ const PaymentSuccess = () => {
               },
             });
           }
-
-          // Application created successfully, redirect to application-step
+   
           setTimeout(() => {
             router.replace(
               "/application-step/?application_id=" +
                 applicationResponse?.data?.data?.results?.application?.id
             );
-          }, 2000); // 2 second delay
+          }, 2000);
         } else {
           throw new Error("Failed to create visa application");
         }
       } catch (error) {
-        console.error(
-          "Error storing payment data or creating application:",
-          error
-        );
-        // Still redirect to application-step even if there's an error, after a brief delay
+        console.error("Error storing payment data or creating application:", error);
         setTimeout(() => {
           router.replace("/application-step");
         }, 2000);
@@ -652,9 +559,9 @@ const PaymentSuccess = () => {
         setIsCreatingApplication(false);
       }
     };
-
+   
     storePaymentDataAndRedirect();
-  }, []); // Empty dependency array to run only once
+  }, [searchParams]); // Empty dependency array to run only once
 
   // Show gift card purchase confirmation
   if (paymentType === "gift_card") {
