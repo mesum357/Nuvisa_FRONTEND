@@ -24,10 +24,10 @@ export const fetchFAQs = async (filters = null) => {
   // Only skip localhost URLs in production (allow them in development)
   const shouldSkipLocalhost = isProduction() && isLocalhost(adminApiUrl);
   const apiEndpoints = [
-    // 1. Admin panel API (if configured and not localhost in production)
-    adminApiUrl && !shouldSkipLocalhost ? `${adminApiUrl.replace(/\/+$/, '')}/api/public/faqs` : null,
-    // 2. Frontend's own API route (fallback)
+    // 1. Same-origin proxy (reliable; avoids CORS / client timeouts)
     '/api/faqs',
+    // 2. Admin panel API (direct)
+    adminApiUrl && !shouldSkipLocalhost ? `${adminApiUrl.replace(/\/+$/, '')}/api/public/faqs` : null,
   ].filter(Boolean);
 
   const normalizedFilters = typeof filters === 'string'
@@ -59,8 +59,9 @@ export const fetchFAQs = async (filters = null) => {
         withCredentials: false, // Don't send cookies for public endpoint
         timeout: 5000, // 5 second timeout
       });
-      console.log("faqs res: ", res)
-      if (res?.data?.success) return res.data.data;
+      if (res?.data?.success && Array.isArray(res.data.data)) return res.data.data;
+      if (Array.isArray(res?.data?.data)) return res.data.data;
+      if (Array.isArray(res?.data)) return res.data;
     } catch (error) {
       continue;
     }

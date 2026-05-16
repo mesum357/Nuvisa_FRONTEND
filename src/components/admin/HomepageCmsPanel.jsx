@@ -20,6 +20,39 @@ const defaultFields = {
     "At NUvisa, we want you to get your Schengen visa with total confidence, that's why we regularly review our prices.",
   price_match_tooltip:
     "We pride ourselves on our fair prices. Find it cheaper, and we'll match the price — that's a promise.",
+  occasion_section_title: "GREAT VALUE — £50 off your plan ahead",
+  occasion_section_subtitle:
+    "Lock it in today to maximise savings on top destinations.",
+  occasions_json: JSON.stringify(
+    [
+      {
+        title: "February Half Term 2026",
+        subTitle: "School break travel",
+        bgColor: "#5f9aff",
+        textColor: "#ffffff",
+      },
+      {
+        title: "Easter Break 2026",
+        subTitle: "Spring getaway",
+        bgColor: "#ff8e59",
+        textColor: "#ffffff",
+      },
+      {
+        title: "Summer Holidays 2026",
+        subTitle: "Peak season deals",
+        bgColor: "#daee69",
+        textColor: "#1a1a1a",
+      },
+      {
+        title: "October Half Term 2026",
+        subTitle: "Autumn escape",
+        bgColor: "#fdfd55",
+        textColor: "#1a1a1a",
+      },
+    ],
+    null,
+    2
+  ),
 };
 
 export default function HomepageCmsPanel() {
@@ -106,6 +139,46 @@ export default function HomepageCmsPanel() {
             value={fields.topdestination_countries || ""}
             onChange={(e) =>
               setFields((f) => ({ ...f, topdestination_countries: e.target.value }))
+            }
+          />
+        </div>
+        <h3
+          id="occasions-cms"
+          className="text-sm font-semibold text-white/90 uppercase tracking-wide pt-4 border-t border-white/10"
+        >
+          Everyday Steals / Occasions (yellow banner + coloured cards)
+        </h3>
+        <p className="text-xs text-white/40">
+          FAQs are managed in the external admin (nuvisa-admin) under public FAQs. Occasions here sync to the homepage when the admin occasion API is unavailable.
+        </p>
+        <div>
+          <label className="text-xs text-white/50">Occasion banner title</label>
+          <input
+            className="w-full mt-1 bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-sm"
+            value={fields.occasion_section_title || ""}
+            onChange={(e) =>
+              setFields((f) => ({ ...f, occasion_section_title: e.target.value }))
+            }
+          />
+        </div>
+        <div>
+          <label className="text-xs text-white/50">Occasion banner subtitle</label>
+          <input
+            className="w-full mt-1 bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-sm"
+            value={fields.occasion_section_subtitle || ""}
+            onChange={(e) =>
+              setFields((f) => ({ ...f, occasion_section_subtitle: e.target.value }))
+            }
+          />
+        </div>
+        <div>
+          <label className="text-xs text-white/50">Occasion cards (JSON array)</label>
+          <textarea
+            rows={8}
+            className="w-full mt-1 bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-sm font-mono"
+            value={fields.occasions_json || ""}
+            onChange={(e) =>
+              setFields((f) => ({ ...f, occasions_json: e.target.value }))
             }
           />
         </div>

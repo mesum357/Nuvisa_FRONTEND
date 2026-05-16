@@ -7,7 +7,6 @@ import { Info } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
-import { getAdminApiBase } from "@/utils/adminApiBase";
 
 const CountryCardsSection = dynamic(() => import("@/components/CountryCardsSection"), {
   loading: () => <div className="min-h-[120px]" />,
@@ -134,27 +133,27 @@ const Index = () => {
   useEffect(() => {
     const fetchHomepageDynamicContent = async () => {
       try {
-        const adminBase = getAdminApiBase();
-
-        const [contentRes, backendCmsRes] = await Promise.all([
-          fetch(`${adminBase}/api/content?t=${Date.now()}`),
+        const [contentHomeRes, backendCmsRes, occasionRes] = await Promise.all([
+          fetch("/api/content-home").catch(() => null),
           fetch("/api/homepage-content").catch(() => null),
+          fetch("/api/occasion-content").catch(() => null),
         ]);
 
         const byKey = {};
-        if (contentRes?.ok) {
-          const contentJson = await contentRes.json();
-          const contentRows = Array.isArray(contentJson?.data)
-            ? contentJson.data
-            : [];
-          contentRows.forEach((row) => {
-            if (row?.key) byKey[row.key] = row.value;
-          });
+        if (contentHomeRes?.ok) {
+          const contentJson = await contentHomeRes.json();
+          Object.assign(byKey, contentJson?.data || {});
         }
         if (backendCmsRes?.ok) {
           const backendJson = await backendCmsRes.json();
           const backendData = backendJson?.data || {};
           Object.assign(byKey, backendData);
+        }
+        if (occasionRes?.ok) {
+          const occJson = await occasionRes.json();
+          const occData = occJson?.data || {};
+          if (occData.title) byKey.ocassion_title = occData.title;
+          if (occData.description) byKey.ocassion_subtitle = occData.description;
         }
 
         if (Object.keys(byKey).length > 0) {
@@ -305,7 +304,7 @@ const Index = () => {
         <main className="flex items-center justify-center flex-col pb-[45px] mt-4 md:min-h-[calc(100vh-200px)] px-5 md:px-6">
           <DiscountTicket loading={loading} content={heroContent} />
           <div className="relative flex flex-col items-center justify-center text-left sm:text-center max-w-[1200px] min-h-[350px] sm:min-h-[500px] w-full overflow-hidden rounded-[30px] px-4 sm:px-8 pt-3 sm:pt-8 pb-12 sm:pb-20">
-            <DeferredHomeHeroVideo poster="/image/banner.png" />
+            <DeferredHomeHeroVideo poster="/image/hero-1104.webp" />
 
             <div className="relative z-10 max-w-4xl">
               <div className="hidden lg:block" />
