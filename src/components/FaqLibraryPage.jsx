@@ -8,7 +8,18 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import GetTheVisaButton from "@/components/layout/GetTheVisaButton";
 import { fetchFAQs as fetchFAQsFromAPI } from "@/api/faqs";
+import { getFaqGroupKey } from "@/utils/faqHelpers";
 import { toSlug } from "@/utils/toSlug";
+
+function matchFaqGroup(groupsBySlug, cardTitle) {
+  const slug = toSlug(cardTitle);
+  if (groupsBySlug.has(slug)) return groupsBySlug.get(slug);
+
+  for (const [key, group] of groupsBySlug.entries()) {
+    if (key === slug || toSlug(group.name) === slug) return group;
+  }
+  return null;
+}
 
 const ANSWER_LINKS = [
   { keyword: "Guarantee", href: "/our-guarantee" },
@@ -134,7 +145,7 @@ const FaqLibraryPage = () => {
         return (a?.question || "").localeCompare(b?.question || "");
       })
       .forEach((item) => {
-        const category = (item?.category || "General").trim() || "General";
+        const category = getFaqGroupKey(item) || "General";
         if (!groups.has(category)) {
           groups.set(category, []);
         }
@@ -155,11 +166,10 @@ const FaqLibraryPage = () => {
     const ordered = [];
 
     FAQ_CARD_CONTENT.forEach((card) => {
-      const slug = toSlug(card.title);
-      const matched = groupsBySlug.get(slug);
+      const matched = matchFaqGroup(groupsBySlug, card.title);
       if (matched) {
         ordered.push(matched);
-        groupsBySlug.delete(slug);
+        groupsBySlug.delete(toSlug(matched.name));
       }
     });
 

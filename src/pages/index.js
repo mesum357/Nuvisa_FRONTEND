@@ -25,7 +25,7 @@ const StickyBottomBar = dynamic(() => import("@/components/StickyBottomBar"), { 
 const Reviews = dynamic(() => import("@/components/Reviews"), { loading: () => null });
 const VisaProcessSection = dynamic(() => import("@/components/home/VisaProcessSection"));
 const DiscountTicket = dynamic(() => import("@/components/DiscountTicket"));
-const FAQSection = dynamic(() => import("@/components/Faqs"));
+import FAQSection from "@/components/Faqs";
 
 const defaultContactCards = {
   reduce: {

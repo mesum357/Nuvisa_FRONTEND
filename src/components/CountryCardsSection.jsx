@@ -22,33 +22,7 @@ import { useCountriesWithAppointmentTexts } from "@/hooks/useCountriesWithAppoin
 import { staticCountries } from "@/constants/staticCountries";
 import Link from "next/link";
 import { getAdminApiBase } from "@/utils/adminApiBase";
-
-const DEFAULT_OCCASIONS = [
-  {
-    title: "February Half Term 2026",
-    subTitle: "School break travel",
-    bgColor: "#5f9aff",
-    textColor: "#ffffff",
-  },
-  {
-    title: "Easter Break 2026",
-    subTitle: "Spring getaway",
-    bgColor: "#ff8e59",
-    textColor: "#ffffff",
-  },
-  {
-    title: "Summer Holidays 2026",
-    subTitle: "Peak season deals",
-    bgColor: "#daee69",
-    textColor: "#1a1a1a",
-  },
-  {
-    title: "October Half Term 2026",
-    subTitle: "Autumn escape",
-    bgColor: "#fdfd55",
-    textColor: "#1a1a1a",
-  },
-];
+import { DEFAULT_OCCASIONS } from "@/constants/defaultOccasions";
 
 const CountryCardsSection = ({
   specificCountries,
@@ -79,7 +53,9 @@ const CountryCardsSection = ({
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  const [occasions, setOccasions] = useState([]);
+  const [occasions, setOccasions] = useState(() =>
+    id === "everyday-steals" ? DEFAULT_OCCASIONS : []
+  );
 
   const normalizeCountryKey = useCallback(
     (value) =>
