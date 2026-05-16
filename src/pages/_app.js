@@ -2,63 +2,51 @@ import ToastProvider from "@/contexts/ToastContext";
 import ReduxProvider from "@/store/redux-provider";
 import "@/styles/globals.css";
 import { useEffect } from "react";
-import { useRouter } from "next/router"; // 1. Import useRouter
+import { useRouter } from "next/router";
+import DeferredAnalytics from "@/components/DeferredAnalytics";
+import LoadPaymentScripts from "@/components/LoadPaymentScripts";
 
 export default function App({ Component, pageProps }) {
-  const router = useRouter(); // 2. Initialize router
+  const router = useRouter();
+  const isCheckoutRoute =
+    router.pathname?.includes("checkout") ||
+    router.pathname?.includes("payment") ||
+    router.pathname?.includes("application-step");
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const isCheckoutRoute =
-      router.pathname?.includes("checkout") ||
-      router.pathname?.includes("payment") ||
-      router.pathname?.includes("application-step");
-    if (!isCheckoutRoute) return;
+    if (typeof window === "undefined" || !isCheckoutRoute) return;
 
-    // Initialize Stripe when the script loads (with error handling to prevent app crash)
-    if (typeof window !== "undefined") {
-      const initStripe = () => {
-        try {
-          if (window.Stripe && process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
-            window.stripeInstance = window.Stripe(
-              process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-            );
-            console.log("Stripe initialized successfully");
-          } else if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
-            console.warn("NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is not set");
-          }
-        } catch (error) {
-          // Silently catch Stripe initialization errors to prevent app crash
-          console.warn("Stripe initialization skipped:", error.message);
-          window.stripeInstance = null;
+    let cancelled = false;
+    const initStripe = () => {
+      try {
+        if (window.Stripe && process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
+          window.stripeInstance = window.Stripe(
+            process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+          );
+          return true;
         }
-      };
-
-      // If Stripe is already loaded
-      if (window.Stripe) {
-        initStripe();
-      } else {
-        // Wait for the script to load
-        const handleLoad = () => {
-          initStripe();
-          window.removeEventListener("load", handleLoad);
-        };
-        window.addEventListener("load", handleLoad);
-
-        // Also try after a short delay in case load already fired
-        const timeoutId = setTimeout(() => {
-          if (window.Stripe && !window.stripeInstance) {
-            initStripe();
-          }
-        }, 100);
-
-        return () => {
-          window.removeEventListener("load", handleLoad);
-          clearTimeout(timeoutId);
-        };
+      } catch (error) {
+        console.warn("Stripe initialization skipped:", error.message);
+        window.stripeInstance = null;
       }
-    }
-  }, [router.pathname]);
+      return false;
+    };
+
+    if (initStripe()) return;
+
+    const interval = setInterval(() => {
+      if (cancelled) return;
+      if (initStripe()) clearInterval(interval);
+    }, 250);
+
+    const stop = setTimeout(() => clearInterval(interval), 12000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      clearTimeout(stop);
+    };
+  }, [isCheckoutRoute]);
 
   // 3. GTM ROUTER LISTENER (This fixes the missing dataLayer issue)
   useEffect(() => {
@@ -84,6 +72,8 @@ export default function App({ Component, pageProps }) {
   return (
     <ReduxProvider>
       <ToastProvider>
+        <DeferredAnalytics />
+        {isCheckoutRoute && <LoadPaymentScripts />}
         <Component {...pageProps} />
       </ToastProvider>
     </ReduxProvider>
