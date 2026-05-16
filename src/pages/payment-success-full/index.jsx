@@ -52,27 +52,38 @@ const ApplicationStepPaymentSuccessPage = () => {
             Number(visaState.giftCardCount || 0),
             0
           );
+          const countryName = visaState.selectedCountry || "Schengen";
 
           const purchaseItems = [];
           if (travelers > 0)
             purchaseItems.push({
-              item_id: "schengen_visa",
-              item_name: "Schengen visa from the UK",
-              price: (Number(visaState.visaFees) || 0) / travelers,
+              item_id: `visa_${countryName.toLowerCase().replace(/\s+/g, "_")}`,
+              item_name: `Visa - ${countryName}`,
+              price: Number(
+                ((Number(visaState.visaFees) || 0) / travelers).toFixed(2)
+              ),
               quantity: travelers,
             });
           if (insuranceCount > 0)
             purchaseItems.push({
               item_id: "insurance_certificate",
               item_name: "Insurance Certificate",
-              price: (Number(visaState.insuranceFees) || 0) / insuranceCount,
+              price: Number(
+                (
+                  (Number(visaState.insuranceFees) || 0) / insuranceCount
+                ).toFixed(2)
+              ),
               quantity: insuranceCount,
             });
           if (giftCardCount > 0)
             purchaseItems.push({
               item_id: "digital_gift_card",
               item_name: "NUvisa Digital Gift Card",
-              price: (Number(visaState.giftCardFees) || 0) / giftCardCount,
+              price: Number(
+                ((Number(visaState.giftCardFees) || 0) / giftCardCount).toFixed(
+                  2
+                )
+              ),
               quantity: giftCardCount,
             });
 
@@ -80,8 +91,8 @@ const ApplicationStepPaymentSuccessPage = () => {
           window.dataLayer.push({
             event: "purchase",
             ecommerce: {
-              transaction_id: finalApplicationId || `TXN-${Date.now()}`, // GA4 strictly requires a transaction ID!
-              value: Number(visaState.totalAmount) || 0,
+              transaction_id: finalApplicationId || `TXN-${Date.now()}`,
+              value: Number((Number(visaState.totalAmount) || 0).toFixed(2)),
               currency: "GBP",
               coupon:
                 visaState.appliedDiscount?.code ||

@@ -562,12 +562,13 @@ const PaymentSuccess = () => {
         if (applicationResponse?.status === 200 || applicationResponse?.status === 201) {
           if (typeof window !== "undefined" && window.dataLayer) {
             const purchaseItems = [];
+            const countryName = mergedData.selectedCountry || "Schengen";
    
             if (numberOfTravelers > 0) {
               purchaseItems.push({
-                item_id: "schengen_visa",
-                item_name: "Schengen visa from the UK",
-                price: Number(mergedData.paymentWithoutInsurance || 0) / numberOfTravelers,
+                item_id: `visa_${countryName.toLowerCase().replace(/\s+/g, "_")}`,
+                item_name: `Visa - ${countryName}`,
+                price: Number((Number(mergedData.paymentWithoutInsurance || 0) / numberOfTravelers).toFixed(2)),
                 quantity: numberOfTravelers,
               });
             }
@@ -577,7 +578,7 @@ const PaymentSuccess = () => {
               purchaseItems.push({
                 item_id: "insurance_certificate",
                 item_name: "Insurance Certificate",
-                price: Number(mergedData.insurancePayment) / insCount,
+                price: Number((Number(mergedData.insurancePayment) / insCount).toFixed(2)),
                 quantity: insCount,
               });
             }
@@ -587,7 +588,7 @@ const PaymentSuccess = () => {
               purchaseItems.push({
                 item_id: "digital_gift_card",
                 item_name: "NUvisa Digital Gift Card",
-                price: (Number(visaState.giftCardFees) || 0) / giftCardCount,
+                price: Number(((Number(visaState.giftCardFees) || 0) / giftCardCount).toFixed(2)),
                 quantity: giftCardCount,
               });
             }
@@ -600,7 +601,7 @@ const PaymentSuccess = () => {
                   stripePaymentId ||
                   applicationResponse?.data?.data?.results?.application?.id ||
                   `TXN_${Date.now()}`,
-                value: Number(mergedData.totalAmount || 0),
+                value: Number(Number(mergedData.totalAmount || 0).toFixed(2)),
                 currency: "GBP",
                 coupon:
                   mergedData.storedMetadata?.couponCode ||
