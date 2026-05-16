@@ -1317,13 +1317,23 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
         event: "view_item",
         ecommerce: {
           currency: "GBP",
-          value: dynamicPricing?.basePrice ?? countryConfig.visaFee ?? 129,
+          value: Number(
+            (dynamicPricing?.basePrice ?? countryConfig.visaFee ?? 129).toFixed(
+              2
+            )
+          ),
           items: [
             {
-              item_id: `visa_${countryName.toLowerCase()}`,
+              item_id: `visa_${countryName.toLowerCase().replace(/\s+/g, "_")}`,
               item_name: `Visa - ${countryName}`,
               item_category: "Schengen Visa",
-              price: dynamicPricing?.basePrice ?? countryConfig.visaFee ?? 129,
+              price: Number(
+                (
+                  dynamicPricing?.basePrice ??
+                  countryConfig.visaFee ??
+                  129
+                ).toFixed(2)
+              ),
               quantity: 1,
             },
           ],
@@ -2995,9 +3005,9 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
     if (typeof window !== "undefined" && window.dataLayer) {
       const cartItems = [
         {
-          item_id: `visa_${countryName.toLowerCase()}`,
+          item_id: `visa_${countryName.toLowerCase().replace(/\s+/g, "_")}`,
           item_name: `Visa - ${countryName}`,
-          price: visaFees / travelers,
+          price: Number((visaFees / travelers).toFixed(2)),
           quantity: travelers,
         },
       ];
@@ -3006,7 +3016,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
         cartItems.push({
           item_id: "insurance_certificate",
           item_name: "Insurance Certificate",
-          price: insuranceFees / insuranceCount,
+          price: Number((insuranceFees / insuranceCount).toFixed(2)),
           quantity: insuranceCount,
         });
       }
@@ -3015,7 +3025,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
         cartItems.push({
           item_id: "digital_gift_card",
           item_name: "NUvisa Digital Gift Card",
-          price: giftCardFees / giftCardCount,
+          price: Number((giftCardFees / giftCardCount).toFixed(2)),
           quantity: giftCardCount,
         });
       }
@@ -3025,7 +3035,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
         event: "add_to_cart",
         ecommerce: {
           currency: "GBP",
-          value: totalAmount,
+          value: Number(totalAmount.toFixed(2)),
           coupon: appliedDiscount?.code || couponCode || undefined,
           items: cartItems,
         },
@@ -3322,7 +3332,9 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
           cartItems.push({
             item_id: `visa_${countryName.toLowerCase().replace(/\s+/g, "_")}`,
             item_name: `Visa - ${countryName}`,
-            price: travelers > 0 ? visaFees / travelers : visaFees,
+            price: Number(
+              (travelers > 0 ? visaFees / travelers : visaFees).toFixed(2)
+            ),
             quantity: travelers,
           });
         }
@@ -3331,7 +3343,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
           cartItems.push({
             item_id: "insurance_certificate",
             item_name: "Insurance Certificate",
-            price: insuranceFees / insuranceCount,
+            price: Number((insuranceFees / insuranceCount).toFixed(2)),
             quantity: insuranceCount,
           });
         }
@@ -3340,7 +3352,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
           cartItems.push({
             item_id: "digital_gift_card",
             item_name: "NUvisa Digital Gift Card",
-            price: giftCardFees / giftCardCount,
+            price: Number((giftCardFees / giftCardCount).toFixed(2)),
             quantity: giftCardCount,
           });
         }
@@ -3350,7 +3362,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
           event: "add_to_cart",
           ecommerce: {
             currency: "GBP",
-            value: totalAmount,
+            value: Number(totalAmount.toFixed(2)),
             coupon: appliedDiscount?.code || couponCode || undefined,
             items: cartItems,
           },
@@ -4983,14 +4995,32 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                         <button
                           onClick={() => {
                             if (
+                              !expressPaymentButtonRef.current
+                                ?.triggerPaymentRequest
+                            ) {
+                              showError(
+                                "Payment system is not initialized. Please refresh and try again."
+                              );
+                              return;
+                            }
+
+                            const validationError =
+                              validateBeforeExpressPayment();
+                            if (validationError) return;
+
+                            if (
                               typeof window !== "undefined" &&
                               window.dataLayer
                             ) {
+                              const countryName =
+                                getCountryParam(selectedCountry) || "Schengen";
                               const paymentItems = [];
                               if (travelers > 0)
                                 paymentItems.push({
-                                  item_id: "schengen_visa",
-                                  item_name: "Schengen visa from the UK",
+                                  item_id: `visa_${countryName
+                                    .toLowerCase()
+                                    .replace(/\s+/g, "_")}`,
+                                  item_name: `Visa - ${countryName}`,
                                   price: Number(
                                     (
                                       expressPaymentData.visaFees / travelers
@@ -5044,16 +5074,25 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                                   items: paymentItems,
                                 },
                               });
-                            }
 
-                            if (
-                              !expressPaymentButtonRef.current
-                                ?.triggerPaymentRequest
-                            ) {
-                              showError(
-                                "Payment system is not initialized. Please refresh and try again."
-                              );
-                              return;
+                              setTimeout(() => {
+                                window.dataLayer.push({ ecommerce: null });
+                                window.dataLayer.push({
+                                  event: "add_payment_info",
+                                  ecommerce: {
+                                    currency: "GBP",
+                                    value: Number(
+                                      expressPaymentData.totalAmount.toFixed(2)
+                                    ),
+                                    payment_type: "Apple Pay",
+                                    coupon:
+                                      appliedDiscount?.code ||
+                                      couponCode ||
+                                      undefined,
+                                    items: paymentItems,
+                                  },
+                                });
+                              }, 300);
                             }
 
                             const triggerResult =
@@ -5094,14 +5133,32 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                         <button
                           onClick={() => {
                             if (
+                              !expressPaymentButtonRef.current
+                                ?.triggerPaymentRequest
+                            ) {
+                              showError(
+                                "Payment system is not initialized. Please refresh and try again."
+                              );
+                              return;
+                            }
+
+                            const validationError =
+                              validateBeforeExpressPayment();
+                            if (validationError) return;
+
+                            if (
                               typeof window !== "undefined" &&
                               window.dataLayer
                             ) {
+                              const countryName =
+                                getCountryParam(selectedCountry) || "Schengen";
                               const paymentItems = [];
                               if (travelers > 0)
                                 paymentItems.push({
-                                  item_id: "schengen_visa",
-                                  item_name: "Schengen visa from the UK",
+                                  item_id: `visa_${countryName
+                                    .toLowerCase()
+                                    .replace(/\s+/g, "_")}`,
+                                  item_name: `Visa - ${countryName}`,
                                   price: Number(
                                     (
                                       expressPaymentData.visaFees / travelers
@@ -5155,16 +5212,25 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                                   items: paymentItems,
                                 },
                               });
-                            }
 
-                            if (
-                              !expressPaymentButtonRef.current
-                                ?.triggerPaymentRequest
-                            ) {
-                              showError(
-                                "Payment system is not initialized. Please refresh and try again."
-                              );
-                              return;
+                              setTimeout(() => {
+                                window.dataLayer.push({ ecommerce: null });
+                                window.dataLayer.push({
+                                  event: "add_payment_info",
+                                  ecommerce: {
+                                    currency: "GBP",
+                                    value: Number(
+                                      expressPaymentData.totalAmount.toFixed(2)
+                                    ),
+                                    payment_type: "Google Pay",
+                                    coupon:
+                                      appliedDiscount?.code ||
+                                      couponCode ||
+                                      undefined,
+                                    items: paymentItems,
+                                  },
+                                });
+                              }, 300);
                             }
 
                             const triggerResult =
