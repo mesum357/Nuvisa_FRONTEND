@@ -648,31 +648,15 @@ const VisaCheckout = () => {
           return;
         }
 
-        // If valid, redeem it
-        const redeemResponse = await redeemGiftCardCode(
-          codeUpper,
-          email || undefined
-        );
+        const validateResults =
+          validateResponse.data?.results || validateResponse.data || {};
+        const benefits = validateResults.benefits || {
+          freeTraveler: validateResults.giftCard?.quantity || 1,
+          freeInsurance: validateResults.giftCard?.quantity || 1,
+        };
+        const quantity = validateResults.giftCard?.quantity || 1;
 
-        // Handle different response structures
-        const isSuccess =
-          redeemResponse.status === "SUCCESS" ||
-          redeemResponse.status === "success";
-        const hasSuccessData =
-          redeemResponse.data?.success || redeemResponse.data?.results?.success;
-
-        if (isSuccess && hasSuccessData) {
-          // Store gift card benefits in Redux - add to array of redeemed cards
-          // Benefits are now based on quantity from backend (e.g., 2 gift cards = 2 free travelers + 2 free insurance)
-          const benefits = redeemResponse.data?.benefits ||
-            redeemResponse.data?.results?.benefits || {
-              freeTraveler: 1,
-              freeInsurance: 1,
-            };
-          const quantity =
-            redeemResponse.data?.giftCard?.quantity ||
-            redeemResponse.data?.results?.giftCard?.quantity ||
-            1;
+        if (validateResults.valid !== false) {
 
           // Check if this code is already redeemed
           const alreadyRedeemed = redeemedGiftCards.some(
@@ -689,6 +673,7 @@ const VisaCheckout = () => {
               code: codeUpper,
               benefits,
               quantity,
+              pendingRedeem: true,
             })
           );
           setCouponCodeLocal(""); // Clear input after successful redemption
@@ -702,12 +687,10 @@ const VisaCheckout = () => {
           const insuranceText =
             freeInsuranceCount === 1 ? "insurance" : "insurances";
           showSuccess(
-            `Gift card ${codeUpper} applied! You get ${freeTravelerCount} free ${travelerText} and ${freeInsuranceCount} free ${insuranceText}.`
+            `Gift card ${codeUpper} applied! You get ${freeTravelerCount} free ${travelerText} and ${freeInsuranceCount} free ${insuranceText}. Code will be redeemed when payment completes.`
           );
         } else {
-          setCouponError(
-            redeemResponse.message || "Failed to redeem gift card"
-          );
+          setCouponError(validateResponse.message || "Invalid gift card code");
           setIsRedeemingGiftCard(false);
           return;
         }

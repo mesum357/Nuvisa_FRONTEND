@@ -5,6 +5,7 @@ import { getApplicationOverview } from "@/api/admin";
 import { localStorageEnums } from "@/enums/localstorage.enums";
 import { localStorageGateway } from "@/gateways/localStoragegateway";
 import ApplicationStatusList from "@/components/admin/ApplicationStatusList";
+import HomepageCmsPanel from "@/components/admin/HomepageCmsPanel";
 import { saveOrderId, getOrderId } from "@/utils/adminStorage";
 import { useRouter } from "next/router";
 import { formatApplicationId, formatOrderId } from "@/utils/idFormat";
@@ -190,6 +191,8 @@ export default function AdminDashboard() {
             </div>
           </div>
         </div>
+
+        <HomepageCmsPanel />
 
         {applications.length > 0 && (
           <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 mb-8 shadow-xl">
