@@ -81,6 +81,28 @@ export default function HomepageCmsPanel() {
     load();
   }, [token]);
 
+  const handleImportFromLiveSite = async () => {
+    try {
+      const res = await fetch("/api/occasion-content?defaults=true");
+      const json = await res.json();
+      const data = json?.data || {};
+      setFields((f) => ({
+        ...f,
+        occasion_section_title: data.title || f.occasion_section_title,
+        occasion_section_subtitle: data.description || f.occasion_section_subtitle,
+        occasions_json:
+          data.occasions?.length > 0
+            ? JSON.stringify(data.occasions, null, 2)
+            : f.occasions_json,
+      }));
+      setMessage(
+        `Loaded preview from ${json.source || "API"}. Edit and Save to persist to the homepage.`
+      );
+    } catch (e) {
+      setMessage(e.message || "Import failed");
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     setMessage("");
@@ -149,7 +171,11 @@ export default function HomepageCmsPanel() {
           Everyday Steals / Occasions (yellow banner + coloured cards)
         </h3>
         <p className="text-xs text-white/40">
-          FAQs are managed in the external admin (nuvisa-admin) under public FAQs. Occasions here sync to the homepage when the admin occasion API is unavailable.
+          <strong className="text-white/60">This is what the live homepage reads</strong> (backend{" "}
+          <code className="text-[#c4b5fd]">/cms/homepage</code> →{" "}
+          <code className="text-[#c4b5fd]">occasions_json</code>). nuvisa-admin&apos;s occasion
+          API is not published on production yet — copy your occasion cards JSON from nuvisa-admin
+          into the field below and click Save.
         </p>
         <div>
           <label className="text-xs text-white/50">Occasion banner title</label>
@@ -222,14 +248,23 @@ export default function HomepageCmsPanel() {
         </div>
       </div>
       {message && <p className="text-sm text-emerald-400 mt-3">{message}</p>}
-      <button
-        type="button"
-        disabled={saving}
-        onClick={handleSave}
-        className="mt-4 px-6 py-2 bg-[#7350FF] rounded-lg text-sm font-medium disabled:opacity-50"
-      >
-        {saving ? "Saving..." : "Save homepage content"}
-      </button>
+      <div className="mt-4 flex flex-wrap gap-3">
+        <button
+          type="button"
+          onClick={handleImportFromLiveSite}
+          className="px-5 py-2 border border-white/20 hover:bg-white/10 rounded-lg text-sm font-medium"
+        >
+          Preview live API data
+        </button>
+        <button
+          type="button"
+          disabled={saving}
+          onClick={handleSave}
+          className="px-6 py-2 bg-[#7350FF] rounded-lg text-sm font-medium disabled:opacity-50"
+        >
+          {saving ? "Saving..." : "Save homepage content"}
+        </button>
+      </div>
     </div>
   );
 }

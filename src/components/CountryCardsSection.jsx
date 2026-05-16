@@ -149,7 +149,9 @@ const CountryCardsSection = ({
     const fetchDynamicSection = async () => {
       try {
         if (id === "everyday-steals") {
-          const occRes = await fetch(`/api/occasion-content?t=${Date.now()}`);
+          const occRes = await fetch(
+            `/api/occasion-content?t=${Date.now()}&defaults=false`
+          );
 
           if (!occRes.ok)
             throw new Error(`HTTP error! status: ${occRes.status}`);
@@ -169,15 +171,31 @@ const CountryCardsSection = ({
             ) {
               setOccasions(occResult.data.occasions);
             } else {
-              setOccasions(DEFAULT_OCCASIONS);
+              const fallbackRes = await fetch(
+                `/api/country-section?defaults=false&t=${Date.now()}`
+              );
+              if (fallbackRes.ok) {
+                const fallbackJson = await fallbackRes.json();
+                if (fallbackJson?.data?.occasions?.length > 0) {
+                  setOccasions(fallbackJson.data.occasions);
+                  setDynamicSection(fallbackJson.data);
+                }
+              }
             }
           } else {
-            setOccasions(DEFAULT_OCCASIONS);
+            const fallbackRes = await fetch(
+              `/api/country-section?defaults=false&t=${Date.now()}`
+            );
+            if (fallbackRes.ok) {
+              const fallbackJson = await fallbackRes.json();
+              if (fallbackJson?.data?.occasions?.length > 0) {
+                setOccasions(fallbackJson.data.occasions);
+              }
+            }
           }
         } else {
-          const res = await fetch(`${adminApiUrl}/api/country-section`);
+          const res = await fetch(`/api/country-section?t=${Date.now()}`);
 
-          // 🔥 ADD THIS CHECK
           if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
 
           const result = await res.json();
@@ -501,13 +519,17 @@ const CountryCardsSection = ({
             <div className="flex flex-col text-white items-center justify-center">
               <div className="flex items-center gap-2">
                 <p className="text-[24px] lg:text-[26px] font-gilroy-bold text-black leading-tight">
-                  {occasionContent || "Grab £50 off your advance booking"}
+                  {occasionContent ||
+                    dynamicSection?.title ||
+                    "Grab £50 off your advance booking"}
                 </p>
               </div>
 
               <div className="flex items-center gap-2 text-gray-500 font-gilroy-medium mt-1">
                 <p className="text-[12px] md:text-lg font-semibold">
-                  {occasionSubtitle || "Lock it in today to maximise savings."}
+                  {occasionSubtitle ||
+                    dynamicSection?.description ||
+                    "Lock it in today to maximise savings."}
                 </p>
               </div>
             </div>

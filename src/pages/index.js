@@ -152,8 +152,14 @@ const Index = () => {
         if (occasionRes?.ok) {
           const occJson = await occasionRes.json();
           const occData = occJson?.data || {};
-          if (occData.title) byKey.ocassion_title = occData.title;
-          if (occData.description) byKey.ocassion_subtitle = occData.description;
+          if (occData.title) {
+            byKey.occasion_section_title = occData.title;
+            byKey.ocassion_title = occData.title;
+          }
+          if (occData.description) {
+            byKey.occasion_section_subtitle = occData.description;
+            byKey.ocassion_subtitle = occData.description;
+          }
         }
 
         if (Object.keys(byKey).length > 0) {
@@ -189,8 +195,12 @@ const Index = () => {
           });
 
           setUrgentDescription(byKey.urgent_description);
-          setOccasionContent(byKey.ocassion_title || null);
-          setOccasionSubtitle(byKey.ocassion_subtitle || null);
+          setOccasionContent(
+            byKey.occasion_section_title || byKey.ocassion_title || null
+          );
+          setOccasionSubtitle(
+            byKey.occasion_section_subtitle || byKey.ocassion_subtitle || null
+          );
           setVisaSolutionContent({
             title: byKey.visasolution_title || defaultVisaSolutionContent.title,
             subtitle:

@@ -6,6 +6,7 @@ import { localStorageEnums } from "@/enums/localstorage.enums";
 import { localStorageGateway } from "@/gateways/localStoragegateway";
 import ApplicationStatusList from "@/components/admin/ApplicationStatusList";
 import HomepageCmsPanel from "@/components/admin/HomepageCmsPanel";
+import FaqCmsPanel from "@/components/admin/FaqCmsPanel";
 import FeedbackSubmissionsPanel from "@/components/admin/FeedbackSubmissionsPanel";
 import { saveOrderId, getOrderId } from "@/utils/adminStorage";
 import { useRouter } from "next/router";
@@ -193,6 +194,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
+        <FaqCmsPanel />
         <HomepageCmsPanel />
         <FeedbackSubmissionsPanel />
 
