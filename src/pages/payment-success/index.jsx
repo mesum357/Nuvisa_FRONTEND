@@ -262,12 +262,13 @@ const PaymentSuccess = () => {
             decrementExpertSpotsOnSuccessfulCheckout(stripePaymentIdEarly);
           }
 
-          if (finalApplicationId && process.env.NEXT_PUBLIC_API_URL) {
+          if (currentData.email && process.env.NEXT_PUBLIC_API_URL) {
             try {
               const postAmountRaw =
                 (usedStoredInsuranceMetadata &&
                   usedStoredInsuranceMetadata.paymentAmount) ||
                 currentData.totalAmount ||
+                currentData.insurancePayment ||
                 "0";
               await fetch(
                 `${process.env.NEXT_PUBLIC_API_URL}/stripe_payment/test-insurance-payment`,
@@ -276,7 +277,7 @@ const PaymentSuccess = () => {
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
                     paymentType: finalPaymentType,
-                    applicationId: finalApplicationId,
+                    applicationId: finalApplicationId || undefined,
                     travelerIndex: travelerIndex,
                     email: currentData.email,
                     amount: postAmountRaw,

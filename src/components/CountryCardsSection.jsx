@@ -23,6 +23,33 @@ import { staticCountries } from "@/constants/staticCountries";
 import Link from "next/link";
 import { getAdminApiBase } from "@/utils/adminApiBase";
 
+const DEFAULT_OCCASIONS = [
+  {
+    title: "February Half Term 2026",
+    subTitle: "School break travel",
+    bgColor: "#5f9aff",
+    textColor: "#ffffff",
+  },
+  {
+    title: "Easter Break 2026",
+    subTitle: "Spring getaway",
+    bgColor: "#ff8e59",
+    textColor: "#ffffff",
+  },
+  {
+    title: "Summer Holidays 2026",
+    subTitle: "Peak season deals",
+    bgColor: "#daee69",
+    textColor: "#1a1a1a",
+  },
+  {
+    title: "October Half Term 2026",
+    subTitle: "Autumn escape",
+    bgColor: "#fdfd55",
+    textColor: "#1a1a1a",
+  },
+];
+
 const CountryCardsSection = ({
   specificCountries,
   image,
@@ -145,14 +172,12 @@ const CountryCardsSection = ({
 
     const fetchDynamicSection = async () => {
       try {
-        const adminApiUrl =
-          process.env.NEXT_PUBLIC_ADMIN_API_URL || "http://localhost:3001";
+        const adminApiUrl = getAdminApiBase();
 
         if (id === "everyday-steals") {
           const url = `${adminApiUrl}/api/occasion-content?t=${Date.now()}`;
           const occRes = await fetch(url);
 
-          // 🔥 ADD THIS CHECK: Don't parse JSON if the server returned a 404 HTML page
           if (!occRes.ok)
             throw new Error(`HTTP error! status: ${occRes.status}`);
 
@@ -166,10 +191,15 @@ const CountryCardsSection = ({
             });
             if (
               occResult.data.occasions &&
-              Array.isArray(occResult.data.occasions)
+              Array.isArray(occResult.data.occasions) &&
+              occResult.data.occasions.length > 0
             ) {
               setOccasions(occResult.data.occasions);
+            } else {
+              setOccasions(DEFAULT_OCCASIONS);
             }
+          } else {
+            setOccasions(DEFAULT_OCCASIONS);
           }
         } else {
           const res = await fetch(`${adminApiUrl}/api/country-section`);
@@ -187,7 +217,10 @@ const CountryCardsSection = ({
           }
         }
       } catch (error) {
-        console.error("Failed to fetch dynamic section:", error.message); // Cleaner error log
+        console.error("Failed to fetch dynamic section:", error.message);
+        if (id === "everyday-steals") {
+          setOccasions(DEFAULT_OCCASIONS);
+        }
       } finally {
         setIsDynamicLoading(false);
       }

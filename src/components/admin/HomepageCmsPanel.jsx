@@ -68,10 +68,16 @@ export default function HomepageCmsPanel() {
   return (
     <div className="bg-white/5 border border-white/10 rounded-xl p-6 mb-8">
       <h2 className="text-lg font-semibold text-white mb-4">Homepage content</h2>
-      <p className="text-white/50 text-sm mb-4">
-        Edit Top Destinations and Price Match sections shown on the public homepage.
+      <p className="text-white/50 text-sm mb-6">
+        Edit homepage sections. Price Match controls the guarantee block above the footer.
       </p>
-      <div className="space-y-4">
+      <div className="space-y-6">
+        <h3
+          id="top-destinations-cms"
+          className="text-sm font-semibold text-white/90 uppercase tracking-wide pt-2"
+        >
+          Top destinations
+        </h3>
         <div>
           <label className="text-xs text-white/50">Top destinations title</label>
           <input
@@ -103,6 +109,12 @@ export default function HomepageCmsPanel() {
             }
           />
         </div>
+        <h3
+          id="price-match-cms"
+          className="text-sm font-semibold text-[#c4b5fd] uppercase tracking-wide pt-4 border-t border-white/10"
+        >
+          Price Match Promise (homepage guarantee section)
+        </h3>
         <div>
           <label className="text-xs text-white/50">Price match title</label>
           <input
