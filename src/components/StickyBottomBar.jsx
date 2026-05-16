@@ -610,9 +610,10 @@ const StickyBottomBar = ({ triggerElementId }) => {
       const cartItems = [];
 
       if (quantities.schengen > 0) {
+        const countryName = visaState.selectedCountry || "Schengen";
         cartItems.push({
-          item_id: "schengen_visa",
-          item_name: "Schengen visa from the UK",
+          item_id: `visa_${countryName.toLowerCase().replace(/\s+/g, "_")}`,
+          item_name: `Visa - ${countryName}`,
           price: Number(
             (discountedPrices.visa / quantities.schengen).toFixed(2)
           ),

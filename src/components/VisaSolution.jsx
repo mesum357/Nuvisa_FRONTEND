@@ -111,13 +111,13 @@ const VisaSolution = ({
         event: "view_item",
         ecommerce: {
           currency: "GBP",
-          value: itemPrice,
+          value: Number(itemPrice.toFixed(2)),
           items: [
             {
               item_id: `visa_${countryName.toLowerCase().replace(/\s+/g, "_")}`,
               item_name: `Visa - ${countryName}`,
               item_category: "Schengen Visa",
-              price: itemPrice,
+              price: Number(itemPrice.toFixed(2)),
               quantity: 1,
             },
           ],
