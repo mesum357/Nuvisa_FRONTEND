@@ -165,7 +165,7 @@ const PremiumServiceSection = ({ contactCardsData }) => {
                 width={175}
                 height={175}
                 className="w-[120px] md:w-[130px] lg:w-[175px] object-contain"
-                priority
+                loading="lazy"
               />
               <Image
                 src="/image/ICO-new.png"
@@ -173,7 +173,7 @@ const PremiumServiceSection = ({ contactCardsData }) => {
                 width={175}
                 height={175}
                 className="w-[120px] md:w-[130px] lg:w-[175px] object-contain"
-                priority
+                loading="lazy"
               />
               <Image
                 src="/image/pci-dss.png"
@@ -181,7 +181,7 @@ const PremiumServiceSection = ({ contactCardsData }) => {
                 width={175}
                 height={175}
                 className="w-[120px] md:w-[130px] lg:w-[175px] object-contain"
-                priority
+                loading="lazy"
               />
             </div>
           </div>
@@ -247,7 +247,7 @@ const PremiumServiceSection = ({ contactCardsData }) => {
                     alt="Icon"
                     fill
                     className="object-contain p-6 md:p-10 pointer-events-none"
-                    priority
+                    loading="lazy"
                   />
                 </div>
               </div>
@@ -288,7 +288,7 @@ const PremiumServiceSection = ({ contactCardsData }) => {
                     alt="Icon"
                     fill
                     className="object-contain p-8 md:p-15 pointer-events-none"
-                    priority
+                    loading="lazy"
                   />
                 </div>
               </div>
@@ -329,7 +329,7 @@ const PremiumServiceSection = ({ contactCardsData }) => {
                     alt="Icon"
                     fill
                     className="object-contain p-6 pointer-events-none"
-                    priority
+                    loading="lazy"
                   />
                 </div>
               </div>
@@ -370,7 +370,7 @@ const PremiumServiceSection = ({ contactCardsData }) => {
                     alt="Icon"
                     fill
                     className="object-contain p-8 md:p-15 pointer-events-none"
-                    priority
+                    loading="lazy"
                   />
                 </div>
               </div>

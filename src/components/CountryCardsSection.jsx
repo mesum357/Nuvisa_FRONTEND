@@ -172,11 +172,8 @@ const CountryCardsSection = ({
 
     const fetchDynamicSection = async () => {
       try {
-        const adminApiUrl = getAdminApiBase();
-
         if (id === "everyday-steals") {
-          const url = `${adminApiUrl}/api/occasion-content?t=${Date.now()}`;
-          const occRes = await fetch(url);
+          const occRes = await fetch(`/api/occasion-content?t=${Date.now()}`);
 
           if (!occRes.ok)
             throw new Error(`HTTP error! status: ${occRes.status}`);
@@ -551,7 +548,8 @@ const CountryCardsSection = ({
               alt="Choose Country"
               fill
               className="object-cover transition-transform duration-700 group-hover:scale-105"
-              priority
+              loading={id === "everyday-steals" ? "lazy" : "eager"}
+              sizes="(max-width: 1024px) 50vw, 33vw"
             />
             <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent"></div>
             <div className="absolute bottom-4 left-4 text-white">
