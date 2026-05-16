@@ -8,6 +8,13 @@ export default function App({ Component, pageProps }) {
   const router = useRouter(); // 2. Initialize router
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const isCheckoutRoute =
+      router.pathname?.includes("checkout") ||
+      router.pathname?.includes("payment") ||
+      router.pathname?.includes("application-step");
+    if (!isCheckoutRoute) return;
+
     // Initialize Stripe when the script loads (with error handling to prevent app crash)
     if (typeof window !== "undefined") {
       const initStripe = () => {
@@ -51,7 +58,7 @@ export default function App({ Component, pageProps }) {
         };
       }
     }
-  }, []);
+  }, [router.pathname]);
 
   // 3. GTM ROUTER LISTENER (This fixes the missing dataLayer issue)
   useEffect(() => {

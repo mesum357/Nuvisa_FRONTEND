@@ -209,7 +209,13 @@ const AppDownloadPopup = () => {
       setTimeout(() => setIsAnimating(true), 10);
     };
 
-    // Timer-based trigger
+    const onNavbarVisible = () => {
+      showPopup();
+    };
+
+    window.addEventListener("nuvisa-navbar-visible", onNavbarVisible);
+
+    // Fallback timer if navbar event does not fire
     const timer = setTimeout(showPopup, delayMs);
 
     // Exit intent: mouse moves toward the top browser UI (tabs / address bar / close button)
@@ -244,6 +250,7 @@ const AppDownloadPopup = () => {
 
     return () => {
       clearTimeout(timer);
+      window.removeEventListener("nuvisa-navbar-visible", onNavbarVisible);
       document.removeEventListener("mouseleave", handleMouseLeave);
       document.removeEventListener("mouseout", handleMouseOut);
       document.removeEventListener("visibilitychange", handleVisibilityChange);

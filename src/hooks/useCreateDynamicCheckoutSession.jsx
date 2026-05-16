@@ -127,7 +127,20 @@ const useCreateDynamicCheckoutSession = () => {
       );
     } else if (
       normalizedPaymentType === "additional_traveler_insurance" ||
-      normalizedPaymentType === "traveler_insurance" ||
+      normalizedPaymentType === "traveler_insurance"
+    ) {
+      const insuranceParams = new URLSearchParams({
+        payment_type: normalizedPaymentType,
+      });
+      if (applicationId) {
+        insuranceParams.set("application_id", String(applicationId));
+      }
+      if (travelerIndex !== undefined && travelerIndex !== null && travelerIndex !== "") {
+        insuranceParams.set("traveler_index", String(travelerIndex));
+      }
+      successUrl =
+        successUrlOverride || `/payment-success?${insuranceParams.toString()}`;
+    } else if (
       normalizedPaymentType === "full_payment" ||
       normalizedPaymentType === "additional_traveler"
     ) {

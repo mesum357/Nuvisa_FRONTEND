@@ -1,25 +1,29 @@
 "use client";
-import ComparisonSection from "@/components/ComparisonSection";
+import dynamic from "next/dynamic";
 import CountryCardsSection from "@/components/CountryCardsSection";
 import VisaHeroSection from "@/components/CountryRotator";
-import FeaturesSection from "@/components/FeaturesSection";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
-import OurMission from "@/components/OurMission";
-import PremiumServiceSection from "@/components/PremiumServiceSection";
-import VisaSolution from "@/components/VisaSolution";
 import AppDownloadPopup from "@/components/AppDownloadPopup";
 import { useHeroContent } from "@/hooks/useHeroContent";
 import { Info } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import StickyBottomBar from "@/components/StickyBottomBar";
-import Reviews from "@/components/Reviews";
-import VisaProcessSection from "@/components/home/VisaProcessSection";
-import DiscountTicket from "@/components/DiscountTicket";
 import { useState, useEffect, useRef } from "react";
 import { getAdminApiBase } from "@/utils/adminApiBase";
-import FAQSection from "@/components/Faqs";
+
+const ComparisonSection = dynamic(() => import("@/components/ComparisonSection"), {
+  loading: () => <div className="min-h-[200px]" />,
+});
+const FeaturesSection = dynamic(() => import("@/components/FeaturesSection"));
+const OurMission = dynamic(() => import("@/components/OurMission"));
+const PremiumServiceSection = dynamic(() => import("@/components/PremiumServiceSection"));
+const VisaSolution = dynamic(() => import("@/components/VisaSolution"));
+const StickyBottomBar = dynamic(() => import("@/components/StickyBottomBar"), { ssr: false });
+const Reviews = dynamic(() => import("@/components/Reviews"), { loading: () => null });
+const VisaProcessSection = dynamic(() => import("@/components/home/VisaProcessSection"));
+const DiscountTicket = dynamic(() => import("@/components/DiscountTicket"));
+const FAQSection = dynamic(() => import("@/components/Faqs"));
 
 const defaultContactCards = {
   reduce: {
@@ -96,6 +100,15 @@ const Index = () => {
   const [occasionContent, setOccasionContent] = useState(null);
   const [occasionSubtitle, setOccasionSubtitle] = useState(null);
   const [urgentDescription, setUrgentDescription] = useState("");
+  const [priceMatchTitle, setPriceMatchTitle] = useState(
+    "The NUvisa Price Match Promise"
+  );
+  const [priceMatchDescription, setPriceMatchDescription] = useState(
+    "At NUvisa, we want you to get your Schengen visa with total confidence, that's why we regularly review our prices. In fact, we promise to match any like-for-like Schengen visa price, so you can apply with peace of mind."
+  );
+  const [priceMatchTooltip, setPriceMatchTooltip] = useState(
+    "We pride ourselves on our fair prices, expertise, and simplicity. Meaning you won't find better value elsewhere, thanks to our unbeatable prices. Find it cheaper, and we'll match the price — that's a promise."
+  );
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -120,19 +133,28 @@ const Index = () => {
       try {
         const adminBase = getAdminApiBase();
 
-        const [contentRes] = await Promise.all([
+        const [contentRes, backendCmsRes] = await Promise.all([
           fetch(`${adminBase}/api/content?t=${Date.now()}`),
+          fetch("/api/homepage-content").catch(() => null),
         ]);
 
-        if (contentRes.ok) {
+        const byKey = {};
+        if (contentRes?.ok) {
           const contentJson = await contentRes.json();
           const contentRows = Array.isArray(contentJson?.data)
             ? contentJson.data
             : [];
-          const byKey = contentRows.reduce((acc, row) => {
-            if (row?.key) acc[row.key] = row.value;
-            return acc;
-          }, {});
+          contentRows.forEach((row) => {
+            if (row?.key) byKey[row.key] = row.value;
+          });
+        }
+        if (backendCmsRes?.ok) {
+          const backendJson = await backendCmsRes.json();
+          const backendData = backendJson?.data || {};
+          Object.assign(byKey, backendData);
+        }
+
+        if (Object.keys(byKey).length > 0) {
           setContactCards({
             reduce: {
               title:
@@ -229,6 +251,11 @@ const Index = () => {
               ? parsedTopCountries
               : defaultTopDestinationCountries
           );
+
+          if (byKey.price_match_title) setPriceMatchTitle(byKey.price_match_title);
+          if (byKey.price_match_description)
+            setPriceMatchDescription(byKey.price_match_description);
+          if (byKey.price_match_tooltip) setPriceMatchTooltip(byKey.price_match_tooltip);
         }
       } catch (_error) {
         // Keep defaults on fetch failure
@@ -458,7 +485,7 @@ const Index = () => {
                     alt="Badge Icon"
                   />
                   <h2 className="text-[26px] lg:text-[32px] font-gilroy-bold text-white leading-tight">
-                    The NUvisa Price Match Promise
+                    {priceMatchTitle}
                   </h2>
 
                   {/* Tooltip */}
@@ -479,12 +506,7 @@ const Index = () => {
                     />
                     {showTooltip && (
                       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 p-3 bg-[#6F48FF] text-white text-[12px] font-normal leading-tight rounded-xl shadow-2xl z-50">
-                        <p>
-                          We pride ourselves on our fair prices, expertise, and
-                          simplicity. Meaning you won’t find better value
-                          elsewhere, thanks to our unbeatable prices. Find it
-                          cheaper, and we’ll match the price — that’s a promise.
-                        </p>
+                        <p>{priceMatchTooltip}</p>
                         <div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-[#6F48FF]" />
                       </div>
                     )}
@@ -492,10 +514,7 @@ const Index = () => {
                 </div>
 
                 <p className="text-gray-400 text-sm md:text-md max-w-2xl font-gilroy-medium">
-                  At NUvisa, we want you to get your Schengen visa with total
-                  confidence, that's why we regularly review our prices. In
-                  fact, we promise to match any like-for-like Schengen visa
-                  price, so you can apply with peace of mind.
+                  {priceMatchDescription}
                 </p>
               </div>
             </div>
