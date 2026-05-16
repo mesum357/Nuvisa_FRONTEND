@@ -124,6 +124,11 @@ const Navbar = () => {
         <nav
           ref={navRef}
           data-nuvisa-navbar="true"
+          onMouseEnter={() => {
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(new CustomEvent("nuvisa-exit-intent"));
+            }
+          }}
           className="relative flex items-center justify-between border-[#423577] sec_bg rounded-[70px] border px-6 lg:px-4 py-3 md:py-4 mx-[0px]"
         >
           {/* Left Logo */}

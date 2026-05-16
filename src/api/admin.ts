@@ -250,6 +250,18 @@ export const updateHomepageCmsSettings = async (token, data) => {
   return response;
 };
 
+export const getFeedbackSubmissions = async (token, params = {}) => {
+  const query = new URLSearchParams();
+  if (params.page) query.set('page', String(params.page));
+  if (params.limit) query.set('limit', String(params.limit));
+  const qs = query.toString();
+  const response = await adminApi.get(
+    `/orders/feedback${qs ? `?${qs}` : ''}`,
+    addAuthToken(token)
+  );
+  return response;
+};
+
 export const postApplicationComment = async (token, applicationId, payload) => {
   const response = await adminApi.post(
     `/orders/application/${applicationId}/comments`,

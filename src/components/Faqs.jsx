@@ -42,7 +42,10 @@ const FAQSection = () => {
   const fetchFAQData = async () => {
     try {
       setLoading(true);
-      const faqData = await fetchFAQsFromAPI({ isFeatured: true });
+      let faqData = await fetchFAQsFromAPI({ isFeatured: true });
+      if (!Array.isArray(faqData) || faqData.length === 0) {
+        faqData = await fetchFAQsFromAPI();
+      }
       setFaqs(Array.isArray(faqData) ? faqData : []);
     } catch (error) {
       console.error('Error fetching FAQs:', error);
@@ -56,7 +59,10 @@ const FAQSection = () => {
     const typeMeta = new Map();
 
     (Array.isArray(faqs) ? faqs : []).forEach((faq) => {
-      const type = typeof faq?.faqType === 'string' ? faq.faqType.trim() : '';
+      const type =
+        typeof faq?.faqType === 'string' && faq.faqType.trim()
+          ? faq.faqType.trim()
+          : 'General';
       if (type) {
         const rawCreatedAt = faq?.faqTypeCreatedAt || faq?.createdAt || null;
         const createdAtMs = rawCreatedAt ? new Date(rawCreatedAt).getTime() : Number.MAX_SAFE_INTEGER;
@@ -132,10 +138,14 @@ const FAQSection = () => {
         return (a?.question || '').localeCompare(b?.question || '');
       })
       .forEach((faq) => {
-        const type = typeof faq?.faqType === 'string' ? faq.faqType.trim() : '';
-        if (type && grouped.hasOwnProperty(type)) {
-          grouped[type].push(faq);
+        const type =
+          typeof faq?.faqType === 'string' && faq.faqType.trim()
+            ? faq.faqType.trim()
+            : 'General';
+        if (!grouped[type]) {
+          grouped[type] = [];
         }
+        grouped[type].push(faq);
       });
 
     return grouped;

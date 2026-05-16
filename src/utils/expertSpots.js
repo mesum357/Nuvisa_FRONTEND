@@ -71,8 +71,8 @@ export const syncExpertSpots = () => {
 
   let spots = normalizeSpotsLeft(storedSpots, dynamicDefaultSpots);
 
-  // Reset on first check after UK midnight only if remaining spots are low.
-  if (lastResetDay !== dayKey && spots <= 5) {
+  // Reset on first check after UK midnight when spots are 8 or below (top up to default, usually 12).
+  if (lastResetDay !== dayKey && spots <= 8) {
     spots = dynamicDefaultSpots;
     localStorage.setItem(SPOTS_LEFT_STORAGE_KEY, String(spots));
     localStorage.setItem(LAST_RESET_DAY_STORAGE_KEY, dayKey);
