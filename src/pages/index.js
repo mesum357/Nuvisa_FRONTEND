@@ -1,10 +1,7 @@
 "use client";
 import dynamic from "next/dynamic";
-import CountryCardsSection from "@/components/CountryCardsSection";
-import VisaHeroSection from "@/components/CountryRotator";
-import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
-import AppDownloadPopup from "@/components/AppDownloadPopup";
+import DeferredHomeHeroVideo from "@/components/home/DeferredHomeHeroVideo";
 import { useHeroContent } from "@/hooks/useHeroContent";
 import { Info } from "lucide-react";
 import Link from "next/link";
@@ -12,10 +9,16 @@ import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import { getAdminApiBase } from "@/utils/adminApiBase";
 
-const ComparisonSection = dynamic(() => import("@/components/ComparisonSection"), {
-  loading: () => <div className="min-h-[200px]" />,
+const CountryCardsSection = dynamic(() => import("@/components/CountryCardsSection"), {
+  loading: () => <div className="min-h-[120px]" />,
 });
-const FeaturesSection = dynamic(() => import("@/components/FeaturesSection"));
+const VisaHeroSection = dynamic(() => import("@/components/CountryRotator"), {
+  loading: () => <div className="min-h-[80px]" />,
+});
+const Footer = dynamic(() => import("@/components/Footer"));
+const AppDownloadPopup = dynamic(() => import("@/components/AppDownloadPopup"), {
+  ssr: false,
+});
 const OurMission = dynamic(() => import("@/components/OurMission"));
 const PremiumServiceSection = dynamic(() => import("@/components/PremiumServiceSection"));
 const VisaSolution = dynamic(() => import("@/components/VisaSolution"));
@@ -302,19 +305,7 @@ const Index = () => {
         <main className="flex items-center justify-center flex-col pb-[45px] mt-4 md:min-h-[calc(100vh-200px)] px-5 md:px-6">
           <DiscountTicket loading={loading} content={heroContent} />
           <div className="relative flex flex-col items-center justify-center text-left sm:text-center max-w-[1200px] min-h-[350px] sm:min-h-[500px] w-full overflow-hidden rounded-[30px] px-4 sm:px-8 pt-3 sm:pt-8 pb-12 sm:pb-20">
-            <div className="absolute inset-0 -z-0">
-              <video
-                className="w-full h-full object-cover scale-[1.2]"
-                autoPlay
-                muted
-                loop
-                playsInline
-                preload="auto"
-              >
-                <source src="/video/nuvisa.mp4" type="video/mp4" />
-              </video>
-              <div className="absolute inset-0 bg-black/45" />
-            </div>
+            <DeferredHomeHeroVideo poster="/image/banner.png" />
 
             <div className="relative z-10 max-w-4xl">
               <div className="hidden lg:block" />
