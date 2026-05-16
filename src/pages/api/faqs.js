@@ -4,10 +4,11 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { category, faqType } = req.query;
+    const { category, faqType, isFeatured } = req.query;
     const query = new URLSearchParams();
     if (category) query.set('category', String(category));
     if (faqType) query.set('faqType', String(faqType));
+    if (isFeatured !== undefined) query.set('isFeatured', String(isFeatured));
     const endpoint = query.toString() ? `?${query.toString()}` : '';
     
     // Call the admin panel API directly

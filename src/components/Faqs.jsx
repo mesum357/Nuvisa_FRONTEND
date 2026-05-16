@@ -4,6 +4,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { fetchFAQs as fetchFAQsFromAPI } from '@/api/faqs';
+import { getFaqGroupKey } from '@/utils/faqHelpers';
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
@@ -42,11 +43,12 @@ const FAQSection = () => {
   const fetchFAQData = async () => {
     try {
       setLoading(true);
-      let faqData = await fetchFAQsFromAPI({ isFeatured: true });
-      if (!Array.isArray(faqData) || faqData.length === 0) {
-        faqData = await fetchFAQsFromAPI();
+      const faqData = await fetchFAQsFromAPI();
+      const list = Array.isArray(faqData) ? faqData : [];
+      setFaqs(list);
+      if (list.length > 0) {
+        setActiveTab(getFaqGroupKey(list[0]));
       }
-      setFaqs(Array.isArray(faqData) ? faqData : []);
     } catch (error) {
       console.error('Error fetching FAQs:', error);
       setFaqs([]);
@@ -59,10 +61,7 @@ const FAQSection = () => {
     const typeMeta = new Map();
 
     (Array.isArray(faqs) ? faqs : []).forEach((faq) => {
-      const type =
-        typeof faq?.faqType === 'string' && faq.faqType.trim()
-          ? faq.faqType.trim()
-          : 'General';
+      const type = getFaqGroupKey(faq);
       if (type) {
         const rawCreatedAt = faq?.faqTypeCreatedAt || faq?.createdAt || null;
         const createdAtMs = rawCreatedAt ? new Date(rawCreatedAt).getTime() : Number.MAX_SAFE_INTEGER;
@@ -138,10 +137,7 @@ const FAQSection = () => {
         return (a?.question || '').localeCompare(b?.question || '');
       })
       .forEach((faq) => {
-        const type =
-          typeof faq?.faqType === 'string' && faq.faqType.trim()
-            ? faq.faqType.trim()
-            : 'General';
+        const type = getFaqGroupKey(faq);
         if (!grouped[type]) {
           grouped[type] = [];
         }
@@ -151,7 +147,12 @@ const FAQSection = () => {
     return grouped;
   }, [faqs, faqTabs]);
 
-  const activeFaqs = activeTab && faqsByType[activeTab] ? faqsByType[activeTab] : [];
+  const activeFaqs =
+    activeTab && faqsByType[activeTab]
+      ? faqsByType[activeTab]
+      : faqs.length > 0
+      ? faqs
+      : [];
 
 
   return (

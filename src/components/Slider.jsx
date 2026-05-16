@@ -1515,8 +1515,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
 
     const fetchOccasionPricing = async () => {
       try {
-        const adminBase = getAdminApiBase();
-        const res = await fetch(`${adminBase}/api/occasion-content`);
+        const res = await fetch("/api/occasion-content");
         if (!res.ok) {
           if (mounted) {
             setAllOccasions([]);

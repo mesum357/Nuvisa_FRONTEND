@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import GetTheVisaButton from "./layout/GetTheVisaButton";
+import LazyBackgroundImage from "./LazyBackgroundImage";
 
 const OurMission = ({ className }) => {
   const pathname = usePathname();
@@ -27,12 +28,10 @@ const OurMission = ({ className }) => {
       </div>
 
       {/* Background Image */}
-      <div
+      <LazyBackgroundImage
+        src="/image/Globally.webp"
         className="relative z-0 w-full max-w-5xl h-[30vh] md:h-[70vh] bg-no-repeat bg-center bg-contain"
-        style={{
-          backgroundImage: "url('/image/Globally.webp')",
-        }}
-      ></div>
+      />
 
       {/* Bottom Section */}
       <div className="relative z-10 text-center pb-5 md:pb-10">

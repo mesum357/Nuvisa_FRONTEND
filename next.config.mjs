@@ -22,22 +22,30 @@ const nextConfig = {
     ],
   },
   async headers() {
+    const longCache = "public, max-age=31536000, immutable";
     return [
+      {
+        source: "/video/:path*",
+        headers: [{ key: "Cache-Control", value: longCache }],
+      },
+      {
+        source: "/image/:path*",
+        headers: [{ key: "Cache-Control", value: longCache }],
+      },
+      {
+        source: "/icons/:path*",
+        headers: [{ key: "Cache-Control", value: longCache }],
+      },
+      {
+        source: "/_next/static/:path*",
+        headers: [{ key: "Cache-Control", value: longCache }],
+      },
       {
         source: "/favicon.ico",
         headers: [
           {
             key: "Cache-Control",
-            value: "public, max-age=0, must-revalidate",
-          },
-        ],
-      },
-      {
-        source: "/image/logo.png",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=0, must-revalidate",
+            value: "public, max-age=86400, stale-while-revalidate=604800",
           },
         ],
       },
