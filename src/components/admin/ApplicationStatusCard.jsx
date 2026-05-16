@@ -6,6 +6,7 @@ import { getApplicationDetails, getTravelerDocuments, updateDocumentStatus } fro
 import { localStorageGateway } from '@/gateways/localStoragegateway';
 import { localStorageEnums } from '@/enums/localstorage.enums';
 import { countryCodeMap } from '@/utils/countryCodeMap';
+import ApplicationCasePanel from '@/components/admin/ApplicationCasePanel';
 
 export default function ApplicationStatusCard({ application, onSelect, isExpanded, onToggle }) {
   const [documentsOpen, setDocumentsOpen] = useState(false);
@@ -307,6 +308,10 @@ export default function ApplicationStatusCard({ application, onSelect, isExpande
               )}
             </button>
           </div>
+
+          {rawAppId && (
+            <ApplicationCasePanel applicationId={rawAppId} />
+          )}
 
           {/* Application Details - Compact Grid */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm">

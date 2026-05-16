@@ -36,6 +36,14 @@ const Footer = () => {
     <footer className="w-full">
       <div className="pri_bg text-neutral-100 w-full">
         <div className="max-w-7xl mx-auto px-6 pb-8 pt-20">
+          <div className="mb-6 text-center md:text-left">
+            <Link
+              href="/feedback"
+              className="text-sm text-[#c2b1eb] hover:text-white underline underline-offset-4"
+            >
+              Leave us your feedback
+            </Link>
+          </div>
           {/* Social Media Icons */}
           <div className="flex gap-3 md:gap-4 mb-8 max-md:w-fit max-md:mx-auto">
             <a

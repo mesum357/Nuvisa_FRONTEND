@@ -209,23 +209,42 @@ const AppDownloadPopup = () => {
       setTimeout(() => setIsAnimating(true), 10);
     };
 
-    // Timer-based trigger
+    const onNavbarVisible = () => {
+      showPopup();
+    };
+
+    const onExitIntent = () => {
+      clearTimeout(timer);
+      showPopup();
+    };
+
+    window.addEventListener("nuvisa-navbar-visible", onNavbarVisible);
+    window.addEventListener("nuvisa-exit-intent", onExitIntent);
+
+    // Fallback timer if navbar event does not fire
     const timer = setTimeout(showPopup, delayMs);
 
     // Exit intent: mouse moves toward the top browser UI (tabs / address bar / close button)
     // clientY <= 5 is more lenient than 0 — Firefox/Safari can report 1–4px on exit
+    const EXIT_INTENT_TOP_PX = 72;
+
     const handleMouseLeave = (e) => {
-      if (e.clientY <= 5) {
+      if (e.clientY <= EXIT_INTENT_TOP_PX) {
+        clearTimeout(timer);
+        showPopup();
+      }
+    };
+
+    const handleMouseMove = (e) => {
+      if (e.clientY <= EXIT_INTENT_TOP_PX && e.movementY < 0) {
         clearTimeout(timer);
         showPopup();
       }
     };
 
     // Fallback for Safari: mouseout fires more reliably than mouseleave in WebKit.
-    // relatedTarget === null means the pointer truly left the document (not just moved
-    // between elements), and we only trigger when exiting toward the top.
     const handleMouseOut = (e) => {
-      if (!e.relatedTarget && !e.toElement && e.clientY <= 5) {
+      if (!e.relatedTarget && !e.toElement && e.clientY <= EXIT_INTENT_TOP_PX) {
         clearTimeout(timer);
         showPopup();
       }
@@ -240,12 +259,16 @@ const AppDownloadPopup = () => {
 
     document.addEventListener("mouseleave", handleMouseLeave);
     document.addEventListener("mouseout", handleMouseOut);
+    document.addEventListener("mousemove", handleMouseMove, { passive: true });
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       clearTimeout(timer);
+      window.removeEventListener("nuvisa-navbar-visible", onNavbarVisible);
+      window.removeEventListener("nuvisa-exit-intent", onExitIntent);
       document.removeEventListener("mouseleave", handleMouseLeave);
       document.removeEventListener("mouseout", handleMouseOut);
+      document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [router.pathname, router.isReady, dbContent]);

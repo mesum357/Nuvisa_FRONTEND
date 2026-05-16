@@ -4,6 +4,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { fetchFAQs as fetchFAQsFromAPI } from '@/api/faqs';
+import { getFaqGroupKey } from '@/utils/faqHelpers';
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
@@ -42,8 +43,18 @@ const FAQSection = () => {
   const fetchFAQData = async () => {
     try {
       setLoading(true);
-      const faqData = await fetchFAQsFromAPI({ isFeatured: true });
-      setFaqs(Array.isArray(faqData) ? faqData : []);
+      const faqData = await fetchFAQsFromAPI();
+      const list = Array.isArray(faqData) ? faqData : [];
+      setFaqs(list);
+      if (list.length > 0) {
+        const tabs = new Map();
+        list.forEach((faq) => {
+          const key = getFaqGroupKey(faq);
+          if (key) tabs.set(key, (tabs.get(key) || 0) + 1);
+        });
+        const firstTab = Array.from(tabs.keys()).sort((a, b) => a.localeCompare(b))[0];
+        if (firstTab) setActiveTab(firstTab);
+      }
     } catch (error) {
       console.error('Error fetching FAQs:', error);
       setFaqs([]);
@@ -56,7 +67,7 @@ const FAQSection = () => {
     const typeMeta = new Map();
 
     (Array.isArray(faqs) ? faqs : []).forEach((faq) => {
-      const type = typeof faq?.faqType === 'string' ? faq.faqType.trim() : '';
+      const type = getFaqGroupKey(faq);
       if (type) {
         const rawCreatedAt = faq?.faqTypeCreatedAt || faq?.createdAt || null;
         const createdAtMs = rawCreatedAt ? new Date(rawCreatedAt).getTime() : Number.MAX_SAFE_INTEGER;
@@ -132,16 +143,22 @@ const FAQSection = () => {
         return (a?.question || '').localeCompare(b?.question || '');
       })
       .forEach((faq) => {
-        const type = typeof faq?.faqType === 'string' ? faq.faqType.trim() : '';
-        if (type && grouped.hasOwnProperty(type)) {
-          grouped[type].push(faq);
+        const type = getFaqGroupKey(faq);
+        if (!grouped[type]) {
+          grouped[type] = [];
         }
+        grouped[type].push(faq);
       });
 
     return grouped;
   }, [faqs, faqTabs]);
 
-  const activeFaqs = activeTab && faqsByType[activeTab] ? faqsByType[activeTab] : [];
+  const activeFaqs =
+    activeTab && faqsByType[activeTab]
+      ? faqsByType[activeTab]
+      : faqs.length > 0
+      ? faqs
+      : [];
 
 
   return (

@@ -44,6 +44,11 @@ import { getDynamicMonthText } from "@/utils/getDynamicMonthText";
 import { getCurrentWeekSlotPercentage } from "@/utils/getCurrentWeekSlotPercentage";
 import { decrementExpertSpotsOnSuccessfulCheckout } from "@/utils/expertSpots";
 import {
+  resolveCheckoutPaymentType,
+  canCheckoutWithoutDestinationCountry,
+  hasCheckoutLineItems,
+} from "@/utils/checkoutPaymentType";
+import {
   trackAddToCart,
   trackBeginCheckout,
   trackAddPaymentInfo,
@@ -88,7 +93,7 @@ const VisaCheckout = () => {
   const selectedCountry = visaState.selectedCountry;
   const selectedVisaType = visaState.selectedVisaType;
   const visaTypeId = visaState.visaTypeId;
-  const travelerCountForVisa = Math.max(Number(visaState.travelers || 1), 1);
+  const travelerCountForVisa = Math.max(Number(visaState.travelers || 0), 0);
   const storedVisaFees = Number(visaState.visaFees || 0);
   const currentVisaFeePerTraveler =
     storedVisaFees > 0 && travelerCountForVisa > 0
@@ -103,20 +108,19 @@ const VisaCheckout = () => {
     visaPriceDisplay?.traditionalPerTraveler || 0
   );
 
-  // Redux is the single source of truth for travelers on checkout.
-  const travelers = Math.max(Number(visaState.travelers ?? 1), 1);
+  // Redux is the single source of truth for travelers on checkout (0 = insurance/gift-card only).
+  const travelers = Math.max(Number(visaState.travelers ?? 0), 0);
 
   const handleTravelersChange = (newCount) => {
-    const normalizedCount = Math.max(1, Number(newCount) || 1);
+    const normalizedCount = Math.max(0, Number(newCount) || 0);
 
-    if (insuranceCount > normalizedCount) {
+    if (normalizedCount > 0 && insuranceCount > normalizedCount) {
       setInsuranceCount(normalizedCount);
       dispatch(setReduxInsuranceCount(normalizedCount));
     }
 
     dispatch(setTravelers(normalizedCount));
 
-    // Keep visa fee total in sync with traveler changes to avoid stale derived per-traveler pricing.
     dispatch(
       setVisaFees(
         Number((currentVisaFeePerTraveler * normalizedCount).toFixed(2))
@@ -648,31 +652,15 @@ const VisaCheckout = () => {
           return;
         }
 
-        // If valid, redeem it
-        const redeemResponse = await redeemGiftCardCode(
-          codeUpper,
-          email || undefined
-        );
+        const validateResults =
+          validateResponse.data?.results || validateResponse.data || {};
+        const benefits = validateResults.benefits || {
+          freeTraveler: validateResults.giftCard?.quantity || 1,
+          freeInsurance: validateResults.giftCard?.quantity || 1,
+        };
+        const quantity = validateResults.giftCard?.quantity || 1;
 
-        // Handle different response structures
-        const isSuccess =
-          redeemResponse.status === "SUCCESS" ||
-          redeemResponse.status === "success";
-        const hasSuccessData =
-          redeemResponse.data?.success || redeemResponse.data?.results?.success;
-
-        if (isSuccess && hasSuccessData) {
-          // Store gift card benefits in Redux - add to array of redeemed cards
-          // Benefits are now based on quantity from backend (e.g., 2 gift cards = 2 free travelers + 2 free insurance)
-          const benefits = redeemResponse.data?.benefits ||
-            redeemResponse.data?.results?.benefits || {
-              freeTraveler: 1,
-              freeInsurance: 1,
-            };
-          const quantity =
-            redeemResponse.data?.giftCard?.quantity ||
-            redeemResponse.data?.results?.giftCard?.quantity ||
-            1;
+        if (validateResults.valid !== false) {
 
           // Check if this code is already redeemed
           const alreadyRedeemed = redeemedGiftCards.some(
@@ -689,6 +677,7 @@ const VisaCheckout = () => {
               code: codeUpper,
               benefits,
               quantity,
+              pendingRedeem: true,
             })
           );
           setCouponCodeLocal(""); // Clear input after successful redemption
@@ -702,12 +691,10 @@ const VisaCheckout = () => {
           const insuranceText =
             freeInsuranceCount === 1 ? "insurance" : "insurances";
           showSuccess(
-            `Gift card ${codeUpper} applied! You get ${freeTravelerCount} free ${travelerText} and ${freeInsuranceCount} free ${insuranceText}.`
+            `Gift card ${codeUpper} applied! You get ${freeTravelerCount} free ${travelerText} and ${freeInsuranceCount} free ${insuranceText}. Code will be redeemed when payment completes.`
           );
         } else {
-          setCouponError(
-            redeemResponse.message || "Failed to redeem gift card"
-          );
+          setCouponError(validateResponse.message || "Invalid gift card code");
           setIsRedeemingGiftCard(false);
           return;
         }
@@ -883,7 +870,13 @@ const VisaCheckout = () => {
       !hasTravelers &&
       missingDocs.length === REQUIRED_DOCUMENT_FIELDS.length;
 
-    return insuranceOnlyNoTravelers;
+    const giftCardOnlyNoTravelers =
+      (recommendedItems.giftCard || includeGiftCard) &&
+      !(recommendedItems.insuranceCertificate || includeInsurance) &&
+      !hasTravelers &&
+      missingDocs.length === REQUIRED_DOCUMENT_FIELDS.length;
+
+    return insuranceOnlyNoTravelers || giftCardOnlyNoTravelers;
   }, [
     requiredDocuments,
     recommendedItems,
@@ -951,7 +944,8 @@ const VisaCheckout = () => {
       passes: proposed >= 0,
     });
     if (proposed < 0) return;
-    const cappedValue = Math.min(proposed, travelers);
+    const maxInsurance = travelers > 0 ? travelers : 99;
+    const cappedValue = Math.min(proposed, maxInsurance);
     console.log("🛡️ cappedValue:", cappedValue);
     if (cappedValue !== insuranceCount) {
       setInsuranceCount(cappedValue);
@@ -1152,6 +1146,15 @@ const VisaCheckout = () => {
 
   const total =
     finalVisaFees + finalInsuranceFees + finalGiftCardFees + eVisaFees;
+
+  const checkoutPaymentType = resolveCheckoutPaymentType({
+    travelers,
+    finalVisaFees,
+    includeGiftCard,
+    giftCardCount,
+    includeInsurance,
+    insuranceCount,
+  });
 
   // YOU SAVE: Subtotal minus Total
   const totalSavingsAmount = subtotal - total;
@@ -1414,10 +1417,34 @@ const VisaCheckout = () => {
       }
     }
 
-    // Validate country is set
     const countryToUse = selectedCountry || visaState.selectedCountry || "";
-    if (!countryToUse || countryToUse.trim() === "") {
+    const skipCountryRequirement = canCheckoutWithoutDestinationCountry({
+      travelers,
+      finalVisaFees,
+      includeGiftCard,
+      giftCardCount,
+      includeInsurance,
+      insuranceCount,
+    });
+    if (
+      !skipCountryRequirement &&
+      (!countryToUse || countryToUse.trim() === "")
+    ) {
       alert("Please select a destination country to continue with checkout");
+      return;
+    }
+
+    if (
+      !hasCheckoutLineItems({
+        travelers,
+        finalVisaFees,
+        includeGiftCard,
+        giftCardCount,
+        includeInsurance,
+        insuranceCount,
+      })
+    ) {
+      alert("Please add at least one item (visa, insurance, or gift card) to checkout");
       return;
     }
 
@@ -1562,13 +1589,7 @@ const VisaCheckout = () => {
                     insurancePaymentAmount={discountedInsuranceFeesGBP}
                     includeGiftCard={includeGiftCard}
                     giftCardCount={giftCardCount}
-                    paymentType={
-                      includeGiftCard && finalVisaFees > 0
-                        ? "application_creation,gift_card"
-                        : includeGiftCard && finalVisaFees === 0
-                        ? "gift_card"
-                        : "application_creation"
-                    }
+                    paymentType={checkoutPaymentType}
                     onBeforePayment={validateBeforeExpressPayment}
                     // Pass all values needed for localStorage/Redux setup (same as handleProceedToCheckout)
                     subtotalGBP={subtotalGBP}
@@ -2111,13 +2132,7 @@ const VisaCheckout = () => {
                           insurance={includeInsurance}
                           visaTypeId={visaTypeId || visaState.visaTypeId || ""}
                           currency="GBP"
-                          paymentType={
-                            includeGiftCard && finalVisaFees > 0
-                              ? "application_creation,gift_card"
-                              : includeGiftCard && finalVisaFees === 0
-                              ? "gift_card"
-                              : "application_creation"
-                          }
+                          paymentType={checkoutPaymentType}
                           noOfInsurance={insuranceCount}
                           insurancePaymentAmount={discountedInsuranceFeesGBP}
                           hideSubmitButton={true}
@@ -2213,13 +2228,7 @@ const VisaCheckout = () => {
                         visaTypeId={visaTypeId || visaState.visaTypeId || ""}
                         insuranceCount={insuranceCount}
                         insurancePaymentAmount={discountedInsuranceFeesGBP}
-                        paymentType={
-                          includeGiftCard && finalVisaFees > 0
-                            ? "application_creation,gift_card"
-                            : includeGiftCard && finalVisaFees === 0
-                            ? "gift_card"
-                            : "application_creation"
-                        }
+                        paymentType={checkoutPaymentType}
                         applicationId={undefined}
                         travelerIndex={undefined}
                         paymentWithoutInsurance={visaFeesGBP}
@@ -2785,7 +2794,7 @@ const VisaCheckout = () => {
                 onIncrement={(val) => handleTravelersChange(val)}
                 onDecrement={(val) => handleTravelersChange(val)}
                 value={travelers}
-                min={1}
+                min={0}
               />
             </div>
 

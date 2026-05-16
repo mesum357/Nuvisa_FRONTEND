@@ -14,6 +14,7 @@ import GetTheVisaButton from "./layout/GetTheVisaButton";
 import { getAdminApiBase } from "@/utils/adminApiBase";
 import { useCountriesWithAppointmentTexts } from "@/hooks/useCountriesWithAppointmentTexts";
 import Link from "next/link";
+import DeferredSectionVideo from "./home/DeferredSectionVideo";
 
 const VisaSolution = ({
   video = false,
@@ -438,18 +439,8 @@ const VisaSolution = ({
       </div>
 
       {video && (
-        <div className="w-full max-w-[60rem] px-6 mt-10">
-          <div className="relative w-full aspect-video rounded-[40px] overflow-hidden bg-black shadow-xl">
-            <video
-              src="/video/nuvisa.mp4"
-              autoPlay
-              muted
-              loop
-              playsInline
-              className="absolute inset-0 w-full h-full object-cover scale-[1.15] origin-center"
-            />
-            <div className="absolute inset-0 bg-black/40 pointer-events-none" />
-          </div>
+        <div className="w-full max-w-[60rem] px-6 mt-10 shadow-xl">
+          <DeferredSectionVideo src="/video/nuvisa.mp4" />
         </div>
       )}
 
@@ -501,7 +492,8 @@ const VisaSolution = ({
                     draggable={false}
                     fill
                     className="object-cover transition-transform duration-500 group-hover:scale-110"
-                    priority
+                    loading="lazy"
+                    sizes="350px"
                   />
                 </div>
 

@@ -5,6 +5,9 @@ import { getApplicationOverview } from "@/api/admin";
 import { localStorageEnums } from "@/enums/localstorage.enums";
 import { localStorageGateway } from "@/gateways/localStoragegateway";
 import ApplicationStatusList from "@/components/admin/ApplicationStatusList";
+import HomepageCmsPanel from "@/components/admin/HomepageCmsPanel";
+import FaqCmsPanel from "@/components/admin/FaqCmsPanel";
+import FeedbackSubmissionsPanel from "@/components/admin/FeedbackSubmissionsPanel";
 import { saveOrderId, getOrderId } from "@/utils/adminStorage";
 import { useRouter } from "next/router";
 import { formatApplicationId, formatOrderId } from "@/utils/idFormat";
@@ -189,6 +192,16 @@ export default function AdminDashboard() {
               </div>
             </div>
           </div>
+        </div>
+
+        <FaqCmsPanel />
+        <HomepageCmsPanel />
+        <FeedbackSubmissionsPanel />
+
+        <div className="bg-[#7350FF]/10 border border-[#7350FF]/30 rounded-xl p-4 mb-8 text-sm text-white/90">
+          <strong className="text-white">Assign &amp; manage applications:</strong>{" "}
+          expand any application card below, then use the case panel to assign a team member,
+          update status, add internal comments, and view the activity timeline.
         </div>
 
         {applications.length > 0 && (

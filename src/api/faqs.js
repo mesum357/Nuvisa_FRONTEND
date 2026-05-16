@@ -1,72 +1,47 @@
 import axios from "axios";
+import { normalizeFaqList } from "@/utils/faqHelpers";
 
-// Helper to check if URL is localhost
-const isLocalhost = (url) => {
-	if (!url) return false;
-	try {
-		const urlObj = new URL(url);
-		return urlObj.hostname === 'localhost' || urlObj.hostname === '127.0.0.1' || urlObj.hostname.startsWith('192.168.') || urlObj.hostname.startsWith('10.') || urlObj.hostname.startsWith('172.');
-	} catch {
-		return url.includes('localhost') || url.includes('127.0.0.1');
-	}
+const ADMIN_FAQ_BASES = () => {
+  const fromEnv = process.env.NEXT_PUBLIC_ADMIN_API_URL || process.env.NEXT_PUBLIC_ADMIN_URL;
+  const bases = [];
+  if (fromEnv) bases.push(String(fromEnv).replace(/\/+$/, ""));
+  bases.push("https://nuvisa-admin.vercel.app");
+  return [...new Set(bases)];
 };
 
-// Helper to check if we're in production
-const isProduction = () => {
-	return process.env.NODE_ENV === 'production' && 
-	       process.env.NEXT_PUBLIC_NODE_ENV !== 'development';
-};
-
-// Fetch FAQs from admin panel API
 export const fetchFAQs = async (filters = null) => {
-  // Try multiple endpoints in order of preference
-  const adminApiUrl = process.env.NEXT_PUBLIC_ADMIN_API_URL;
-  // Only skip localhost URLs in production (allow them in development)
-  const shouldSkipLocalhost = isProduction() && isLocalhost(adminApiUrl);
-  const apiEndpoints = [
-    // 1. Admin panel API (if configured and not localhost in production)
-    adminApiUrl && !shouldSkipLocalhost ? `${adminApiUrl.replace(/\/+$/, '')}/api/public/faqs` : null,
-    // 2. Frontend's own API route (fallback)
-    '/api/faqs',
-  ].filter(Boolean);
-
-  const normalizedFilters = typeof filters === 'string'
-    ? { category: filters }
-    : (filters || {});
+  const normalizedFilters =
+    typeof filters === "string" ? { category: filters } : filters || {};
 
   const query = new URLSearchParams();
-  if (normalizedFilters.category) {
-    query.set('category', normalizedFilters.category);
-  }
-  if (normalizedFilters.faqType) {
-    query.set('faqType', normalizedFilters.faqType);
-  }
+  if (normalizedFilters.category) query.set("category", normalizedFilters.category);
+  if (normalizedFilters.faqType) query.set("faqType", normalizedFilters.faqType);
   if (normalizedFilters.isFeatured) {
-    query.set('isFeatured', String(normalizedFilters.isFeatured));
+    query.set("isFeatured", String(normalizedFilters.isFeatured));
   }
+  const queryString = query.toString() ? `?${query.toString()}` : "";
 
-  const endpoint = query.toString() ? `?${query.toString()}` : '';
+  const endpoints = [
+    ...ADMIN_FAQ_BASES().map((b) => `${b}/api/public/faqs${queryString}`),
+    `/api/faqs${queryString}`,
+  ];
 
-  for (const baseUrl of apiEndpoints) {
+  for (const url of endpoints) {
     try {
-      const cleanBaseUrl = baseUrl.replace(/\/$/, '');
-      const url = `${cleanBaseUrl}${endpoint}`;
-      
       const res = await axios.get(url, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        withCredentials: false, // Don't send cookies for public endpoint
-        timeout: 5000, // 5 second timeout
+        headers: { Accept: "application/json" },
+        withCredentials: false,
+        timeout: 15000,
+        validateStatus: (status) => status < 500,
       });
-      console.log("faqs res: ", res)
-      if (res?.data?.success) return res.data.data;
+
+      const list = normalizeFaqList(res?.data);
+      if (list.length > 0) return list;
+      if (res?.data?.success && Array.isArray(res.data.data)) return res.data.data;
     } catch (error) {
-      continue;
+      console.warn("FAQ fetch attempt failed:", url, error?.message);
     }
   }
-  
-  // Return empty array if all endpoints fail
+
   return [];
 };
-

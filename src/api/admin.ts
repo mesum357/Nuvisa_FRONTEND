@@ -226,6 +226,51 @@ export const getApplicationActivity = async (token, applicationId) => {
   }
 };
 
+export const assignApplication = async (token, applicationId, data) => {
+  const response = await adminApi.patch(
+    `/orders/application/${applicationId}/assign`,
+    data,
+    addAuthToken(token)
+  );
+  return response;
+};
+
+export const getTeamMembers = async (token) => {
+  const response = await adminApi.get('/orders/team-members', addAuthToken(token));
+  return response;
+};
+
+export const getHomepageCmsSettings = async (token) => {
+  const response = await adminApi.get('/orders/cms/homepage', addAuthToken(token));
+  return response;
+};
+
+export const updateHomepageCmsSettings = async (token, data) => {
+  const response = await adminApi.patch('/orders/cms/homepage', data, addAuthToken(token));
+  return response;
+};
+
+export const getFeedbackSubmissions = async (token, params = {}) => {
+  const query = new URLSearchParams();
+  if (params.page) query.set('page', String(params.page));
+  if (params.limit) query.set('limit', String(params.limit));
+  const qs = query.toString();
+  const response = await adminApi.get(
+    `/orders/feedback${qs ? `?${qs}` : ''}`,
+    addAuthToken(token)
+  );
+  return response;
+};
+
+export const postApplicationComment = async (token, applicationId, payload) => {
+  const response = await adminApi.post(
+    `/orders/application/${applicationId}/comments`,
+    payload,
+    addAuthToken(token)
+  );
+  return response;
+};
+
 const adminApiMethods = {
   getApplicationOverview,
   getDocumentsOverview,

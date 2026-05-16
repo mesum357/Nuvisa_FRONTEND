@@ -5,7 +5,7 @@ import { useAppSelector } from "@/store";
 import ClientOnly from "./ClientOnly";
 import { FaEnvelope, FaWhatsapp, FaBars, FaTimes } from "react-icons/fa";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { fetchHeaderContent, getHeaderContentByKey } from "@/api/headerContent";
 import { usePathname } from "next/navigation";
 
@@ -15,6 +15,23 @@ const Navbar = () => {
   const [loading, setLoading] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
+  const navRef = useRef(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !navRef.current) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            window.dispatchEvent(new CustomEvent("nuvisa-navbar-visible"));
+          }
+        });
+      },
+      { threshold: 0.35 }
+    );
+    observer.observe(navRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const loadHeaderContent = async () => {
@@ -104,7 +121,16 @@ const Navbar = () => {
         </div>
 
         {/* Navigation */}
-        <nav className="relative flex items-center justify-between border-[#423577] sec_bg rounded-[70px] border px-6 lg:px-4 py-3 md:py-4 mx-[0px]">
+        <nav
+          ref={navRef}
+          data-nuvisa-navbar="true"
+          onMouseEnter={() => {
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(new CustomEvent("nuvisa-exit-intent"));
+            }
+          }}
+          className="relative flex items-center justify-between border-[#423577] sec_bg rounded-[70px] border px-6 lg:px-4 py-3 md:py-4 mx-[0px]"
+        >
           {/* Left Logo */}
           <div className="flex items-center">
             <Link href="/" className="">
@@ -140,10 +166,13 @@ const Navbar = () => {
                 {/* Button */}
                 <div className="hidden md:block">
                   <button className="bg-green-600/20 border border-green-500/30 px-4 py-[7px] rounded-full font-medium text-sm text-white flex items-center">
-                    <img
+                    <Image
                       src="/icons/holiday.png"
                       alt="Holiday Packages"
-                      className="inline-block mr-2 w-8"
+                      width={32}
+                      height={32}
+                      className="inline-block mr-2 w-8 h-8"
+                      loading="lazy"
                     />
                     {getContent('nav_holiday_packages_text', 'Holiday Packages')}
                   </button>
@@ -204,7 +233,14 @@ const Navbar = () => {
                   </span>
                   <Link href={getContent('banner_button_link', '#')}>
                     <button className="bg-green-600/20 border border-green-500/30 px-4 py-2 rounded-full text-sm font-medium flex items-center">
-                      <img src="/icons/holiday.png" alt="Holiday Packages" className="inline-block mr-2 w-6" />
+                      <Image
+                        src="/icons/holiday.png"
+                        alt="Holiday Packages"
+                        width={24}
+                        height={24}
+                        className="inline-block mr-2 w-6 h-6"
+                        loading="lazy"
+                      />
                       {getContent('nav_holiday_packages_text', 'Holiday Packages')}
                     </button>
                   </Link>

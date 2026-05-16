@@ -22,6 +22,7 @@ import { useCountriesWithAppointmentTexts } from "@/hooks/useCountriesWithAppoin
 import { staticCountries } from "@/constants/staticCountries";
 import Link from "next/link";
 import { getAdminApiBase } from "@/utils/adminApiBase";
+import { DEFAULT_OCCASIONS } from "@/constants/defaultOccasions";
 
 const CountryCardsSection = ({
   specificCountries,
@@ -52,7 +53,9 @@ const CountryCardsSection = ({
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  const [occasions, setOccasions] = useState([]);
+  const [occasions, setOccasions] = useState(() =>
+    id === "everyday-steals" ? DEFAULT_OCCASIONS : []
+  );
 
   const normalizeCountryKey = useCallback(
     (value) =>
@@ -145,14 +148,11 @@ const CountryCardsSection = ({
 
     const fetchDynamicSection = async () => {
       try {
-        const adminApiUrl =
-          process.env.NEXT_PUBLIC_ADMIN_API_URL || "http://localhost:3001";
-
         if (id === "everyday-steals") {
-          const url = `${adminApiUrl}/api/occasion-content?t=${Date.now()}`;
-          const occRes = await fetch(url);
+          const occRes = await fetch(
+            `/api/occasion-content?t=${Date.now()}&defaults=false`
+          );
 
-          // 🔥 ADD THIS CHECK: Don't parse JSON if the server returned a 404 HTML page
           if (!occRes.ok)
             throw new Error(`HTTP error! status: ${occRes.status}`);
 
@@ -166,15 +166,36 @@ const CountryCardsSection = ({
             });
             if (
               occResult.data.occasions &&
-              Array.isArray(occResult.data.occasions)
+              Array.isArray(occResult.data.occasions) &&
+              occResult.data.occasions.length > 0
             ) {
               setOccasions(occResult.data.occasions);
+            } else {
+              const fallbackRes = await fetch(
+                `/api/country-section?defaults=false&t=${Date.now()}`
+              );
+              if (fallbackRes.ok) {
+                const fallbackJson = await fallbackRes.json();
+                if (fallbackJson?.data?.occasions?.length > 0) {
+                  setOccasions(fallbackJson.data.occasions);
+                  setDynamicSection(fallbackJson.data);
+                }
+              }
+            }
+          } else {
+            const fallbackRes = await fetch(
+              `/api/country-section?defaults=false&t=${Date.now()}`
+            );
+            if (fallbackRes.ok) {
+              const fallbackJson = await fallbackRes.json();
+              if (fallbackJson?.data?.occasions?.length > 0) {
+                setOccasions(fallbackJson.data.occasions);
+              }
             }
           }
         } else {
-          const res = await fetch(`${adminApiUrl}/api/country-section`);
+          const res = await fetch(`/api/country-section?t=${Date.now()}`);
 
-          // 🔥 ADD THIS CHECK
           if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
 
           const result = await res.json();
@@ -187,7 +208,10 @@ const CountryCardsSection = ({
           }
         }
       } catch (error) {
-        console.error("Failed to fetch dynamic section:", error.message); // Cleaner error log
+        console.error("Failed to fetch dynamic section:", error.message);
+        if (id === "everyday-steals") {
+          setOccasions(DEFAULT_OCCASIONS);
+        }
       } finally {
         setIsDynamicLoading(false);
       }
@@ -495,13 +519,17 @@ const CountryCardsSection = ({
             <div className="flex flex-col text-white items-center justify-center">
               <div className="flex items-center gap-2">
                 <p className="text-[24px] lg:text-[26px] font-gilroy-bold text-black leading-tight">
-                  {occasionContent || "Grab £50 off your advance booking"}
+                  {occasionContent ||
+                    dynamicSection?.title ||
+                    "Grab £50 off your advance booking"}
                 </p>
               </div>
 
               <div className="flex items-center gap-2 text-gray-500 font-gilroy-medium mt-1">
                 <p className="text-[12px] md:text-lg font-semibold">
-                  {occasionSubtitle || "Lock it in today to maximise savings."}
+                  {occasionSubtitle ||
+                    dynamicSection?.description ||
+                    "Lock it in today to maximise savings."}
                 </p>
               </div>
             </div>
@@ -518,7 +546,8 @@ const CountryCardsSection = ({
               alt="Choose Country"
               fill
               className="object-cover transition-transform duration-700 group-hover:scale-105"
-              priority
+              loading={id === "everyday-steals" ? "lazy" : "eager"}
+              sizes="(max-width: 1024px) 50vw, 33vw"
             />
             <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent"></div>
             <div className="absolute bottom-4 left-4 text-white">

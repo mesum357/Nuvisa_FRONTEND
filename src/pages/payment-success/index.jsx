@@ -16,6 +16,7 @@ import { createOrUpdateApplication } from "@/api/visaApplications";
 import { localStorageEnums } from "@/enums/localstorage.enums";
 import { localStorageGateway } from "@/gateways/localStoragegateway";
 import { decrementExpertSpotsOnSuccessfulCheckout } from "@/utils/expertSpots";
+import { redeemGiftCardCode } from "@/api/giftCard";
 import {
   isExplicitKlarnaRedirectFailure,
   isStripeRedirectReturn,
@@ -238,6 +239,59 @@ const PaymentSuccess = () => {
    
         if (finalPaymentType === "gift_card") {
           setPaymentType("gift_card");
+          return;
+        }
+
+        const insuranceOnlyTypes = [
+          "traveler_insurance",
+          "additional_traveler_insurance",
+        ];
+
+        if (insuranceOnlyTypes.includes(finalPaymentType)) {
+          const embeddedPaymentIntentIdEarly =
+            typeof window !== "undefined"
+              ? sessionStorage.getItem("stripePaymentIntentId") || null
+              : null;
+          const stripePaymentIdEarly =
+            sessionId ||
+            klarnaPaymentIntentId ||
+            embeddedPaymentIntentIdEarly ||
+            null;
+
+          if (stripePaymentIdEarly) {
+            decrementExpertSpotsOnSuccessfulCheckout(stripePaymentIdEarly);
+          }
+
+          if (currentData.email && process.env.NEXT_PUBLIC_API_URL) {
+            try {
+              const postAmountRaw =
+                (usedStoredInsuranceMetadata &&
+                  usedStoredInsuranceMetadata.paymentAmount) ||
+                currentData.totalAmount ||
+                currentData.insurancePayment ||
+                "0";
+              await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/stripe_payment/test-insurance-payment`,
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    paymentType: finalPaymentType,
+                    applicationId: finalApplicationId || undefined,
+                    travelerIndex: travelerIndex,
+                    email: currentData.email,
+                    amount: postAmountRaw,
+                    orderId: usedStoredInsuranceMetadata?.orderId,
+                    sessionId: stripePaymentIdEarly,
+                  }),
+                }
+              );
+            } catch (error) {
+              console.error("Insurance payment update failed:", error);
+            }
+          }
+
+          setIsCreatingApplication(false);
           return;
         }
    
@@ -555,6 +609,19 @@ const PaymentSuccess = () => {
         if (SKIP_APPLICATION_TYPES.includes(finalPaymentType) && finalPaymentType !== "application_creation") {
           return;
         }
+
+        const pendingGiftCards = (visaState.redeemedGiftCards || []).filter(
+          (card) => card.pendingRedeem
+        );
+        if (pendingGiftCards.length > 0 && mergedData.email) {
+          for (const card of pendingGiftCards) {
+            try {
+              await redeemGiftCardCode(card.code, mergedData.email);
+            } catch (redeemErr) {
+              console.error("Gift card redeem after payment failed:", redeemErr);
+            }
+          }
+        }
    
         const applicationResponse = await createApplication(applicationPayload);
         await persistAuthFromResponse(applicationResponse);
@@ -636,6 +703,46 @@ const PaymentSuccess = () => {
    
     storePaymentDataAndRedirect();
   }, [router.isReady, router.asPath]);
+
+  if (
+    paymentType === "traveler_insurance" ||
+    paymentType === "additional_traveler_insurance"
+  ) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg
+              className="w-8 h-8 text-green-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            Insurance purchase successful!
+          </h1>
+          <p className="text-gray-600 mb-4">
+            Your insurance payment was successful. We have updated your application
+            and sent a confirmation email. No new visa application was created.
+          </p>
+          <button
+            onClick={() => router.push("/dashboard")}
+            className="w-full bg-[#7350FF] text-white py-3 px-6 rounded-lg font-semibold hover:bg-[#7350FF]/90 transition-colors"
+          >
+            Go to my applications
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Show gift card purchase confirmation
   if (paymentType === "gift_card") {

@@ -358,8 +358,9 @@ const StickyBottomBar = ({ triggerElementId }) => {
 
         // Apply constraints based on item type
         if (itemId === "insurance") {
-          // Insurance count cannot exceed traveler count and must be at least 0
-          newQuantity = Math.max(0, Math.min(newQuantity, travelerCount));
+          const maxInsurance =
+            prev.schengen > 0 ? prev.schengen : Math.max(prev.insurance, 99);
+          newQuantity = Math.max(0, Math.min(newQuantity, maxInsurance));
         }
 
         const updated = {
@@ -441,10 +442,10 @@ const StickyBottomBar = ({ triggerElementId }) => {
 
     // Check if any component qualifies for quantity discount (3+)
     // Note: Insurance count cannot exceed traveler count (insurance certificates are for travelers)
-    const effectiveInsuranceCount = Math.min(
-      quantities.insurance,
-      quantities.schengen
-    );
+    const effectiveInsuranceCount =
+      quantities.schengen > 0
+        ? Math.min(quantities.insurance, quantities.schengen)
+        : quantities.insurance;
 
     const travelersQualify = quantities.schengen >= 3;
     const insuranceQualify = effectiveInsuranceCount >= 3;
