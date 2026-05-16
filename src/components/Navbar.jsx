@@ -5,7 +5,7 @@ import { useAppSelector } from "@/store";
 import ClientOnly from "./ClientOnly";
 import { FaEnvelope, FaWhatsapp, FaBars, FaTimes } from "react-icons/fa";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { fetchHeaderContent, getHeaderContentByKey } from "@/api/headerContent";
 import { usePathname } from "next/navigation";
 
@@ -15,6 +15,23 @@ const Navbar = () => {
   const [loading, setLoading] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
+  const navRef = useRef(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !navRef.current) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            window.dispatchEvent(new CustomEvent("nuvisa-navbar-visible"));
+          }
+        });
+      },
+      { threshold: 0.35 }
+    );
+    observer.observe(navRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const loadHeaderContent = async () => {
@@ -104,7 +121,11 @@ const Navbar = () => {
         </div>
 
         {/* Navigation */}
-        <nav className="relative flex items-center justify-between border-[#423577] sec_bg rounded-[70px] border px-6 lg:px-4 py-3 md:py-4 mx-[0px]">
+        <nav
+          ref={navRef}
+          data-nuvisa-navbar="true"
+          className="relative flex items-center justify-between border-[#423577] sec_bg rounded-[70px] border px-6 lg:px-4 py-3 md:py-4 mx-[0px]"
+        >
           {/* Left Logo */}
           <div className="flex items-center">
             <Link href="/" className="">

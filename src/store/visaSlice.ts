@@ -167,6 +167,7 @@ export const visaSlice = createSlice({
       code: string;
       benefits: { freeTraveler: number; freeInsurance: number };
       quantity: number;
+      pendingRedeem?: boolean;
     }>) => {
       if (!state.redeemedGiftCards) {
         state.redeemedGiftCards = [];
