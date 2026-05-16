@@ -47,7 +47,13 @@ const FAQSection = () => {
       const list = Array.isArray(faqData) ? faqData : [];
       setFaqs(list);
       if (list.length > 0) {
-        setActiveTab(getFaqGroupKey(list[0]));
+        const tabs = new Map();
+        list.forEach((faq) => {
+          const key = getFaqGroupKey(faq);
+          if (key) tabs.set(key, (tabs.get(key) || 0) + 1);
+        });
+        const firstTab = Array.from(tabs.keys()).sort((a, b) => a.localeCompare(b))[0];
+        if (firstTab) setActiveTab(firstTab);
       }
     } catch (error) {
       console.error('Error fetching FAQs:', error);
