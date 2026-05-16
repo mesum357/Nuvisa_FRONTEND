@@ -166,10 +166,13 @@ const Navbar = () => {
                 {/* Button */}
                 <div className="hidden md:block">
                   <button className="bg-green-600/20 border border-green-500/30 px-4 py-[7px] rounded-full font-medium text-sm text-white flex items-center">
-                    <img
+                    <Image
                       src="/icons/holiday.png"
                       alt="Holiday Packages"
-                      className="inline-block mr-2 w-8"
+                      width={32}
+                      height={32}
+                      className="inline-block mr-2 w-8 h-8"
+                      loading="lazy"
                     />
                     {getContent('nav_holiday_packages_text', 'Holiday Packages')}
                   </button>
@@ -230,7 +233,14 @@ const Navbar = () => {
                   </span>
                   <Link href={getContent('banner_button_link', '#')}>
                     <button className="bg-green-600/20 border border-green-500/30 px-4 py-2 rounded-full text-sm font-medium flex items-center">
-                      <img src="/icons/holiday.png" alt="Holiday Packages" className="inline-block mr-2 w-6" />
+                      <Image
+                        src="/icons/holiday.png"
+                        alt="Holiday Packages"
+                        width={24}
+                        height={24}
+                        className="inline-block mr-2 w-6 h-6"
+                        loading="lazy"
+                      />
                       {getContent('nav_holiday_packages_text', 'Holiday Packages')}
                     </button>
                   </Link>
