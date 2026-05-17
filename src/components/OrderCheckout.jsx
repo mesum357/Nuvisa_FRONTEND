@@ -1702,6 +1702,10 @@ const VisaCheckout = () => {
                                   },
                                 });
                                 setTimeout(() => {
+                                  localStorage.setItem(
+                                    "ga4_payment_type",
+                                    "Apple Pay"
+                                  );
                                   window.dataLayer.push({ ecommerce: null });
                                   window.dataLayer.push({
                                     event: "add_payment_info",
@@ -1836,6 +1840,10 @@ const VisaCheckout = () => {
                                   },
                                 });
                                 setTimeout(() => {
+                                  localStorage.setItem(
+                                    "ga4_payment_type",
+                                    "Google Pay"
+                                  );
                                   window.dataLayer.push({ ecommerce: null });
                                   window.dataLayer.push({
                                     event: "add_payment_info",
@@ -2467,6 +2475,7 @@ const VisaCheckout = () => {
                       if (selectedPaymentMethod === "google")
                         ga4PaymentType = "Google Pay";
 
+                      localStorage.setItem("ga4_payment_type", ga4PaymentType);
                       window.dataLayer.push({ ecommerce: null });
                       window.dataLayer.push({
                         event: "add_payment_info",
@@ -2550,6 +2559,7 @@ const VisaCheckout = () => {
                           quantity: giftCardCount,
                         });
 
+                      localStorage.setItem("ga4_payment_type", "Klarna");
                       window.dataLayer.push({ ecommerce: null });
                       window.dataLayer.push({
                         event: "add_payment_info",
@@ -2612,6 +2622,12 @@ const VisaCheckout = () => {
                           quantity: giftCardCount,
                         });
 
+                      localStorage.setItem(
+                        "ga4_payment_type",
+                        selectedPaymentMethod === "apple"
+                          ? "Apple Pay"
+                          : "Google Pay"
+                      );
                       window.dataLayer.push({ ecommerce: null });
                       window.dataLayer.push({
                         event: "add_payment_info",

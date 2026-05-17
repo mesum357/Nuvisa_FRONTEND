@@ -750,7 +750,11 @@ const PaymentSuccess = () => {
                   `TXN_${Date.now()}`,
                 value: Number(Number(mergedData.totalAmount || 0).toFixed(2)),
                 currency: "GBP",
-                payment_type: isKlarnaRedirect ? "Klarna" : "Stripe",
+                payment_type:
+                  typeof window !== "undefined"
+                    ? localStorage.getItem("ga4_payment_type") ||
+                      (isKlarnaRedirect ? "Klarna" : "Credit Card")
+                    : "Credit Card",
                 coupon:
                   mergedData.storedMetadata?.couponCode ||
                   visaState.appliedDiscount?.code ||
