@@ -98,9 +98,11 @@ export default async function handler(req, res) {
     : "defaults";
 
   res.setHeader("Cache-Control", "no-store, must-revalidate");
+  const data = finalizeOccasionPayload(merged, { allowDefaults: true });
+
   return res.status(200).json({
     success: true,
-    data: finalizeOccasionPayload(merged, { allowDefaults }),
+    data,
     source,
   });
 }
