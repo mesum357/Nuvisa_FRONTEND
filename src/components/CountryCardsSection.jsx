@@ -576,6 +576,33 @@ const CountryCardsSection = ({
                 key={idx}
                 className="flex flex-col gap-2 h-full"
                 onClick={() => {
+                  // 🔥 GA4: Fire view_item event when an occasion is selected
+                  if (typeof window !== "undefined" && window.dataLayer) {
+                    const price = Number(occ.price) || 129;
+                    const occasionName = occ.title || "Occasion";
+
+                    window.dataLayer.push({ ecommerce: null }); // Clear previous ecommerce data
+                    window.dataLayer.push({
+                      event: "view_item",
+                      ecommerce: {
+                        currency: "GBP",
+                        value: Number(price.toFixed(2)),
+                        items: [
+                          {
+                            item_id: `visa_${occasionName
+                              .toLowerCase()
+                              .replace(/\s+/g, "_")}`,
+                            item_name: `Visa - ${occasionName}`,
+                            item_category: "Schengen Visa",
+                            item_brand: "NUvisa",
+                            price: Number(price.toFixed(2)),
+                            quantity: 1,
+                          },
+                        ],
+                      },
+                    });
+                  }
+
                   const dates = getOccasionDates(occ);
                   const params = new URLSearchParams();
                   if (dates.arrivalDate)
