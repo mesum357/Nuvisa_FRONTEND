@@ -1,14 +1,6 @@
 import axios from "axios";
 import { normalizeFaqList } from "@/utils/faqHelpers";
 
-const ADMIN_FAQ_BASES = () => {
-  const fromEnv = process.env.NEXT_PUBLIC_ADMIN_API_URL || process.env.NEXT_PUBLIC_ADMIN_URL;
-  const bases = [];
-  if (fromEnv) bases.push(String(fromEnv).replace(/\/+$/, ""));
-  bases.push("https://nuvisa-admin.vercel.app");
-  return [...new Set(bases)];
-};
-
 export const fetchFAQs = async (filters = null) => {
   const normalizedFilters =
     typeof filters === "string" ? { category: filters } : filters || {};
@@ -21,10 +13,8 @@ export const fetchFAQs = async (filters = null) => {
   }
   const queryString = query.toString() ? `?${query.toString()}` : "";
 
-  const endpoints = [
-    ...ADMIN_FAQ_BASES().map((b) => `${b}/api/public/faqs${queryString}`),
-    `/api/faqs${queryString}`,
-  ];
+  // Site API reads shared Postgres first, then admin public URL
+  const endpoints = [`/api/faqs${queryString}`];
 
   for (const url of endpoints) {
     try {

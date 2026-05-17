@@ -9,14 +9,24 @@ export function getAdminApiBases() {
     .filter(Boolean)
     .map((u) => String(u).replace(/\/+$/, ""));
 
-  const bases = [...fromEnv, "https://nuvisa-admin.vercel.app", "https://nuvisa-admin-updated.vercel.app"];
+  const bases = [
+    ...fromEnv,
+    "https://nuvisa-admin-updated.vercel.app",
+    "https://nuvisa-admin.vercel.app",
+  ];
   return [...new Set(bases)];
 }
 
 export function normalizeOccasionCard(raw) {
   if (!raw || typeof raw !== "object") return null;
   const title = String(
-    raw.title ?? raw.name ?? raw.label ?? raw.heading ?? ""
+    raw.title ??
+      raw.mainTitle ??
+      raw.main_title ??
+      raw.name ??
+      raw.label ??
+      raw.heading ??
+      ""
   ).trim();
   if (!title) return null;
 
@@ -27,8 +37,18 @@ export function normalizeOccasionCard(raw) {
     ).trim(),
     bgColor: String(raw.bgColor ?? raw.bg_color ?? raw.color ?? "#5f9aff").trim(),
     textColor: String(raw.textColor ?? raw.text_color ?? "#ffffff").trim(),
-    startDate: raw.startDate ?? raw.start_date ?? raw.arrivalDate ?? null,
-    endDate: raw.endDate ?? raw.end_date ?? raw.departureDate ?? null,
+    startDate:
+      raw.startDate ??
+      raw.start_date ??
+      raw.arrivalDate ??
+      raw.arrival_date ??
+      null,
+    endDate:
+      raw.endDate ??
+      raw.end_date ??
+      raw.departureDate ??
+      raw.departure_date ??
+      null,
   };
 }
 

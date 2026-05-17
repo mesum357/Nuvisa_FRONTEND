@@ -45,14 +45,13 @@ export default function FaqCmsPanel() {
     <section className="bg-white/5 border border-white/10 rounded-xl p-6 mb-8">
       <h2 className="text-lg font-semibold text-white mb-2">FAQs (live on website)</h2>
       <p className="text-white/50 text-sm mb-4">
-        The homepage and <code className="text-[#c4b5fd]">/faq</code> read from{" "}
-        <strong className="text-white/80">nuvisa-admin</strong>{" "}
-        <code className="text-[#c4b5fd]">/api/public/faqs</code> (field:{" "}
-        <code className="text-[#c4b5fd]">category</code>). Edit categories and
-        questions in the external admin. If the FAQ list there looks empty but
-        you see items below, the admin UI may still be filtering by legacy{" "}
-        <code className="text-[#c4b5fd]">faqType</code> — republish using{" "}
-        <code className="text-[#c4b5fd]">category</code> only.
+        The homepage and <code className="text-[#c4b5fd]">/faq</code> read the
+        shared Postgres <code className="text-[#c4b5fd]">faqs</code> table (field{" "}
+        <code className="text-[#c4b5fd]">category</code>). Edit in{" "}
+        <strong className="text-white/80">nuvisa-admin</strong>. If the FAQ list
+        in nuvisa-admin looks empty but items appear below, their admin UI is
+        likely still filtering by <code className="text-[#c4b5fd]">faqType</code>{" "}
+        — the database only has <code className="text-[#c4b5fd]">category</code>.
       </p>
       <a
         href={`${ADMIN_FAQ_URL.replace(/\/+$/, "")}`}

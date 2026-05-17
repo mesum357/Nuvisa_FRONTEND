@@ -1,3 +1,4 @@
+import { fetchOccasionContentFromDb } from "@/lib/occasionContentDb";
 import {
   extractOccasionFromAdminJson,
   finalizeOccasionPayload,
@@ -45,7 +46,12 @@ async function fetchAdminOccasions() {
         if (!res.ok) continue;
         const json = await res.json();
         const extracted = extractOccasionFromAdminJson(json);
-        if (extracted && (extracted.title || extracted.description || extracted.occasions.length > 0)) {
+        if (
+          extracted &&
+          (extracted.title ||
+            extracted.description ||
+            extracted.occasions.length > 0)
+        ) {
           return { ...extracted, source: `admin${path}` };
         }
       } catch (e) {
@@ -66,36 +72,47 @@ export default async function handler(req, res) {
   const cacheKey = allowDefaults ? "default" : "strict";
 
   if (cache.data?.[cacheKey] && cache.expiresAt > now) {
-    res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
+    res.setHeader(
+      "Cache-Control",
+      "public, s-maxage=60, stale-while-revalidate=120"
+    );
     return res.status(200).json(cache.data[cacheKey]);
   }
 
   const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
 
-  // 1) Backend CMS (written from New-NUvisa /admin → Homepage content) — same DB the site should trust
+  // 1) Shared Postgres — same table nuvisa-admin saves to (after migration)
+  const fromDb = await fetchOccasionContentFromDb();
+  // 2) Nest backend site_content CMS
   const fromCms = await fetchBackendCms(apiBase);
-  // 2) nuvisa-admin (what client edits in external admin) when public/private routes work
+  // 3) nuvisa-admin HTTP API fallback
   const fromAdmin = await fetchAdminOccasions();
 
   const merged = {
-    title: fromCms?.title || fromAdmin?.title || "",
-    description: fromCms?.description || fromAdmin?.description || "",
+    title: fromDb?.title || fromCms?.title || fromAdmin?.title || "",
+    description:
+      fromDb?.description || fromCms?.description || fromAdmin?.description || "",
     occasions:
-      fromCms?.occasions?.length > 0
+      fromDb?.occasions?.length > 0
+        ? fromDb.occasions
+        : fromCms?.occasions?.length > 0
         ? fromCms.occasions
         : fromAdmin?.occasions || [],
   };
 
-  const source =
-    fromCms?.occasions?.length > 0
-      ? fromCms.source
-      : fromAdmin?.occasions?.length > 0
-      ? fromAdmin.source
-      : fromCms?.title || fromCms?.description
-      ? fromCms.source
-      : fromAdmin?.title || fromAdmin?.description
-      ? fromAdmin.source
-      : "defaults";
+  const source = fromDb?.occasions?.length
+    ? fromDb.source
+    : fromCms?.occasions?.length
+    ? fromCms.source
+    : fromAdmin?.occasions?.length
+    ? fromAdmin.source
+    : fromDb?.title || fromDb?.description
+    ? fromDb.source
+    : fromCms?.title || fromCms?.description
+    ? fromCms.source
+    : fromAdmin?.title || fromAdmin?.description
+    ? fromAdmin.source
+    : "defaults";
 
   const payload = {
     success: true,

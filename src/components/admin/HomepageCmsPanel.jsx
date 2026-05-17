@@ -171,11 +171,10 @@ export default function HomepageCmsPanel() {
           Everyday Steals / Occasions (yellow banner + coloured cards)
         </h3>
         <p className="text-xs text-white/40">
-          <strong className="text-white/60">This is what the live homepage reads</strong> (backend{" "}
-          <code className="text-[#c4b5fd]">/cms/homepage</code> →{" "}
-          <code className="text-[#c4b5fd]">occasions_json</code>). nuvisa-admin&apos;s occasion
-          API is not published on production yet — copy your occasion cards JSON from nuvisa-admin
-          into the field below and click Save.
+          Primary source: shared Postgres table{" "}
+          <code className="text-[#c4b5fd]">occasion_content</code> (same as nuvisa-admin →
+          Occasion Content). Use nuvisa-admin to edit boxes; the site reads that table
+          automatically. Fields below are optional override via backend CMS.
         </p>
         <div>
           <label className="text-xs text-white/50">Occasion banner title</label>
