@@ -256,6 +256,18 @@ model FAQ {
   @@map("faqs")
 }
 
+/** Occasion / Everyday Steals section — shared with nuvisa-admin (TailAdmin). */
+model OccasionContent {
+  id          String   @id @default("current")
+  title       String   @default("")
+  description String   @default("")
+  occasions   Json     @default("[]")
+  updatedAt   DateTime @updatedAt
+  updatedBy   String?
+
+  @@map("occasion_content")
+}
+
 model ComparisonSection {
   id                String   @id @default(uuid())
   title             String   @default("Travel Agency")
