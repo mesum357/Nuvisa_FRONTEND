@@ -10,18 +10,25 @@ export async function fetchFaqsFromDb(filters = {}) {
 
     const rows = await prisma.fAQ.findMany({
       where,
+      include: { faqTypeRel: true },
       orderBy: [{ order: "asc" }, { question: "asc" }],
     });
 
-    return rows.map((row) => ({
-      id: row.id,
-      question: row.question,
-      answer: row.answer,
-      category: row.category,
-      faqType: row.category,
-      order: row.order,
-      isActive: row.isActive,
-    }));
+    return rows.map((row) => {
+      const typeName = row.faqTypeRel?.name || row.faqType || row.category;
+      return {
+        id: row.id,
+        question: row.question,
+        answer: row.answer,
+        category: typeName,
+        faqType: typeName,
+        faqTypeId: row.faqTypeId,
+        faqTypeCreatedAt: row.faqTypeRel?.createdAt || row.createdAt,
+        order: row.order,
+        isActive: row.isActive,
+        isFeatured: row.isFeatured,
+      };
+    });
   } catch (error) {
     console.warn("faqs DB read:", error?.message || error);
     return [];
