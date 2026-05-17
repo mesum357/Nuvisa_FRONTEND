@@ -14,7 +14,8 @@ export const fetchFAQs = async (filters = null) => {
   const queryString = query.toString() ? `?${query.toString()}` : "";
 
   // Site API reads shared Postgres first, then admin public URL
-  const endpoints = [`/api/faqs${queryString}`];
+  const sep = queryString ? "&" : "?";
+  const endpoints = [`/api/faqs${queryString}${sep}t=${Date.now()}`];
 
   for (const url of endpoints) {
     try {

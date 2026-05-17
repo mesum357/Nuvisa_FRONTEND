@@ -6,9 +6,6 @@ import {
   occasionFromCmsFields,
 } from "@/utils/occasionData";
 
-const CACHE_TTL_MS = 60 * 1000;
-let cache = { data: null, expiresAt: 0 };
-
 async function fetchBackendCms(apiBase) {
   if (!apiBase) return null;
   try {
@@ -68,24 +65,10 @@ export default async function handler(req, res) {
   }
 
   const allowDefaults = req.query.defaults !== "false";
-  const now = Date.now();
-  const cacheKey = allowDefaults ? "default" : "strict";
-
-  if (cache.data?.[cacheKey] && cache.expiresAt > now) {
-    res.setHeader(
-      "Cache-Control",
-      "public, s-maxage=60, stale-while-revalidate=120"
-    );
-    return res.status(200).json(cache.data[cacheKey]);
-  }
-
   const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
 
-  // 1) Shared Postgres — same table nuvisa-admin saves to (after migration)
   const fromDb = await fetchOccasionContentFromDb();
-  // 2) Nest backend site_content CMS
   const fromCms = await fetchBackendCms(apiBase);
-  // 3) nuvisa-admin HTTP API fallback
   const fromAdmin = await fetchAdminOccasions();
 
   const merged = {
@@ -114,16 +97,10 @@ export default async function handler(req, res) {
     ? fromAdmin.source
     : "defaults";
 
-  const payload = {
+  res.setHeader("Cache-Control", "no-store, must-revalidate");
+  return res.status(200).json({
     success: true,
     data: finalizeOccasionPayload(merged, { allowDefaults }),
     source,
-  };
-
-  if (!cache.data) cache.data = {};
-  cache.data[cacheKey] = payload;
-  cache.expiresAt = now + CACHE_TTL_MS;
-
-  res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
-  return res.status(200).json(payload);
+  });
 }

@@ -9,11 +9,14 @@ const ADMIN_FAQ_BASES = () => {
     .filter(Boolean)
     .map((u) => String(u).replace(/\/+$/, ""));
 
-  return [...new Set([...fromEnv, "https://nuvisa-admin.vercel.app"])];
+  return [
+    ...new Set([
+      ...fromEnv,
+      "https://nuvisa-admin-updated.vercel.app",
+      "https://nuvisa-admin.vercel.app",
+    ]),
+  ];
 };
-
-const CACHE_TTL_MS = 5 * 60 * 1000;
-let cache = { data: null, expiresAt: 0 };
 
 async function fetchAdminPublicFaqs(queryString = "") {
   for (const base of ADMIN_FAQ_BASES()) {
@@ -53,33 +56,20 @@ export default async function handler(req, res) {
   }
 
   const { category, faqType, isFeatured } = req.query;
-  const query = new URLSearchParams();
   const categoryFilter = category || faqType;
-  if (categoryFilter) query.set("category", String(categoryFilter));
-  if (isFeatured !== undefined) query.set("isFeatured", String(isFeatured));
-  const queryString = query.toString() ? `?${query.toString()}` : "";
 
-  const now = Date.now();
-  const cacheKey = queryString || "__all__";
-  if (cache.data?.[cacheKey] && cache.expiresAt > now) {
-    res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
-    return res.status(200).json({ success: true, data: cache.data[cacheKey] });
-  }
-
-  // 1) Direct DB — same `faqs` table as nuvisa-admin
   let faqs = await fetchFaqsFromDb(
     categoryFilter ? { category: String(categoryFilter) } : {}
   );
 
-  // 2) Admin public HTTP fallback
   if (!faqs.length) {
+    const query = new URLSearchParams();
+    if (categoryFilter) query.set("category", String(categoryFilter));
+    if (isFeatured !== undefined) query.set("isFeatured", String(isFeatured));
+    const queryString = query.toString() ? `?${query.toString()}` : "";
     faqs = await fetchAdminPublicFaqs(queryString);
   }
 
-  if (!cache.data) cache.data = {};
-  cache.data[cacheKey] = faqs;
-  cache.expiresAt = now + CACHE_TTL_MS;
-
-  res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
+  res.setHeader("Cache-Control", "no-store, must-revalidate");
   return res.status(200).json({ success: true, data: faqs });
 }

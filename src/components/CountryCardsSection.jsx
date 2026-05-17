@@ -166,11 +166,13 @@ const CountryCardsSection = ({
             });
             if (
               occResult.data.occasions &&
-              Array.isArray(occResult.data.occasions) &&
-              occResult.data.occasions.length > 0
+              Array.isArray(occResult.data.occasions)
             ) {
               setOccasions(occResult.data.occasions);
-            } else {
+            }
+            if (
+              !occResult.data.occasions?.length
+            ) {
               const fallbackRes = await fetch(
                 `/api/country-section?defaults=false&t=${Date.now()}`
               );

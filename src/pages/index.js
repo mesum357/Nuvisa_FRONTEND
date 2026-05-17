@@ -314,7 +314,7 @@ const Index = () => {
         <main className="flex items-center justify-center flex-col pb-[45px] mt-4 md:min-h-[calc(100vh-200px)] px-5 md:px-6">
           <DiscountTicket loading={loading} content={heroContent} />
           <div className="relative flex flex-col items-center justify-center text-left sm:text-center max-w-[1200px] min-h-[350px] sm:min-h-[500px] w-full overflow-hidden rounded-[30px] px-4 sm:px-8 pt-3 sm:pt-8 pb-12 sm:pb-20">
-            <DeferredHomeHeroVideo poster="/image/hero-1104.webp" />
+            <DeferredHomeHeroVideo poster="/image/hero-poster.png" />
 
             <div className="relative z-10 max-w-4xl">
               <div className="hidden lg:block" />
