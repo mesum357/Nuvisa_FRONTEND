@@ -243,7 +243,7 @@ const PremiumServiceSection = ({ contactCardsData }) => {
                   }}
                 >
                   <Image
-                    src="/image/hero-1104.webp"
+                    src="/image/hero-poster.png"
                     alt="Icon"
                     fill
                     className="object-contain p-6 md:p-10 pointer-events-none"

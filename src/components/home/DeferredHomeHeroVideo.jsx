@@ -4,13 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 
 /**
- * Hero: lightweight poster for LCP; MP4 only on desktop after idle (never on mobile).
+ * Hero: poster image (video frame) for LCP; MP4 only on desktop after idle (never on mobile).
  */
 export default function DeferredHomeHeroVideo({
-  poster = "/image/hero-1104.webp",
+  poster = "/image/hero-poster.png",
 }) {
   const containerRef = useRef(null);
   const [shouldLoadVideo, setShouldLoadVideo] = useState(false);
+  const [videoReady, setVideoReady] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -30,7 +31,6 @@ export default function DeferredHomeHeroVideo({
       return;
     }
 
-    // Skip ~25MB video on mobile — largest PageSpeed win on nuvisa.co.uk
     const isMobileViewport = window.matchMedia("(max-width: 767px)").matches;
     if (isMobileViewport) return;
 
@@ -63,21 +63,11 @@ export default function DeferredHomeHeroVideo({
     return () => window.clearTimeout(timer);
   }, []);
 
+  const showPoster = !shouldLoadVideo || !videoReady;
+
   return (
     <div ref={containerRef} className="absolute inset-0 z-0">
-      {shouldLoadVideo ? (
-        <video
-          className="w-full h-full object-cover scale-[1.2]"
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="none"
-          poster={poster}
-        >
-          <source src="/video/nuvisa.mp4" type="video/mp4" />
-        </video>
-      ) : (
+      {showPoster && (
         <Image
           src={poster}
           alt=""
@@ -88,6 +78,23 @@ export default function DeferredHomeHeroVideo({
           className="object-cover scale-[1.2]"
           aria-hidden
         />
+      )}
+      {shouldLoadVideo && (
+        <video
+          className={`w-full h-full object-cover scale-[1.2] transition-opacity duration-500 ${
+            videoReady ? "opacity-100" : "opacity-0"
+          }`}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="none"
+          poster={poster}
+          onLoadedData={() => setVideoReady(true)}
+          onCanPlay={() => setVideoReady(true)}
+        >
+          <source src="/video/nuvisa.mp4" type="video/mp4" />
+        </video>
       )}
       <div className="absolute inset-0 bg-black/45" />
     </div>
