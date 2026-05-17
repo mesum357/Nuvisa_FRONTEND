@@ -101,6 +101,7 @@ const Index = () => {
   );
   const [occasionContent, setOccasionContent] = useState(null);
   const [occasionSubtitle, setOccasionSubtitle] = useState(null);
+  const [occasionSectionData, setOccasionSectionData] = useState(null);
   const [urgentDescription, setUrgentDescription] = useState("");
   const [priceMatchTitle, setPriceMatchTitle] = useState(
     "The NUvisa Price Match Promise"
@@ -152,6 +153,9 @@ const Index = () => {
         if (occasionRes?.ok) {
           const occJson = await occasionRes.json();
           const occData = occJson?.data || {};
+          if (occJson?.success && occData) {
+            setOccasionSectionData(occData);
+          }
           if (occData.title) {
             byKey.occasion_section_title = occData.title;
             byKey.ocassion_title = occData.title;
@@ -465,6 +469,7 @@ const Index = () => {
           image="/image/everyday_steals.png"
           occasionContent={occasionContent}
           occasionSubtitle={occasionSubtitle}
+          initialOccasionData={occasionSectionData}
           urgentDescription={urgentDescription}
         />
       </div>

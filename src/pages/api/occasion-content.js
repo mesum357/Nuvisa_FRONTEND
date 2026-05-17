@@ -64,7 +64,6 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const allowDefaults = req.query.defaults !== "false";
   const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
 
   const fromDb = await fetchOccasionContentFromDb();

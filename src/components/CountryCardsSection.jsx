@@ -30,6 +30,7 @@ const CountryCardsSection = ({
   id,
   occasionContent,
   occasionSubtitle,
+  initialOccasionData,
   urgentDescription,
 }) => {
   const [showAll, setShowAll] = useState(false);
@@ -53,9 +54,12 @@ const CountryCardsSection = ({
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  const [occasions, setOccasions] = useState(() =>
-    id === "everyday-steals" ? DEFAULT_OCCASIONS : []
-  );
+  const [occasions, setOccasions] = useState(() => {
+    if (id === "everyday-steals" && initialOccasionData?.occasions?.length > 0) {
+      return initialOccasionData.occasions;
+    }
+    return id === "everyday-steals" ? DEFAULT_OCCASIONS : [];
+  });
 
   const normalizeCountryKey = useCallback(
     (value) =>
@@ -140,7 +144,20 @@ const CountryCardsSection = ({
   const [isDynamicLoading, setIsDynamicLoading] = useState(true);
 
   useEffect(() => {
-    // Only fetch dynamic section for "everyday-steals" section
+    if (id === "everyday-steals" && initialOccasionData) {
+      setDynamicSection(initialOccasionData);
+      setSectionContent({
+        title: initialOccasionData.title || sectionContent.title,
+        description:
+          initialOccasionData.description || sectionContent.description,
+      });
+      if (initialOccasionData.occasions?.length > 0) {
+        setOccasions(initialOccasionData.occasions);
+      }
+      setIsDynamicLoading(false);
+      return;
+    }
+
     if (id !== "everyday-steals") {
       setIsDynamicLoading(false);
       return;
@@ -216,7 +233,7 @@ const CountryCardsSection = ({
     };
 
     fetchDynamicSection();
-  }, [id]);
+  }, [id, initialOccasionData]);
 
   useEffect(() => {
     let mounted = true;
