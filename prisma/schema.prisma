@@ -262,6 +262,8 @@ model OccasionContent {
   title       String   @default("")
   description String   @default("")
   occasions   Json     @default("[]")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   updatedBy   String?
 
