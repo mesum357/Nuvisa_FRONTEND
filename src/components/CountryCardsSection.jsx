@@ -149,9 +149,7 @@ const CountryCardsSection = ({
     const fetchDynamicSection = async () => {
       try {
         if (id === "everyday-steals") {
-          const occRes = await fetch(
-            `/api/occasion-content?t=${Date.now()}&defaults=false`
-          );
+          const occRes = await fetch(`/api/occasion-content?t=${Date.now()}`);
 
           if (!occRes.ok)
             throw new Error(`HTTP error! status: ${occRes.status}`);
@@ -166,15 +164,13 @@ const CountryCardsSection = ({
             });
             if (
               occResult.data.occasions &&
-              Array.isArray(occResult.data.occasions)
+              Array.isArray(occResult.data.occasions) &&
+              occResult.data.occasions.length > 0
             ) {
               setOccasions(occResult.data.occasions);
-            }
-            if (
-              !occResult.data.occasions?.length
-            ) {
+            } else {
               const fallbackRes = await fetch(
-                `/api/country-section?defaults=false&t=${Date.now()}`
+                `/api/country-section?t=${Date.now()}`
               );
               if (fallbackRes.ok) {
                 const fallbackJson = await fallbackRes.json();
@@ -186,7 +182,7 @@ const CountryCardsSection = ({
             }
           } else {
             const fallbackRes = await fetch(
-              `/api/country-section?defaults=false&t=${Date.now()}`
+              `/api/country-section?t=${Date.now()}`
             );
             if (fallbackRes.ok) {
               const fallbackJson = await fallbackRes.json();
