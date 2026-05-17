@@ -94,6 +94,10 @@ const ApplicationStepPaymentSuccessPage = () => {
               transaction_id: finalApplicationId || `TXN-${Date.now()}`,
               value: Number((Number(visaState.totalAmount) || 0).toFixed(2)),
               currency: "GBP",
+              payment_type:
+                typeof window !== "undefined"
+                  ? localStorage.getItem("ga4_payment_type") || "Credit Card"
+                  : "Credit Card",
               coupon:
                 visaState.appliedDiscount?.code ||
                 visaState.couponCode ||
