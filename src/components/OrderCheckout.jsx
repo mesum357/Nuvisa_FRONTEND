@@ -1231,7 +1231,7 @@ const VisaCheckout = () => {
           checkoutItems.push({
             item_id: `visa_${countryName.toLowerCase().replace(/\s+/g, "_")}`,
             item_name: `Visa - ${countryName}`,
-            price: Number((finalVisaFees / travelers).toFixed(2)),
+            price: Number(finalVisaFees.toFixed(2)),
             quantity: travelers,
           });
         }
@@ -1239,9 +1239,7 @@ const VisaCheckout = () => {
           checkoutItems.push({
             item_id: "insurance_certificate",
             item_name: "Insurance Certificate",
-            price: Number(
-              (discountedInsuranceFeesGBP / insuranceCount).toFixed(2)
-            ),
+            price: Number(discountedInsuranceFeesGBP.toFixed(2)),
             quantity: insuranceCount,
           });
         }
@@ -1249,7 +1247,7 @@ const VisaCheckout = () => {
           checkoutItems.push({
             item_id: "digital_gift_card",
             item_name: "NUvisa Digital Gift Card",
-            price: Number((giftCardFees / giftCardCount).toFixed(2)),
+            price: Number(giftCardFees.toFixed(2)),
             quantity: giftCardCount,
           });
         }
@@ -1661,9 +1659,7 @@ const VisaCheckout = () => {
                                       .toLowerCase()
                                       .replace(/\s+/g, "_")}`,
                                     item_name: `Visa - ${countryName}`,
-                                    price: Number(
-                                      (finalVisaFees / travelers).toFixed(2)
-                                    ),
+                                    price: Number(finalVisaFees.toFixed(2)),
                                     quantity: travelers,
                                   });
                                 if (includeInsurance && insuranceCount > 0)
@@ -1671,10 +1667,7 @@ const VisaCheckout = () => {
                                     item_id: "insurance_certificate",
                                     item_name: "Insurance Certificate",
                                     price: Number(
-                                      (
-                                        discountedInsuranceFeesGBP /
-                                        insuranceCount
-                                      ).toFixed(2)
+                                      discountedInsuranceFeesGBP.toFixed(2)
                                     ),
                                     quantity: insuranceCount,
                                   });
@@ -1682,9 +1675,7 @@ const VisaCheckout = () => {
                                   paymentItems.push({
                                     item_id: "digital_gift_card",
                                     item_name: "NUvisa Digital Gift Card",
-                                    price: Number(
-                                      (giftCardFees / giftCardCount).toFixed(2)
-                                    ),
+                                    price: Number(giftCardFees.toFixed(2)),
                                     quantity: giftCardCount,
                                   });
 
@@ -1702,7 +1693,7 @@ const VisaCheckout = () => {
                                   },
                                 });
                                 setTimeout(() => {
-                                  localStorage.setItem(
+                                  sessionStorage.setItem(
                                     "ga4_payment_type",
                                     "Apple Pay"
                                   );
@@ -1799,9 +1790,7 @@ const VisaCheckout = () => {
                                       .toLowerCase()
                                       .replace(/\s+/g, "_")}`,
                                     item_name: `Visa - ${countryName}`,
-                                    price: Number(
-                                      (finalVisaFees / travelers).toFixed(2)
-                                    ),
+                                    price: Number(finalVisaFees.toFixed(2)),
                                     quantity: travelers,
                                   });
                                 if (includeInsurance && insuranceCount > 0)
@@ -1809,10 +1798,7 @@ const VisaCheckout = () => {
                                     item_id: "insurance_certificate",
                                     item_name: "Insurance Certificate",
                                     price: Number(
-                                      (
-                                        discountedInsuranceFeesGBP /
-                                        insuranceCount
-                                      ).toFixed(2)
+                                      discountedInsuranceFeesGBP.toFixed(2)
                                     ),
                                     quantity: insuranceCount,
                                   });
@@ -1820,9 +1806,7 @@ const VisaCheckout = () => {
                                   paymentItems.push({
                                     item_id: "digital_gift_card",
                                     item_name: "NUvisa Digital Gift Card",
-                                    price: Number(
-                                      (giftCardFees / giftCardCount).toFixed(2)
-                                    ),
+                                    price: Number(giftCardFees.toFixed(2)),
                                     quantity: giftCardCount,
                                   });
 
@@ -1840,7 +1824,7 @@ const VisaCheckout = () => {
                                   },
                                 });
                                 setTimeout(() => {
-                                  localStorage.setItem(
+                                  sessionStorage.setItem(
                                     "ga4_payment_type",
                                     "Google Pay"
                                   );
@@ -2260,9 +2244,7 @@ const VisaCheckout = () => {
                                   .toLowerCase()
                                   .replace(/\s+/g, "_")}`,
                                 item_name: `Visa - ${countryName}`,
-                                price: Number(
-                                  (finalVisaFees / travelers).toFixed(2)
-                                ),
+                                price: Number(finalVisaFees.toFixed(2)),
                                 quantity: travelers,
                               });
                             if (includeInsurance && insuranceCount > 0)
@@ -2270,9 +2252,7 @@ const VisaCheckout = () => {
                                 item_id: "insurance_certificate",
                                 item_name: "Insurance Certificate",
                                 price: Number(
-                                  (
-                                    discountedInsuranceFeesGBP / insuranceCount
-                                  ).toFixed(2)
+                                  discountedInsuranceFeesGBP.toFixed(2)
                                 ),
                                 quantity: insuranceCount,
                               });
@@ -2280,9 +2260,7 @@ const VisaCheckout = () => {
                               paymentItems.push({
                                 item_id: "digital_gift_card",
                                 item_name: "NUvisa Digital Gift Card",
-                                price: Number(
-                                  (giftCardFees / giftCardCount).toFixed(2)
-                                ),
+                                price: Number(giftCardFees.toFixed(2)),
                                 quantity: giftCardCount,
                               });
 
@@ -2302,6 +2280,14 @@ const VisaCheckout = () => {
                                 items: paymentItems,
                               },
                             });
+
+                            //////////
+                            // ✨ CRITICAL: Wipe the storage clean
+                            if (typeof window !== "undefined") {
+                              try {
+                                sessionStorage.removeItem("ga4_payment_type");
+                              } catch {}
+                            }
                           }
                         }}
                         onError={(error) => {
@@ -2443,27 +2429,21 @@ const VisaCheckout = () => {
                             .toLowerCase()
                             .replace(/\s+/g, "_")}`,
                           item_name: `Visa - ${countryName}`,
-                          price: Number((finalVisaFees / travelers).toFixed(2)),
+                          price: Number(finalVisaFees.toFixed(2)),
                           quantity: travelers,
                         });
                       if (includeInsurance && insuranceCount > 0)
                         paymentItems.push({
                           item_id: "insurance_certificate",
                           item_name: "Insurance Certificate",
-                          price: Number(
-                            (
-                              discountedInsuranceFeesGBP / insuranceCount
-                            ).toFixed(2)
-                          ),
+                          price: Number(discountedInsuranceFeesGBP.toFixed(2)),
                           quantity: insuranceCount,
                         });
                       if (includeGiftCard && giftCardCount > 0)
                         paymentItems.push({
                           item_id: "digital_gift_card",
                           item_name: "NUvisa Digital Gift Card",
-                          price: Number(
-                            (giftCardFees / giftCardCount).toFixed(2)
-                          ),
+                          price: Number(giftCardFees.toFixed(2)),
                           quantity: giftCardCount,
                         });
 
@@ -2475,7 +2455,10 @@ const VisaCheckout = () => {
                       if (selectedPaymentMethod === "google")
                         ga4PaymentType = "Google Pay";
 
-                      localStorage.setItem("ga4_payment_type", ga4PaymentType);
+                      sessionStorage.setItem(
+                        "ga4_payment_type",
+                        ga4PaymentType
+                      );
                       window.dataLayer.push({ ecommerce: null });
                       window.dataLayer.push({
                         event: "add_payment_info",
@@ -2535,31 +2518,25 @@ const VisaCheckout = () => {
                             .toLowerCase()
                             .replace(/\s+/g, "_")}`,
                           item_name: `Visa - ${countryName}`,
-                          price: Number((finalVisaFees / travelers).toFixed(2)),
+                          price: Number(finalVisaFees.toFixed(2)),
                           quantity: travelers,
                         });
                       if (includeInsurance && insuranceCount > 0)
                         paymentItems.push({
                           item_id: "insurance_certificate",
                           item_name: "Insurance Certificate",
-                          price: Number(
-                            (
-                              discountedInsuranceFeesGBP / insuranceCount
-                            ).toFixed(2)
-                          ),
+                          price: Number(discountedInsuranceFeesGBP.toFixed(2)),
                           quantity: insuranceCount,
                         });
                       if (includeGiftCard && giftCardCount > 0)
                         paymentItems.push({
                           item_id: "digital_gift_card",
                           item_name: "NUvisa Digital Gift Card",
-                          price: Number(
-                            (giftCardFees / giftCardCount).toFixed(2)
-                          ),
+                          price: Number(giftCardFees.toFixed(2)),
                           quantity: giftCardCount,
                         });
 
-                      localStorage.setItem("ga4_payment_type", "Klarna");
+                      sessionStorage.setItem("ga4_payment_type", "Klarna");
                       window.dataLayer.push({ ecommerce: null });
                       window.dataLayer.push({
                         event: "add_payment_info",
@@ -2598,31 +2575,25 @@ const VisaCheckout = () => {
                             .toLowerCase()
                             .replace(/\s+/g, "_")}`,
                           item_name: `Visa - ${countryName}`,
-                          price: Number((finalVisaFees / travelers).toFixed(2)),
+                          price: Number(finalVisaFees.toFixed(2)),
                           quantity: travelers,
                         });
                       if (includeInsurance && insuranceCount > 0)
                         paymentItems.push({
                           item_id: "insurance_certificate",
                           item_name: "Insurance Certificate",
-                          price: Number(
-                            (
-                              discountedInsuranceFeesGBP / insuranceCount
-                            ).toFixed(2)
-                          ),
+                          price: Number(discountedInsuranceFeesGBP.toFixed(2)),
                           quantity: insuranceCount,
                         });
                       if (includeGiftCard && giftCardCount > 0)
                         paymentItems.push({
                           item_id: "digital_gift_card",
                           item_name: "NUvisa Digital Gift Card",
-                          price: Number(
-                            (giftCardFees / giftCardCount).toFixed(2)
-                          ),
+                          price: Number(giftCardFees.toFixed(2)),
                           quantity: giftCardCount,
                         });
 
-                      localStorage.setItem(
+                      sessionStorage.setItem(
                         "ga4_payment_type",
                         selectedPaymentMethod === "apple"
                           ? "Apple Pay"

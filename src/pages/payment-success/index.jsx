@@ -701,10 +701,7 @@ const PaymentSuccess = () => {
                   .replace(/\s+/g, "_")}`,
                 item_name: `Visa - ${countryName}`,
                 price: Number(
-                  (
-                    Number(mergedData.paymentWithoutInsurance || 0) /
-                    numberOfTravelers
-                  ).toFixed(2)
+                  Number(mergedData.paymentWithoutInsurance || 0).toFixed(2)
                 ),
                 quantity: numberOfTravelers,
               });
@@ -716,9 +713,7 @@ const PaymentSuccess = () => {
               purchaseItems.push({
                 item_id: "insurance_certificate",
                 item_name: "Insurance Certificate",
-                price: Number(
-                  (Number(mergedData.insurancePayment) / insCount).toFixed(2)
-                ),
+                price: Number(Number(mergedData.insurancePayment).toFixed(2)),
                 quantity: insCount,
               });
             }
@@ -731,16 +726,25 @@ const PaymentSuccess = () => {
               purchaseItems.push({
                 item_id: "digital_gift_card",
                 item_name: "NUvisa Digital Gift Card",
-                price: Number(
-                  (
-                    (Number(visaState.giftCardFees) || 0) / giftCardCount
-                  ).toFixed(2)
-                ),
+                price: Number((Number(visaState.giftCardFees) || 0).toFixed(2)),
                 quantity: giftCardCount,
               });
             }
 
             window.dataLayer.push({ ecommerce: null });
+
+            // Get and clear payment type from sessionStorage to prevent data leakage
+            const ga4PaymentType =
+              typeof window !== "undefined"
+                ? sessionStorage.getItem("ga4_payment_type") ||
+                  (isKlarnaRedirect ? "Klarna" : "Credit Card")
+                : "Credit Card";
+            if (typeof window !== "undefined") {
+              try {
+                sessionStorage.removeItem("ga4_payment_type");
+              } catch {}
+            }
+
             window.dataLayer.push({
               event: "purchase",
               ecommerce: {
@@ -750,11 +754,7 @@ const PaymentSuccess = () => {
                   `TXN_${Date.now()}`,
                 value: Number(Number(mergedData.totalAmount || 0).toFixed(2)),
                 currency: "GBP",
-                payment_type:
-                  typeof window !== "undefined"
-                    ? localStorage.getItem("ga4_payment_type") ||
-                      (isKlarnaRedirect ? "Klarna" : "Credit Card")
-                    : "Credit Card",
+                payment_type: ga4PaymentType,
                 coupon:
                   mergedData.storedMetadata?.couponCode ||
                   visaState.appliedDiscount?.code ||

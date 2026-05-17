@@ -3006,7 +3006,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
         {
           item_id: `visa_${countryName.toLowerCase().replace(/\s+/g, "_")}`,
           item_name: `Visa - ${countryName}`,
-          price: Number((visaFees / travelers).toFixed(2)),
+          price: Number(visaFees.toFixed(2)),
           quantity: travelers,
         },
       ];
@@ -3015,7 +3015,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
         cartItems.push({
           item_id: "insurance_certificate",
           item_name: "Insurance Certificate",
-          price: Number((insuranceFees / insuranceCount).toFixed(2)),
+          price: Number(insuranceFees.toFixed(2)),
           quantity: insuranceCount,
         });
       }
@@ -3024,7 +3024,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
         cartItems.push({
           item_id: "digital_gift_card",
           item_name: "NUvisa Digital Gift Card",
-          price: Number((giftCardFees / giftCardCount).toFixed(2)),
+          price: Number(giftCardFees.toFixed(2)),
           quantity: giftCardCount,
         });
       }
@@ -3331,9 +3331,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
           cartItems.push({
             item_id: `visa_${countryName.toLowerCase().replace(/\s+/g, "_")}`,
             item_name: `Visa - ${countryName}`,
-            price: Number(
-              (travelers > 0 ? visaFees / travelers : visaFees).toFixed(2)
-            ),
+            price: Number(visaFees.toFixed(2)),
             quantity: travelers,
           });
         }
@@ -3342,7 +3340,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
           cartItems.push({
             item_id: "insurance_certificate",
             item_name: "Insurance Certificate",
-            price: Number((insuranceFees / insuranceCount).toFixed(2)),
+            price: Number(insuranceFees.toFixed(2)),
             quantity: insuranceCount,
           });
         }
@@ -3351,7 +3349,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
           cartItems.push({
             item_id: "digital_gift_card",
             item_name: "NUvisa Digital Gift Card",
-            price: Number((giftCardFees / giftCardCount).toFixed(2)),
+            price: Number(giftCardFees.toFixed(2)),
             quantity: giftCardCount,
           });
         }
@@ -5020,11 +5018,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                                     .toLowerCase()
                                     .replace(/\s+/g, "_")}`,
                                   item_name: `Visa - ${countryName}`,
-                                  price: Number(
-                                    (
-                                      expressPaymentData.visaFees / travelers
-                                    ).toFixed(2)
-                                  ),
+                                  price: Number(expressPaymentData.visaFees.toFixed(2)),
                                   quantity: travelers,
                                 });
                               if (
@@ -5034,12 +5028,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                                 paymentItems.push({
                                   item_id: "insurance_certificate",
                                   item_name: "Insurance Certificate",
-                                  price: Number(
-                                    (
-                                      expressPaymentData.insuranceFees /
-                                      insuranceCount
-                                    ).toFixed(2)
-                                  ),
+                                  price: Number(expressPaymentData.insuranceFees.toFixed(2)),
                                   quantity: insuranceCount,
                                 });
                               if (
@@ -5049,12 +5038,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                                 paymentItems.push({
                                   item_id: "digital_gift_card",
                                   item_name: "NUvisa Digital Gift Card",
-                                  price: Number(
-                                    (
-                                      expressPaymentData.giftCardFees /
-                                      expressPaymentData.giftCardCount
-                                    ).toFixed(2)
-                                  ),
+                                  price: Number(expressPaymentData.giftCardFees.toFixed(2)),
                                   quantity: expressPaymentData.giftCardCount,
                                 });
 
@@ -5158,11 +5142,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                                     .toLowerCase()
                                     .replace(/\s+/g, "_")}`,
                                   item_name: `Visa - ${countryName}`,
-                                  price: Number(
-                                    (
-                                      expressPaymentData.visaFees / travelers
-                                    ).toFixed(2)
-                                  ),
+                                  price: Number(expressPaymentData.visaFees.toFixed(2)),
                                   quantity: travelers,
                                 });
                               if (
@@ -5172,12 +5152,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                                 paymentItems.push({
                                   item_id: "insurance_certificate",
                                   item_name: "Insurance Certificate",
-                                  price: Number(
-                                    (
-                                      expressPaymentData.insuranceFees /
-                                      insuranceCount
-                                    ).toFixed(2)
-                                  ),
+                                  price: Number(expressPaymentData.insuranceFees.toFixed(2)),
                                   quantity: insuranceCount,
                                 });
                               if (
@@ -5187,12 +5162,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                                 paymentItems.push({
                                   item_id: "digital_gift_card",
                                   item_name: "NUvisa Digital Gift Card",
-                                  price: Number(
-                                    (
-                                      expressPaymentData.giftCardFees /
-                                      expressPaymentData.giftCardCount
-                                    ).toFixed(2)
-                                  ),
+                                  price: Number(expressPaymentData.giftCardFees.toFixed(2)),
                                   quantity: expressPaymentData.giftCardCount,
                                 });
 

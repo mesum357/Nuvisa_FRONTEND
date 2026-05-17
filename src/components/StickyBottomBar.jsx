@@ -615,9 +615,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
         cartItems.push({
           item_id: `visa_${countryName.toLowerCase().replace(/\s+/g, "_")}`,
           item_name: `Visa - ${countryName}`,
-          price: Number(
-            (discountedPrices.visa / quantities.schengen).toFixed(2)
-          ),
+          price: Number(discountedPrices.visa.toFixed(2)),
           quantity: quantities.schengen,
         });
       }
@@ -625,9 +623,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
         cartItems.push({
           item_id: "insurance_certificate",
           item_name: "Insurance Certificate",
-          price: Number(
-            (discountedPrices.insurance / quantities.insurance).toFixed(2)
-          ),
+          price: Number(discountedPrices.insurance.toFixed(2)),
           quantity: quantities.insurance,
         });
       }
@@ -635,9 +631,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
         cartItems.push({
           item_id: "digital_gift_card",
           item_name: "NUvisa Digital Gift Card",
-          price: Number(
-            (discountedPrices.giftCard / quantities.giftCard).toFixed(2)
-          ),
+          price: Number(discountedPrices.giftCard.toFixed(2)),
           quantity: quantities.giftCard,
         });
       }
