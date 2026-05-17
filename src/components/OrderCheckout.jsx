@@ -661,7 +661,6 @@ const VisaCheckout = () => {
         const quantity = validateResults.giftCard?.quantity || 1;
 
         if (validateResults.valid !== false) {
-
           // Check if this code is already redeemed
           const alreadyRedeemed = redeemedGiftCards.some(
             (card) => card.code === codeUpper
@@ -1444,7 +1443,9 @@ const VisaCheckout = () => {
         insuranceCount,
       })
     ) {
-      alert("Please add at least one item (visa, insurance, or gift card) to checkout");
+      alert(
+        "Please add at least one item (visa, insurance, or gift card) to checkout"
+      );
       return;
     }
 
@@ -2285,6 +2286,7 @@ const VisaCheckout = () => {
                                   data?.order_id || `klarna_${Date.now()}`,
                                 currency: "GBP",
                                 value: Number(total.toFixed(2)),
+                                payment_type: "Klarna",
                                 coupon:
                                   appliedDiscount?.code ||
                                   couponCode ||
