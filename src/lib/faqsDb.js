@@ -1,11 +1,22 @@
 import prisma from "@/lib/prisma";
 
-/** Same `faqs` table nuvisa-admin uses — field is `category` (not faqType). */
+/** Same `faqs` table nuvisa-admin uses. */
 export async function fetchFaqsFromDb(filters = {}) {
   try {
     const where = { isActive: true };
+
     if (filters.category) {
-      where.category = String(filters.category);
+      const tab = String(filters.category);
+      where.OR = [{ category: tab }, { faqType: tab }];
+    }
+
+    if (filters.faqType) {
+      const tab = String(filters.faqType);
+      where.OR = [{ category: tab }, { faqType: tab }];
+    }
+
+    if (filters.isFeatured === true || filters.isFeatured === "true") {
+      where.isFeatured = true;
     }
 
     const rows = await prisma.fAQ.findMany({
@@ -23,10 +34,11 @@ export async function fetchFaqsFromDb(filters = {}) {
         category: typeName,
         faqType: typeName,
         faqTypeId: row.faqTypeId,
-        faqTypeCreatedAt: row.faqTypeRel?.createdAt || row.createdAt,
+        faqTypeCreatedAt: row.faqTypeCreatedAt ?? row.createdAt,
         order: row.order,
         isActive: row.isActive,
         isFeatured: row.isFeatured,
+        is_featured: row.isFeatured,
       };
     });
   } catch (error) {

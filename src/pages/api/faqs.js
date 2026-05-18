@@ -58,9 +58,11 @@ export default async function handler(req, res) {
   const { category, faqType, isFeatured } = req.query;
   const categoryFilter = category || faqType;
 
-  let faqs = await fetchFaqsFromDb(
-    categoryFilter ? { category: String(categoryFilter) } : {}
-  );
+  const dbFilters = {};
+  if (categoryFilter) dbFilters.category = String(categoryFilter);
+  if (isFeatured !== undefined) dbFilters.isFeatured = String(isFeatured);
+
+  let faqs = await fetchFaqsFromDb(dbFilters);
 
   if (!faqs.length) {
     const query = new URLSearchParams();
