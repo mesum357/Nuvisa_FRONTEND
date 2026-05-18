@@ -109,8 +109,13 @@ const VisaSolution = ({
     // 🔥 2. GTM: Track view_item 🔥
     if (typeof window !== "undefined" && window.dataLayer) {
       const currentTravelers = Math.max(Number(visaState?.travelers || 1), 1);
+
+      // 🌟 FIXED: Use strictly verified coupon code or clean cache fallback
       const baseCode =
-        visaState?.appliedDiscount?.code || visaState?.couponCode || undefined;
+        visaState?.appliedDiscount?.code ||
+        localStorage.getItem("saved_ga4_coupon") ||
+        undefined;
+
       const resolveCoupon = (qualifies) => {
         const codes = [];
         if (qualifies) codes.push("GROUP20");
@@ -123,7 +128,7 @@ const VisaSolution = ({
         item_id: `visa_${countryName.toLowerCase().replace(/\s+/g, "_")}`,
         item_name: `Visa - ${countryName}`,
         item_category: "Schengen Visa",
-        price: Number(itemPrice.toFixed(2)),
+        price: Number(itemPrice.toFixed(2)), // Individual Unit Price
         quantity: currentTravelers,
       };
       if (vCoupon) vItem.coupon = vCoupon;
@@ -133,7 +138,8 @@ const VisaSolution = ({
         event: "view_item",
         ecommerce: {
           currency: "GBP",
-          value: Number(itemPrice.toFixed(2)),
+          value: Number((itemPrice * currentTravelers).toFixed(2)), // 🌟 FIXED: Multiplied by currentTravelers for total value accuracy
+          coupon: baseCode, // 🌟 FIXED: Standard ecommerce property tracking alignment
           items: [vItem],
         },
       });

@@ -3,7 +3,7 @@ import { ArrowUpRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRef, useState, useEffect } from "react";
-import { useAppSelector } from "@/store"; // 👉 ADD THIS IMPORT
+import { useAppSelector } from "@/store";
 
 const defaultContactCards = {
   reduce: {
@@ -39,7 +39,6 @@ const PremiumServiceSection = ({ contactCardsData }) => {
 
   const contactCards = contactCardsData || defaultContactCards;
 
-  // 👉 ADD REDUX STATE AND GA4 TRACKING FUNCTION HERE
   const visaState = useAppSelector((state) => state.visa);
 
   const handleCTAClick = () => {
@@ -49,8 +48,13 @@ const PremiumServiceSection = ({ contactCardsData }) => {
 
     if (typeof window !== "undefined" && window.dataLayer) {
       const currentTravelers = Math.max(Number(visaState?.travelers || 1), 1);
+
+      // 🌟 FIXED: Use strictly verified coupon with local storage fallback
       const baseCode =
-        visaState?.appliedDiscount?.code || visaState?.couponCode || undefined;
+        visaState?.appliedDiscount?.code ||
+        localStorage.getItem("saved_ga4_coupon") ||
+        undefined;
+
       const resolveCoupon = (qualifies) => {
         const codes = [];
         if (qualifies) codes.push("GROUP20");
@@ -64,7 +68,7 @@ const PremiumServiceSection = ({ contactCardsData }) => {
         item_name: `Visa - ${currentCountry}`,
         item_category: "Schengen Visa",
         item_brand: "NUvisa",
-        price: Number(currentFee.toFixed(2)),
+        price: Number(currentFee.toFixed(2)), // Clean standalone item unit price
         quantity: currentTravelers,
       };
       if (vCoupon) vItem.coupon = vCoupon;
@@ -74,12 +78,14 @@ const PremiumServiceSection = ({ contactCardsData }) => {
         event: "view_item",
         ecommerce: {
           currency: "GBP",
-          value: Number(currentFee.toFixed(2)),
+          value: Number((currentFee * currentTravelers).toFixed(2)), // 🌟 FIXED: Multiply unit fee by traveler count for accurate total value
+          coupon: baseCode, // 🌟 FIXED: Standard unified ecommerce property mapping
           items: [vItem],
         },
       });
     }
   };
+
   // Mouse handlers
   const handleMouseDown = (e) => {
     setIsDragging(true);
@@ -219,7 +225,6 @@ const PremiumServiceSection = ({ contactCardsData }) => {
             >
               <div className="w-full md:w-2/3 text-left z-10">
                 <h3 className="text-[28px] sm:text-[36px] md:text-[54px] font-extrabold font-gilroy-bold leading-tight mb-3">
-                  {/* make last word of title red color */}
                   {contactCards.reduce.title.split(" ").map((word, index) => (
                     <span
                       key={index}

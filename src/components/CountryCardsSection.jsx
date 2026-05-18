@@ -55,7 +55,10 @@ const CountryCardsSection = ({
   }, []);
 
   const [occasions, setOccasions] = useState(() => {
-    if (id === "everyday-steals" && initialOccasionData?.occasions?.length > 0) {
+    if (
+      id === "everyday-steals" &&
+      initialOccasionData?.occasions?.length > 0
+    ) {
       return initialOccasionData.occasions;
     }
     return id === "everyday-steals" ? DEFAULT_OCCASIONS : [];
@@ -78,6 +81,7 @@ const CountryCardsSection = ({
   }, [countryPricingList, normalizeCountryKey]);
 
   // 2. Updated function
+  // 2. Updated function
   const handleCountrySelect = useCallback(
     (countryName) => {
       const countryConfig = getCountryConfig(countryName);
@@ -92,10 +96,13 @@ const CountryCardsSection = ({
       // 🔥 GA4: Fire view_item event when country is selected
       if (typeof window !== "undefined" && window.dataLayer) {
         const currentTravelers = Math.max(Number(visaState?.travelers || 1), 1);
+
+        // 🌟 FIXED: Use verified code with local storage state persistence fallback
         const baseCode =
           visaState?.appliedDiscount?.code ||
-          visaState?.couponCode ||
+          localStorage.getItem("saved_ga4_coupon") ||
           undefined;
+
         const resolveCoupon = (qualifies) => {
           const codes = [];
           if (qualifies) codes.push("GROUP20");
@@ -109,7 +116,7 @@ const CountryCardsSection = ({
           item_name: `Visa - ${countryName}`,
           item_category: "Schengen Visa",
           item_brand: "NUvisa",
-          price: Number(finalVisaFee.toFixed(2)),
+          price: Number(finalVisaFee.toFixed(2)), // Clean standalone unit price
           quantity: currentTravelers,
         };
         if (vCoupon) vItem.coupon = vCoupon;
@@ -119,7 +126,8 @@ const CountryCardsSection = ({
           event: "view_item",
           ecommerce: {
             currency: "GBP",
-            value: Number(finalVisaFee.toFixed(2)),
+            value: Number((finalVisaFee * currentTravelers).toFixed(2)), // 🌟 FIXED: Accurate aggregate viewed total
+            coupon: baseCode, // 🌟 FIXED: Standard ecommerce property alignment
             items: [vItem],
           },
         });
@@ -146,7 +154,6 @@ const CountryCardsSection = ({
     [
       visaState.travelers,
       visaState.appliedDiscount,
-      visaState.couponCode,
       dispatch,
       router,
       countryPricingLookup,
@@ -613,10 +620,13 @@ const CountryCardsSection = ({
                       Number(visaState?.travelers || 1),
                       1
                     );
+
+                    // 🌟 FIXED: Use strictly verified coupon with local storage fallback
                     const baseCode =
                       visaState?.appliedDiscount?.code ||
-                      visaState?.couponCode ||
+                      localStorage.getItem("saved_ga4_coupon") ||
                       undefined;
+
                     const resolveCoupon = (qualifies) => {
                       const codes = [];
                       if (qualifies) codes.push("GROUP20");
@@ -633,7 +643,7 @@ const CountryCardsSection = ({
                       item_name: `Visa - ${occasionName}`,
                       item_category: "Schengen Visa",
                       item_brand: "NUvisa",
-                      price: Number(price.toFixed(2)),
+                      price: Number(price.toFixed(2)), // Clean item unit price
                       quantity: currentTravelers,
                     };
                     if (vCoupon) vItem.coupon = vCoupon;
@@ -643,7 +653,8 @@ const CountryCardsSection = ({
                       event: "view_item",
                       ecommerce: {
                         currency: "GBP",
-                        value: Number(price.toFixed(2)),
+                        value: Number((price * currentTravelers).toFixed(2)), // 🌟 FIXED: Multiplied unit price by quantity for true value
+                        coupon: baseCode, // 🌟 FIXED: Mapped configuration level coupon tracking
                         items: [vItem],
                       },
                     });

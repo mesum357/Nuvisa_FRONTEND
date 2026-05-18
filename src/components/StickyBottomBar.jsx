@@ -589,6 +589,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
 
   // console.log("visa state",visaState)
   // Memoize handleAddToCart to prevent unnecessary re-renders
+  // Memoize handleAddToCart to prevent unnecessary re-renders
   const handleAddToCart = useCallback(() => {
     // Always trigger document validation when Add to Cart is clicked
     dispatch(triggerDocumentValidation());
@@ -605,6 +606,13 @@ const StickyBottomBar = ({ triggerElementId }) => {
     if (typeof window !== "undefined" && window.dataLayer) {
       // 🌟 FIXED: Use strictly verified appliedDiscount, remove raw couponCode
       const baseCode = visaState.appliedDiscount?.code || undefined;
+
+      // 🌟 FIXED: Save coupon code to localStorage to prevent state drop on checkout redirects
+      if (baseCode) {
+        localStorage.setItem("saved_ga4_coupon", baseCode);
+      } else {
+        localStorage.removeItem("saved_ga4_coupon");
+      }
 
       // 🌟 Cleaned up safe insurance calculation
       const effectiveInsCount =
@@ -626,7 +634,10 @@ const StickyBottomBar = ({ triggerElementId }) => {
         const vItem = {
           item_id: `visa_${countryName.toLowerCase().replace(/\s+/g, "_")}`,
           item_name: `Visa - ${countryName}`,
-          price: Number(discountedPrices.visa.toFixed(2)),
+          // 🌟 FIXED: Map true individual item unit price after discounts
+          price: Number(
+            (discountedPrices.visa / quantities.schengen).toFixed(2)
+          ),
           quantity: quantities.schengen,
         };
         const vCoupon = resolveCoupon(quantities.schengen >= 3);
@@ -638,7 +649,10 @@ const StickyBottomBar = ({ triggerElementId }) => {
         const iItem = {
           item_id: "insurance_certificate",
           item_name: "Insurance Certificate",
-          price: Number(discountedPrices.insurance.toFixed(2)),
+          // 🌟 FIXED: Map true individual item unit price after discounts
+          price: Number(
+            (discountedPrices.insurance / quantities.insurance).toFixed(2)
+          ),
           quantity: quantities.insurance,
         };
         const iCoupon = resolveCoupon(effectiveInsCount >= 3);
@@ -650,7 +664,10 @@ const StickyBottomBar = ({ triggerElementId }) => {
         const gItem = {
           item_id: "digital_gift_card",
           item_name: "NUvisa Digital Gift Card",
-          price: Number(discountedPrices.giftCard.toFixed(2)),
+          // 🌟 FIXED: Map true individual item unit price after discounts
+          price: Number(
+            (discountedPrices.giftCard / quantities.giftCard).toFixed(2)
+          ),
           quantity: quantities.giftCard,
         };
         const gCoupon = resolveCoupon(quantities.giftCard >= 3);
@@ -664,7 +681,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
         ecommerce: {
           currency: "GBP",
           value: Number(discountedPrices.total.toFixed(2)),
-          coupon: baseCode, // 🌟 BONUS FIX: Pass baseCode at ecommerce level too!
+          coupon: baseCode,
           items: cartItems,
         },
       });
@@ -679,8 +696,8 @@ const StickyBottomBar = ({ triggerElementId }) => {
     dispatch,
     router,
     quantities,
-    visaState.appliedDiscount, // 🌟 Safely included
-    visaState.selectedCountry, // 🌟 Safely included
+    visaState.appliedDiscount,
+    visaState.selectedCountry,
   ]);
 
   // Note: Added 'quantities' to the dependency array above so it has the latest cart numbers!
