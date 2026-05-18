@@ -1406,14 +1406,29 @@ const VisaCheckout = () => {
       localStorageEnums.SET,
       includeInsurance ? true : false
     );
-    localStorageGateway("travelers", localStorageEnums.SET, String(travelers));
+    // Allow zero travellers for gift-card or insurance-only checkouts
+    const allowsZeroTravelers = canCheckoutWithoutDestinationCountry({
+      travelers,
+      finalVisaFees: visaFeesGBP,
+      includeGiftCard,
+      giftCardCount,
+      includeInsurance,
+      insuranceCount,
+    });
+
+    const normalizedTravellersForStorage = allowsZeroTravelers ? "0" : String(travelers);
+    localStorageGateway("travelers", localStorageEnums.SET, normalizedTravellersForStorage);
 
     dispatch(setAmountWithoutDiscount(Number(subtotalGBP)));
     dispatch(setTotalAmount(Number(total)));
     dispatch(setInsuranceFees(Number(discountedInsuranceFeesGBP)));
     dispatch(setGiftCardFees(Number(giftCardFees)));
     dispatch(setCouponCode(couponCode.trim().toUpperCase()));
-    dispatch(setTravelers(Number(travelers)));
+    if (allowsZeroTravelers) {
+      dispatch(setTravelers(0));
+    } else {
+      dispatch(setTravelers(Number(travelers)));
+    }
 
     localStorageGateway(
       "paymentWithoutInsurance",
