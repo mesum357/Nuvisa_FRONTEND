@@ -146,17 +146,18 @@ export default function FaqCmsPanel() {
         total).
       </p>
       <p className="text-amber-200/90 text-sm mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2">
-        <strong>nuvisa-admin-updated</strong> FAQ API is broken (
-        <code className="text-amber-100">/api/public/faqs</code> → 500). Use{" "}
+        Client FAQ editing uses{" "}
         <a
-          href={STABLE_ADMIN_URL}
+          href="https://nuvisa-admin-updated.vercel.app/admin/faqs"
           target="_blank"
           rel="noopener noreferrer"
           className="underline text-amber-100"
         >
-          nuvisa-admin.vercel.app
-        </a>{" "}
-        for TailAdmin, or edit below on this dashboard.
+          nuvisa-admin-updated
+        </a>
+        . After deploying this site, add the rewrites in{" "}
+        <code className="text-amber-100">nuvisa-admin-updated-fix/vercel.json</code>{" "}
+        to that Vercel project and redeploy (see README there).
       </p>
 
       {!showForm ? (

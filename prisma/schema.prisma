@@ -260,12 +260,13 @@ model FAQ {
   question    String   @db.Text
   answer      String   @db.Text
   category    String?  // Legacy text; keep in sync with FaqType.name
-  faqTypeId   String?
-  faqTypeRel  FaqType? @relation(fields: [faqTypeId], references: [id], onDelete: SetNull)
-  faqType     String?  // Scalar mirror for nuvisa-admin-updated
-  order       Int      @default(0) // For custom ordering
-  isActive    Boolean  @default(true)
-  isFeatured  Boolean  @default(false)
+  faqTypeId        String?
+  faqTypeRel       FaqType? @relation(fields: [faqTypeId], references: [id], onDelete: SetNull)
+  faqType          String?  // Tab name — shared with nuvisa-admin
+  faqTypeCreatedAt DateTime?
+  order            Int      @default(0) // For custom ordering
+  isActive         Boolean  @default(true)
+  isFeatured       Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   updatedBy   String?
