@@ -3241,28 +3241,33 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
       "employmentProof",
     ];
 
-    // Count how many required documents are currently checked
     const selectedDocsCount = requiredFields.filter(
       (field) => requiredDocuments[field]
     ).length;
 
-    // Check if only insurance is selected
     const hasOnlyInsurance =
       recommendedItems.insuranceCertificate &&
       !recommendedItems.giftCard &&
       selectedDocsCount === 0;
 
-    // Fire event IF 5 documents are selected OR it's an insurance-only cart
+    // ✅ FIX: bail out if memoized prices haven't resolved yet (SSR/hydration safety)
+    if (
+      visaOnlyPrice === undefined ||
+      discountedInsurancePrice === undefined ||
+      discountedGiftCardPrice === undefined
+    ) {
+      return;
+    }
+
     if (
       (selectedDocsCount >= 5 || hasOnlyInsurance) &&
       !hasTrackedAddToCartRef.current
     ) {
-      hasTrackedAddToCartRef.current = true; // Lock it so it doesn't spam GA4
+      hasTrackedAddToCartRef.current = true;
 
       const countryName = getCountryParam(selectedCountry) || "Germany";
 
       if (typeof window !== "undefined" && window.dataLayer) {
-        // 🌟 FIXED: Use strictly verified appliedDiscount, remove unverified couponCode fallback
         const baseCode = appliedDiscount?.code || undefined;
         const effectiveInsCount =
           travelers > 0 ? Math.min(insuranceCount, travelers) : insuranceCount;
@@ -3280,7 +3285,6 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
           const vItem = {
             item_id: `visa_${countryName.toLowerCase().replace(/\s+/g, "_")}`,
             item_name: `Visa - ${countryName}`,
-            // 🌟 FIXED: Send true item unit price after discounts
             price: Number((visaOnlyPrice / travelers).toFixed(2)),
             quantity: travelers,
           };
@@ -3293,7 +3297,6 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
           const iItem = {
             item_id: "insurance_certificate",
             item_name: "Insurance Certificate",
-            // 🌟 FIXED: Send true item unit price after discounts
             price: Number(
               (discountedInsurancePrice / insuranceCount).toFixed(2)
             ),
@@ -3308,7 +3311,6 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
           const gItem = {
             item_id: "digital_gift_card",
             item_name: "NUvisa Digital Gift Card",
-            // 🌟 FIXED: Send true item unit price after discounts
             price: Number((discountedGiftCardPrice / giftCardCount).toFixed(2)),
             quantity: giftCardCount,
           };
@@ -3317,7 +3319,6 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
           cartItems.push(gItem);
         }
 
-        // 🌟 FIXED: Explicitly sum the exact final discounted values for root value accuracy
         const finalCartValue =
           (!hasOnlyInsurance ? visaOnlyPrice : 0) +
           (recommendedItems.insuranceCertificate
@@ -3325,7 +3326,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
             : 0) +
           (recommendedItems.giftCard ? discountedGiftCardPrice : 0);
 
-        window.dataLayer.push({ ecommerce: null }); // Clear previous
+        window.dataLayer.push({ ecommerce: null });
         window.dataLayer.push({
           event: "add_to_cart",
           ecommerce: {
@@ -3338,7 +3339,6 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
       }
     }
 
-    // Reset the lock if they uncheck documents, so it can fire again if they re-complete it
     if (selectedDocsCount < 5 && !hasOnlyInsurance) {
       hasTrackedAddToCartRef.current = false;
     }
