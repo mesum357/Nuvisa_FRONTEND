@@ -28,9 +28,9 @@ const StripeElementsCheckoutPage = () => {
           localStorageGateway("paymentAmount", localStorageEnums.GET) ||
           "";
         const travelers =
-          searchParams.get("travelers") ||
-          localStorageGateway("travelers", localStorageEnums.GET) ||
-          "1";
+          searchParams.get("travelers") ??
+          localStorageGateway("travelers", localStorageEnums.GET) ??
+          "0";
         const country =
           searchParams.get("country") || visaState.selectedCountry || "";
         const insurance =
