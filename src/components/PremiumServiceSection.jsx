@@ -48,24 +48,34 @@ const PremiumServiceSection = ({ contactCardsData }) => {
     const currentFee = visaState?.visaFees || 129;
 
     if (typeof window !== "undefined" && window.dataLayer) {
+      const currentTravelers = Math.max(Number(visaState?.travelers || 1), 1);
+      const baseCode =
+        visaState?.appliedDiscount?.code || visaState?.couponCode || undefined;
+      const resolveCoupon = (qualifies) => {
+        const codes = [];
+        if (qualifies) codes.push("GROUP20");
+        if (baseCode && baseCode !== "GROUP20") codes.push(baseCode);
+        return codes.length > 0 ? codes.join(",") : undefined;
+      };
+      const vCoupon = resolveCoupon(currentTravelers >= 3);
+
+      const vItem = {
+        item_id: `visa_${currentCountry.toLowerCase().replace(/\s+/g, "_")}`,
+        item_name: `Visa - ${currentCountry}`,
+        item_category: "Schengen Visa",
+        item_brand: "NUvisa",
+        price: Number(currentFee.toFixed(2)),
+        quantity: currentTravelers,
+      };
+      if (vCoupon) vItem.coupon = vCoupon;
+
       window.dataLayer.push({ ecommerce: null }); // Clear previous ecommerce data
       window.dataLayer.push({
         event: "view_item",
         ecommerce: {
           currency: "GBP",
           value: Number(currentFee.toFixed(2)),
-          items: [
-            {
-              item_id: `visa_${currentCountry
-                .toLowerCase()
-                .replace(/\s+/g, "_")}`,
-              item_name: `Visa - ${currentCountry}`,
-              item_category: "Schengen Visa",
-              item_brand: "NUvisa",
-              price: Number(currentFee.toFixed(2)),
-              quantity: 1,
-            },
-          ],
+          items: [vItem],
         },
       });
     }

@@ -686,64 +686,91 @@ const PaymentSuccess = () => {
         const applicationResponse = await createApplication(applicationPayload);
         await persistAuthFromResponse(applicationResponse);
 
+        ////////
         if (
           applicationResponse?.status === 200 ||
           applicationResponse?.status === 201
         ) {
+          // 🔥 GTM: FIRE PURCHASE EVENT 🔥
           if (typeof window !== "undefined" && window.dataLayer) {
-            const purchaseItems = [];
+            const baseCode =
+              mergedData.storedMetadata?.couponCode ||
+              visaState.appliedDiscount?.code ||
+              undefined;
             const countryName = mergedData.selectedCountry || "Schengen";
+            const insCount = Math.max(
+              Number(mergedData?.storedMetadata?.insuranceCount || 0),
+              hasInsurance ? numberOfTravelers : 0
+            );
+            const giftCardCount = Math.max(
+              Number(visaState.giftCardCount || 0),
+              0
+            );
+            const effectiveInsCount = Math.min(insCount, numberOfTravelers);
 
+            const resolveCoupon = (qualifies) => {
+              const codes = [];
+              if (qualifies) codes.push("GROUP20");
+              if (baseCode && baseCode !== "GROUP20") codes.push(baseCode);
+              return codes.length > 0 ? codes.join(",") : undefined;
+            };
+
+            const purchaseItems = [];
+
+            // Visa item
             if (numberOfTravelers > 0) {
-              purchaseItems.push({
+              const vItem = {
                 item_id: `visa_${countryName
                   .toLowerCase()
                   .replace(/\s+/g, "_")}`,
                 item_name: `Visa - ${countryName}`,
                 price: Number(
-                  Number(mergedData.paymentWithoutInsurance || 0).toFixed(2)
+                  (Number(mergedData.paymentWithoutInsurance) || 0).toFixed(2)
                 ),
                 quantity: numberOfTravelers,
-              });
+              };
+              const vCoupon = resolveCoupon(numberOfTravelers >= 3);
+              if (vCoupon) vItem.coupon = vCoupon;
+              purchaseItems.push(vItem);
             }
 
+            // Insurance item
             if (hasInsurance && Number(mergedData.insurancePayment) > 0) {
-              const insCount =
-                mergedData?.storedMetadata?.insuranceCount || numberOfTravelers;
-              purchaseItems.push({
+              const iItem = {
                 item_id: "insurance_certificate",
                 item_name: "Insurance Certificate",
-                price: Number(Number(mergedData.insurancePayment).toFixed(2)),
+                price: Number(
+                  (Number(mergedData.insurancePayment) || 0).toFixed(2)
+                ),
                 quantity: insCount,
-              });
+              };
+              const iCoupon = resolveCoupon(effectiveInsCount >= 3);
+              if (iCoupon) iItem.coupon = iCoupon;
+              purchaseItems.push(iItem);
             }
 
-            const giftCardCount = Math.max(
-              Number(visaState.giftCardCount || 0),
-              0
-            );
+            // Gift card item
             if (giftCardCount > 0) {
-              purchaseItems.push({
+              const gItem = {
                 item_id: "digital_gift_card",
                 item_name: "NUvisa Digital Gift Card",
                 price: Number((Number(visaState.giftCardFees) || 0).toFixed(2)),
                 quantity: giftCardCount,
-              });
+              };
+              const gCoupon = resolveCoupon(giftCardCount >= 3);
+              if (gCoupon) gItem.coupon = gCoupon;
+              purchaseItems.push(gItem);
             }
 
             window.dataLayer.push({ ecommerce: null });
 
             // Get and clear payment type from sessionStorage to prevent data leakage
             const ga4PaymentType =
-              typeof window !== "undefined"
-                ? sessionStorage.getItem("ga4_payment_type") ||
-                  (isKlarnaRedirect ? "Klarna" : "Credit Card")
-                : "Credit Card";
-            if (typeof window !== "undefined") {
-              try {
-                sessionStorage.removeItem("ga4_payment_type");
-              } catch {}
-            }
+              sessionStorage.getItem("ga4_payment_type") ||
+              (isKlarnaRedirect ? "Klarna" : "Credit Card");
+            try {
+              sessionStorage.removeItem("ga4_payment_type");
+            } catch {}
 
             window.dataLayer.push({
               event: "purchase",
@@ -755,19 +782,13 @@ const PaymentSuccess = () => {
                 value: Number(Number(mergedData.totalAmount || 0).toFixed(2)),
                 currency: "GBP",
                 payment_type: ga4PaymentType,
-                coupon:
-                  mergedData.storedMetadata?.couponCode ||
-                  visaState.appliedDiscount?.code ||
-                  undefined,
+                coupon: baseCode,
                 items: purchaseItems,
               },
             });
           }
 
           setTimeout(() => {
-            try {
-              sessionStorage.setItem("nuvisa.klarnaPaymentSucceeded", "1");
-            } catch {}
             router.replace(
               "/application-step/?application_id=" +
                 applicationResponse?.data?.data?.results?.application?.id
@@ -776,6 +797,7 @@ const PaymentSuccess = () => {
         } else {
           throw new Error("Failed to create visa application");
         }
+        /////////////////
       } catch (error) {
         console.error(
           "Error storing payment data or creating application:",

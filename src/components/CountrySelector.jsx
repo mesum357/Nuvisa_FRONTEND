@@ -58,22 +58,34 @@ export default function CountrySelector() {
 
     // 🔥 GA4: Fire view_item event when country is selected
     if (typeof window !== "undefined" && window.dataLayer) {
+      const currentTravelers = Math.max(Number(visaState?.travelers || 1), 1);
+      const baseCode =
+        visaState?.appliedDiscount?.code || visaState?.couponCode || undefined;
+      const resolveCoupon = (qualifies) => {
+        const codes = [];
+        if (qualifies) codes.push("GROUP20");
+        if (baseCode && baseCode !== "GROUP20") codes.push(baseCode);
+        return codes.length > 0 ? codes.join(",") : undefined;
+      };
+      const vCoupon = resolveCoupon(currentTravelers >= 3);
+
+      const vItem = {
+        item_id: `visa_${countryName.toLowerCase().replace(/\s+/g, "_")}`,
+        item_name: `Visa - ${countryName}`,
+        item_category: "Schengen Visa",
+        item_brand: "NUvisa",
+        price: Number((countryConfig.visaFee || 0).toFixed(2)),
+        quantity: currentTravelers,
+      };
+      if (vCoupon) vItem.coupon = vCoupon;
+
       window.dataLayer.push({ ecommerce: null }); // Clear previous ecommerce data
       window.dataLayer.push({
         event: "view_item",
         ecommerce: {
           currency: "GBP",
           value: Number((countryConfig.visaFee || 0).toFixed(2)),
-          items: [
-            {
-              item_id: `visa_${countryName.toLowerCase().replace(/\s+/g, "_")}`,
-              item_name: `Visa - ${countryName}`,
-              item_category: "Schengen Visa",
-              item_brand: "NUvisa",
-              price: Number((countryConfig.visaFee || 0).toFixed(2)),
-              quantity: 1,
-            },
-          ],
+          items: [vItem],
         },
       });
     }
@@ -92,13 +104,13 @@ export default function CountrySelector() {
 
     // Redirect to get-the-visa page with selected country
     router.push(
-      `/get-the-visa?selectedCountry=${encodeURIComponent(countryName)}`
+      `/get-the-visa?selectedCountry=${encodeURIComponent(countryName)}`,
     );
   };
 
   // Filter Schengen countries based on search term
   const filteredCountries = schengenCountries.filter((country) =>
-    country.name.toLowerCase().includes(searchTerm.toLowerCase())
+    country.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   // Determine which countries to display

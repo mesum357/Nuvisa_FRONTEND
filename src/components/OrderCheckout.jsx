@@ -48,11 +48,7 @@ import {
   canCheckoutWithoutDestinationCountry,
   hasCheckoutLineItems,
 } from "@/utils/checkoutPaymentType";
-import {
-  trackAddToCart,
-  trackBeginCheckout,
-  trackAddPaymentInfo,
-} from "@/lib/gtag";
+
 const DEFAULT_REQUIRED_DOCUMENTS = {
   passport: false,
   ukVisa: false,
@@ -1219,37 +1215,77 @@ const VisaCheckout = () => {
   const currentBaseFee = currentVisaFeePerTraveler; // Current base fee per traveler
   const totalAmount = total;
 
-  // GA4: begin_checkout funnel step
+  // GA4: begin_checkout funnel step done
   const hasTrackedBeginCheckout = useRef(false);
   useEffect(() => {
-    if (!hasTrackedBeginCheckout.current && travelers > 0) {
+    // 1. FIXED: Fires if ANY item is in the cart
+    if (
+      !hasTrackedBeginCheckout.current &&
+      (travelers > 0 || insuranceCount > 0 || giftCardCount > 0)
+    ) {
       hasTrackedBeginCheckout.current = true;
+
       if (typeof window !== "undefined" && window.dataLayer) {
         const countryName = selectedCountry || "Schengen";
+
+        // 2. FIXED: Uses strictly validated appliedDiscount, ignores raw typed-in couponCode
+        const baseCode = appliedDiscount?.code || undefined;
+
+        // 3. FIXED: Prevents Math.min from returning 0 if travelers is 0
+        const effectiveInsCount =
+          travelers > 0 ? Math.min(insuranceCount, travelers) : insuranceCount;
+
+        const resolveCoupon = (qualifies) => {
+          const codes = [];
+          if (qualifies) codes.push("GROUP20");
+          if (baseCode && baseCode !== "GROUP20") codes.push(baseCode);
+          return codes.length > 0 ? codes.join(",") : undefined;
+        };
+
+        let ga4PaymentType = undefined;
+        if (selectedPaymentMethod === "stripe") ga4PaymentType = "Credit Card";
+        else if (selectedPaymentMethod === "klarna") ga4PaymentType = "Klarna";
+        else if (selectedPaymentMethod === "apple")
+          ga4PaymentType = "Apple Pay";
+        else if (selectedPaymentMethod === "google")
+          ga4PaymentType = "Google Pay";
+
         const checkoutItems = [];
-        if (finalVisaFees > 0) {
-          checkoutItems.push({
+
+        if (travelers > 0) {
+          const vItem = {
             item_id: `visa_${countryName.toLowerCase().replace(/\s+/g, "_")}`,
             item_name: `Visa - ${countryName}`,
             price: Number(finalVisaFees.toFixed(2)),
             quantity: travelers,
-          });
+          };
+          const vCoupon = resolveCoupon(travelers >= 3);
+          if (vCoupon) vItem.coupon = vCoupon;
+          checkoutItems.push(vItem);
         }
+
         if (includeInsurance && insuranceCount > 0) {
-          checkoutItems.push({
+          const iItem = {
             item_id: "insurance_certificate",
             item_name: "Insurance Certificate",
             price: Number(discountedInsuranceFeesGBP.toFixed(2)),
             quantity: insuranceCount,
-          });
+          };
+          const iCoupon = resolveCoupon(effectiveInsCount >= 3);
+          if (iCoupon) iItem.coupon = iCoupon;
+          checkoutItems.push(iItem);
         }
+
         if (includeGiftCard && giftCardCount > 0) {
-          checkoutItems.push({
+          const gItem = {
             item_id: "digital_gift_card",
             item_name: "NUvisa Digital Gift Card",
             price: Number(giftCardFees.toFixed(2)),
             quantity: giftCardCount,
-          });
+          };
+          const gCoupon = resolveCoupon(giftCardCount >= 3);
+          if (gCoupon) gItem.coupon = gCoupon;
+          checkoutItems.push(gItem);
         }
 
         window.dataLayer.push({ ecommerce: null });
@@ -1258,7 +1294,8 @@ const VisaCheckout = () => {
           ecommerce: {
             currency: "GBP",
             value: Number(total.toFixed(2)),
-            coupon: appliedDiscount?.code || couponCode || undefined,
+            payment_type: ga4PaymentType, // 4. FIXED: Payment type is now pushed to GTM
+            coupon: baseCode, // FIXED: Safe coupon code fallback applied here too
             items: checkoutItems,
           },
         });
@@ -1275,7 +1312,8 @@ const VisaCheckout = () => {
     giftCardFees,
     total,
     appliedDiscount,
-    couponCode,
+    selectedCountry, // Added to fix stale state warnings
+    selectedPaymentMethod, // Added to fix stale state warnings
   ]);
 
   useEffect(() => {
@@ -1652,32 +1690,72 @@ const VisaCheckout = () => {
                               ) {
                                 const countryName =
                                   selectedCountry || "Schengen";
+
+                                // 🌟 FIXED: Removed raw couponCode
+                                const baseCode =
+                                  appliedDiscount?.code || undefined;
+
+                                // 🌟 FIXED: Safe math evaluation
+                                const effectiveInsCount =
+                                  travelers > 0
+                                    ? Math.min(insuranceCount, travelers)
+                                    : insuranceCount;
+
+                                const resolveCoupon = (qualifies) => {
+                                  const codes = [];
+                                  if (qualifies) codes.push("GROUP20");
+                                  if (baseCode && baseCode !== "GROUP20")
+                                    codes.push(baseCode);
+                                  return codes.length > 0
+                                    ? codes.join(",")
+                                    : undefined;
+                                };
+
                                 const paymentItems = [];
-                                if (travelers > 0)
-                                  paymentItems.push({
+
+                                if (travelers > 0) {
+                                  const vItem = {
                                     item_id: `visa_${countryName
                                       .toLowerCase()
                                       .replace(/\s+/g, "_")}`,
                                     item_name: `Visa - ${countryName}`,
                                     price: Number(finalVisaFees.toFixed(2)),
                                     quantity: travelers,
-                                  });
-                                if (includeInsurance && insuranceCount > 0)
-                                  paymentItems.push({
+                                  };
+                                  const vCoupon = resolveCoupon(travelers >= 3);
+                                  if (vCoupon) vItem.coupon = vCoupon;
+                                  paymentItems.push(vItem);
+                                }
+
+                                if (includeInsurance && insuranceCount > 0) {
+                                  const iItem = {
                                     item_id: "insurance_certificate",
                                     item_name: "Insurance Certificate",
                                     price: Number(
                                       discountedInsuranceFeesGBP.toFixed(2)
                                     ),
                                     quantity: insuranceCount,
-                                  });
-                                if (includeGiftCard && giftCardCount > 0)
-                                  paymentItems.push({
+                                  };
+                                  const iCoupon = resolveCoupon(
+                                    effectiveInsCount >= 3
+                                  );
+                                  if (iCoupon) iItem.coupon = iCoupon;
+                                  paymentItems.push(iItem);
+                                }
+
+                                if (includeGiftCard && giftCardCount > 0) {
+                                  const gItem = {
                                     item_id: "digital_gift_card",
                                     item_name: "NUvisa Digital Gift Card",
                                     price: Number(giftCardFees.toFixed(2)),
                                     quantity: giftCardCount,
-                                  });
+                                  };
+                                  const gCoupon = resolveCoupon(
+                                    giftCardCount >= 3
+                                  );
+                                  if (gCoupon) gItem.coupon = gCoupon;
+                                  paymentItems.push(gItem);
+                                }
 
                                 window.dataLayer.push({ ecommerce: null });
                                 window.dataLayer.push({
@@ -1685,10 +1763,8 @@ const VisaCheckout = () => {
                                   ecommerce: {
                                     currency: "GBP",
                                     value: Number(totalAmount.toFixed(2)),
-                                    coupon:
-                                      appliedDiscount?.code ||
-                                      couponCode ||
-                                      undefined,
+                                    coupon: baseCode, // 🌟 FIXED
+                                    payment_type: "Apple Pay",
                                     items: paymentItems,
                                   },
                                 });
@@ -1704,10 +1780,7 @@ const VisaCheckout = () => {
                                       currency: "GBP",
                                       value: Number(totalAmount.toFixed(2)),
                                       payment_type: "Apple Pay",
-                                      coupon:
-                                        appliedDiscount?.code ||
-                                        couponCode ||
-                                        undefined,
+                                      coupon: baseCode, // 🌟 FIXED
                                       items: paymentItems,
                                     },
                                   });
@@ -1783,32 +1856,72 @@ const VisaCheckout = () => {
                               ) {
                                 const countryName =
                                   selectedCountry || "Schengen";
+
+                                // 🌟 FIXED: Removed raw couponCode
+                                const baseCode =
+                                  appliedDiscount?.code || undefined;
+
+                                // 🌟 FIXED: Safe math evaluation
+                                const effectiveInsCount =
+                                  travelers > 0
+                                    ? Math.min(insuranceCount, travelers)
+                                    : insuranceCount;
+
+                                const resolveCoupon = (qualifies) => {
+                                  const codes = [];
+                                  if (qualifies) codes.push("GROUP20");
+                                  if (baseCode && baseCode !== "GROUP20")
+                                    codes.push(baseCode);
+                                  return codes.length > 0
+                                    ? codes.join(",")
+                                    : undefined;
+                                };
+
                                 const paymentItems = [];
-                                if (travelers > 0)
-                                  paymentItems.push({
+
+                                if (travelers > 0) {
+                                  const vItem = {
                                     item_id: `visa_${countryName
                                       .toLowerCase()
                                       .replace(/\s+/g, "_")}`,
                                     item_name: `Visa - ${countryName}`,
                                     price: Number(finalVisaFees.toFixed(2)),
                                     quantity: travelers,
-                                  });
-                                if (includeInsurance && insuranceCount > 0)
-                                  paymentItems.push({
+                                  };
+                                  const vCoupon = resolveCoupon(travelers >= 3);
+                                  if (vCoupon) vItem.coupon = vCoupon;
+                                  paymentItems.push(vItem);
+                                }
+
+                                if (includeInsurance && insuranceCount > 0) {
+                                  const iItem = {
                                     item_id: "insurance_certificate",
                                     item_name: "Insurance Certificate",
                                     price: Number(
                                       discountedInsuranceFeesGBP.toFixed(2)
                                     ),
                                     quantity: insuranceCount,
-                                  });
-                                if (includeGiftCard && giftCardCount > 0)
-                                  paymentItems.push({
+                                  };
+                                  const iCoupon = resolveCoupon(
+                                    effectiveInsCount >= 3
+                                  );
+                                  if (iCoupon) iItem.coupon = iCoupon;
+                                  paymentItems.push(iItem);
+                                }
+
+                                if (includeGiftCard && giftCardCount > 0) {
+                                  const gItem = {
                                     item_id: "digital_gift_card",
                                     item_name: "NUvisa Digital Gift Card",
                                     price: Number(giftCardFees.toFixed(2)),
                                     quantity: giftCardCount,
-                                  });
+                                  };
+                                  const gCoupon = resolveCoupon(
+                                    giftCardCount >= 3
+                                  );
+                                  if (gCoupon) gItem.coupon = gCoupon;
+                                  paymentItems.push(gItem);
+                                }
 
                                 window.dataLayer.push({ ecommerce: null });
                                 window.dataLayer.push({
@@ -1816,10 +1929,8 @@ const VisaCheckout = () => {
                                   ecommerce: {
                                     currency: "GBP",
                                     value: Number(totalAmount.toFixed(2)),
-                                    coupon:
-                                      appliedDiscount?.code ||
-                                      couponCode ||
-                                      undefined,
+                                    coupon: baseCode, // 🌟 FIXED
+                                    payment_type: "Google Pay",
                                     items: paymentItems,
                                   },
                                 });
@@ -1835,10 +1946,7 @@ const VisaCheckout = () => {
                                       currency: "GBP",
                                       value: Number(totalAmount.toFixed(2)),
                                       payment_type: "Google Pay",
-                                      coupon:
-                                        appliedDiscount?.code ||
-                                        couponCode ||
-                                        undefined,
+                                      coupon: baseCode, // 🌟 FIXED
                                       items: paymentItems,
                                     },
                                   });
@@ -2237,32 +2345,70 @@ const VisaCheckout = () => {
                             window.dataLayer
                           ) {
                             const countryName = selectedCountry || "Schengen";
+                            const baseCode =
+                              appliedDiscount?.code || couponCode || undefined;
+                            const effectiveInsCount = Math.min(
+                              insuranceCount,
+                              travelers
+                            );
+
+                            const resolveCoupon = (qualifies) => {
+                              const codes = [];
+                              if (qualifies) codes.push("GROUP20");
+                              if (baseCode && baseCode !== "GROUP20")
+                                codes.push(baseCode);
+                              return codes.length > 0
+                                ? codes.join(",")
+                                : undefined;
+                            };
+
                             const paymentItems = [];
-                            if (travelers > 0)
-                              paymentItems.push({
+
+                            if (travelers > 0) {
+                              const vItem = {
                                 item_id: `visa_${countryName
                                   .toLowerCase()
                                   .replace(/\s+/g, "_")}`,
                                 item_name: `Visa - ${countryName}`,
                                 price: Number(finalVisaFees.toFixed(2)),
                                 quantity: travelers,
-                              });
-                            if (includeInsurance && insuranceCount > 0)
-                              paymentItems.push({
+                              };
+                              const vCoupon = resolveCoupon(travelers >= 3);
+                              if (vCoupon) vItem.coupon = vCoupon;
+                              paymentItems.push(vItem);
+                            }
+
+                            if (includeInsurance && insuranceCount > 0) {
+                              const iItem = {
                                 item_id: "insurance_certificate",
                                 item_name: "Insurance Certificate",
                                 price: Number(
                                   discountedInsuranceFeesGBP.toFixed(2)
                                 ),
                                 quantity: insuranceCount,
-                              });
-                            if (includeGiftCard && giftCardCount > 0)
-                              paymentItems.push({
+                              };
+                              const iCoupon = resolveCoupon(
+                                effectiveInsCount >= 3
+                              );
+                              if (iCoupon) iItem.coupon = iCoupon;
+                              paymentItems.push(iItem);
+                            }
+
+                            if (includeGiftCard && giftCardCount > 0) {
+                              const gItem = {
                                 item_id: "digital_gift_card",
                                 item_name: "NUvisa Digital Gift Card",
                                 price: Number(giftCardFees.toFixed(2)),
                                 quantity: giftCardCount,
-                              });
+                              };
+                              const gCoupon = resolveCoupon(giftCardCount >= 3);
+                              if (gCoupon) gItem.coupon = gCoupon;
+                              paymentItems.push(gItem);
+                            }
+
+                            const paymentType =
+                              sessionStorage.getItem("ga4_payment_type") ||
+                              "Klarna";
 
                             window.dataLayer.push({ ecommerce: null });
                             window.dataLayer.push({
@@ -2272,11 +2418,8 @@ const VisaCheckout = () => {
                                   data?.order_id || `klarna_${Date.now()}`,
                                 currency: "GBP",
                                 value: Number(total.toFixed(2)),
-                                payment_type: "Klarna",
-                                coupon:
-                                  appliedDiscount?.code ||
-                                  couponCode ||
-                                  undefined,
+                                payment_type: paymentType,
+                                coupon: baseCode,
                                 items: paymentItems,
                               },
                             });
@@ -2422,30 +2565,61 @@ const VisaCheckout = () => {
 
                     if (typeof window !== "undefined" && window.dataLayer) {
                       const countryName = selectedCountry || "Schengen";
+                      // 🌟 FIXED: Use only verified applied discount
+                      const baseCode = appliedDiscount?.code || undefined;
+                      // 🌟 FIXED: Safe insurance count calculation
+                      const effectiveInsCount =
+                        travelers > 0
+                          ? Math.min(insuranceCount, travelers)
+                          : insuranceCount;
+
+                      const resolveCoupon = (qualifies) => {
+                        const codes = [];
+                        if (qualifies) codes.push("GROUP20");
+                        if (baseCode && baseCode !== "GROUP20")
+                          codes.push(baseCode);
+                        return codes.length > 0 ? codes.join(",") : undefined;
+                      };
+
                       const paymentItems = [];
-                      if (travelers > 0)
-                        paymentItems.push({
+
+                      if (travelers > 0) {
+                        const vItem = {
                           item_id: `visa_${countryName
                             .toLowerCase()
                             .replace(/\s+/g, "_")}`,
                           item_name: `Visa - ${countryName}`,
                           price: Number(finalVisaFees.toFixed(2)),
                           quantity: travelers,
-                        });
-                      if (includeInsurance && insuranceCount > 0)
-                        paymentItems.push({
+                        };
+                        const vCoupon = resolveCoupon(travelers >= 3);
+                        if (vCoupon) vItem.coupon = vCoupon;
+                        paymentItems.push(vItem);
+                      }
+
+                      if (includeInsurance && insuranceCount > 0) {
+                        const iItem = {
                           item_id: "insurance_certificate",
                           item_name: "Insurance Certificate",
                           price: Number(discountedInsuranceFeesGBP.toFixed(2)),
                           quantity: insuranceCount,
-                        });
-                      if (includeGiftCard && giftCardCount > 0)
-                        paymentItems.push({
+                        };
+                        const iCoupon = resolveCoupon(effectiveInsCount >= 3);
+                        if (iCoupon) iItem.coupon = iCoupon;
+                        paymentItems.push(iItem);
+                      }
+
+                      if (includeGiftCard && giftCardCount > 0) {
+                        const gItem = {
                           item_id: "digital_gift_card",
                           item_name: "NUvisa Digital Gift Card",
                           price: Number(giftCardFees.toFixed(2)),
                           quantity: giftCardCount,
-                        });
+                        };
+                        const gCoupon = resolveCoupon(giftCardCount >= 3);
+                        if (gCoupon) gItem.coupon = gCoupon;
+                        paymentItems.push(gItem);
+                      }
 
                       let ga4PaymentType = "Credit Card";
                       if (selectedPaymentMethod === "klarna")
@@ -2466,8 +2640,7 @@ const VisaCheckout = () => {
                           currency: "GBP",
                           value: Number(total.toFixed(2)),
                           payment_type: ga4PaymentType,
-                          coupon:
-                            appliedDiscount?.code || couponCode || undefined,
+                          coupon: baseCode, // 🌟 FIXED
                           items: paymentItems,
                         },
                       });
@@ -2511,30 +2684,60 @@ const VisaCheckout = () => {
                     // 🔥 FIRE ADD PAYMENT INFO EVENT HERE (KLARNA) 🔥
                     if (typeof window !== "undefined" && window.dataLayer) {
                       const countryName = selectedCountry || "Schengen";
+                      // 🌟 FIXED: Use only verified applied discount
+                      const baseCode = appliedDiscount?.code || undefined;
+                      // 🌟 FIXED: Safe insurance count calculation
+                      const effectiveInsCount =
+                        travelers > 0
+                          ? Math.min(insuranceCount, travelers)
+                          : insuranceCount;
+
+                      const resolveCoupon = (qualifies) => {
+                        const codes = [];
+                        if (qualifies) codes.push("GROUP20");
+                        if (baseCode && baseCode !== "GROUP20")
+                          codes.push(baseCode);
+                        return codes.length > 0 ? codes.join(",") : undefined;
+                      };
                       const paymentItems = [];
-                      if (travelers > 0)
-                        paymentItems.push({
+
+                      if (travelers > 0) {
+                        const vItem = {
                           item_id: `visa_${countryName
                             .toLowerCase()
                             .replace(/\s+/g, "_")}`,
                           item_name: `Visa - ${countryName}`,
                           price: Number(finalVisaFees.toFixed(2)),
                           quantity: travelers,
-                        });
-                      if (includeInsurance && insuranceCount > 0)
-                        paymentItems.push({
+                        };
+                        const vCoupon = resolveCoupon(travelers >= 3);
+                        if (vCoupon) vItem.coupon = vCoupon;
+                        paymentItems.push(vItem);
+                      }
+
+                      if (includeInsurance && insuranceCount > 0) {
+                        const iItem = {
                           item_id: "insurance_certificate",
                           item_name: "Insurance Certificate",
                           price: Number(discountedInsuranceFeesGBP.toFixed(2)),
                           quantity: insuranceCount,
-                        });
-                      if (includeGiftCard && giftCardCount > 0)
-                        paymentItems.push({
+                        };
+                        const iCoupon = resolveCoupon(effectiveInsCount >= 3);
+                        if (iCoupon) iItem.coupon = iCoupon;
+                        paymentItems.push(iItem);
+                      }
+
+                      if (includeGiftCard && giftCardCount > 0) {
+                        const gItem = {
                           item_id: "digital_gift_card",
                           item_name: "NUvisa Digital Gift Card",
                           price: Number(giftCardFees.toFixed(2)),
                           quantity: giftCardCount,
-                        });
+                        };
+                        const gCoupon = resolveCoupon(giftCardCount >= 3);
+                        if (gCoupon) gItem.coupon = gCoupon;
+                        paymentItems.push(gItem);
+                      }
 
                       sessionStorage.setItem("ga4_payment_type", "Klarna");
                       window.dataLayer.push({ ecommerce: null });
@@ -2544,8 +2747,7 @@ const VisaCheckout = () => {
                           currency: "GBP",
                           value: Number(total.toFixed(2)),
                           payment_type: "Klarna",
-                          coupon:
-                            appliedDiscount?.code || couponCode || undefined,
+                          coupon: baseCode, // 🌟 FIXED
                           items: paymentItems,
                         },
                       });
@@ -2568,30 +2770,60 @@ const VisaCheckout = () => {
                     // 🔥 FIRE ADD PAYMENT INFO EVENT HERE (APPLE/GOOGLE PAY) 🔥
                     if (typeof window !== "undefined" && window.dataLayer) {
                       const countryName = selectedCountry || "Schengen";
+                      // 🌟 FIXED: Use only verified applied discount
+                      const baseCode = appliedDiscount?.code || undefined;
+                      // 🌟 FIXED: Safe insurance count calculation
+                      const effectiveInsCount =
+                        travelers > 0
+                          ? Math.min(insuranceCount, travelers)
+                          : insuranceCount;
+
+                      const resolveCoupon = (qualifies) => {
+                        const codes = [];
+                        if (qualifies) codes.push("GROUP20");
+                        if (baseCode && baseCode !== "GROUP20")
+                          codes.push(baseCode);
+                        return codes.length > 0 ? codes.join(",") : undefined;
+                      };
                       const paymentItems = [];
-                      if (travelers > 0)
-                        paymentItems.push({
+
+                      if (travelers > 0) {
+                        const vItem = {
                           item_id: `visa_${countryName
                             .toLowerCase()
                             .replace(/\s+/g, "_")}`,
                           item_name: `Visa - ${countryName}`,
                           price: Number(finalVisaFees.toFixed(2)),
                           quantity: travelers,
-                        });
-                      if (includeInsurance && insuranceCount > 0)
-                        paymentItems.push({
+                        };
+                        const vCoupon = resolveCoupon(travelers >= 3);
+                        if (vCoupon) vItem.coupon = vCoupon;
+                        paymentItems.push(vItem);
+                      }
+
+                      if (includeInsurance && insuranceCount > 0) {
+                        const iItem = {
                           item_id: "insurance_certificate",
                           item_name: "Insurance Certificate",
                           price: Number(discountedInsuranceFeesGBP.toFixed(2)),
                           quantity: insuranceCount,
-                        });
-                      if (includeGiftCard && giftCardCount > 0)
-                        paymentItems.push({
+                        };
+                        const iCoupon = resolveCoupon(effectiveInsCount >= 3);
+                        if (iCoupon) iItem.coupon = iCoupon;
+                        paymentItems.push(iItem);
+                      }
+
+                      if (includeGiftCard && giftCardCount > 0) {
+                        const gItem = {
                           item_id: "digital_gift_card",
                           item_name: "NUvisa Digital Gift Card",
                           price: Number(giftCardFees.toFixed(2)),
                           quantity: giftCardCount,
-                        });
+                        };
+                        const gCoupon = resolveCoupon(giftCardCount >= 3);
+                        if (gCoupon) gItem.coupon = gCoupon;
+                        paymentItems.push(gItem);
+                      }
 
                       sessionStorage.setItem(
                         "ga4_payment_type",
@@ -2609,8 +2841,7 @@ const VisaCheckout = () => {
                             selectedPaymentMethod === "apple"
                               ? "Apple Pay"
                               : "Google Pay",
-                          coupon:
-                            appliedDiscount?.code || couponCode || undefined,
+                          coupon: baseCode, // 🌟 FIXED
                           items: paymentItems,
                         },
                       });

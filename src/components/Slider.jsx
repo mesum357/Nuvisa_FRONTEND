@@ -1312,6 +1312,29 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
 
     // 🔥 2. GA4: Track View Item when country changes 🔥
     if (typeof window !== "undefined" && window.dataLayer) {
+      const currentTravelers = Math.max(Number(visaState?.travelers || 1), 1);
+      const baseCode =
+        visaState?.appliedDiscount?.code || visaState?.couponCode || undefined;
+      const resolveCoupon = (qualifies) => {
+        const codes = [];
+        if (qualifies) codes.push("GROUP20");
+        if (baseCode && baseCode !== "GROUP20") codes.push(baseCode);
+        return codes.length > 0 ? codes.join(",") : undefined;
+      };
+      const vCoupon = resolveCoupon(currentTravelers >= 3);
+
+      const vItem = {
+        item_id: `visa_${countryName.toLowerCase().replace(/\s+/g, "_")}`,
+        item_name: `Visa - ${countryName}`,
+        item_category: "Schengen Visa",
+        item_brand: "NUvisa",
+        price: Number(
+          (dynamicPricing?.basePrice ?? countryConfig.visaFee ?? 129).toFixed(2)
+        ),
+        quantity: currentTravelers,
+      };
+      if (vCoupon) vItem.coupon = vCoupon;
+
       window.dataLayer.push({ ecommerce: null });
       window.dataLayer.push({
         event: "view_item",
@@ -1322,21 +1345,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
               2
             )
           ),
-          items: [
-            {
-              item_id: `visa_${countryName.toLowerCase().replace(/\s+/g, "_")}`,
-              item_name: `Visa - ${countryName}`,
-              item_category: "Schengen Visa",
-              price: Number(
-                (
-                  dynamicPricing?.basePrice ??
-                  countryConfig.visaFee ??
-                  129
-                ).toFixed(2)
-              ),
-              quantity: 1,
-            },
-          ],
+          items: [vItem],
         },
       });
     }
@@ -1932,27 +1941,25 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
 
     // Apply GROUP20 coupon (ensures 20% is applied if conditions met)
     if (hasGroupDiscount) {
-      if (travelersQualify && (insuranceQualify || giftCardQualify)) {
-        if (travelersQualify && finalVisaPrice === baseDiscountedVisaFees) {
-          const quantityDiscount = (finalVisaPrice * 20) / 100;
-          finalVisaPrice = finalVisaPrice - quantityDiscount;
-        }
-        if (
-          insuranceQualify &&
-          recommendedItems.insuranceCertificate &&
-          finalInsurancePrice === baseDiscountedInsuranceFees
-        ) {
-          const quantityDiscount = (finalInsurancePrice * 20) / 100;
-          finalInsurancePrice = finalInsurancePrice - quantityDiscount;
-        }
-        if (
-          giftCardQualify &&
-          recommendedItems.giftCard &&
-          finalGiftCardPrice === baseDiscountedGiftCardFees
-        ) {
-          const quantityDiscount = (finalGiftCardPrice * 20) / 100;
-          finalGiftCardPrice = finalGiftCardPrice - quantityDiscount;
-        }
+      if (travelersQualify && finalVisaPrice === baseDiscountedVisaFees) {
+        const quantityDiscount = (finalVisaPrice * 20) / 100;
+        finalVisaPrice = finalVisaPrice - quantityDiscount;
+      }
+      if (
+        insuranceQualify &&
+        recommendedItems.insuranceCertificate &&
+        finalInsurancePrice === baseDiscountedInsuranceFees
+      ) {
+        const quantityDiscount = (finalInsurancePrice * 20) / 100;
+        finalInsurancePrice = finalInsurancePrice - quantityDiscount;
+      }
+      if (
+        giftCardQualify &&
+        recommendedItems.giftCard &&
+        finalGiftCardPrice === baseDiscountedGiftCardFees
+      ) {
+        const quantityDiscount = (finalGiftCardPrice * 20) / 100;
+        finalGiftCardPrice = finalGiftCardPrice - quantityDiscount;
       }
     }
 
@@ -2139,20 +2146,17 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
 
     // Apply GROUP20 coupon (ensures 20% is applied if conditions met)
     if (hasGroupDiscount) {
-      const giftCardQualify = giftCardCount >= 3;
-      if (travelersQualify && (insuranceQualify || giftCardQualify)) {
-        if (travelersQualify && finalVisaPrice === baseDiscountedVisaFees) {
-          const quantityDiscount = (finalVisaPrice * 20) / 100;
-          finalVisaPrice = finalVisaPrice - quantityDiscount;
-        }
-        if (
-          insuranceQualify &&
-          recommendedItems.insuranceCertificate &&
-          finalInsurancePrice === baseDiscountedInsuranceFees
-        ) {
-          const quantityDiscount = (finalInsurancePrice * 20) / 100;
-          finalInsurancePrice = finalInsurancePrice - quantityDiscount;
-        }
+      if (travelersQualify && finalVisaPrice === baseDiscountedVisaFees) {
+        const quantityDiscount = (finalVisaPrice * 20) / 100;
+        finalVisaPrice = finalVisaPrice - quantityDiscount;
+      }
+      if (
+        insuranceQualify &&
+        recommendedItems.insuranceCertificate &&
+        finalInsurancePrice === baseDiscountedInsuranceFees
+      ) {
+        const quantityDiscount = (finalInsurancePrice * 20) / 100;
+        finalInsurancePrice = finalInsurancePrice - quantityDiscount;
       }
     }
 
@@ -2213,14 +2217,9 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
 
     // Apply GROUP20 coupon (ensures 20% is applied if conditions met)
     if (hasGroupDiscount) {
-      const effectiveInsuranceCount = Math.min(insuranceCount, travelers);
-      const insuranceQualify = effectiveInsuranceCount >= 3;
-      const giftCardQualify = giftCardCount >= 3;
-      if (travelersQualify && (insuranceQualify || giftCardQualify)) {
-        if (travelersQualify && finalVisaPrice === baseDiscountedVisaFees) {
-          const quantityDiscount = (finalVisaPrice * 20) / 100;
-          finalVisaPrice = finalVisaPrice - quantityDiscount;
-        }
+      if (travelersQualify && finalVisaPrice === baseDiscountedVisaFees) {
+        const quantityDiscount = (finalVisaPrice * 20) / 100;
+        finalVisaPrice = finalVisaPrice - quantityDiscount;
       }
     }
 
@@ -2280,16 +2279,12 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
 
     // Apply GROUP20 coupon (ensures 20% is applied if conditions met)
     if (hasGroupDiscount) {
-      const travelersQualify = travelers >= 3;
-      const giftCardQualify = giftCardCount >= 3;
-      if (travelersQualify && (insuranceQualify || giftCardQualify)) {
-        if (
-          insuranceQualify &&
-          finalInsurancePrice === baseDiscountedInsuranceFees
-        ) {
-          const quantityDiscount = (finalInsurancePrice * 20) / 100;
-          finalInsurancePrice = finalInsurancePrice - quantityDiscount;
-        }
+      if (
+        insuranceQualify &&
+        finalInsurancePrice === baseDiscountedInsuranceFees
+      ) {
+        const quantityDiscount = (finalInsurancePrice * 20) / 100;
+        finalInsurancePrice = finalInsurancePrice - quantityDiscount;
       }
     }
 
@@ -2340,17 +2335,12 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
 
     // Apply GROUP20 coupon (ensures 20% is applied if conditions met)
     if (hasGroupDiscount) {
-      const travelersQualify = travelers >= 3;
-      const effectiveInsuranceCount = Math.min(insuranceCount, travelers);
-      const insuranceQualify = effectiveInsuranceCount >= 3;
-      if (travelersQualify && (insuranceQualify || giftCardQualify)) {
-        if (
-          giftCardQualify &&
-          finalGiftCardPrice === baseDiscountedGiftCardFees
-        ) {
-          const quantityDiscount = (finalGiftCardPrice * 20) / 100;
-          finalGiftCardPrice = finalGiftCardPrice - quantityDiscount;
-        }
+      if (
+        giftCardQualify &&
+        finalGiftCardPrice === baseDiscountedGiftCardFees
+      ) {
+        const quantityDiscount = (finalGiftCardPrice * 20) / 100;
+        finalGiftCardPrice = finalGiftCardPrice - quantityDiscount;
       }
     }
 
@@ -3000,47 +2990,6 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
       );
     }
 
-    // 🔥 3. GA4: Track Add To Cart 🔥
-    if (typeof window !== "undefined" && window.dataLayer) {
-      const cartItems = [
-        {
-          item_id: `visa_${countryName.toLowerCase().replace(/\s+/g, "_")}`,
-          item_name: `Visa - ${countryName}`,
-          price: Number(visaFees.toFixed(2)),
-          quantity: travelers,
-        },
-      ];
-
-      if (insuranceCount > 0) {
-        cartItems.push({
-          item_id: "insurance_certificate",
-          item_name: "Insurance Certificate",
-          price: Number(insuranceFees.toFixed(2)),
-          quantity: insuranceCount,
-        });
-      }
-
-      if (giftCardCount > 0) {
-        cartItems.push({
-          item_id: "digital_gift_card",
-          item_name: "NUvisa Digital Gift Card",
-          price: Number(giftCardFees.toFixed(2)),
-          quantity: giftCardCount,
-        });
-      }
-
-      window.dataLayer.push({ ecommerce: null });
-      window.dataLayer.push({
-        event: "add_to_cart",
-        ecommerce: {
-          currency: "GBP",
-          value: Number(totalAmount.toFixed(2)),
-          coupon: appliedDiscount?.code || couponCode || undefined,
-          items: cartItems,
-        },
-      });
-    }
-
     router.push(`/visa-checkout`);
   };
 
@@ -3325,33 +3274,52 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
       const totalAmount = visaFees + insuranceFees + giftCardFees;
 
       if (typeof window !== "undefined" && window.dataLayer) {
+        const baseCode = appliedDiscount?.code || couponCode || undefined;
+        const effectiveInsCount = Math.min(insuranceCount, travelers);
+
+        const resolveCoupon = (qualifies) => {
+          const codes = [];
+          if (qualifies) codes.push("GROUP20");
+          if (baseCode && baseCode !== "GROUP20") codes.push(baseCode);
+          return codes.length > 0 ? codes.join(",") : undefined;
+        };
+
         const cartItems = [];
 
         if (!hasOnlyInsurance) {
-          cartItems.push({
+          const vItem = {
             item_id: `visa_${countryName.toLowerCase().replace(/\s+/g, "_")}`,
             item_name: `Visa - ${countryName}`,
             price: Number(visaFees.toFixed(2)),
             quantity: travelers,
-          });
+          };
+          const vCoupon = resolveCoupon(travelers >= 3);
+          if (vCoupon) vItem.coupon = vCoupon;
+          cartItems.push(vItem);
         }
 
         if (insuranceCount > 0) {
-          cartItems.push({
+          const iItem = {
             item_id: "insurance_certificate",
             item_name: "Insurance Certificate",
             price: Number(insuranceFees.toFixed(2)),
             quantity: insuranceCount,
-          });
+          };
+          const iCoupon = resolveCoupon(effectiveInsCount >= 3);
+          if (iCoupon) iItem.coupon = iCoupon;
+          cartItems.push(iItem);
         }
 
         if (giftCardCount > 0) {
-          cartItems.push({
+          const gItem = {
             item_id: "digital_gift_card",
             item_name: "NUvisa Digital Gift Card",
             price: Number(giftCardFees.toFixed(2)),
             quantity: giftCardCount,
-          });
+          };
+          const gCoupon = resolveCoupon(giftCardCount >= 3);
+          if (gCoupon) gItem.coupon = gCoupon;
+          cartItems.push(gItem);
         }
 
         window.dataLayer.push({ ecommerce: null }); // Clear previous
@@ -3489,23 +3457,21 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
 
     // Apply GROUP20 coupon (ensures 20% is applied if conditions met)
     if (hasGroupDiscount) {
-      if (travelersQualify && (insuranceQualify || giftCardQualify)) {
-        if (
-          insuranceQualify &&
-          recommendedItems.insuranceCertificate &&
-          finalInsuranceFees === baseDiscountedInsuranceFees
-        ) {
-          const quantityDiscount = (finalInsuranceFees * 20) / 100;
-          finalInsuranceFees = finalInsuranceFees - quantityDiscount;
-        }
-        if (
-          giftCardQualify &&
-          recommendedItems.giftCard &&
-          finalGiftCardFees === baseDiscountedGiftCardFees
-        ) {
-          const quantityDiscount = (finalGiftCardFees * 20) / 100;
-          finalGiftCardFees = finalGiftCardFees - quantityDiscount;
-        }
+      if (
+        insuranceQualify &&
+        recommendedItems.insuranceCertificate &&
+        finalInsuranceFees === baseDiscountedInsuranceFees
+      ) {
+        const quantityDiscount = (finalInsuranceFees * 20) / 100;
+        finalInsuranceFees = finalInsuranceFees - quantityDiscount;
+      }
+      if (
+        giftCardQualify &&
+        recommendedItems.giftCard &&
+        finalGiftCardFees === baseDiscountedGiftCardFees
+      ) {
+        const quantityDiscount = (finalGiftCardFees * 20) / 100;
+        finalGiftCardFees = finalGiftCardFees - quantityDiscount;
       }
     }
 
@@ -5011,36 +4977,85 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                             ) {
                               const countryName =
                                 getCountryParam(selectedCountry) || "Schengen";
+                              const baseCode =
+                                appliedDiscount?.code ||
+                                couponCode ||
+                                undefined;
+                              const effectiveInsCount = Math.min(
+                                insuranceCount,
+                                travelers
+                              );
+
+                              const resolveCoupon = (qualifies) => {
+                                const codes = [];
+                                if (qualifies) codes.push("GROUP20");
+                                if (baseCode && baseCode !== "GROUP20")
+                                  codes.push(baseCode);
+                                return codes.length > 0
+                                  ? codes.join(",")
+                                  : undefined;
+                              };
+
                               const paymentItems = [];
-                              if (travelers > 0)
-                                paymentItems.push({
+
+                              if (travelers > 0) {
+                                const vItem = {
                                   item_id: `visa_${countryName
                                     .toLowerCase()
                                     .replace(/\s+/g, "_")}`,
                                   item_name: `Visa - ${countryName}`,
-                                  price: Number(expressPaymentData.visaFees.toFixed(2)),
+                                  price: Number(
+                                    expressPaymentData.visaFees.toFixed(2)
+                                  ),
                                   quantity: travelers,
-                                });
+                                };
+                                const vCoupon = resolveCoupon(travelers >= 3);
+                                if (vCoupon) vItem.coupon = vCoupon;
+                                paymentItems.push(vItem);
+                              }
+
                               if (
                                 expressPaymentData.includeInsurance &&
                                 insuranceCount > 0
-                              )
-                                paymentItems.push({
+                              ) {
+                                const iItem = {
                                   item_id: "insurance_certificate",
                                   item_name: "Insurance Certificate",
-                                  price: Number(expressPaymentData.insuranceFees.toFixed(2)),
+                                  price: Number(
+                                    expressPaymentData.insuranceFees.toFixed(2)
+                                  ),
                                   quantity: insuranceCount,
-                                });
+                                };
+                                const iCoupon = resolveCoupon(
+                                  effectiveInsCount >= 3
+                                );
+                                if (iCoupon) iItem.coupon = iCoupon;
+                                paymentItems.push(iItem);
+                              }
+
                               if (
                                 expressPaymentData.includeGiftCard &&
-                                expressPaymentData.giftCardCount > 0
-                              )
-                                paymentItems.push({
+                                giftCardCount > 0
+                              ) {
+                                const gItem = {
                                   item_id: "digital_gift_card",
                                   item_name: "NUvisa Digital Gift Card",
-                                  price: Number(expressPaymentData.giftCardFees.toFixed(2)),
-                                  quantity: expressPaymentData.giftCardCount,
-                                });
+                                  price: Number(
+                                    expressPaymentData.giftCardFees.toFixed(2)
+                                  ),
+                                  quantity: giftCardCount,
+                                };
+                                const gCoupon = resolveCoupon(
+                                  giftCardCount >= 3
+                                );
+                                if (gCoupon) gItem.coupon = gCoupon;
+                                paymentItems.push(gItem);
+                              }
+
+                              sessionStorage.setItem(
+                                "ga4_payment_type",
+                                "Apple Pay"
+                              );
 
                               window.dataLayer.push({ ecommerce: null });
                               window.dataLayer.push({
@@ -5135,36 +5150,85 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                             ) {
                               const countryName =
                                 getCountryParam(selectedCountry) || "Schengen";
+                              const baseCode =
+                                appliedDiscount?.code ||
+                                couponCode ||
+                                undefined;
+                              const effectiveInsCount = Math.min(
+                                insuranceCount,
+                                travelers
+                              );
+
+                              const resolveCoupon = (qualifies) => {
+                                const codes = [];
+                                if (qualifies) codes.push("GROUP20");
+                                if (baseCode && baseCode !== "GROUP20")
+                                  codes.push(baseCode);
+                                return codes.length > 0
+                                  ? codes.join(",")
+                                  : undefined;
+                              };
+
                               const paymentItems = [];
-                              if (travelers > 0)
-                                paymentItems.push({
+
+                              if (travelers > 0) {
+                                const vItem = {
                                   item_id: `visa_${countryName
                                     .toLowerCase()
                                     .replace(/\s+/g, "_")}`,
                                   item_name: `Visa - ${countryName}`,
-                                  price: Number(expressPaymentData.visaFees.toFixed(2)),
+                                  price: Number(
+                                    expressPaymentData.visaFees.toFixed(2)
+                                  ),
                                   quantity: travelers,
-                                });
+                                };
+                                const vCoupon = resolveCoupon(travelers >= 3);
+                                if (vCoupon) vItem.coupon = vCoupon;
+                                paymentItems.push(vItem);
+                              }
+
                               if (
                                 expressPaymentData.includeInsurance &&
                                 insuranceCount > 0
-                              )
-                                paymentItems.push({
+                              ) {
+                                const iItem = {
                                   item_id: "insurance_certificate",
                                   item_name: "Insurance Certificate",
-                                  price: Number(expressPaymentData.insuranceFees.toFixed(2)),
+                                  price: Number(
+                                    expressPaymentData.insuranceFees.toFixed(2)
+                                  ),
                                   quantity: insuranceCount,
-                                });
+                                };
+                                const iCoupon = resolveCoupon(
+                                  effectiveInsCount >= 3
+                                );
+                                if (iCoupon) iItem.coupon = iCoupon;
+                                paymentItems.push(iItem);
+                              }
+
                               if (
                                 expressPaymentData.includeGiftCard &&
-                                expressPaymentData.giftCardCount > 0
-                              )
-                                paymentItems.push({
+                                giftCardCount > 0
+                              ) {
+                                const gItem = {
                                   item_id: "digital_gift_card",
                                   item_name: "NUvisa Digital Gift Card",
-                                  price: Number(expressPaymentData.giftCardFees.toFixed(2)),
-                                  quantity: expressPaymentData.giftCardCount,
-                                });
+                                  price: Number(
+                                    expressPaymentData.giftCardFees.toFixed(2)
+                                  ),
+                                  quantity: giftCardCount,
+                                };
+                                const gCoupon = resolveCoupon(
+                                  giftCardCount >= 3
+                                );
+                                if (gCoupon) gItem.coupon = gCoupon;
+                                paymentItems.push(gItem);
+                              }
+
+                              sessionStorage.setItem(
+                                "ga4_payment_type",
+                                "Google Pay"
+                              );
 
                               window.dataLayer.push({ ecommerce: null });
                               window.dataLayer.push({
