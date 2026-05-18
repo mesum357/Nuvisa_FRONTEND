@@ -91,24 +91,36 @@ const CountryCardsSection = ({
 
       // 🔥 GA4: Fire view_item event when country is selected
       if (typeof window !== "undefined" && window.dataLayer) {
+        const currentTravelers = Math.max(Number(visaState?.travelers || 1), 1);
+        const baseCode =
+          visaState?.appliedDiscount?.code ||
+          visaState?.couponCode ||
+          undefined;
+        const resolveCoupon = (qualifies) => {
+          const codes = [];
+          if (qualifies) codes.push("GROUP20");
+          if (baseCode && baseCode !== "GROUP20") codes.push(baseCode);
+          return codes.length > 0 ? codes.join(",") : undefined;
+        };
+        const vCoupon = resolveCoupon(currentTravelers >= 3);
+
+        const vItem = {
+          item_id: `visa_${countryName.toLowerCase().replace(/\s+/g, "_")}`,
+          item_name: `Visa - ${countryName}`,
+          item_category: "Schengen Visa",
+          item_brand: "NUvisa",
+          price: Number(finalVisaFee.toFixed(2)),
+          quantity: currentTravelers,
+        };
+        if (vCoupon) vItem.coupon = vCoupon;
+
         window.dataLayer.push({ ecommerce: null }); // Clear previous ecommerce data
         window.dataLayer.push({
           event: "view_item",
           ecommerce: {
             currency: "GBP",
-            value: Number(finalVisaFee.toFixed(2)), // Track the actual dynamic price
-            items: [
-              {
-                item_id: `visa_${countryName
-                  .toLowerCase()
-                  .replace(/\s+/g, "_")}`,
-                item_name: `Visa - ${countryName}`,
-                item_category: "Schengen Visa",
-                item_brand: "NUvisa",
-                price: Number(finalVisaFee.toFixed(2)), // Track the actual dynamic price
-                quantity: 1,
-              },
-            ],
+            value: Number(finalVisaFee.toFixed(2)),
+            items: [vItem],
           },
         });
       }
@@ -133,6 +145,8 @@ const CountryCardsSection = ({
     },
     [
       visaState.travelers,
+      visaState.appliedDiscount,
+      visaState.couponCode,
       dispatch,
       router,
       countryPricingLookup,
@@ -595,6 +609,34 @@ const CountryCardsSection = ({
                   if (typeof window !== "undefined" && window.dataLayer) {
                     const price = Number(occ.price) || 129;
                     const occasionName = occ.title || "Occasion";
+                    const currentTravelers = Math.max(
+                      Number(visaState?.travelers || 1),
+                      1
+                    );
+                    const baseCode =
+                      visaState?.appliedDiscount?.code ||
+                      visaState?.couponCode ||
+                      undefined;
+                    const resolveCoupon = (qualifies) => {
+                      const codes = [];
+                      if (qualifies) codes.push("GROUP20");
+                      if (baseCode && baseCode !== "GROUP20")
+                        codes.push(baseCode);
+                      return codes.length > 0 ? codes.join(",") : undefined;
+                    };
+                    const vCoupon = resolveCoupon(currentTravelers >= 3);
+
+                    const vItem = {
+                      item_id: `visa_${occasionName
+                        .toLowerCase()
+                        .replace(/\s+/g, "_")}`,
+                      item_name: `Visa - ${occasionName}`,
+                      item_category: "Schengen Visa",
+                      item_brand: "NUvisa",
+                      price: Number(price.toFixed(2)),
+                      quantity: currentTravelers,
+                    };
+                    if (vCoupon) vItem.coupon = vCoupon;
 
                     window.dataLayer.push({ ecommerce: null }); // Clear previous ecommerce data
                     window.dataLayer.push({
@@ -602,18 +644,7 @@ const CountryCardsSection = ({
                       ecommerce: {
                         currency: "GBP",
                         value: Number(price.toFixed(2)),
-                        items: [
-                          {
-                            item_id: `visa_${occasionName
-                              .toLowerCase()
-                              .replace(/\s+/g, "_")}`,
-                            item_name: `Visa - ${occasionName}`,
-                            item_category: "Schengen Visa",
-                            item_brand: "NUvisa",
-                            price: Number(price.toFixed(2)),
-                            quantity: 1,
-                          },
-                        ],
+                        items: [vItem],
                       },
                     });
                   }

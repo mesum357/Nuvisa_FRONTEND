@@ -74,7 +74,9 @@ const VisaInformation = () => {
     const fetchMoreToLove = async () => {
       try {
         const adminBase = getAdminApiBase();
-        const response = await fetch(`${adminBase}/api/content?t=${Date.now()}`);
+        const response = await fetch(
+          `${adminBase}/api/content?t=${Date.now()}`,
+        );
         if (!response.ok) return;
 
         const json = await response.json();
@@ -92,8 +94,10 @@ const VisaInformation = () => {
         });
         setCheckoutButtonDescription({
           subtitleOne: byKey.subtitle_one || "99.3% Visa approval rate",
-          subtitleTwo: byKey.subtitle_two || "100% Risk free - Get your visa or full refund",
-        })
+          subtitleTwo:
+            byKey.subtitle_two ||
+            "100% Risk free - Get your visa or full refund",
+        });
       } catch (_error) {
         // Keep defaults when API request fails.
       }
@@ -106,14 +110,19 @@ const VisaInformation = () => {
       <div className="bg-[#1E1E27] text-white w-full overflow-x-clip">
         <Navbar />
         <div className="w-full mx-auto flex flex-col gap-0 items-center justify-center mt-5 ">
-          <CountrySlider moreToLoveData={moreToLoveData} checkoutButtonDescription={checkoutButtonDescription} />
+          <CountrySlider
+            moreToLoveData={moreToLoveData}
+            checkoutButtonDescription={checkoutButtonDescription}
+          />
 
           {/* Visa Type Selection */}
           <section id={"comparison-section"}>
             <ComparisonSection />
           </section>
-          <VisaSolution video={true} title={'The next generation <br /> of visa solutions'} />
-
+          <VisaSolution
+            video={true}
+            title={"The next generation <br /> of visa solutions"}
+          />
 
           <div className="px-3 pt-3 w-full flex items-center justify-center overflow-hidden">
             <div className="text-[#FFF] w-full rounded-3xl md:py-5 md:px-5 text-center shadow-2xl mt-10 md:mt-20 max-w-[88rem] overflow-x-hidden">
@@ -126,11 +135,17 @@ const VisaInformation = () => {
                         {processLoading ? (
                           "Loading..."
                         ) : (
-                          <span dangerouslySetInnerHTML={{ __html: processContent.heading }} />
+                          <span
+                            dangerouslySetInnerHTML={{
+                              __html: processContent.heading,
+                            }}
+                          />
                         )}
                       </h2>
                       <p className="text-white text-[13px] md:text-[14px] font-medium leading-relaxed flex-[.6] text-left">
-                        {processLoading ? "Loading..." : processContent.description}
+                        {processLoading
+                          ? "Loading..."
+                          : processContent.description}
                       </p>
                     </div>
 
@@ -149,11 +164,15 @@ const VisaInformation = () => {
                             priority
                           />
                           <h1 className="text-xl md:text-3xl md:my-6 font-bold">
-                            {processLoading ? "Loading..." : processContent.steps[0].title}
+                            {processLoading
+                              ? "Loading..."
+                              : processContent.steps[0].title}
                           </h1>
                         </div>
                         <p className="font-medium leading-relaxed mt-3 md:mt-0 opacity-90 text-[14px]">
-                          {processLoading ? "Loading..." : processContent.steps[0].description}
+                          {processLoading
+                            ? "Loading..."
+                            : processContent.steps[0].description}
                         </p>
                       </div>
 
@@ -169,11 +188,15 @@ const VisaInformation = () => {
                             priority
                           />
                           <h1 className="text-xl md:text-3xl md:my-6 font-bold">
-                            {processLoading ? "Loading..." : processContent.steps[1].title}
+                            {processLoading
+                              ? "Loading..."
+                              : processContent.steps[1].title}
                           </h1>
                         </div>
                         <p className="font-medium leading-relaxed mt-3 md:mt-0 opacity-90 text-[14px]">
-                          {processLoading ? "Loading..." : processContent.steps[1].description}
+                          {processLoading
+                            ? "Loading..."
+                            : processContent.steps[1].description}
                         </p>
                       </div>
 
@@ -189,11 +212,15 @@ const VisaInformation = () => {
                             priority
                           />
                           <h1 className="text-xl md:text-3xl md:my-6 font-bold">
-                            {processLoading ? "Loading..." : processContent.steps[2].title}
+                            {processLoading
+                              ? "Loading..."
+                              : processContent.steps[2].title}
                           </h1>
                         </div>
                         <p className="font-medium leading-relaxed mt-3 md:mt-0 opacity-90 text-[14px]">
-                          {processLoading ? "Loading..." : processContent.steps[2].description}
+                          {processLoading
+                            ? "Loading..."
+                            : processContent.steps[2].description}
                         </p>
                       </div>
 
@@ -209,11 +236,15 @@ const VisaInformation = () => {
                             priority
                           />
                           <h1 className="text-xl md:text-3xl md:my-6 font-bold">
-                            {processLoading ? "Loading..." : processContent.steps[3].title}
+                            {processLoading
+                              ? "Loading..."
+                              : processContent.steps[3].title}
                           </h1>
                         </div>
                         <p className="font-medium leading-relaxed mt-3 md:mt-0 opacity-90 text-[14px]">
-                          {processLoading ? "Loading..." : processContent.steps[3].description}
+                          {processLoading
+                            ? "Loading..."
+                            : processContent.steps[3].description}
                         </p>
                       </div>
                     </div>
@@ -225,10 +256,20 @@ const VisaInformation = () => {
 
           <FAQSection />
           <SeamlessExperience />
-          <div id="klarna-section" className=" bg-[#F3E6FF] px-5 py-15 mt-16 w-full flex items-center justify-center overflow-x-hidden">
+          <div
+            id="klarna-section"
+            className=" bg-[#F3E6FF] px-5 py-15 mt-16 w-full flex items-center justify-center overflow-x-hidden"
+          >
             <div className="max-w-[88rem] bg-[#1E1E27] text-white w-full rounded-3xl py-12 px-10 text-center shadow-2xl">
               <h2 className="text-[26px] max-md:px-8 lg:text-[38px] font-gilroy-bold text-white mb-2 leading-tight flex items-center gap-3 justify-center lg:flex-row flex-col">
-                <Image src="/icons/klarna.png" alt="Klarna" width={100} height={40} className="" priority />
+                <Image
+                  src="/icons/klarna.png"
+                  alt="Klarna"
+                  width={100}
+                  height={40}
+                  className=""
+                  priority
+                />
                 {klarnaLoading ? "Loading..." : klarnaContent.heading}
               </h2>
 
@@ -238,12 +279,16 @@ const VisaInformation = () => {
                 </p>
                 <span className="text-gray-600">|</span>
                 <p className="font-semibold text-lg md:text-[20px] ">
-                  {klarnaContent.paymentAmount && <span className="">
-                    {!klarnaLoading && klarnaContent.paymentAmount}
-                  </span>}
-                  {klarnaContent.interestRate && <span className="mx-2">
-                    {!klarnaLoading && klarnaContent.interestRate}
-                  </span>}
+                  {klarnaContent.paymentAmount && (
+                    <span className="">
+                      {!klarnaLoading && klarnaContent.paymentAmount}
+                    </span>
+                  )}
+                  {klarnaContent.interestRate && (
+                    <span className="mx-2">
+                      {!klarnaLoading && klarnaContent.interestRate}
+                    </span>
+                  )}
                   <span> {!klarnaLoading && klarnaContent.fees}</span>
                 </p>
               </div>
@@ -254,7 +299,10 @@ const VisaInformation = () => {
         </div>
 
         {/* Sticky Bottom Bar */}
-        <StickyBottomBar triggerElementId={'comparison-section'} key={'visa-info-page'} />
+        <StickyBottomBar
+          triggerElementId={"comparison-section"}
+          key={"visa-info-page"}
+        />
       </div>
     </ClientOnly>
   );

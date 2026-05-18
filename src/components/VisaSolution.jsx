@@ -2,7 +2,7 @@ import { ArrowUpRight } from "lucide-react";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
-import { useAppDispatch } from "@/store";
+import { useAppDispatch, useAppSelector } from "@/store";
 import {
   setSelectedCountry,
   setVisaFees,
@@ -83,6 +83,7 @@ const VisaSolution = ({
 
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const visaState = useAppSelector((state) => state.visa);
 
   // Premium Colors - Agar customColors prop mein data hoga toh wo use hoga, warna ye default array
   const premiumColors =
@@ -107,21 +108,33 @@ const VisaSolution = ({
 
     // 🔥 2. GTM: Track view_item 🔥
     if (typeof window !== "undefined" && window.dataLayer) {
+      const currentTravelers = Math.max(Number(visaState?.travelers || 1), 1);
+      const baseCode =
+        visaState?.appliedDiscount?.code || visaState?.couponCode || undefined;
+      const resolveCoupon = (qualifies) => {
+        const codes = [];
+        if (qualifies) codes.push("GROUP20");
+        if (baseCode && baseCode !== "GROUP20") codes.push(baseCode);
+        return codes.length > 0 ? codes.join(",") : undefined;
+      };
+      const vCoupon = resolveCoupon(currentTravelers >= 3);
+
+      const vItem = {
+        item_id: `visa_${countryName.toLowerCase().replace(/\s+/g, "_")}`,
+        item_name: `Visa - ${countryName}`,
+        item_category: "Schengen Visa",
+        price: Number(itemPrice.toFixed(2)),
+        quantity: currentTravelers,
+      };
+      if (vCoupon) vItem.coupon = vCoupon;
+
       window.dataLayer.push({ ecommerce: null });
       window.dataLayer.push({
         event: "view_item",
         ecommerce: {
           currency: "GBP",
           value: Number(itemPrice.toFixed(2)),
-          items: [
-            {
-              item_id: `visa_${countryName.toLowerCase().replace(/\s+/g, "_")}`,
-              item_name: `Visa - ${countryName}`,
-              item_category: "Schengen Visa",
-              price: Number(itemPrice.toFixed(2)),
-              quantity: 1,
-            },
-          ],
+          items: [vItem],
         },
       });
     }
