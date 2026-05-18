@@ -12,8 +12,8 @@ const ADMIN_FAQ_BASES = () => {
   return [
     ...new Set([
       ...fromEnv,
-      "https://nuvisa-admin-updated.vercel.app",
       "https://nuvisa-admin.vercel.app",
+      "https://nuvisa-admin-updated.vercel.app",
     ]),
   ];
 };

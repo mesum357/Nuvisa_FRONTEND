@@ -239,18 +239,39 @@ model AppointmentText {
   @@map("appointment_texts")
 }
 
+/** FAQ category tabs — required by nuvisa-admin-updated (`faqType` relation). */
+model FaqType {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  title     String?
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  faqs      FAQ[]
+
+  @@index([isActive])
+  @@index([order])
+  @@map("faq_types")
+}
+
 model FAQ {
   id          String   @id @default(uuid())
   question    String   @db.Text
   answer      String   @db.Text
-  category    String?  // Optional category for grouping FAQs
+  category    String?  // Legacy text; keep in sync with FaqType.name
+  faqTypeId   String?
+  faqTypeRel  FaqType? @relation(fields: [faqTypeId], references: [id], onDelete: SetNull)
+  faqType     String?  // Scalar mirror for nuvisa-admin-updated
   order       Int      @default(0) // For custom ordering
   isActive    Boolean  @default(true)
+  isFeatured  Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   updatedBy   String?
 
   @@index([category])
+  @@index([faqTypeId])
   @@index([isActive])
   @@index([order])
   @@map("faqs")
