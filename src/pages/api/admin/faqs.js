@@ -17,8 +17,8 @@ export default async function handler(req, res) {
       return res.status(201).json({ success: true, data: row });
     }
 
-    if (req.method === "PUT") {
-      const id = req.body?.id;
+    if (req.method === "PUT" || req.method === "PATCH") {
+      const id = req.body?.id || req.query?.id;
       if (!id) {
         return res.status(400).json({ success: false, error: "Missing id" });
       }
