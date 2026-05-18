@@ -19,7 +19,8 @@ export async function persistCheckoutPaymentContext({
   paymentWithoutInsurance,
   paymentWithDiscount,
 }) {
-  const normalizedTravellers = String(travellers || 1);
+  const normalizedTravellers =
+    travellers === undefined || travellers === null ? "" : String(travellers);
   const normalizedAmount = String(amount ?? "0");
   const hasInsurance =
     insurance === true || insurance === "true" || Number(insurancePaymentAmount) > 0;

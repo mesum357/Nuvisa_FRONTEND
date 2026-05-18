@@ -178,7 +178,9 @@ const useCreateDynamicCheckoutSession = () => {
     const normalizedTravellers =
       typeof travellers === "string"
         ? travellers.trim()
-        : String(travellers || "");
+        : travellers === undefined || travellers === null
+          ? ""
+          : String(travellers);
     const normalizedAmount = String(amount ?? "0");
     const normalizedCountry = String(country ?? "");
     const normalizedInsurance =
