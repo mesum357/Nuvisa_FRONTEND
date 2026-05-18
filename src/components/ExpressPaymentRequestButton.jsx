@@ -344,7 +344,11 @@ const ExpressPaymentRequestButton = forwardRef(
             localStorageEnums.SET,
             includeInsurance ? true : false
           );
-          localStorageGateway("travelers", localStorageEnums.SET, String(travellers || 1));
+          localStorageGateway(
+            "travelers",
+            localStorageEnums.SET,
+            String(travellers === undefined || travellers === null ? "" : travellers)
+          );
 
           if (subtotalGBP !== undefined) {
             dispatch(setAmountWithoutDiscount(Number(subtotalGBP)));
@@ -361,7 +365,7 @@ const ExpressPaymentRequestButton = forwardRef(
           if (couponCode !== undefined && couponCode) {
             dispatch(setCouponCode(couponCode.trim().toUpperCase()));
           }
-          dispatch(setTravelers(Number(travellers || 1)));
+          dispatch(setTravelers(Number(travellers ?? 0)));
 
           if (visaFeesGBP !== undefined) {
             localStorageGateway(
@@ -384,7 +388,7 @@ const ExpressPaymentRequestButton = forwardRef(
           const checkoutPayload = {
             email: event.payerEmail || email,
             amount: String(Number(amount).toFixed(2)), // Use the amount prop (same as radio button uses)
-            travellers: String(travellers || 1),
+            travellers: String(travellers === undefined || travellers === null ? "" : travellers),
             country: country || "",
             insurance: includeInsurance ? "true" : "false",
             paymentType,
@@ -596,7 +600,14 @@ const ExpressPaymentRequestButton = forwardRef(
       ref,
       () => ({
         triggerPaymentRequest: () => {
-          const normalizedTravellers = Math.max(Number(travellers || 0), 0);
+          const normalizedTravellers = Math.max(Number(travellers ?? 0), 0);
+          const allowsZeroTravelers = [
+            "gift_card",
+            "insurance",
+            "insurance_additional",
+            "traveler_insurance",
+            "additional_traveler_insurance",
+          ].includes(String(paymentType || ""));
 
           if (isRefreshingRequest) {
             const message = "Updating checkout total. Please try again in a moment.";
@@ -607,7 +618,7 @@ const ExpressPaymentRequestButton = forwardRef(
 
           if (!paymentRequest || !isSupported) {
             const message =
-              normalizedTravellers < 1
+              normalizedTravellers < 1 && !allowsZeroTravelers
                 ? "Add at least one traveller to enable checkout"
                 : !normalizedAmount
                   ? "Checkout total is not ready yet. Please try again."
