@@ -53,11 +53,18 @@ const ApplicationStepPaymentSuccessPage = () => {
             0
           );
           const countryName = visaState.selectedCountry || "Schengen";
+
+          // 🌟 FIXED: Use verified discount code with local storage state persistence fallback
           const baseCode =
             visaState.appliedDiscount?.code ||
-            visaState.couponCode ||
+            localStorage.getItem("saved_ga4_coupon") ||
             undefined;
-          const effectiveInsCount = Math.min(insuranceCount, travelers);
+
+          // 🌟 FIXED: Safe math handling
+          const effectiveInsCount =
+            travelers > 0
+              ? Math.min(insuranceCount, travelers)
+              : insuranceCount;
 
           const resolveCoupon = (qualifies) => {
             const codes = [];
@@ -68,10 +75,12 @@ const ApplicationStepPaymentSuccessPage = () => {
 
           const purchaseItems = [];
           if (travelers > 0) {
+            const visaTotal = Number(visaState.visaFees) || 0;
             const vItem = {
               item_id: `visa_${countryName.toLowerCase().replace(/\s+/g, "_")}`,
               item_name: `Visa - ${countryName}`,
-              price: Number((Number(visaState.visaFees) || 0).toFixed(2)),
+              // 🌟 FIXED: True individual item unit price after discounts
+              price: Number((visaTotal / travelers).toFixed(2)),
               quantity: travelers,
             };
             const vCoupon = resolveCoupon(travelers >= 3);
@@ -79,10 +88,12 @@ const ApplicationStepPaymentSuccessPage = () => {
             purchaseItems.push(vItem);
           }
           if (insuranceCount > 0) {
+            const insuranceTotal = Number(visaState.insuranceFees) || 0;
             const iItem = {
               item_id: "insurance_certificate",
               item_name: "Insurance Certificate",
-              price: Number((Number(visaState.insuranceFees) || 0).toFixed(2)),
+              // 🌟 FIXED: True individual item unit price after discounts
+              price: Number((insuranceTotal / insuranceCount).toFixed(2)),
               quantity: insuranceCount,
             };
             const iCoupon = resolveCoupon(effectiveInsCount >= 3);
@@ -90,10 +101,12 @@ const ApplicationStepPaymentSuccessPage = () => {
             purchaseItems.push(iItem);
           }
           if (giftCardCount > 0) {
+            const giftCardTotal = Number(visaState.giftCardFees) || 0;
             const gItem = {
               item_id: "digital_gift_card",
               item_name: "NUvisa Digital Gift Card",
-              price: Number((Number(visaState.giftCardFees) || 0).toFixed(2)),
+              // 🌟 FIXED: True individual item unit price after discounts
+              price: Number((giftCardTotal / giftCardCount).toFixed(2)),
               quantity: giftCardCount,
             };
             const gCoupon = resolveCoupon(giftCardCount >= 3);
@@ -121,10 +134,7 @@ const ApplicationStepPaymentSuccessPage = () => {
               value: Number((Number(visaState.totalAmount) || 0).toFixed(2)),
               currency: "GBP",
               payment_type: ga4PaymentType,
-              coupon:
-                visaState.appliedDiscount?.code ||
-                visaState.couponCode ||
-                undefined,
+              coupon: baseCode, // 🌟 FIXED
               items: purchaseItems,
             },
           });

@@ -693,10 +693,12 @@ const PaymentSuccess = () => {
         ) {
           // 🔥 GTM: FIRE PURCHASE EVENT 🔥
           if (typeof window !== "undefined" && window.dataLayer) {
+            // 🌟 FIXED: Use strictly verified discount with local storage state persistence fallback
             const baseCode =
-              mergedData.storedMetadata?.couponCode ||
               visaState.appliedDiscount?.code ||
+              localStorage.getItem("saved_ga4_coupon") ||
               undefined;
+
             const countryName = mergedData.selectedCountry || "Schengen";
             const insCount = Math.max(
               Number(mergedData?.storedMetadata?.insuranceCount || 0),
@@ -706,7 +708,10 @@ const PaymentSuccess = () => {
               Number(visaState.giftCardCount || 0),
               0
             );
-            const effectiveInsCount = Math.min(insCount, numberOfTravelers);
+            const effectiveInsCount =
+              numberOfTravelers > 0
+                ? Math.min(insCount, numberOfTravelers)
+                : insCount;
 
             const resolveCoupon = (qualifies) => {
               const codes = [];
@@ -719,14 +724,14 @@ const PaymentSuccess = () => {
 
             // Visa item
             if (numberOfTravelers > 0) {
+              const visaTotal = Number(mergedData.paymentWithoutInsurance) || 0;
               const vItem = {
                 item_id: `visa_${countryName
                   .toLowerCase()
                   .replace(/\s+/g, "_")}`,
                 item_name: `Visa - ${countryName}`,
-                price: Number(
-                  (Number(mergedData.paymentWithoutInsurance) || 0).toFixed(2)
-                ),
+                // 🌟 FIXED: True individual item unit price after discounts
+                price: Number((visaTotal / numberOfTravelers).toFixed(2)),
                 quantity: numberOfTravelers,
               };
               const vCoupon = resolveCoupon(numberOfTravelers >= 3);
@@ -735,13 +740,17 @@ const PaymentSuccess = () => {
             }
 
             // Insurance item
-            if (hasInsurance && Number(mergedData.insurancePayment) > 0) {
+            if (
+              hasInsurance &&
+              Number(mergedData.insurancePayment) > 0 &&
+              insCount > 0
+            ) {
+              const insuranceTotal = Number(mergedData.insurancePayment) || 0;
               const iItem = {
                 item_id: "insurance_certificate",
                 item_name: "Insurance Certificate",
-                price: Number(
-                  (Number(mergedData.insurancePayment) || 0).toFixed(2)
-                ),
+                // 🌟 FIXED: True individual item unit price after discounts
+                price: Number((insuranceTotal / insCount).toFixed(2)),
                 quantity: insCount,
               };
               const iCoupon = resolveCoupon(effectiveInsCount >= 3);
@@ -751,10 +760,12 @@ const PaymentSuccess = () => {
 
             // Gift card item
             if (giftCardCount > 0) {
+              const giftCardTotal = Number(visaState.giftCardFees) || 0;
               const gItem = {
                 item_id: "digital_gift_card",
                 item_name: "NUvisa Digital Gift Card",
-                price: Number((Number(visaState.giftCardFees) || 0).toFixed(2)),
+                // 🌟 FIXED: True individual item unit price after discounts
+                price: Number((giftCardTotal / giftCardCount).toFixed(2)),
                 quantity: giftCardCount,
               };
               const gCoupon = resolveCoupon(giftCardCount >= 3);

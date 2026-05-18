@@ -1256,7 +1256,8 @@ const VisaCheckout = () => {
           const vItem = {
             item_id: `visa_${countryName.toLowerCase().replace(/\s+/g, "_")}`,
             item_name: `Visa - ${countryName}`,
-            price: Number(finalVisaFees.toFixed(2)),
+            // 🌟 FIXED: Convert to individual item unit price
+            price: Number((finalVisaFees / travelers).toFixed(2)),
             quantity: travelers,
           };
           const vCoupon = resolveCoupon(travelers >= 3);
@@ -1268,7 +1269,10 @@ const VisaCheckout = () => {
           const iItem = {
             item_id: "insurance_certificate",
             item_name: "Insurance Certificate",
-            price: Number(discountedInsuranceFeesGBP.toFixed(2)),
+            // 🌟 FIXED: Convert to individual item unit price
+            price: Number(
+              (discountedInsuranceFeesGBP / insuranceCount).toFixed(2)
+            ),
             quantity: insuranceCount,
           };
           const iCoupon = resolveCoupon(effectiveInsCount >= 3);
@@ -1280,7 +1284,8 @@ const VisaCheckout = () => {
           const gItem = {
             item_id: "digital_gift_card",
             item_name: "NUvisa Digital Gift Card",
-            price: Number(giftCardFees.toFixed(2)),
+            // 🌟 FIXED: Convert to individual item unit price
+            price: Number((giftCardFees / giftCardCount).toFixed(2)),
             quantity: giftCardCount,
           };
           const gCoupon = resolveCoupon(giftCardCount >= 3);
@@ -1691,7 +1696,7 @@ const VisaCheckout = () => {
                                 const countryName =
                                   selectedCountry || "Schengen";
 
-                                // 🌟 FIXED: Removed raw couponCode
+                                // 🌟 FIXED: Removed raw couponCode fallback
                                 const baseCode =
                                   appliedDiscount?.code || undefined;
 
@@ -1719,7 +1724,10 @@ const VisaCheckout = () => {
                                       .toLowerCase()
                                       .replace(/\s+/g, "_")}`,
                                     item_name: `Visa - ${countryName}`,
-                                    price: Number(finalVisaFees.toFixed(2)),
+                                    // 🌟 FIXED: True Item Unit Price
+                                    price: Number(
+                                      (finalVisaFees / travelers).toFixed(2)
+                                    ),
                                     quantity: travelers,
                                   };
                                   const vCoupon = resolveCoupon(travelers >= 3);
@@ -1731,8 +1739,12 @@ const VisaCheckout = () => {
                                   const iItem = {
                                     item_id: "insurance_certificate",
                                     item_name: "Insurance Certificate",
+                                    // 🌟 FIXED: True Item Unit Price
                                     price: Number(
-                                      discountedInsuranceFeesGBP.toFixed(2)
+                                      (
+                                        discountedInsuranceFeesGBP /
+                                        insuranceCount
+                                      ).toFixed(2)
                                     ),
                                     quantity: insuranceCount,
                                   };
@@ -1747,7 +1759,10 @@ const VisaCheckout = () => {
                                   const gItem = {
                                     item_id: "digital_gift_card",
                                     item_name: "NUvisa Digital Gift Card",
-                                    price: Number(giftCardFees.toFixed(2)),
+                                    // 🌟 FIXED: True Item Unit Price
+                                    price: Number(
+                                      (giftCardFees / giftCardCount).toFixed(2)
+                                    ),
                                     quantity: giftCardCount,
                                   };
                                   const gCoupon = resolveCoupon(
@@ -1756,6 +1771,12 @@ const VisaCheckout = () => {
                                   if (gCoupon) gItem.coupon = gCoupon;
                                   paymentItems.push(gItem);
                                 }
+
+                                // 🌟 FIXED: Save item payment type synchronously BEFORE checkout pushes to prevent race condition
+                                sessionStorage.setItem(
+                                  "ga4_payment_type",
+                                  "Apple Pay"
+                                );
 
                                 window.dataLayer.push({ ecommerce: null });
                                 window.dataLayer.push({
@@ -1768,11 +1789,8 @@ const VisaCheckout = () => {
                                     items: paymentItems,
                                   },
                                 });
+
                                 setTimeout(() => {
-                                  sessionStorage.setItem(
-                                    "ga4_payment_type",
-                                    "Apple Pay"
-                                  );
                                   window.dataLayer.push({ ecommerce: null });
                                   window.dataLayer.push({
                                     event: "add_payment_info",
@@ -1857,7 +1875,7 @@ const VisaCheckout = () => {
                                 const countryName =
                                   selectedCountry || "Schengen";
 
-                                // 🌟 FIXED: Removed raw couponCode
+                                // 🌟 FIXED: Removed raw couponCode fallback
                                 const baseCode =
                                   appliedDiscount?.code || undefined;
 
@@ -1885,7 +1903,10 @@ const VisaCheckout = () => {
                                       .toLowerCase()
                                       .replace(/\s+/g, "_")}`,
                                     item_name: `Visa - ${countryName}`,
-                                    price: Number(finalVisaFees.toFixed(2)),
+                                    // 🌟 FIXED: True Item Unit Price
+                                    price: Number(
+                                      (finalVisaFees / travelers).toFixed(2)
+                                    ),
                                     quantity: travelers,
                                   };
                                   const vCoupon = resolveCoupon(travelers >= 3);
@@ -1897,8 +1918,12 @@ const VisaCheckout = () => {
                                   const iItem = {
                                     item_id: "insurance_certificate",
                                     item_name: "Insurance Certificate",
+                                    // 🌟 FIXED: True Item Unit Price
                                     price: Number(
-                                      discountedInsuranceFeesGBP.toFixed(2)
+                                      (
+                                        discountedInsuranceFeesGBP /
+                                        insuranceCount
+                                      ).toFixed(2)
                                     ),
                                     quantity: insuranceCount,
                                   };
@@ -1913,7 +1938,10 @@ const VisaCheckout = () => {
                                   const gItem = {
                                     item_id: "digital_gift_card",
                                     item_name: "NUvisa Digital Gift Card",
-                                    price: Number(giftCardFees.toFixed(2)),
+                                    // 🌟 FIXED: True Item Unit Price
+                                    price: Number(
+                                      (giftCardFees / giftCardCount).toFixed(2)
+                                    ),
                                     quantity: giftCardCount,
                                   };
                                   const gCoupon = resolveCoupon(
@@ -1922,6 +1950,12 @@ const VisaCheckout = () => {
                                   if (gCoupon) gItem.coupon = gCoupon;
                                   paymentItems.push(gItem);
                                 }
+
+                                // 🌟 FIXED: Save item payment type synchronously BEFORE checkout pushes to prevent race condition
+                                sessionStorage.setItem(
+                                  "ga4_payment_type",
+                                  "Google Pay"
+                                );
 
                                 window.dataLayer.push({ ecommerce: null });
                                 window.dataLayer.push({
@@ -1934,11 +1968,8 @@ const VisaCheckout = () => {
                                     items: paymentItems,
                                   },
                                 });
+
                                 setTimeout(() => {
-                                  sessionStorage.setItem(
-                                    "ga4_payment_type",
-                                    "Google Pay"
-                                  );
                                   window.dataLayer.push({ ecommerce: null });
                                   window.dataLayer.push({
                                     event: "add_payment_info",
@@ -2345,12 +2376,18 @@ const VisaCheckout = () => {
                             window.dataLayer
                           ) {
                             const countryName = selectedCountry || "Schengen";
+
+                            // 🌟 FIXED: Use verified discount code with local storage state persistence fallback
                             const baseCode =
-                              appliedDiscount?.code || couponCode || undefined;
-                            const effectiveInsCount = Math.min(
-                              insuranceCount,
-                              travelers
-                            );
+                              appliedDiscount?.code ||
+                              localStorage.getItem("saved_ga4_coupon") ||
+                              undefined;
+
+                            // 🌟 FIXED: Safe math handling
+                            const effectiveInsCount =
+                              travelers > 0
+                                ? Math.min(insuranceCount, travelers)
+                                : insuranceCount;
 
                             const resolveCoupon = (qualifies) => {
                               const codes = [];
@@ -2370,7 +2407,10 @@ const VisaCheckout = () => {
                                   .toLowerCase()
                                   .replace(/\s+/g, "_")}`,
                                 item_name: `Visa - ${countryName}`,
-                                price: Number(finalVisaFees.toFixed(2)),
+                                // 🌟 FIXED: True Item Unit Price
+                                price: Number(
+                                  (finalVisaFees / travelers).toFixed(2)
+                                ),
                                 quantity: travelers,
                               };
                               const vCoupon = resolveCoupon(travelers >= 3);
@@ -2382,8 +2422,11 @@ const VisaCheckout = () => {
                               const iItem = {
                                 item_id: "insurance_certificate",
                                 item_name: "Insurance Certificate",
+                                // 🌟 FIXED: True Item Unit Price
                                 price: Number(
-                                  discountedInsuranceFeesGBP.toFixed(2)
+                                  (
+                                    discountedInsuranceFeesGBP / insuranceCount
+                                  ).toFixed(2)
                                 ),
                                 quantity: insuranceCount,
                               };
@@ -2398,7 +2441,10 @@ const VisaCheckout = () => {
                               const gItem = {
                                 item_id: "digital_gift_card",
                                 item_name: "NUvisa Digital Gift Card",
-                                price: Number(giftCardFees.toFixed(2)),
+                                // 🌟 FIXED: True Item Unit Price
+                                price: Number(
+                                  (giftCardFees / giftCardCount).toFixed(2)
+                                ),
                                 quantity: giftCardCount,
                               };
                               const gCoupon = resolveCoupon(giftCardCount >= 3);
@@ -2419,7 +2465,7 @@ const VisaCheckout = () => {
                                 currency: "GBP",
                                 value: Number(total.toFixed(2)),
                                 payment_type: paymentType,
-                                coupon: baseCode,
+                                coupon: baseCode, // 🌟 FIXED
                                 items: paymentItems,
                               },
                             });
@@ -2565,8 +2611,11 @@ const VisaCheckout = () => {
 
                     if (typeof window !== "undefined" && window.dataLayer) {
                       const countryName = selectedCountry || "Schengen";
-                      // 🌟 FIXED: Use only verified applied discount
-                      const baseCode = appliedDiscount?.code || undefined;
+                      // 🌟 FIXED: Verified discount with local storage state persistence fallback
+                      const baseCode =
+                        appliedDiscount?.code ||
+                        localStorage.getItem("saved_ga4_coupon") ||
+                        undefined;
                       // 🌟 FIXED: Safe insurance count calculation
                       const effectiveInsCount =
                         travelers > 0
@@ -2589,7 +2638,8 @@ const VisaCheckout = () => {
                             .toLowerCase()
                             .replace(/\s+/g, "_")}`,
                           item_name: `Visa - ${countryName}`,
-                          price: Number(finalVisaFees.toFixed(2)),
+                          // 🌟 FIXED: Map item individual unit price after discounts
+                          price: Number((finalVisaFees / travelers).toFixed(2)),
                           quantity: travelers,
                         };
                         const vCoupon = resolveCoupon(travelers >= 3);
@@ -2601,7 +2651,12 @@ const VisaCheckout = () => {
                         const iItem = {
                           item_id: "insurance_certificate",
                           item_name: "Insurance Certificate",
-                          price: Number(discountedInsuranceFeesGBP.toFixed(2)),
+                          // 🌟 FIXED: Map item individual unit price after discounts
+                          price: Number(
+                            (
+                              discountedInsuranceFeesGBP / insuranceCount
+                            ).toFixed(2)
+                          ),
                           quantity: insuranceCount,
                         };
                         const iCoupon = resolveCoupon(effectiveInsCount >= 3);
@@ -2613,7 +2668,10 @@ const VisaCheckout = () => {
                         const gItem = {
                           item_id: "digital_gift_card",
                           item_name: "NUvisa Digital Gift Card",
-                          price: Number(giftCardFees.toFixed(2)),
+                          // 🌟 FIXED: Map item individual unit price after discounts
+                          price: Number(
+                            (giftCardFees / giftCardCount).toFixed(2)
+                          ),
                           quantity: giftCardCount,
                         };
                         const gCoupon = resolveCoupon(giftCardCount >= 3);
@@ -2640,7 +2698,7 @@ const VisaCheckout = () => {
                           currency: "GBP",
                           value: Number(total.toFixed(2)),
                           payment_type: ga4PaymentType,
-                          coupon: baseCode, // 🌟 FIXED
+                          coupon: baseCode,
                           items: paymentItems,
                         },
                       });
@@ -2684,8 +2742,11 @@ const VisaCheckout = () => {
                     // 🔥 FIRE ADD PAYMENT INFO EVENT HERE (KLARNA) 🔥
                     if (typeof window !== "undefined" && window.dataLayer) {
                       const countryName = selectedCountry || "Schengen";
-                      // 🌟 FIXED: Use only verified applied discount
-                      const baseCode = appliedDiscount?.code || undefined;
+                      // 🌟 FIXED: Verified discount with local storage state persistence fallback
+                      const baseCode =
+                        appliedDiscount?.code ||
+                        localStorage.getItem("saved_ga4_coupon") ||
+                        undefined;
                       // 🌟 FIXED: Safe insurance count calculation
                       const effectiveInsCount =
                         travelers > 0
@@ -2707,7 +2768,8 @@ const VisaCheckout = () => {
                             .toLowerCase()
                             .replace(/\s+/g, "_")}`,
                           item_name: `Visa - ${countryName}`,
-                          price: Number(finalVisaFees.toFixed(2)),
+                          // 🌟 FIXED: Map item individual unit price after discounts
+                          price: Number((finalVisaFees / travelers).toFixed(2)),
                           quantity: travelers,
                         };
                         const vCoupon = resolveCoupon(travelers >= 3);
@@ -2719,7 +2781,12 @@ const VisaCheckout = () => {
                         const iItem = {
                           item_id: "insurance_certificate",
                           item_name: "Insurance Certificate",
-                          price: Number(discountedInsuranceFeesGBP.toFixed(2)),
+                          // 🌟 FIXED: Map item individual unit price after discounts
+                          price: Number(
+                            (
+                              discountedInsuranceFeesGBP / insuranceCount
+                            ).toFixed(2)
+                          ),
                           quantity: insuranceCount,
                         };
                         const iCoupon = resolveCoupon(effectiveInsCount >= 3);
@@ -2731,7 +2798,10 @@ const VisaCheckout = () => {
                         const gItem = {
                           item_id: "digital_gift_card",
                           item_name: "NUvisa Digital Gift Card",
-                          price: Number(giftCardFees.toFixed(2)),
+                          // 🌟 FIXED: Map item individual unit price after discounts
+                          price: Number(
+                            (giftCardFees / giftCardCount).toFixed(2)
+                          ),
                           quantity: giftCardCount,
                         };
                         const gCoupon = resolveCoupon(giftCardCount >= 3);
@@ -2747,7 +2817,7 @@ const VisaCheckout = () => {
                           currency: "GBP",
                           value: Number(total.toFixed(2)),
                           payment_type: "Klarna",
-                          coupon: baseCode, // 🌟 FIXED
+                          coupon: baseCode,
                           items: paymentItems,
                         },
                       });
@@ -2770,8 +2840,11 @@ const VisaCheckout = () => {
                     // 🔥 FIRE ADD PAYMENT INFO EVENT HERE (APPLE/GOOGLE PAY) 🔥
                     if (typeof window !== "undefined" && window.dataLayer) {
                       const countryName = selectedCountry || "Schengen";
-                      // 🌟 FIXED: Use only verified applied discount
-                      const baseCode = appliedDiscount?.code || undefined;
+                      // 🌟 FIXED: Verified discount with local storage state persistence fallback
+                      const baseCode =
+                        appliedDiscount?.code ||
+                        localStorage.getItem("saved_ga4_coupon") ||
+                        undefined;
                       // 🌟 FIXED: Safe insurance count calculation
                       const effectiveInsCount =
                         travelers > 0
@@ -2793,7 +2866,8 @@ const VisaCheckout = () => {
                             .toLowerCase()
                             .replace(/\s+/g, "_")}`,
                           item_name: `Visa - ${countryName}`,
-                          price: Number(finalVisaFees.toFixed(2)),
+                          // 🌟 FIXED: Map item individual unit price after discounts
+                          price: Number((finalVisaFees / travelers).toFixed(2)),
                           quantity: travelers,
                         };
                         const vCoupon = resolveCoupon(travelers >= 3);
@@ -2805,7 +2879,12 @@ const VisaCheckout = () => {
                         const iItem = {
                           item_id: "insurance_certificate",
                           item_name: "Insurance Certificate",
-                          price: Number(discountedInsuranceFeesGBP.toFixed(2)),
+                          // 🌟 FIXED: Map item individual unit price after discounts
+                          price: Number(
+                            (
+                              discountedInsuranceFeesGBP / insuranceCount
+                            ).toFixed(2)
+                          ),
                           quantity: insuranceCount,
                         };
                         const iCoupon = resolveCoupon(effectiveInsCount >= 3);
@@ -2817,7 +2896,10 @@ const VisaCheckout = () => {
                         const gItem = {
                           item_id: "digital_gift_card",
                           item_name: "NUvisa Digital Gift Card",
-                          price: Number(giftCardFees.toFixed(2)),
+                          // 🌟 FIXED: Map item individual unit price after discounts
+                          price: Number(
+                            (giftCardFees / giftCardCount).toFixed(2)
+                          ),
                           quantity: giftCardCount,
                         };
                         const gCoupon = resolveCoupon(giftCardCount >= 3);
@@ -2825,23 +2907,23 @@ const VisaCheckout = () => {
                         paymentItems.push(gItem);
                       }
 
-                      sessionStorage.setItem(
-                        "ga4_payment_type",
+                      const ga4PaymentType =
                         selectedPaymentMethod === "apple"
                           ? "Apple Pay"
-                          : "Google Pay"
+                          : "Google Pay";
+                      sessionStorage.setItem(
+                        "ga4_payment_type",
+                        ga4PaymentType
                       );
+
                       window.dataLayer.push({ ecommerce: null });
                       window.dataLayer.push({
                         event: "add_payment_info",
                         ecommerce: {
                           currency: "GBP",
                           value: Number(total.toFixed(2)),
-                          payment_type:
-                            selectedPaymentMethod === "apple"
-                              ? "Apple Pay"
-                              : "Google Pay",
-                          coupon: baseCode, // 🌟 FIXED
+                          payment_type: ga4PaymentType,
+                          coupon: baseCode,
                           items: paymentItems,
                         },
                       });
