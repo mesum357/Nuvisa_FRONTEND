@@ -1,12 +1,10 @@
+import { fetchOccasionContentFromDb } from "@/lib/occasionContentDb";
 import {
   extractOccasionFromAdminJson,
   finalizeOccasionPayload,
   getAdminApiBases,
   occasionFromCmsFields,
 } from "@/utils/occasionData";
-
-const CACHE_TTL_MS = 60 * 1000;
-let cache = { data: null, expiresAt: 0 };
 
 async function fetchBackendCms(apiBase) {
   if (!apiBase) return null;
@@ -45,7 +43,12 @@ async function fetchAdminOccasions() {
         if (!res.ok) continue;
         const json = await res.json();
         const extracted = extractOccasionFromAdminJson(json);
-        if (extracted && (extracted.title || extracted.description || extracted.occasions.length > 0)) {
+        if (
+          extracted &&
+          (extracted.title ||
+            extracted.description ||
+            extracted.occasions.length > 0)
+        ) {
           return { ...extracted, source: `admin${path}` };
         }
       } catch (e) {
@@ -61,52 +64,44 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const allowDefaults = req.query.defaults !== "false";
-  const now = Date.now();
-  const cacheKey = allowDefaults ? "default" : "strict";
-
-  if (cache.data?.[cacheKey] && cache.expiresAt > now) {
-    res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
-    return res.status(200).json(cache.data[cacheKey]);
-  }
-
   const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
 
-  // 1) Backend CMS (written from New-NUvisa /admin → Homepage content) — same DB the site should trust
+  const fromDb = await fetchOccasionContentFromDb();
   const fromCms = await fetchBackendCms(apiBase);
-  // 2) nuvisa-admin (what client edits in external admin) when public/private routes work
   const fromAdmin = await fetchAdminOccasions();
 
   const merged = {
-    title: fromCms?.title || fromAdmin?.title || "",
-    description: fromCms?.description || fromAdmin?.description || "",
+    title: fromDb?.title || fromCms?.title || fromAdmin?.title || "",
+    description:
+      fromDb?.description || fromCms?.description || fromAdmin?.description || "",
     occasions:
-      fromCms?.occasions?.length > 0
+      fromDb?.occasions?.length > 0
+        ? fromDb.occasions
+        : fromCms?.occasions?.length > 0
         ? fromCms.occasions
         : fromAdmin?.occasions || [],
   };
 
-  const source =
-    fromCms?.occasions?.length > 0
-      ? fromCms.source
-      : fromAdmin?.occasions?.length > 0
-      ? fromAdmin.source
-      : fromCms?.title || fromCms?.description
-      ? fromCms.source
-      : fromAdmin?.title || fromAdmin?.description
-      ? fromAdmin.source
-      : "defaults";
+  const source = fromDb?.occasions?.length
+    ? fromDb.source
+    : fromCms?.occasions?.length
+    ? fromCms.source
+    : fromAdmin?.occasions?.length
+    ? fromAdmin.source
+    : fromDb?.title || fromDb?.description
+    ? fromDb.source
+    : fromCms?.title || fromCms?.description
+    ? fromCms.source
+    : fromAdmin?.title || fromAdmin?.description
+    ? fromAdmin.source
+    : "defaults";
 
-  const payload = {
+  res.setHeader("Cache-Control", "no-store, must-revalidate");
+  const data = finalizeOccasionPayload(merged, { allowDefaults: true });
+
+  return res.status(200).json({
     success: true,
-    data: finalizeOccasionPayload(merged, { allowDefaults }),
+    data,
     source,
-  };
-
-  if (!cache.data) cache.data = {};
-  cache.data[cacheKey] = payload;
-  cache.expiresAt = now + CACHE_TTL_MS;
-
-  res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
-  return res.status(200).json(payload);
+  });
 }

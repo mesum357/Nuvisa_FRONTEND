@@ -190,7 +190,7 @@ const FaqLibraryPage = () => {
       const matchedGroup = groupsBySlug.get(toSlug(card.title));
       return {
         id: matchedGroup?.id || toSlug(card.title),
-        title: card.title,
+        title: matchedGroup?.name || card.title,
         description: card.description,
         iconPath:
           FAQ_CARD_ICON_MAP[card.icon] ||

@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { fetchFAQs as fetchFAQsFromAPI } from '@/api/faqs';
 import { getFaqGroupKey } from '@/utils/faqHelpers';
+import { buildHomepageFaqTabs } from '@/utils/faqHomepageTabs';
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
@@ -46,15 +47,8 @@ const FAQSection = () => {
       const faqData = await fetchFAQsFromAPI();
       const list = Array.isArray(faqData) ? faqData : [];
       setFaqs(list);
-      if (list.length > 0) {
-        const tabs = new Map();
-        list.forEach((faq) => {
-          const key = getFaqGroupKey(faq);
-          if (key) tabs.set(key, (tabs.get(key) || 0) + 1);
-        });
-        const firstTab = Array.from(tabs.keys()).sort((a, b) => a.localeCompare(b))[0];
-        if (firstTab) setActiveTab(firstTab);
-      }
+      const tabs = buildHomepageFaqTabs(list);
+      if (tabs.length > 0) setActiveTab(tabs[0].value);
     } catch (error) {
       console.error('Error fetching FAQs:', error);
       setFaqs([]);
@@ -63,42 +57,7 @@ const FAQSection = () => {
     }
   };
 
-  const faqTabs = useMemo(() => {
-    const typeMeta = new Map();
-
-    (Array.isArray(faqs) ? faqs : []).forEach((faq) => {
-      const type = getFaqGroupKey(faq);
-      if (type) {
-        const rawCreatedAt = faq?.faqTypeCreatedAt || faq?.createdAt || null;
-        const createdAtMs = rawCreatedAt ? new Date(rawCreatedAt).getTime() : Number.MAX_SAFE_INTEGER;
-        const existing = typeMeta.get(type);
-
-        if (!existing) {
-          typeMeta.set(type, {
-            label: type,
-            createdAtMs,
-          });
-          return;
-        }
-
-        if (createdAtMs < existing.createdAtMs) {
-          existing.createdAtMs = createdAtMs;
-        }
-      }
-    });
-
-    return Array.from(typeMeta.entries())
-      .sort((a, b) => {
-        if (a[1].createdAtMs !== b[1].createdAtMs) {
-          return a[1].createdAtMs - b[1].createdAtMs;
-        }
-        return a[0].localeCompare(b[0]);
-      })
-      .map(([type, meta]) => ({
-        value: type,
-        label: meta.label,
-      }));
-  }, [faqs]);
+  const faqTabs = useMemo(() => buildHomepageFaqTabs(faqs), [faqs]);
 
   useEffect(() => {
     if (faqTabs.length === 0) {
