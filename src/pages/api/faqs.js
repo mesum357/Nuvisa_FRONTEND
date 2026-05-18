@@ -62,14 +62,25 @@ export default async function handler(req, res) {
   if (categoryFilter) dbFilters.category = String(categoryFilter);
   if (isFeatured !== undefined) dbFilters.isFeatured = String(isFeatured);
 
-  let faqs = await fetchFaqsFromDb(dbFilters);
+  // In production prefer the admin public API so renamed FAQ types
+  // in the admin UI appear immediately on the public site. Fall
+  // back to the shared DB if the admin public endpoint returns nothing.
+  const query = new URLSearchParams();
+  if (categoryFilter) query.set("category", String(categoryFilter));
+  if (isFeatured !== undefined) query.set("isFeatured", String(isFeatured));
+  const queryString = query.toString() ? `?${query.toString()}` : "";
 
-  if (!faqs.length) {
-    const query = new URLSearchParams();
-    if (categoryFilter) query.set("category", String(categoryFilter));
-    if (isFeatured !== undefined) query.set("isFeatured", String(isFeatured));
-    const queryString = query.toString() ? `?${query.toString()}` : "";
+  let faqs = [];
+  if (process.env.NODE_ENV === 'production') {
     faqs = await fetchAdminPublicFaqs(queryString);
+    if (!faqs.length) {
+      faqs = await fetchFaqsFromDb(dbFilters);
+    }
+  } else {
+    faqs = await fetchFaqsFromDb(dbFilters);
+    if (!faqs.length) {
+      faqs = await fetchAdminPublicFaqs(queryString);
+    }
   }
 
   res.setHeader("Cache-Control", "no-store, must-revalidate");

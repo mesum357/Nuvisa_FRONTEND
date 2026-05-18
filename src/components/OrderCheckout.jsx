@@ -1526,15 +1526,6 @@ const VisaCheckout = () => {
     alert(`${title}\n\n${message}`);
   };
 
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const sessionId =
-      urlParams.get("session_id") || urlParams.get("payment_intent");
-    if (sessionId) {
-      decrementExpertSpotsOnSuccessfulCheckout(sessionId);
-    }
-  }, []);
-
   // Apple Pay / Google Pay handled by Stripe Payment Request button
 
   return (
