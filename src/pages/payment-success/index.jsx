@@ -693,21 +693,29 @@ const PaymentSuccess = () => {
         ) {
           // 🔥 GTM: FIRE PURCHASE EVENT 🔥
           if (typeof window !== "undefined" && window.dataLayer) {
-            // 🌟 FIXED: Use strictly verified discount with local storage state persistence fallback
             const baseCode =
               visaState.appliedDiscount?.code ||
               localStorage.getItem("saved_ga4_coupon") ||
               undefined;
 
             const countryName = mergedData.selectedCountry || "Schengen";
-            const insCount = Math.max(
-              Number(mergedData?.storedMetadata?.insuranceCount || 0),
-              hasInsurance ? numberOfTravelers : 0
-            );
+
+            // ✅ FIXED: Never fall back to traveler count for insurance quantity
+            const insCount =
+              Number(mergedData?.storedMetadata?.insuranceCount) > 0
+                ? Number(mergedData.storedMetadata.insuranceCount)
+                : Number(mergedData?.insuranceCount) > 0
+                ? Number(mergedData.insuranceCount)
+                : hasInsurance && Number(mergedData.insurancePayment) > 0
+                ? 1
+                : 0;
+
             const giftCardCount = Math.max(
               Number(visaState.giftCardCount || 0),
               0
             );
+
+            // effectiveInsCount is only used for GROUP20 coupon threshold — safe to cap at travelers
             const effectiveInsCount =
               numberOfTravelers > 0
                 ? Math.min(insCount, numberOfTravelers)
@@ -730,7 +738,6 @@ const PaymentSuccess = () => {
                   .toLowerCase()
                   .replace(/\s+/g, "_")}`,
                 item_name: `Visa - ${countryName}`,
-                // 🌟 FIXED: True individual item unit price after discounts
                 price: Number((visaTotal / numberOfTravelers).toFixed(2)),
                 quantity: numberOfTravelers,
               };
@@ -739,7 +746,7 @@ const PaymentSuccess = () => {
               purchaseItems.push(vItem);
             }
 
-            // Insurance item
+            // Insurance item — quantity and price now both derived from insCount, never travelers
             if (
               hasInsurance &&
               Number(mergedData.insurancePayment) > 0 &&
@@ -749,9 +756,8 @@ const PaymentSuccess = () => {
               const iItem = {
                 item_id: "insurance_certificate",
                 item_name: "Insurance Certificate",
-                // 🌟 FIXED: True individual item unit price after discounts
-                price: Number((insuranceTotal / insCount).toFixed(2)),
-                quantity: insCount,
+                price: Number((insuranceTotal / insCount).toFixed(2)), // ✅ correct unit price
+                quantity: insCount, // ✅ correct quantity
               };
               const iCoupon = resolveCoupon(effectiveInsCount >= 3);
               if (iCoupon) iItem.coupon = iCoupon;
@@ -764,7 +770,6 @@ const PaymentSuccess = () => {
               const gItem = {
                 item_id: "digital_gift_card",
                 item_name: "NUvisa Digital Gift Card",
-                // 🌟 FIXED: True individual item unit price after discounts
                 price: Number((giftCardTotal / giftCardCount).toFixed(2)),
                 quantity: giftCardCount,
               };
@@ -775,7 +780,6 @@ const PaymentSuccess = () => {
 
             window.dataLayer.push({ ecommerce: null });
 
-            // Get and clear payment type from sessionStorage to prevent data leakage
             const ga4PaymentType =
               sessionStorage.getItem("ga4_payment_type") ||
               (isKlarnaRedirect ? "Klarna" : "Credit Card");

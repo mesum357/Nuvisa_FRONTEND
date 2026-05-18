@@ -24,6 +24,7 @@ const ApplicationStepPaymentSuccessPage = () => {
   const insuranceMetadata = insurancePaymentMetadata
     ? JSON.parse(insurancePaymentMetadata)
     : null;
+
   useEffect(() => {
     const processPaymentSuccess = async () => {
       const currentData = await getCurrentPaymentData();
@@ -35,32 +36,41 @@ const ApplicationStepPaymentSuccessPage = () => {
       };
 
       if (finalApplicationId) {
-        // 🔥 GTM: FIRE PURCHASE EVENT HERE 🔥
         if (
           typeof window !== "undefined" &&
           window.dataLayer &&
           !hasFiredPurchase.current
         ) {
-          hasFiredPurchase.current = true; // Lock it so it only fires once
+          hasFiredPurchase.current = true;
 
-          const travelers = Math.max(Number(visaState.travelers || 0), 0);
-          const insuranceCount = Math.max(
-            Number(visaState.insuranceCount || 0),
-            0
-          );
-          const giftCardCount = Math.max(
-            Number(visaState.giftCardCount || 0),
-            0
-          );
+          const isInsuranceOnlyAddon =
+            insuranceMetadata?.simplePaymentType === "insurance" ||
+            insuranceMetadata?.paymentType === "traveler_insurance";
+
+          const travelers = isInsuranceOnlyAddon
+            ? 0
+            : Math.max(Number(visaState.travelers || 0), 0);
+
+          // ✅ FIXED: metadata (explicit user selection) first, Redux as last resort
+          const insuranceCount =
+            Number(insuranceMetadata?.insuranceCount) > 0
+              ? Number(insuranceMetadata.insuranceCount)
+              : Number(visaState.insuranceCount) > 0
+              ? Number(visaState.insuranceCount)
+              : 0;
+
+          const giftCardCount = isInsuranceOnlyAddon
+            ? 0
+            : Math.max(Number(visaState.giftCardCount || 0), 0);
+
           const countryName = visaState.selectedCountry || "Schengen";
 
-          // 🌟 FIXED: Use verified discount code with local storage state persistence fallback
           const baseCode =
             visaState.appliedDiscount?.code ||
             localStorage.getItem("saved_ga4_coupon") ||
             undefined;
 
-          // 🌟 FIXED: Safe math handling
+          // effectiveInsCount only used for GROUP20 coupon threshold, not quantity
           const effectiveInsCount =
             travelers > 0
               ? Math.min(insuranceCount, travelers)
@@ -74,12 +84,12 @@ const ApplicationStepPaymentSuccessPage = () => {
           };
 
           const purchaseItems = [];
+
           if (travelers > 0) {
             const visaTotal = Number(visaState.visaFees) || 0;
             const vItem = {
               item_id: `visa_${countryName.toLowerCase().replace(/\s+/g, "_")}`,
               item_name: `Visa - ${countryName}`,
-              // 🌟 FIXED: True individual item unit price after discounts
               price: Number((visaTotal / travelers).toFixed(2)),
               quantity: travelers,
             };
@@ -87,12 +97,17 @@ const ApplicationStepPaymentSuccessPage = () => {
             if (vCoupon) vItem.coupon = vCoupon;
             purchaseItems.push(vItem);
           }
+
           if (insuranceCount > 0) {
-            const insuranceTotal = Number(visaState.insuranceFees) || 0;
+            // ✅ FIXED: metadata amount first, Redux fee only as fallback
+            const insuranceTotal =
+              Number(insuranceMetadata?.insurancePaymentAmount) > 0
+                ? Number(insuranceMetadata.insurancePaymentAmount)
+                : Number(visaState.insuranceFees) || 0;
+
             const iItem = {
               item_id: "insurance_certificate",
               item_name: "Insurance Certificate",
-              // 🌟 FIXED: True individual item unit price after discounts
               price: Number((insuranceTotal / insuranceCount).toFixed(2)),
               quantity: insuranceCount,
             };
@@ -100,12 +115,12 @@ const ApplicationStepPaymentSuccessPage = () => {
             if (iCoupon) iItem.coupon = iCoupon;
             purchaseItems.push(iItem);
           }
+
           if (giftCardCount > 0) {
             const giftCardTotal = Number(visaState.giftCardFees) || 0;
             const gItem = {
               item_id: "digital_gift_card",
               item_name: "NUvisa Digital Gift Card",
-              // 🌟 FIXED: True individual item unit price after discounts
               price: Number((giftCardTotal / giftCardCount).toFixed(2)),
               quantity: giftCardCount,
             };
@@ -114,27 +129,31 @@ const ApplicationStepPaymentSuccessPage = () => {
             purchaseItems.push(gItem);
           }
 
-          window.dataLayer.push({ ecommerce: null }); // Clear previous data
+          window.dataLayer.push({ ecommerce: null });
 
-          // Get and clear payment type from sessionStorage to prevent data leakage
+          // ✅ FIXED: two branches now return meaningfully different values
           const ga4PaymentType =
-            typeof window !== "undefined"
-              ? sessionStorage.getItem("ga4_payment_type") || "Credit Card"
-              : "Credit Card";
-          if (typeof window !== "undefined") {
-            try {
-              sessionStorage.removeItem("ga4_payment_type");
-            } catch {}
-          }
+            sessionStorage.getItem("ga4_payment_type") ||
+            (isInsuranceOnlyAddon ? "Credit Card" : "Credit Card - Visa");
+          try {
+            sessionStorage.removeItem("ga4_payment_type");
+          } catch {}
+
+          const transactionValue =
+            Number(insuranceMetadata?.insurancePaymentAmount) > 0
+              ? Number(insuranceMetadata.insurancePaymentAmount)
+              : Number(visaState.totalAmount) > 0
+              ? Number(visaState.totalAmount)
+              : 0;
 
           window.dataLayer.push({
             event: "purchase",
             ecommerce: {
-              transaction_id: finalApplicationId || `TXN-${Date.now()}`,
-              value: Number((Number(visaState.totalAmount) || 0).toFixed(2)),
+              transaction_id: finalApplicationId || `TXN_${Date.now()}`,
+              value: Number(transactionValue.toFixed(2)),
               currency: "GBP",
               payment_type: ga4PaymentType,
-              coupon: baseCode, // 🌟 FIXED
+              coupon: baseCode,
               items: purchaseItems,
             },
           });
@@ -149,6 +168,7 @@ const ApplicationStepPaymentSuccessPage = () => {
         }, 2000);
       }
     };
+
     if (applicationId) {
       processPaymentSuccess();
     }
