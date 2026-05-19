@@ -989,7 +989,7 @@ const PaymentSuccess = () => {
             </p>
           </div>
           <button
-            onClick={() => router.push("/visa-checkout")}
+            onClick={() => router.push("/")}
             className="w-full bg-[#7350FF] text-white py-3 px-6 rounded-lg font-semibold hover:bg-[#7350FF]/90 transition-colors"
           >
             Return to Home
