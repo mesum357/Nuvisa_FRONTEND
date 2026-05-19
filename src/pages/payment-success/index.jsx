@@ -23,6 +23,7 @@ import {
   resolveKlarnaRedirectSuccess,
 } from "@/utils/stripeRedirectPayment";
 import { resolveVisaCountryName } from "@/utils/visaCountry";
+import { GIFT_CARD_PRODUCT_NAME } from "@/constants/productLabels";
 import Cookies from "js-cookie";
 
 const PaymentSuccess = () => {
@@ -769,7 +770,7 @@ const PaymentSuccess = () => {
               const giftCardTotal = Number(visaState.giftCardFees) || 0;
               const gItem = {
                 item_id: "digital_gift_card",
-                item_name: "NUvisa Digital Gift Card",
+                item_name: GIFT_CARD_PRODUCT_NAME,
                 price: Number((giftCardTotal / giftCardCount).toFixed(2)),
                 quantity: giftCardCount,
               };

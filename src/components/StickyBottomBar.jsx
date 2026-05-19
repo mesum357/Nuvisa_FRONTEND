@@ -29,6 +29,7 @@ import {
 import { useToast } from "@/contexts/ToastContext";
 import Drawer from "./Drawer";
 import { getAdminApiBase } from "@/utils/adminApiBase";
+import { GIFT_CARD_PRODUCT_NAME } from "@/constants/productLabels";
 import { title } from "process";
 
 const StickyBottomBar = ({ triggerElementId }) => {
@@ -85,7 +86,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
     },
     {
       id: "giftCard",
-      title: "NUvisa Digital Gift Card",
+      title: GIFT_CARD_PRODUCT_NAME,
       originalPrice: 245,
       currentPrice: 159,
       badge: null,
@@ -93,6 +94,9 @@ const StickyBottomBar = ({ triggerElementId }) => {
     },
   ]);
   //
+  const getDisplayTitle = (item) =>
+    item?.id === "giftCard" ? GIFT_CARD_PRODUCT_NAME : item?.title;
+
   const [countryPricingList, setCountryPricingList] = useState([]);
 
   // Memoize visa fee calculation
@@ -671,7 +675,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
       if (quantities.giftCard > 0) {
         const gItem = {
           item_id: "digital_gift_card",
-          item_name: "NUvisa Digital Gift Card",
+          item_name: GIFT_CARD_PRODUCT_NAME,
           // 🌟 FIXED: Map true individual item unit price after discounts
           price: Number(
             (discountedPrices.giftCard / quantities.giftCard).toFixed(2)
@@ -843,7 +847,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
                     {/* Item Info */}
                     <div className="flex flex-col">
                       <h3 className="text-sm font-medium text-white mb-1">
-                        {item.title}
+                        {getDisplayTitle(item)}
                       </h3>
                       <div className="flex flex-wrap items-start gap-3">
                         <div className="flex flex-col">
@@ -999,7 +1003,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
                             ? "/image/certificatee.jpg"
                             : "/image/gitftnewcard.png"
                         }
-                        alt={item.title}
+                        alt={getDisplayTitle(item)}
                         width={64}
                         height={48}
                         className="w-16 h-12 rounded-lg object-contain flex-shrink-0 bg-white/10"
@@ -1009,7 +1013,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
                         {/* Item Info */}
                         <div className="flex flex-col">
                           <h3 className="text-sm font-medium text-white mb-1">
-                            {item.title}
+                            {getDisplayTitle(item)}
                           </h3>
                           <div className="flex items-center gap-2">
                             <span className="text-gray-400 line-through text-sm">
@@ -1157,7 +1161,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
                     <div className="flex items-center justify-between">
                       <div className="flex flex-col flex-1">
                         <h3 className="text-sm font-medium text-white mb-1">
-                          {item.title}
+                          {getDisplayTitle(item)}
                         </h3>
                         <div className="flex flex-wrap items-start gap-2">
                           <div className="flex flex-col">
@@ -1333,7 +1337,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
                         ? "/image/certificatee.jpg"
                         : "/image/gitftnewcard.png"
                     }
-                    alt={item.title}
+                    alt={getDisplayTitle(item)}
                     width={80}
                     height={64}
                     className="w-20 h-16 rounded-lg object-contain flex-shrink-0 mr-3 bg-white/10"
@@ -1341,7 +1345,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
                   />
                   <div className="flex-1">
                     <h3 className="text-base font-medium text-white mb-2">
-                      {item.title}
+                      {getDisplayTitle(item)}
                     </h3>
                     <div className="flex items-center gap-2">
                       <span className="text-gray-400 line-through text-sm">

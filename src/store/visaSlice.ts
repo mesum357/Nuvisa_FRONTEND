@@ -64,7 +64,7 @@ const initialState: IVisaState = {
   selectedCountry: "",
   visaFees: 0,
   insuranceFees: 0, // Will be set dynamically based on selected country
-  travelers: 1,
+  travelers: 0,
   visaTypeId: "",
   selectedVisaType: null,
   arrivalDate: "",
@@ -195,7 +195,7 @@ export const visaSlice = createSlice({
       state.selectedCountry = "";
       state.visaFees = 0;
       state.insuranceFees = 0; // Will be set dynamically
-      state.travelers = 1;
+      state.travelers = 0;
       state.visaTypeId = "";
       state.selectedVisaType = null;
       state.arrivalDate = "";

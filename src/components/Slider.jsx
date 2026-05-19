@@ -61,6 +61,7 @@ import { staticCountries } from "@/constants/staticCountries";
 import { getDynamicMonthText } from "@/utils/getDynamicMonthText";
 import { getCurrentWeekSlotPercentage } from "@/utils/getCurrentWeekSlotPercentage";
 import { getAdminApiBase } from "@/utils/adminApiBase";
+import { GIFT_CARD_PRODUCT_NAME } from "@/constants/productLabels";
 import { setExpertSpotsDefaultFromApi } from "@/utils/expertSpots";
 import dynamic from "next/dynamic";
 
@@ -309,7 +310,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
   const urlDatesAppliedRef = useRef(false);
 
   // Use Redux state instead of local state
-  const travelers = Math.max(Number(visaState.travelers ?? 1), 1);
+  const travelers = Math.max(Number(visaState.travelers ?? 0), 0);
   const insuranceCount = visaState.insuranceCount || 0;
   const giftCardCount = visaState.giftCardCount || 0;
   // Default arrival = 4 weeks from today, default departure = arrival + 14 days (15 days inclusive)
@@ -778,21 +779,6 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
           errors.exceedsLimit = `Trip duration (${tripDuration} days) exceeds default limit (${defaultMaxDays} days)`;
         }
       }
-    }
-
-    // If arrival date is at least 4 weeks away and no errors, show success message
-    if (
-      arrivalDate >= fourWeeksFromNow &&
-      !errors.dateOrder &&
-      !errors.exceedsLimit
-    ) {
-      // Calculate 48 hours (2 days) from today
-      const nextDay = new Date(today);
-      nextDay.setDate(nextDay.getDate() + 2);
-      // Format date like "6 November"
-      const options = { day: "numeric", month: "long" };
-      const formattedDate = nextDay.toLocaleDateString("en-US", options);
-      errors.tooClosee = `Complete your application by ${formattedDate} for timely visa process.`;
     }
 
     return errors;
@@ -1305,7 +1291,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
 
     // 🔥 GA4: Track View Item when country changes 🔥
     if (typeof window !== "undefined" && window.dataLayer) {
-      const currentTravelers = Math.max(Number(visaState?.travelers || 1), 1);
+      const currentTravelers = Math.max(Number(visaState?.travelers || 0), 0);
 
       // 🌟 FIXED: Extract coupon clean without raw text leakage
       const baseCode = visaState?.appliedDiscount?.code || undefined;
@@ -3343,7 +3329,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
         if (recommendedItems.giftCard && giftCardCount > 0) {
           const gItem = {
             item_id: "digital_gift_card",
-            item_name: "NUvisa Digital Gift Card",
+            item_name: GIFT_CARD_PRODUCT_NAME,
             price: Number((discountedGiftCardPrice / giftCardCount).toFixed(2)),
             quantity: giftCardCount,
           };
@@ -4337,14 +4323,14 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                   <QtyInput
                     value={travelers}
                     onChange={(next) => {
-                      const n = Math.max(1, Number(next) || 1);
+                      const n = Math.max(0, Number(next) || 0);
                       // If traveler count decreases, adjust insurance count if needed
                       if (n >= 1 && insuranceCount > n) {
                         dispatch(setReduxInsuranceCount(Number(n)));
                       }
                       dispatch(setReduxTravelers(Number(n)));
                     }}
-                    min={1}
+                    min={0}
                   />
                 </div>
 
@@ -4885,7 +4871,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
           </ClientOnly>
 
           {/* Express Checkout Section */}
-          <div className="space-y-4 mt-5" id="discount-code">
+          <div className="space-y-4 mt-5">
             <div className="flex items-center justify-between">
               <h2 className="font-medium text-lg max-sm:text-base  ">
                 Express checkout
@@ -5095,7 +5081,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                               ) {
                                 const gItem = {
                                   item_id: "digital_gift_card",
-                                  item_name: "NUvisa Digital Gift Card",
+                                  item_name: GIFT_CARD_PRODUCT_NAME,
                                   // 🌟 FIXED: True Item Unit Price
                                   price: Number(
                                     (
@@ -5291,7 +5277,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                               ) {
                                 const gItem = {
                                   item_id: "digital_gift_card",
-                                  item_name: "NUvisa Digital Gift Card",
+                                  item_name: GIFT_CARD_PRODUCT_NAME,
                                   // 🌟 FIXED: True Item Unit Price
                                   price: Number(
                                     (
@@ -5613,7 +5599,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
           </div>
 
           {/* Discount Code Section */}
-          <div className="space-y-4 -mt-2">
+          <div id="discount-code" className="space-y-4 -mt-2 scroll-mt-24">
             <h2 className="font-medium text-lg max-sm:text-base">
               Discount Code
             </h2>

@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+const isProduction = process.env.NODE_ENV === "production";
+
 const nextConfig = {
   reactStrictMode: true,
   compress: true,
@@ -23,7 +25,7 @@ const nextConfig = {
   },
   async headers() {
     const longCache = "public, max-age=31536000, immutable";
-    return [
+    const headers = [
       {
         source: "/video/:path*",
         headers: [{ key: "Cache-Control", value: longCache }],
@@ -37,10 +39,6 @@ const nextConfig = {
         headers: [{ key: "Cache-Control", value: longCache }],
       },
       {
-        source: "/_next/static/:path*",
-        headers: [{ key: "Cache-Control", value: longCache }],
-      },
-      {
         source: "/favicon.ico",
         headers: [
           {
@@ -50,6 +48,15 @@ const nextConfig = {
         ],
       },
     ];
+
+    if (isProduction) {
+      headers.push({
+        source: "/_next/static/:path*",
+        headers: [{ key: "Cache-Control", value: longCache }],
+      });
+    }
+
+    return headers;
   },
 
   
