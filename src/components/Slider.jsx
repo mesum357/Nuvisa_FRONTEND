@@ -1310,9 +1310,16 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
       // 🌟 FIXED: Extract coupon clean without raw text leakage
       const baseCode = visaState?.appliedDiscount?.code || undefined;
 
+      // const resolveCoupon = (qualifies) => {
+      //   const codes = [];
+      //   if (qualifies) codes.push("GROUP20");
+      //   if (baseCode && baseCode !== "GROUP20") codes.push(baseCode);
+      //   return codes.length > 0 ? codes.join(",") : undefined;
+      // };
+      // ✅ FIXED — only push GROUP20 if it is the active applied code
       const resolveCoupon = (qualifies) => {
         const codes = [];
-        if (qualifies) codes.push("GROUP20");
+        if (qualifies && baseCode === "GROUP20") codes.push("GROUP20");
         if (baseCode && baseCode !== "GROUP20") codes.push(baseCode);
         return codes.length > 0 ? codes.join(",") : undefined;
       };
@@ -2899,24 +2906,42 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
     }
 
     // Apply GROUP20 coupon (ensures 20% is applied if conditions met)
+    // if (hasGroupDiscount) {
+    //   if (travelersQualify && (insuranceQualify || giftCardQualify)) {
+    //     if (
+    //       insuranceQualify &&
+    //       recommendedItems.insuranceCertificate &&
+    //       insuranceFees === baseDiscountedInsuranceFees
+    //     ) {
+    //       const quantityDiscount = (insuranceFees * 20) / 100;
+    //       insuranceFees = insuranceFees - quantityDiscount;
+    //     }
+    //     if (
+    //       giftCardQualify &&
+    //       recommendedItems.giftCard &&
+    //       giftCardFees === baseDiscountedGiftCardFees
+    //     ) {
+    //       const quantityDiscount = (giftCardFees * 20) / 100;
+    //       giftCardFees = giftCardFees - quantityDiscount;
+    //     }
+    //   }
+    // }
+
+    // ✅ FIXED
     if (hasGroupDiscount) {
-      if (travelersQualify && (insuranceQualify || giftCardQualify)) {
-        if (
-          insuranceQualify &&
-          recommendedItems.insuranceCertificate &&
-          insuranceFees === baseDiscountedInsuranceFees
-        ) {
-          const quantityDiscount = (insuranceFees * 20) / 100;
-          insuranceFees = insuranceFees - quantityDiscount;
-        }
-        if (
-          giftCardQualify &&
-          recommendedItems.giftCard &&
-          giftCardFees === baseDiscountedGiftCardFees
-        ) {
-          const quantityDiscount = (giftCardFees * 20) / 100;
-          giftCardFees = giftCardFees - quantityDiscount;
-        }
+      if (
+        insuranceQualify &&
+        recommendedItems.insuranceCertificate &&
+        insuranceFees === baseDiscountedInsuranceFees
+      ) {
+        insuranceFees -= (insuranceFees * 20) / 100;
+      }
+      if (
+        giftCardQualify &&
+        recommendedItems.giftCard &&
+        giftCardFees === baseDiscountedGiftCardFees
+      ) {
+        giftCardFees -= (giftCardFees * 20) / 100;
       }
     }
 
@@ -3272,9 +3297,17 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
         const effectiveInsCount =
           travelers > 0 ? Math.min(insuranceCount, travelers) : insuranceCount;
 
+        // const resolveCoupon = (qualifies) => {
+        //   const codes = [];
+        //   if (qualifies) codes.push("GROUP20");
+        //   if (baseCode && baseCode !== "GROUP20") codes.push(baseCode);
+        //   return codes.length > 0 ? codes.join(",") : undefined;
+        // };
+
+        // ✅ FIXED — only push GROUP20 if it is the active applied code
         const resolveCoupon = (qualifies) => {
           const codes = [];
-          if (qualifies) codes.push("GROUP20");
+          if (qualifies && baseCode === "GROUP20") codes.push("GROUP20");
           if (baseCode && baseCode !== "GROUP20") codes.push(baseCode);
           return codes.length > 0 ? codes.join(",") : undefined;
         };
@@ -4991,9 +5024,20 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                                   ? Math.min(insuranceCount, travelers)
                                   : insuranceCount;
 
+                              // const resolveCoupon = (qualifies) => {
+                              //   const codes = [];
+                              //   if (qualifies) codes.push("GROUP20");
+                              //   if (baseCode && baseCode !== "GROUP20")
+                              //     codes.push(baseCode);
+                              //   return codes.length > 0
+                              //     ? codes.join(",")
+                              //     : undefined;
+                              // };
+                              // ✅ FIXED — only push GROUP20 if it is the active applied code
                               const resolveCoupon = (qualifies) => {
                                 const codes = [];
-                                if (qualifies) codes.push("GROUP20");
+                                if (qualifies && baseCode === "GROUP20")
+                                  codes.push("GROUP20");
                                 if (baseCode && baseCode !== "GROUP20")
                                   codes.push(baseCode);
                                 return codes.length > 0
@@ -5090,6 +5134,10 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                                 window.dataLayer.push({ ecommerce: null });
                                 window.dataLayer.push({
                                   event: "add_payment_info",
+                                  user_data: {
+                                    // ✅ ADD
+                                    email: userEmail || undefined,
+                                  },
                                   ecommerce: {
                                     currency: "GBP",
                                     value: Number(
@@ -5171,9 +5219,21 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                                   ? Math.min(insuranceCount, travelers)
                                   : insuranceCount;
 
+                              // const resolveCoupon = (qualifies) => {
+                              //   const codes = [];
+                              //   if (qualifies) codes.push("GROUP20");
+                              //   if (baseCode && baseCode !== "GROUP20")
+                              //     codes.push(baseCode);
+                              //   return codes.length > 0
+                              //     ? codes.join(",")
+                              //     : undefined;
+                              // };
+
+                              // ✅ FIXED — only push GROUP20 if it is the active applied code
                               const resolveCoupon = (qualifies) => {
                                 const codes = [];
-                                if (qualifies) codes.push("GROUP20");
+                                if (qualifies && baseCode === "GROUP20")
+                                  codes.push("GROUP20");
                                 if (baseCode && baseCode !== "GROUP20")
                                   codes.push(baseCode);
                                 return codes.length > 0
@@ -5270,6 +5330,10 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                                 window.dataLayer.push({ ecommerce: null });
                                 window.dataLayer.push({
                                   event: "add_payment_info",
+                                  user_data: {
+                                    // ✅ ADD
+                                    email: userEmail || undefined,
+                                  },
                                   ecommerce: {
                                     currency: "GBP",
                                     value: Number(

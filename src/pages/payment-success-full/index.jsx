@@ -146,8 +146,20 @@ const ApplicationStepPaymentSuccessPage = () => {
               ? Number(visaState.totalAmount)
               : 0;
 
+          // ✅ Read user_data from localStorage (same pattern as token/insurancePaymentMetadata)
+          const purchaseUserEmail =
+            localStorageGateway("userEmail", localStorageEnums.GET) ||
+            undefined;
+          const purchaseUserPhone =
+            localStorageGateway("userPhone", localStorageEnums.GET) ||
+            undefined;
+
           window.dataLayer.push({
             event: "purchase",
+            user_data: {
+              email: purchaseUserEmail,
+              phone_number: purchaseUserPhone,
+            },
             ecommerce: {
               transaction_id: finalApplicationId || `TXN_${Date.now()}`,
               value: Number(transactionValue.toFixed(2)),

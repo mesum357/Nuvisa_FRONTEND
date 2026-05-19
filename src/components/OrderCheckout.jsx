@@ -245,6 +245,14 @@ const VisaCheckout = () => {
   const [isKlarnaSubmitting, setIsKlarnaSubmitting] = useState(false);
   const router = useRouter();
 
+  // /////////////////////
+  //////////add user info builder
+  // ✅ GA4 user_data helper — built from existing state/localStorage
+  const buildUserData = () => ({
+    email: email || userEmail || undefined,
+    phone_number: phone || undefined,
+  });
+
   // Auto-show payment form when payment method is selected
   useEffect(() => {
     const shouldShowForm = selectedPaymentMethod === "stripe";
@@ -1100,28 +1108,48 @@ const VisaCheckout = () => {
   }
 
   // Apply GROUP20 coupon (ensures 20% is applied if conditions met)
+  // if (hasGroupDiscount) {
+  //   if (travelersQualify && (insuranceQualify || giftCardQualify)) {
+  //     if (travelersQualify && finalVisaFees === baseDiscountedVisaFees) {
+  //       const quantityDiscount = (finalVisaFees * 20) / 100;
+  //       finalVisaFees = finalVisaFees - quantityDiscount;
+  //     }
+  //     if (
+  //       insuranceQualify &&
+  //       includeInsurance &&
+  //       finalInsuranceFees === baseDiscountedInsuranceFees
+  //     ) {
+  //       const quantityDiscount = (finalInsuranceFees * 20) / 100;
+  //       finalInsuranceFees = finalInsuranceFees - quantityDiscount;
+  //     }
+  //     if (
+  //       giftCardQualify &&
+  //       includeGiftCard &&
+  //       finalGiftCardFees === baseDiscountedGiftCardFees
+  //     ) {
+  //       const quantityDiscount = (finalGiftCardFees * 20) / 100;
+  //       finalGiftCardFees = finalGiftCardFees - quantityDiscount;
+  //     }
+  //   }
+  // }
+  // ✅ FIXED — each item discounted independently based on its own qualify flag
   if (hasGroupDiscount) {
-    if (travelersQualify && (insuranceQualify || giftCardQualify)) {
-      if (travelersQualify && finalVisaFees === baseDiscountedVisaFees) {
-        const quantityDiscount = (finalVisaFees * 20) / 100;
-        finalVisaFees = finalVisaFees - quantityDiscount;
-      }
-      if (
-        insuranceQualify &&
-        includeInsurance &&
-        finalInsuranceFees === baseDiscountedInsuranceFees
-      ) {
-        const quantityDiscount = (finalInsuranceFees * 20) / 100;
-        finalInsuranceFees = finalInsuranceFees - quantityDiscount;
-      }
-      if (
-        giftCardQualify &&
-        includeGiftCard &&
-        finalGiftCardFees === baseDiscountedGiftCardFees
-      ) {
-        const quantityDiscount = (finalGiftCardFees * 20) / 100;
-        finalGiftCardFees = finalGiftCardFees - quantityDiscount;
-      }
+    if (travelersQualify && finalVisaFees === baseDiscountedVisaFees) {
+      finalVisaFees -= (finalVisaFees * 20) / 100;
+    }
+    if (
+      insuranceQualify &&
+      includeInsurance &&
+      finalInsuranceFees === baseDiscountedInsuranceFees
+    ) {
+      finalInsuranceFees -= (finalInsuranceFees * 20) / 100;
+    }
+    if (
+      giftCardQualify &&
+      includeGiftCard &&
+      finalGiftCardFees === baseDiscountedGiftCardFees
+    ) {
+      finalGiftCardFees -= (finalGiftCardFees * 20) / 100;
     }
   }
 
@@ -1416,8 +1444,14 @@ const VisaCheckout = () => {
       insuranceCount,
     });
 
-    const normalizedTravellersForStorage = allowsZeroTravelers ? "0" : String(travelers);
-    localStorageGateway("travelers", localStorageEnums.SET, normalizedTravellersForStorage);
+    const normalizedTravellersForStorage = allowsZeroTravelers
+      ? "0"
+      : String(travelers);
+    localStorageGateway(
+      "travelers",
+      localStorageEnums.SET,
+      normalizedTravellersForStorage
+    );
 
     dispatch(setAmountWithoutDiscount(Number(subtotalGBP)));
     dispatch(setTotalAmount(Number(total)));
@@ -1800,6 +1834,7 @@ const VisaCheckout = () => {
                                   window.dataLayer.push({ ecommerce: null });
                                   window.dataLayer.push({
                                     event: "add_payment_info",
+                                    user_data: buildUserData(),
                                     ecommerce: {
                                       currency: "GBP",
                                       value: Number(totalAmount.toFixed(2)),
@@ -1979,6 +2014,7 @@ const VisaCheckout = () => {
                                   window.dataLayer.push({ ecommerce: null });
                                   window.dataLayer.push({
                                     event: "add_payment_info",
+                                    user_data: buildUserData(),
                                     ecommerce: {
                                       currency: "GBP",
                                       value: Number(totalAmount.toFixed(2)),
@@ -2700,6 +2736,7 @@ const VisaCheckout = () => {
                       window.dataLayer.push({ ecommerce: null });
                       window.dataLayer.push({
                         event: "add_payment_info",
+                        user_data: buildUserData(),
                         ecommerce: {
                           currency: "GBP",
                           value: Number(total.toFixed(2)),
@@ -2819,6 +2856,7 @@ const VisaCheckout = () => {
                       window.dataLayer.push({ ecommerce: null });
                       window.dataLayer.push({
                         event: "add_payment_info",
+                        user_data: buildUserData(),
                         ecommerce: {
                           currency: "GBP",
                           value: Number(total.toFixed(2)),
@@ -2925,6 +2963,7 @@ const VisaCheckout = () => {
                       window.dataLayer.push({ ecommerce: null });
                       window.dataLayer.push({
                         event: "add_payment_info",
+                        user_data: buildUserData(),
                         ecommerce: {
                           currency: "GBP",
                           value: Number(total.toFixed(2)),

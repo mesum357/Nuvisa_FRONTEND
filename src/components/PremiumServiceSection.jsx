@@ -55,9 +55,17 @@ const PremiumServiceSection = ({ contactCardsData }) => {
         localStorage.getItem("saved_ga4_coupon") ||
         undefined;
 
+      // const resolveCoupon = (qualifies) => {
+      //   const codes = [];
+      //   if (qualifies) codes.push("GROUP20");
+      //   if (baseCode && baseCode !== "GROUP20") codes.push(baseCode);
+      //   return codes.length > 0 ? codes.join(",") : undefined;
+      // };
+
+      // ✅ FIXED — only push GROUP20 if it is the active applied code
       const resolveCoupon = (qualifies) => {
         const codes = [];
-        if (qualifies) codes.push("GROUP20");
+        if (qualifies && baseCode === "GROUP20") codes.push("GROUP20");
         if (baseCode && baseCode !== "GROUP20") codes.push(baseCode);
         return codes.length > 0 ? codes.join(",") : undefined;
       };
