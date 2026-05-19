@@ -707,6 +707,8 @@ const PaymentSuccess = () => {
                 ? Number(mergedData.storedMetadata.insuranceCount)
                 : Number(mergedData?.insuranceCount) > 0
                 ? Number(mergedData.insuranceCount)
+                : Number(visaState.insuranceCount) > 0 // ← ADDED: Redux fallback
+                ? Number(visaState.insuranceCount)
                 : hasInsurance && Number(mergedData.insurancePayment) > 0
                 ? 1
                 : 0;
@@ -724,7 +726,7 @@ const PaymentSuccess = () => {
 
             const resolveCoupon = (qualifies) => {
               const codes = [];
-              if (qualifies) codes.push("GROUP20");
+              if (qualifies && baseCode === "GROUP20") codes.push("GROUP20");
               if (baseCode && baseCode !== "GROUP20") codes.push(baseCode);
               return codes.length > 0 ? codes.join(",") : undefined;
             };
@@ -789,19 +791,64 @@ const PaymentSuccess = () => {
             } catch {}
 
             // ✅ Read user_data from localStorage (same pattern as token/insurancePaymentMetadata)
+            // E.164 normalizer (same helper — put in a shared util ideally)
+            const normalizePhoneE164 = (rawPhone) => {
+              if (!rawPhone) return undefined;
+              const digits = String(rawPhone).replace(/\D/g, "");
+              if (!digits) return undefined;
+              if (digits.startsWith("44") && digits.length >= 12)
+                return `+${digits}`;
+              if (digits.length === 11 && digits.startsWith("0"))
+                return `+44${digits.slice(1)}`;
+              if (digits.length === 10) return `+44${digits}`;
+              if (digits.length > 10) return `+${digits}`;
+              return undefined;
+            };
+
+            const klarnaRaw = localStorage.getItem("klarnaFormData");
+            const klarnaUser = klarnaRaw
+              ? (() => {
+                  try {
+                    return JSON.parse(klarnaRaw);
+                  } catch {
+                    return null;
+                  }
+                })()
+              : null;
+
             const purchaseUserEmail =
+              klarnaUser?.email ||
               localStorageGateway("userEmail", localStorageEnums.GET) ||
               undefined;
-            const purchaseUserPhone =
+
+            const rawPhone =
+              klarnaUser?.phone ||
               localStorageGateway("userPhone", localStorageEnums.GET) ||
               undefined;
+
+            // Always build address — use Klarna fields if available,
+            // fall back to individually stored name fields for Stripe/Apple/Google Pay
+            const purchaseUserAddress = {
+              first_name:
+                klarnaUser?.firstName ||
+                localStorageGateway("userFirstName", localStorageEnums.GET) ||
+                undefined,
+              last_name:
+                klarnaUser?.lastName ||
+                localStorageGateway("userLastName", localStorageEnums.GET) ||
+                undefined,
+              street: klarnaUser?.address || undefined,
+              city: klarnaUser?.city || undefined,
+              postal_code: klarnaUser?.postalCode || undefined,
+              country: klarnaUser?.country || undefined,
+            };
 
             window.dataLayer.push({
               event: "purchase",
               user_data: {
-                // ✅ ADD THIS BLOCK
                 email: purchaseUserEmail,
-                phone_number: purchaseUserPhone,
+                phone_number: normalizePhoneE164(rawPhone),
+                address: purchaseUserAddress, // ← always present, never conditionally omitted
               },
               ecommerce: {
                 transaction_id:
@@ -816,6 +863,20 @@ const PaymentSuccess = () => {
               },
             });
           }
+
+          // ✅ Clean up tracking keys after purchase fires — prevent stale data on next session
+          try {
+            // Remove phone + Klarna form data (one-time use)
+            localStorageGateway("userPhone", localStorageEnums.DELETE);
+            localStorage.removeItem("klarnaFormData");
+
+            // Remove GA4-specific tracking keys written by StickyBottomBar
+            localStorage.removeItem("saved_ga4_insurance_count");
+            localStorage.removeItem("saved_ga4_coupon");
+
+            // Note: userEmail, userFirstName, userLastName are intentionally kept —
+            // OrderCheckout pre-fills from them, which is existing desired behaviour.
+          } catch {}
 
           setTimeout(() => {
             router.replace(
