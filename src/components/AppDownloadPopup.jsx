@@ -7,7 +7,6 @@ import CalendarIcon from "../../assets/calendar.png";
 import flightsIcon from "../../assets/flights.png";
 import Image from "next/image";
 import { getDynamicMonthText } from "@/utils/getDynamicMonthText";
-import { getAdminApiBase } from "@/utils/adminApiBase";
 
 const Images = {
   CalenderIcon: CalendarIcon,
@@ -18,30 +17,6 @@ const DEFAULT_POPUP_STATE = {
   isActive: true,
   triggerDelaySeconds: 45,
   showOnDates: [],
-};
-
-const parsePopupState = (value) => {
-  if (!value) return DEFAULT_POPUP_STATE;
-
-  try {
-    const parsed = JSON.parse(value);
-    return {
-      isActive:
-        typeof parsed?.isActive === "boolean"
-          ? parsed.isActive
-          : DEFAULT_POPUP_STATE.isActive,
-      triggerDelaySeconds: Math.max(
-        0,
-        Number(parsed?.triggerDelaySeconds) ||
-          DEFAULT_POPUP_STATE.triggerDelaySeconds
-      ),
-      showOnDates: Array.isArray(parsed?.showOnDates)
-        ? parsed.showOnDates.map((item) => String(item).trim()).filter(Boolean)
-        : [],
-    };
-  } catch {
-    return DEFAULT_POPUP_STATE;
-  }
 };
 
 const getFallbackPopupContent = () => ({
@@ -87,6 +62,26 @@ const getFallbackPopupContent = () => ({
   ],
 });
 
+const getPopupState = (content) => ({
+  isActive:
+    typeof content?.isActive === "boolean"
+      ? content.isActive
+      : DEFAULT_POPUP_STATE.isActive,
+  triggerDelaySeconds: Math.max(
+    0,
+    Number(content?.triggerDelaySeconds) || DEFAULT_POPUP_STATE.triggerDelaySeconds
+  ),
+  showOnDates: Array.isArray(content?.showOnDates)
+    ? content.showOnDates.map((item) => String(item).trim()).filter(Boolean)
+    : DEFAULT_POPUP_STATE.showOnDates,
+});
+
+const initializeAnswers = (questions = []) =>
+  questions.reduce((acc, question) => {
+    acc[question.id] = "";
+    return acc;
+  }, {});
+
 const AppDownloadPopup = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
@@ -105,72 +100,32 @@ const AppDownloadPopup = () => {
   useEffect(() => {
     const fetchPopupContent = async () => {
       try {
-        const adminBase = getAdminApiBase();
-        const [popupResponse, popupStateResponse] = await Promise.all([
-          fetch(`${adminBase}/api/popup-content?t=${Date.now()}`),
-          fetch(`${adminBase}/api/content?key=popup_state&t=${Date.now()}`),
-        ]);
-
+        const popupResponse = await fetch(`/api/popup-content?t=${Date.now()}`);
         const popupJson = popupResponse.ok ? await popupResponse.json() : null;
-        const popupStateJson = popupStateResponse.ok
-          ? await popupStateResponse.json()
-          : null;
 
         if (popupJson?.success && popupJson?.data) {
-          const fallbackPopupState = {
-            isActive:
-              typeof popupJson.data.isActive === "boolean"
-                ? popupJson.data.isActive
-                : DEFAULT_POPUP_STATE.isActive,
-            triggerDelaySeconds: Math.max(
-              0,
-              Number(popupJson.data.triggerDelaySeconds) ||
-                DEFAULT_POPUP_STATE.triggerDelaySeconds
-            ),
-            showOnDates: Array.isArray(popupJson.data.showOnDates)
-              ? popupJson.data.showOnDates
-                  .map((item) => String(item).trim())
-                  .filter(Boolean)
-              : DEFAULT_POPUP_STATE.showOnDates,
-          };
-          const popupState = popupStateJson?.data?.value
-            ? parsePopupState(popupStateJson.data.value)
-            : fallbackPopupState;
+          const popupState = getPopupState(popupJson.data);
           const mergedContent = {
             ...popupJson.data,
             ...popupState,
           };
 
           setDbContent(mergedContent);
-          const initialAnswers = {};
-          mergedContent.questions.forEach((q) => {
-            initialAnswers[q.id] = "";
-          });
-          setAnswers(initialAnswers);
+          setAnswers(initializeAnswers(mergedContent.questions));
         } else {
           const fallback = getFallbackPopupContent();
           setDbContent(fallback);
-          const initialAnswers = {};
-          fallback.questions.forEach((q) => {
-            initialAnswers[q.id] = "";
-          });
-          setAnswers(initialAnswers);
+          setAnswers(initializeAnswers(fallback.questions));
         }
-      } catch (err) {
-        console.error("Error fetching popup content:", err);
+      } catch {
         const fallback = getFallbackPopupContent();
         setDbContent(fallback);
-        const initialAnswers = {};
-        fallback.questions.forEach((q) => {
-          initialAnswers[q.id] = "";
-        });
-        setAnswers(initialAnswers);
+        setAnswers(initializeAnswers(fallback.questions));
       } finally {
         setIsLoadingContent(false);
       }
     };
     fetchPopupContent();
-    console.log("Popup content rendered");
   }, []);
 
   useEffect(() => {

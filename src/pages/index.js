@@ -2,6 +2,7 @@
 import dynamic from "next/dynamic";
 import Navbar from "@/components/Navbar";
 import DeferredHomeHeroVideo from "@/components/home/DeferredHomeHeroVideo";
+import AppDownloadPopup from "@/components/AppDownloadPopup";
 import { useHeroContent } from "@/hooks/useHeroContent";
 import { Info } from "lucide-react";
 import Link from "next/link";
@@ -15,12 +16,12 @@ const VisaHeroSection = dynamic(() => import("@/components/CountryRotator"), {
   loading: () => <div className="min-h-[80px]" />,
 });
 const Footer = dynamic(() => import("@/components/Footer"));
-const AppDownloadPopup = dynamic(() => import("@/components/AppDownloadPopup"), {
-  ssr: false,
-});
 const OurMission = dynamic(() => import("@/components/OurMission"));
 const PremiumServiceSection = dynamic(() => import("@/components/PremiumServiceSection"));
 const VisaSolution = dynamic(() => import("@/components/VisaSolution"));
+const VisaFinanceFeatureSection = dynamic(() =>
+  import("@/components/home/VisaFinanceFeatureSection")
+);
 const StickyBottomBar = dynamic(() => import("@/components/StickyBottomBar"), { ssr: false });
 const Reviews = dynamic(() => import("@/components/Reviews"), { loading: () => null });
 const VisaProcessSection = dynamic(() => import("@/components/home/VisaProcessSection"));
@@ -451,6 +452,7 @@ const Index = () => {
         subtitle={topDestinationContent.subtitle}
         countriesData={topDestinationSectionCountries}
       />
+      <VisaFinanceFeatureSection />
       <FAQSection />
 
       <div className="bg-[#1E1E27] text-white w-full overflow-x-hidden pb-16">

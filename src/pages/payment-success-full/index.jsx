@@ -4,6 +4,7 @@ import { localStorageEnums } from "@/enums/localstorage.enums";
 import { localStorageGateway } from "@/gateways/localStoragegateway";
 import usePaymentData from "@/hooks/usePaymentData";
 import { useAppSelector } from "@/store";
+import { GIFT_CARD_PRODUCT_NAME } from "@/constants/productLabels";
 import { useRouter } from "next/router";
 import { useEffect, useRef } from "react";
 
@@ -120,7 +121,7 @@ const ApplicationStepPaymentSuccessPage = () => {
             const giftCardTotal = Number(visaState.giftCardFees) || 0;
             const gItem = {
               item_id: "digital_gift_card",
-              item_name: "NUvisa Digital Gift Card",
+              item_name: GIFT_CARD_PRODUCT_NAME,
               price: Number((giftCardTotal / giftCardCount).toFixed(2)),
               quantity: giftCardCount,
             };

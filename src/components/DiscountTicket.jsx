@@ -3,6 +3,19 @@ import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import Link from "next/link";
 
+const DISCOUNT_CODE_HASH = "discount-code";
+const FALLBACK_DISCOUNT_LINK = `/get-the-visa#${DISCOUNT_CODE_HASH}`;
+
+const getDiscountTicketHref = (loading, content) => {
+    if (loading) return FALLBACK_DISCOUNT_LINK;
+
+    const configuredLink = content?.discountTicketLink?.trim();
+    if (!configuredLink) return FALLBACK_DISCOUNT_LINK;
+
+    const [baseLink] = configuredLink.split("#");
+    return `${baseLink || "/get-the-visa"}#${DISCOUNT_CODE_HASH}`;
+};
+
 const DiscountTicket = ({ loading, content }) => {
     const [visible, setVisible] = useState(true);
     const [animateIn, setAnimateIn] = useState(false);
@@ -34,7 +47,7 @@ const DiscountTicket = ({ loading, content }) => {
             </button>
 
             {/* Ticket as Link */}
-            <Link href={loading ? "/get-the-visa/#discount-code" : content.discountTicketLink}>
+            <Link href={getDiscountTicketHref(loading, content)}>
                 <div
                     className="sec_bg border-r-0 border-l border-t border-b border-[#423577] text-white text-xs font-bold tracking-widest cursor-pointer select-none"
                     style={{
