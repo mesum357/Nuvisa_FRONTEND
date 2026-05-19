@@ -310,7 +310,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
   const urlDatesAppliedRef = useRef(false);
 
   // Use Redux state instead of local state
-  const travelers = Math.max(Number(visaState.travelers ?? 1), 1);
+  const travelers = Math.max(Number(visaState.travelers ?? 0), 0);
   const insuranceCount = visaState.insuranceCount || 0;
   const giftCardCount = visaState.giftCardCount || 0;
   // Default arrival = 4 weeks from today, default departure = arrival + 14 days (15 days inclusive)
@@ -1291,7 +1291,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
 
     // 🔥 GA4: Track View Item when country changes 🔥
     if (typeof window !== "undefined" && window.dataLayer) {
-      const currentTravelers = Math.max(Number(visaState?.travelers || 1), 1);
+      const currentTravelers = Math.max(Number(visaState?.travelers || 0), 0);
 
       // 🌟 FIXED: Extract coupon clean without raw text leakage
       const baseCode = visaState?.appliedDiscount?.code || undefined;
@@ -4290,14 +4290,14 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                   <QtyInput
                     value={travelers}
                     onChange={(next) => {
-                      const n = Math.max(1, Number(next) || 1);
+                      const n = Math.max(0, Number(next) || 0);
                       // If traveler count decreases, adjust insurance count if needed
                       if (n >= 1 && insuranceCount > n) {
                         dispatch(setReduxInsuranceCount(Number(n)));
                       }
                       dispatch(setReduxTravelers(Number(n)));
                     }}
-                    min={1}
+                    min={0}
                   />
                 </div>
 
