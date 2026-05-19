@@ -1,7 +1,32 @@
 import prisma from '@/lib/prisma';
 
+const DEFAULT_POPUP_CONTENT = {
+  id: 'current',
+  mainHeading: '❤️ NEW CUSTOMER OFFER - £129 fee for your first visa',
+  subHeading: 'Auto-booking appointment',
+  offerPrice: '£129',
+  originalPrice: '£100',
+  continueButtonText: 'Continue',
+  lastQuestionButtonText: 'Check Required Documents',
+  imageUrl: '/image/popupnew.png',
+  conciergeTitle: 'Concierge Assistance',
+  conciergePrice: '£35',
+  conciergeOfferPrice: 'Free',
+  lastChanceText: 'Last chance (ends soon) Until {month} {year}!',
+  questions: [
+    { id: 'q1', text: 'Status in United Kingdom', type: 'OPTIONS', options: ['UK BRP', 'UK ILR', 'UK BRC', 'UK Citizen'], order: 0 },
+    { id: 'q2', text: 'Schengen visa refused during the past three years?', type: 'OPTIONS', options: ['Yes', 'No'], order: 1 },
+    { id: 'q3', text: 'Main purpose of the journey', type: 'TEXT', options: [], order: 2 },
+    { id: 'q4', text: 'Help us with your Phone Number', type: 'TEXT', options: [], order: 3 },
+  ],
+};
+
 export default async function handler(req, res) {
   if (req.method === 'GET') {
+    if (!process.env.DATABASE_URL) {
+      return res.status(200).json({ success: true, data: DEFAULT_POPUP_CONTENT });
+    }
+
     try {
       let content = await prisma.popupContent.findUnique({
         where: { id: 'current' },
@@ -72,12 +97,8 @@ export default async function handler(req, res) {
 
       return res.status(200).json({ success: true, data: content });
     } catch (error) {
-      console.error("Error fetching popup content:", error);
-      const message = error instanceof Error ? error.message : 'Failed to fetch content';
-      return res.status(500).json({
-        success: false,
-        error: process.env.NODE_ENV === 'development' ? message : 'Failed to fetch content',
-      });
+      console.warn("Using fallback popup content:", error);
+      return res.status(200).json({ success: true, data: DEFAULT_POPUP_CONTENT });
     }
   } else {
     res.setHeader('Allow', ['GET']);

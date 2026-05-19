@@ -48,6 +48,7 @@ import {
   canCheckoutWithoutDestinationCountry,
   hasCheckoutLineItems,
 } from "@/utils/checkoutPaymentType";
+import { GIFT_CARD_PRODUCT_NAME } from "@/constants/productLabels";
 
 const DEFAULT_REQUIRED_DOCUMENTS = {
   passport: false,
@@ -1283,7 +1284,7 @@ const VisaCheckout = () => {
         if (includeGiftCard && giftCardCount > 0) {
           const gItem = {
             item_id: "digital_gift_card",
-            item_name: "NUvisa Digital Gift Card",
+            item_name: GIFT_CARD_PRODUCT_NAME,
             // 🌟 FIXED: Convert to individual item unit price
             price: Number((giftCardFees / giftCardCount).toFixed(2)),
             quantity: giftCardCount,
@@ -1764,7 +1765,7 @@ const VisaCheckout = () => {
                                 if (includeGiftCard && giftCardCount > 0) {
                                   const gItem = {
                                     item_id: "digital_gift_card",
-                                    item_name: "NUvisa Digital Gift Card",
+                                    item_name: GIFT_CARD_PRODUCT_NAME,
                                     // 🌟 FIXED: True Item Unit Price
                                     price: Number(
                                       (giftCardFees / giftCardCount).toFixed(2)
@@ -1943,7 +1944,7 @@ const VisaCheckout = () => {
                                 if (includeGiftCard && giftCardCount > 0) {
                                   const gItem = {
                                     item_id: "digital_gift_card",
-                                    item_name: "NUvisa Digital Gift Card",
+                                    item_name: GIFT_CARD_PRODUCT_NAME,
                                     // 🌟 FIXED: True Item Unit Price
                                     price: Number(
                                       (giftCardFees / giftCardCount).toFixed(2)
@@ -2142,7 +2143,7 @@ const VisaCheckout = () => {
               <h2 className="font-medium text-lg">Payment Method</h2>
               <div className="space-y-2">
                 <div
-                  className={`border rounded-md p-3 cursor-pointer ${
+                  className={`border rounded-md p-2 cursor-pointer ${
                     selectedPaymentMethod === "stripe"
                       ? "border-black bg-gray-50"
                       : "border-gray-300"
@@ -2169,34 +2170,38 @@ const VisaCheckout = () => {
                     </div>
 
                     {/* Payment Method Icons */}
-                    <div className="flex items-center space-x-1">
+                    <div className="flex h-8 items-center space-x-2">
                       {/* Visa */}
                       <Image
                         src="/image/visa.sxIq5Dot.svg"
                         width={45}
                         height={45}
                         alt="Visa"
+                        className="h-7 w-auto"
                         priority
                       />
                       <Image
                         src="/image/mastercard.1c4_lyMp (1).svg"
                         width={45}
                         height={45}
-                        alt="Visa"
+                        alt="Mastercard"
+                        className="h-7 w-auto"
                         priority
                       />
                       <Image
                         src="/image/Amex Card.svg"
                         width={55}
                         height={55}
-                        alt="Visa"
+                        alt="American Express"
+                        className="h-7 w-auto"
                         priority
                       />
                       <Image
                         src="/image/DGN_AcceptanceMark_FC_Hrz_RGB (1).jpg"
                         width={40}
                         height={40}
-                        alt="Visa"
+                        alt="Discover"
+                        className="h-7 w-auto"
                         priority
                       />
 
@@ -2288,7 +2293,7 @@ const VisaCheckout = () => {
                 </div>
 
                 <div
-                  className={`border rounded-md p-3 cursor-pointer ${
+                  className={`border rounded-md p-2 cursor-pointer ${
                     selectedPaymentMethod === "klarna"
                       ? "border-black bg-gray-50"
                       : "border-gray-300"
@@ -2298,20 +2303,32 @@ const VisaCheckout = () => {
                     setSelectedPaymentMethod("klarna");
                   }}
                 >
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="klarna"
-                      checked={selectedPaymentMethod === "klarna"}
-                      onChange={(e) => {
-                        userClosedKlarnaFormRef.current = false;
-                        setSelectedPaymentMethod(e.target.value);
-                      }}
-                      className="h-4 w-4"
-                    />
-                    <SiKlarna className="text-lg text-pink-500" />
-                    <span className="text-sm font-medium">Klarna Pay</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        name="payment"
+                        value="klarna"
+                        checked={selectedPaymentMethod === "klarna"}
+                        onChange={(e) => {
+                          userClosedKlarnaFormRef.current = false;
+                          setSelectedPaymentMethod(e.target.value);
+                        }}
+                        className="h-4 w-4"
+                      />
+                      <span className="text-sm font-medium">
+                        Klarna - Flexible payments
+                      </span>
+                    </div>
+                    <div className="flex h-8 w-[84px] shrink-0 items-center justify-center">
+                      <Image
+                        src="/icons/klarna.png"
+                        width={78}
+                        height={39}
+                        alt="Klarna"
+                        className="h-7 w-auto rounded"
+                      />
+                    </div>
                   </div>
                   {selectedPaymentMethod === "klarna" && !showKlarnaForm && (
                     <p className="text-xs text-gray-600 mt-2 ml-6">
@@ -2446,7 +2463,7 @@ const VisaCheckout = () => {
                             if (includeGiftCard && giftCardCount > 0) {
                               const gItem = {
                                 item_id: "digital_gift_card",
-                                item_name: "NUvisa Digital Gift Card",
+                                item_name: GIFT_CARD_PRODUCT_NAME,
                                 // 🌟 FIXED: True Item Unit Price
                                 price: Number(
                                   (giftCardFees / giftCardCount).toFixed(2)
@@ -2496,39 +2513,48 @@ const VisaCheckout = () => {
                   )}
                 </div>
 
+                {selectedPaymentMethod === "klarna" && showKlarnaForm && (
+                  <div className="border border-gray-300 rounded-md bg-gray-50 p-3 text-sm text-gray-700">
+                    You’ll be redirected to Klarna - Flexible payments to
+                    complete your purchase.
+                  </div>
+                )}
+
                 {/* Apple Pay Option - Only show if available (or in development mode) */}
                 {(availablePaymentMethods.applePay ||
                   process.env.NODE_ENV === "development" ||
                   process.env.NEXT_PUBLIC_NODE_ENV === "development") && (
                   <div
-                    className={`border rounded-md p-3 cursor-pointer ${
+                    className={`border rounded-md p-2 cursor-pointer ${
                       selectedPaymentMethod === "apple"
                         ? "border-black bg-gray-50"
                         : "border-gray-300"
                     }`}
                     onClick={() => setSelectedPaymentMethod("apple")}
                   >
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="radio"
-                        name="payment"
-                        value="apple"
-                        checked={selectedPaymentMethod === "apple"}
-                        onChange={(e) =>
-                          setSelectedPaymentMethod(e.target.value)
-                        }
-                        className="h-4 w-4"
-                      />
-                      <svg
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                        className="text-black"
-                      >
-                        <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
-                      </svg>
-                      <span className="text-sm font-medium">Apple Pay</span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="radio"
+                          name="payment"
+                          value="apple"
+                          checked={selectedPaymentMethod === "apple"}
+                          onChange={(e) =>
+                            setSelectedPaymentMethod(e.target.value)
+                          }
+                          className="h-4 w-4"
+                        />
+                        <span className="text-sm font-medium">Apple Pay</span>
+                      </div>
+                      <div className="flex h-8 w-[84px] shrink-0 items-center justify-center">
+                        <Image
+                          src="/icons/apple-pay.svg"
+                          width={34}
+                          height={34}
+                          alt="Apple Pay"
+                          className="h-[34px] w-[34px]"
+                        />
+                      </div>
                     </div>
                   </div>
                 )}
@@ -2538,50 +2564,54 @@ const VisaCheckout = () => {
                   process.env.NODE_ENV === "development" ||
                   process.env.NEXT_PUBLIC_NODE_ENV === "development") && (
                   <div
-                    className={`border rounded-md p-3 cursor-pointer ${
+                    className={`border rounded-md p-2 cursor-pointer ${
                       selectedPaymentMethod === "google"
                         ? "border-black bg-gray-50"
                         : "border-gray-300"
                     }`}
                     onClick={() => setSelectedPaymentMethod("google")}
                   >
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="radio"
-                        name="payment"
-                        value="google"
-                        checked={selectedPaymentMethod === "google"}
-                        onChange={(e) =>
-                          setSelectedPaymentMethod(e.target.value)
-                        }
-                        className="h-4 w-4"
-                      />
-                      <svg
-                        width="20"
-                        height="20"
-                        viewBox="0 0 18 18"
-                        className="shrink-0"
-                      >
-                        <g fill="none" fillRule="evenodd">
-                          <path
-                            fill="#4285F4"
-                            d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
-                          />
-                          <path
-                            fill="#34A853"
-                            d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"
-                          />
-                          <path
-                            fill="#FBBC05"
-                            d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"
-                          />
-                          <path
-                            fill="#EA4335"
-                            d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"
-                          />
-                        </g>
-                      </svg>
-                      <span className="text-sm font-medium">Google Pay</span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="radio"
+                          name="payment"
+                          value="google"
+                          checked={selectedPaymentMethod === "google"}
+                          onChange={(e) =>
+                            setSelectedPaymentMethod(e.target.value)
+                          }
+                          className="h-4 w-4"
+                        />
+                        <span className="text-sm font-medium">Google Pay</span>
+                      </div>
+                      <div className="flex h-8 w-[84px] shrink-0 items-center justify-center">
+                        <svg
+                          width="27"
+                          height="27"
+                          viewBox="0 0 18 18"
+                          className="shrink-0"
+                        >
+                          <g fill="none" fillRule="evenodd">
+                            <path
+                              fill="#4285F4"
+                              d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
+                            />
+                            <path
+                              fill="#34A853"
+                              d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"
+                            />
+                            <path
+                              fill="#FBBC05"
+                              d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"
+                            />
+                            <path
+                              fill="#EA4335"
+                              d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"
+                            />
+                          </g>
+                        </svg>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -2673,7 +2703,7 @@ const VisaCheckout = () => {
                       if (includeGiftCard && giftCardCount > 0) {
                         const gItem = {
                           item_id: "digital_gift_card",
-                          item_name: "NUvisa Digital Gift Card",
+                          item_name: GIFT_CARD_PRODUCT_NAME,
                           // 🌟 FIXED: Map item individual unit price after discounts
                           price: Number(
                             (giftCardFees / giftCardCount).toFixed(2)
@@ -2803,7 +2833,7 @@ const VisaCheckout = () => {
                       if (includeGiftCard && giftCardCount > 0) {
                         const gItem = {
                           item_id: "digital_gift_card",
-                          item_name: "NUvisa Digital Gift Card",
+                          item_name: GIFT_CARD_PRODUCT_NAME,
                           // 🌟 FIXED: Map item individual unit price after discounts
                           price: Number(
                             (giftCardFees / giftCardCount).toFixed(2)
@@ -2901,7 +2931,7 @@ const VisaCheckout = () => {
                       if (includeGiftCard && giftCardCount > 0) {
                         const gItem = {
                           item_id: "digital_gift_card",
-                          item_name: "NUvisa Digital Gift Card",
+                          item_name: GIFT_CARD_PRODUCT_NAME,
                           // 🌟 FIXED: Map item individual unit price after discounts
                           price: Number(
                             (giftCardFees / giftCardCount).toFixed(2)

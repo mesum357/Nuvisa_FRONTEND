@@ -24,6 +24,8 @@ import Link from "next/link";
 import { getAdminApiBase } from "@/utils/adminApiBase";
 import { DEFAULT_OCCASIONS } from "@/constants/defaultOccasions";
 
+const REQUIRED_DOCUMENTS_CTA_TEXT = "Check Required Documents";
+
 const CountryCardsSection = ({
   specificCountries,
   image,
@@ -811,15 +813,16 @@ const CountryCardsSection = ({
         </p>
 
         <div className="mb-10 md:mb-20">
-          <Link href={"/get-the-visa#required-documents"}>
-            <button className="group flex items-center bg-[#6B4EFF] text-white gap-[12px] font-medium px-[24px] py-3 rounded-3xl cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb]">
-              <span className="mr-3 text-md md:text-2xl uppercase">
-                Check Required Document
-              </span>
-              <span className="bg-white rounded-full p-1.5 transition-transform duration-300 group-hover:rotate-45 group-hover:translate-x-1 group-hover:-translate-y-0">
-                <ArrowUpRight className="w-5 h-5 text-[#6B4EFF]" />
-              </span>
-            </button>
+          <Link
+            href="/get-the-visa#required-documents"
+            className="group flex items-center bg-[#6B4EFF] text-white gap-[12px] font-medium px-[24px] py-3 rounded-3xl cursor-pointer transition-all duration-300 hover:bg-[#5a3ddb]"
+          >
+            <span className="mr-3 text-md md:text-2xl uppercase">
+              {REQUIRED_DOCUMENTS_CTA_TEXT}
+            </span>
+            <span className="bg-white rounded-full p-1.5 transition-transform duration-300 group-hover:rotate-45 group-hover:translate-x-1 group-hover:-translate-y-0">
+              <ArrowUpRight className="w-5 h-5 text-[#6B4EFF]" />
+            </span>
           </Link>
         </div>
       </div>

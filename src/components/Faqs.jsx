@@ -6,6 +6,7 @@ import {
 import { fetchFAQs as fetchFAQsFromAPI } from '@/api/faqs';
 import { getFaqGroupKey } from '@/utils/faqHelpers';
 import { buildHomepageFaqTabs } from '@/utils/faqHomepageTabs';
+import { GIFT_CARD_PRODUCT_NAME } from "@/constants/productLabels";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
@@ -376,7 +377,7 @@ const FAQSection = () => {
 
                 <div className="flex-1">
                   <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                    NUVisa Digital Gift Card
+                    {GIFT_CARD_PRODUCT_NAME}
                   </h3>
                   <p className="text-gray-600 mb-4">
                     Give the gift of unforgettable memories this Christmas!
