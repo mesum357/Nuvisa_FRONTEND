@@ -788,8 +788,21 @@ const PaymentSuccess = () => {
               sessionStorage.removeItem("ga4_payment_type");
             } catch {}
 
+            // ✅ Read user_data from localStorage (same pattern as token/insurancePaymentMetadata)
+            const purchaseUserEmail =
+              localStorageGateway("userEmail", localStorageEnums.GET) ||
+              undefined;
+            const purchaseUserPhone =
+              localStorageGateway("userPhone", localStorageEnums.GET) ||
+              undefined;
+
             window.dataLayer.push({
               event: "purchase",
+              user_data: {
+                // ✅ ADD THIS BLOCK
+                email: purchaseUserEmail,
+                phone_number: purchaseUserPhone,
+              },
               ecommerce: {
                 transaction_id:
                   stripePaymentId ||

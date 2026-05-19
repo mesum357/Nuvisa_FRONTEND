@@ -105,20 +105,43 @@ const CountryCardsSection = ({
           localStorage.getItem("saved_ga4_coupon") ||
           undefined;
 
+        // const resolveCoupon = (qualifies) => {
+        //   const codes = [];
+        //   if (qualifies) codes.push("GROUP20");
+        //   if (baseCode && baseCode !== "GROUP20") codes.push(baseCode);
+        //   return codes.length > 0 ? codes.join(",") : undefined;
+        // };
+        // ✅ FIXED — only push GROUP20 if it is the active applied code
         const resolveCoupon = (qualifies) => {
           const codes = [];
-          if (qualifies) codes.push("GROUP20");
+          if (qualifies && baseCode === "GROUP20") codes.push("GROUP20");
           if (baseCode && baseCode !== "GROUP20") codes.push(baseCode);
           return codes.length > 0 ? codes.join(",") : undefined;
         };
         const vCoupon = resolveCoupon(currentTravelers >= 3);
 
         // ✅ Apply discount to unit price so view_item reflects what the user sees
-        const discountPercentage = visaState?.appliedDiscount?.percentage || 0;
+        // const discountPercentage = visaState?.appliedDiscount?.percentage || 0;
+        // const discountedVisaFee =
+        //   discountPercentage > 0
+        //     ? finalVisaFee * (1 - discountPercentage / 100)
+        //     : finalVisaFee;
+
+        // ✅ FIXED — only apply discount if traveler count actually qualifies
+        const appliedCode = visaState?.appliedDiscount?.code;
+        const discountPercentage =
+          appliedCode === "GROUP20" && currentTravelers >= 3
+            ? 20
+            : appliedCode === "STUDENT10"
+            ? visaState?.appliedDiscount?.percentage || 10
+            : 0;
+
         const discountedVisaFee =
           discountPercentage > 0
             ? finalVisaFee * (1 - discountPercentage / 100)
             : finalVisaFee;
+
+        ///////
 
         const vItem = {
           item_id: `visa_${countryName.toLowerCase().replace(/\s+/g, "_")}`,
@@ -637,9 +660,18 @@ const CountryCardsSection = ({
                       localStorage.getItem("saved_ga4_coupon") ||
                       undefined;
 
+                    // const resolveCoupon = (qualifies) => {
+                    //   const codes = [];
+                    //   if (qualifies) codes.push("GROUP20");
+                    //   if (baseCode && baseCode !== "GROUP20")
+                    //     codes.push(baseCode);
+                    //   return codes.length > 0 ? codes.join(",") : undefined;
+                    // };
+                    // ✅ FIXED — only push GROUP20 if it is the active applied code
                     const resolveCoupon = (qualifies) => {
                       const codes = [];
-                      if (qualifies) codes.push("GROUP20");
+                      if (qualifies && baseCode === "GROUP20")
+                        codes.push("GROUP20");
                       if (baseCode && baseCode !== "GROUP20")
                         codes.push(baseCode);
                       return codes.length > 0 ? codes.join(",") : undefined;
@@ -647,12 +679,23 @@ const CountryCardsSection = ({
                     const vCoupon = resolveCoupon(currentTravelers >= 3);
 
                     // ✅ Apply discount to unit price so view_item reflects what the user sees
+                    // const discountPercentage =
+                    //   visaState?.appliedDiscount?.percentage || 0;
+                    // const discountedPrice =
+                    //   discountPercentage > 0
+                    //     ? price * (1 - discountPercentage / 100)
+                    //     : price;
+
+                    // ✅ FIXED (occasion card)
+                    const appliedCode = visaState?.appliedDiscount?.code;
                     const discountPercentage =
-                      visaState?.appliedDiscount?.percentage || 0;
-                    const discountedPrice =
-                      discountPercentage > 0
-                        ? price * (1 - discountPercentage / 100)
-                        : price;
+                      appliedCode === "GROUP20" && currentTravelers >= 3
+                        ? 20
+                        : appliedCode === "STUDENT10"
+                        ? visaState?.appliedDiscount?.percentage || 10
+                        : 0;
+
+                    ///////
 
                     const vItem = {
                       item_id: `visa_${occasionName
