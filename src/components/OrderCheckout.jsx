@@ -248,11 +248,56 @@ const VisaCheckout = () => {
 
   // /////////////////////
   //////////add user info builder
-  // ✅ GA4 user_data helper — built from existing state/localStorage
-  const buildUserData = () => ({
-    email: email || userEmail || undefined,
-    phone_number: phone || undefined,
-  });
+  // Reusable E.164 phone normalizer — UK-aware
+  const normalizePhoneE164 = (rawPhone) => {
+    if (!rawPhone) return undefined;
+    const digits = String(rawPhone).replace(/\D/g, "");
+    if (!digits) return undefined;
+    if (digits.startsWith("44") && digits.length >= 12) return `+${digits}`;
+    if (digits.length === 11 && digits.startsWith("0"))
+      return `+44${digits.slice(1)}`;
+    if (digits.length === 10) return `+44${digits}`;
+    // Already international without +
+    if (digits.length > 10) return `+${digits}`;
+    return undefined;
+  };
+
+  const buildUserData = () => {
+    let firstName, lastName, street, city, postalCode, billingCountry;
+    try {
+      const klarnaRaw = localStorage.getItem("klarnaFormData");
+      if (klarnaRaw) {
+        const parsed = JSON.parse(klarnaRaw);
+        firstName = parsed.firstName || undefined;
+        lastName = parsed.lastName || undefined;
+        street = parsed.address || undefined; // Klarna field is "address"
+        city = parsed.city || undefined;
+        postalCode = parsed.postalCode || undefined;
+        billingCountry = parsed.country || undefined;
+      }
+    } catch {}
+
+    if (!firstName)
+      firstName =
+        localStorageGateway("userFirstName", localStorageEnums.GET) ||
+        undefined;
+    if (!lastName)
+      lastName =
+        localStorageGateway("userLastName", localStorageEnums.GET) || undefined;
+
+    return {
+      email: email || userEmail || undefined,
+      phone_number: normalizePhoneE164(phone),
+      address: {
+        first_name: firstName,
+        last_name: lastName,
+        street: street,
+        city: city,
+        postal_code: postalCode,
+        country: billingCountry,
+      },
+    };
+  };
 
   // Auto-show payment form when payment method is selected
   useEffect(() => {
@@ -1258,15 +1303,18 @@ const VisaCheckout = () => {
         const countryName = selectedCountry || "Schengen";
 
         // 2. FIXED: Uses strictly validated appliedDiscount, ignores raw typed-in couponCode
-        const baseCode = appliedDiscount?.code || undefined;
-
+        // const baseCode = appliedDiscount?.code || undefined;
+        const baseCode =
+          appliedDiscount?.code ||
+          localStorage.getItem("saved_ga4_coupon") ||
+          undefined;
         // 3. FIXED: Prevents Math.min from returning 0 if travelers is 0
         const effectiveInsCount =
           travelers > 0 ? Math.min(insuranceCount, travelers) : insuranceCount;
 
         const resolveCoupon = (qualifies) => {
           const codes = [];
-          if (qualifies) codes.push("GROUP20");
+          if (qualifies && baseCode === "GROUP20") codes.push("GROUP20");
           if (baseCode && baseCode !== "GROUP20") codes.push(baseCode);
           return codes.length > 0 ? codes.join(",") : undefined;
         };
@@ -1421,9 +1469,49 @@ const VisaCheckout = () => {
         JSON.stringify({
           insuranceCount: includeInsurance ? insuranceCount : 0,
           insurancePaymentAmount: discountedInsuranceFeesGBP,
+          timestamp: Date.now(), // ← ADDED: required for PaymentSuccess timestamp check
         })
       )
     );
+
+    // ✅ Save email + phone so success page user_data works for Stripe/Apple/Google Pay
+    if (email || userEmail) {
+      localStorageGateway(
+        "userEmail",
+        localStorageEnums.SET,
+        email || userEmail
+      );
+    }
+    if (phone) {
+      localStorageGateway("userPhone", localStorageEnums.SET, phone);
+    } else {
+      localStorageGateway("userPhone", localStorageEnums.DELETE);
+    }
+
+    // ✅ Save name fields so ApplicationStepPaymentSuccessPage user_data works
+    // For Stripe/Apple/Google Pay — Klarna already saves these via klarnaFormData
+    // OrderCheckout has no name form fields, so derive from email as best-effort,
+    // or read from any existing klarnaFormData written in a previous session
+    try {
+      const existingKlarna = localStorage.getItem("klarnaFormData");
+      if (existingKlarna) {
+        const parsed = JSON.parse(existingKlarna);
+        if (parsed.firstName) {
+          localStorageGateway(
+            "userFirstName",
+            localStorageEnums.SET,
+            parsed.firstName
+          );
+        }
+        if (parsed.lastName) {
+          localStorageGateway(
+            "userLastName",
+            localStorageEnums.SET,
+            parsed.lastName
+          );
+        }
+      }
+    } catch {}
 
     localStorageGateway(
       "insurancePayment",
@@ -1749,7 +1837,8 @@ const VisaCheckout = () => {
 
                                 const resolveCoupon = (qualifies) => {
                                   const codes = [];
-                                  if (qualifies) codes.push("GROUP20");
+                                  if (qualifies && baseCode === "GROUP20")
+                                    codes.push("GROUP20");
                                   if (baseCode && baseCode !== "GROUP20")
                                     codes.push(baseCode);
                                   return codes.length > 0
@@ -1929,7 +2018,8 @@ const VisaCheckout = () => {
 
                                 const resolveCoupon = (qualifies) => {
                                   const codes = [];
-                                  if (qualifies) codes.push("GROUP20");
+                                  if (qualifies && baseCode === "GROUP20")
+                                    codes.push("GROUP20");
                                   if (baseCode && baseCode !== "GROUP20")
                                     codes.push(baseCode);
                                   return codes.length > 0
@@ -2450,7 +2540,8 @@ const VisaCheckout = () => {
 
                             const resolveCoupon = (qualifies) => {
                               const codes = [];
-                              if (qualifies) codes.push("GROUP20");
+                              if (qualifies && baseCode === "GROUP20")
+                                codes.push("GROUP20");
                               if (baseCode && baseCode !== "GROUP20")
                                 codes.push(baseCode);
                               return codes.length > 0
@@ -2518,13 +2609,31 @@ const VisaCheckout = () => {
                             window.dataLayer.push({ ecommerce: null });
                             window.dataLayer.push({
                               event: "purchase",
+                              user_data: {
+                                email:
+                                  data?.email ||
+                                  email ||
+                                  userEmail ||
+                                  undefined,
+                                // phone_number: data?.phone || undefined,
+                                phone_number: normalizePhoneE164(data?.phone),
+                                address: {
+                                  first_name: data?.firstName || undefined,
+                                  last_name: data?.lastName || undefined,
+                                  street: data?.address || undefined,
+                                  city: data?.city || undefined,
+                                  postal_code: data?.postalCode || undefined,
+                                  country: data?.country || undefined,
+                                },
+                              },
                               ecommerce: {
                                 transaction_id:
                                   data?.order_id || `klarna_${Date.now()}`,
+                                affiliation: "NUvisa Online", // ← ADD THIS
                                 currency: "GBP",
                                 value: Number(total.toFixed(2)),
                                 payment_type: paymentType,
-                                coupon: baseCode, // 🌟 FIXED
+                                coupon: baseCode,
                                 items: paymentItems,
                               },
                             });
@@ -2696,7 +2805,8 @@ const VisaCheckout = () => {
 
                       const resolveCoupon = (qualifies) => {
                         const codes = [];
-                        if (qualifies) codes.push("GROUP20");
+                        if (qualifies && baseCode === "GROUP20")
+                          codes.push("GROUP20");
                         if (baseCode && baseCode !== "GROUP20")
                           codes.push(baseCode);
                         return codes.length > 0 ? codes.join(",") : undefined;
@@ -2828,7 +2938,8 @@ const VisaCheckout = () => {
 
                       const resolveCoupon = (qualifies) => {
                         const codes = [];
-                        if (qualifies) codes.push("GROUP20");
+                        if (qualifies && baseCode === "GROUP20")
+                          codes.push("GROUP20");
                         if (baseCode && baseCode !== "GROUP20")
                           codes.push(baseCode);
                         return codes.length > 0 ? codes.join(",") : undefined;
@@ -2927,11 +3038,13 @@ const VisaCheckout = () => {
 
                       const resolveCoupon = (qualifies) => {
                         const codes = [];
-                        if (qualifies) codes.push("GROUP20");
+                        if (qualifies && baseCode === "GROUP20")
+                          codes.push("GROUP20");
                         if (baseCode && baseCode !== "GROUP20")
                           codes.push(baseCode);
                         return codes.length > 0 ? codes.join(",") : undefined;
                       };
+
                       const paymentItems = [];
 
                       if (travelers > 0) {

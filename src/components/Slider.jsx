@@ -5121,8 +5121,39 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                                 window.dataLayer.push({
                                   event: "add_payment_info",
                                   user_data: {
-                                    // ✅ ADD
                                     email: userEmail || undefined,
+                                    phone_number: (() => {
+                                      const r = localStorageGateway(
+                                        "userPhone",
+                                        localStorageEnums.GET
+                                      );
+                                      if (!r) return undefined;
+                                      const d = String(r).replace(/\D/g, "");
+                                      if (d.startsWith("44") && d.length >= 12)
+                                        return `+${d}`;
+                                      if (d.length === 11 && d.startsWith("0"))
+                                        return `+44${d.slice(1)}`;
+                                      if (d.length === 10) return `+44${d}`;
+                                      return d.length > 10
+                                        ? `+${d}`
+                                        : undefined;
+                                    })(),
+                                    address: {
+                                      first_name:
+                                        localStorageGateway(
+                                          "userFirstName",
+                                          localStorageEnums.GET
+                                        ) || undefined,
+                                      last_name:
+                                        localStorageGateway(
+                                          "userLastName",
+                                          localStorageEnums.GET
+                                        ) || undefined,
+                                      street: undefined,
+                                      city: undefined,
+                                      postal_code: undefined,
+                                      country: undefined,
+                                    },
                                   },
                                   ecommerce: {
                                     currency: "GBP",
@@ -5317,8 +5348,39 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                                 window.dataLayer.push({
                                   event: "add_payment_info",
                                   user_data: {
-                                    // ✅ ADD
                                     email: userEmail || undefined,
+                                    phone_number: (() => {
+                                      const r = localStorageGateway(
+                                        "userPhone",
+                                        localStorageEnums.GET
+                                      );
+                                      if (!r) return undefined;
+                                      const d = String(r).replace(/\D/g, "");
+                                      if (d.startsWith("44") && d.length >= 12)
+                                        return `+${d}`;
+                                      if (d.length === 11 && d.startsWith("0"))
+                                        return `+44${d.slice(1)}`;
+                                      if (d.length === 10) return `+44${d}`;
+                                      return d.length > 10
+                                        ? `+${d}`
+                                        : undefined;
+                                    })(),
+                                    address: {
+                                      first_name:
+                                        localStorageGateway(
+                                          "userFirstName",
+                                          localStorageEnums.GET
+                                        ) || undefined,
+                                      last_name:
+                                        localStorageGateway(
+                                          "userLastName",
+                                          localStorageEnums.GET
+                                        ) || undefined,
+                                      street: undefined,
+                                      city: undefined,
+                                      postal_code: undefined,
+                                      country: undefined,
+                                    },
                                   },
                                   ecommerce: {
                                     currency: "GBP",

@@ -618,6 +618,16 @@ const StickyBottomBar = ({ triggerElementId }) => {
         localStorage.removeItem("saved_ga4_coupon");
       }
 
+      // ✅ Persist insuranceCount so purchase success page can read it after redirect
+      if (quantities.insurance > 0) {
+        localStorage.setItem(
+          "saved_ga4_insurance_count",
+          String(quantities.insurance)
+        );
+      } else {
+        localStorage.removeItem("saved_ga4_insurance_count");
+      }
+
       // 🌟 Cleaned up safe insurance calculation
       const effectiveInsCount =
         quantities.schengen > 0

@@ -59,11 +59,17 @@ export default function CountrySelector() {
     // 🔥 GA4: Fire view_item event when country is selected
     if (typeof window !== "undefined" && window.dataLayer) {
       const currentTravelers = Math.max(Number(visaState?.travelers || 1), 1);
+
+      // ✅ FIX 1: only use verified appliedDiscount — couponCode is raw input, not verified
       const baseCode =
-        visaState?.appliedDiscount?.code || visaState?.couponCode || undefined;
+        visaState?.appliedDiscount?.code ||
+        localStorage.getItem("saved_ga4_coupon") ||
+        undefined;
+
+      // ✅ FIX 2: only push GROUP20 if it is the actual active applied code
       const resolveCoupon = (qualifies) => {
         const codes = [];
-        if (qualifies) codes.push("GROUP20");
+        if (qualifies && baseCode === "GROUP20") codes.push("GROUP20");
         if (baseCode && baseCode !== "GROUP20") codes.push(baseCode);
         return codes.length > 0 ? codes.join(",") : undefined;
       };
@@ -79,12 +85,16 @@ export default function CountrySelector() {
       };
       if (vCoupon) vItem.coupon = vCoupon;
 
-      window.dataLayer.push({ ecommerce: null }); // Clear previous ecommerce data
+      window.dataLayer.push({ ecommerce: null });
       window.dataLayer.push({
         event: "view_item",
         ecommerce: {
           currency: "GBP",
-          value: Number((countryConfig.visaFee || 0).toFixed(2)),
+          // ✅ FIX 3: multiply by travelers for accurate total value
+          value: Number(
+            ((countryConfig.visaFee || 0) * currentTravelers).toFixed(2)
+          ),
+          coupon: baseCode,
           items: [vItem],
         },
       });
@@ -104,13 +114,13 @@ export default function CountrySelector() {
 
     // Redirect to get-the-visa page with selected country
     router.push(
-      `/get-the-visa?selectedCountry=${encodeURIComponent(countryName)}`,
+      `/get-the-visa?selectedCountry=${encodeURIComponent(countryName)}`
     );
   };
 
   // Filter Schengen countries based on search term
   const filteredCountries = schengenCountries.filter((country) =>
-    country.name.toLowerCase().includes(searchTerm.toLowerCase()),
+    country.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Determine which countries to display

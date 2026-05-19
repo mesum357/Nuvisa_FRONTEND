@@ -161,7 +161,8 @@ const KlarnaForm = ({
         paymentWithDiscount,
       });
 
-      const billingName = `${formData.firstName.trim()} ${formData.lastName.trim()}`.trim();
+      const billingName =
+        `${formData.firstName.trim()} ${formData.lastName.trim()}`.trim();
 
       // Create Stripe checkout session for Klarna
       const response = await onCreateCheckoutSession({
@@ -223,8 +224,14 @@ const KlarnaForm = ({
           response?.data?.paymentIntentId ||
           null;
 
-        console.log("[Klarna] Checkout URL received, redirecting to Stripe-hosted Klarna page:", redirectUrl);
-        console.log("[Klarna] successUrl (return_url) will be /payment-success, paymentType:", paymentType);
+        console.log(
+          "[Klarna] Checkout URL received, redirecting to Stripe-hosted Klarna page:",
+          redirectUrl
+        );
+        console.log(
+          "[Klarna] successUrl (return_url) will be /payment-success, paymentType:",
+          paymentType
+        );
 
         if (paymentIntentId) {
           await persistCheckoutPaymentContext({
