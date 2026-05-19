@@ -111,14 +111,22 @@ const CountryCardsSection = ({
         };
         const vCoupon = resolveCoupon(currentTravelers >= 3);
 
+        // ✅ Apply discount to unit price so view_item reflects what the user sees
+        const discountPercentage = visaState?.appliedDiscount?.percentage || 0;
+        const discountedVisaFee =
+          discountPercentage > 0
+            ? finalVisaFee * (1 - discountPercentage / 100)
+            : finalVisaFee;
+
         const vItem = {
           item_id: `visa_${countryName.toLowerCase().replace(/\s+/g, "_")}`,
           item_name: `Visa - ${countryName}`,
           item_category: "Schengen Visa",
           item_brand: "NUvisa",
-          price: Number(finalVisaFee.toFixed(2)), // Clean standalone unit price
+          price: Number(discountedVisaFee.toFixed(2)), // ✅ discounted unit price
           quantity: currentTravelers,
         };
+
         if (vCoupon) vItem.coupon = vCoupon;
 
         window.dataLayer.push({ ecommerce: null }); // Clear previous ecommerce data
@@ -126,7 +134,7 @@ const CountryCardsSection = ({
           event: "view_item",
           ecommerce: {
             currency: "GBP",
-            value: Number((finalVisaFee * currentTravelers).toFixed(2)), // 🌟 FIXED: Accurate aggregate viewed total
+            value: Number((discountedVisaFee * currentTravelers).toFixed(2)), // 🌟 FIXED: Accurate aggregate viewed total
             coupon: baseCode, // 🌟 FIXED: Standard ecommerce property alignment
             items: [vItem],
           },
@@ -636,6 +644,14 @@ const CountryCardsSection = ({
                     };
                     const vCoupon = resolveCoupon(currentTravelers >= 3);
 
+                    // ✅ Apply discount to unit price so view_item reflects what the user sees
+                    const discountPercentage =
+                      visaState?.appliedDiscount?.percentage || 0;
+                    const discountedPrice =
+                      discountPercentage > 0
+                        ? price * (1 - discountPercentage / 100)
+                        : price;
+
                     const vItem = {
                       item_id: `visa_${occasionName
                         .toLowerCase()
@@ -643,9 +659,10 @@ const CountryCardsSection = ({
                       item_name: `Visa - ${occasionName}`,
                       item_category: "Schengen Visa",
                       item_brand: "NUvisa",
-                      price: Number(price.toFixed(2)), // Clean item unit price
+                      price: Number(discountedPrice.toFixed(2)), // ✅ discounted unit price
                       quantity: currentTravelers,
                     };
+
                     if (vCoupon) vItem.coupon = vCoupon;
 
                     window.dataLayer.push({ ecommerce: null }); // Clear previous ecommerce data
@@ -653,7 +670,9 @@ const CountryCardsSection = ({
                       event: "view_item",
                       ecommerce: {
                         currency: "GBP",
-                        value: Number((price * currentTravelers).toFixed(2)), // 🌟 FIXED: Multiplied unit price by quantity for true value
+                        value: Number(
+                          (discountedPrice * currentTravelers).toFixed(2)
+                        ), // 🌟 FIXED: Multiplied unit price by quantity for true value
                         coupon: baseCode, // 🌟 FIXED: Mapped configuration level coupon tracking
                         items: [vItem],
                       },
