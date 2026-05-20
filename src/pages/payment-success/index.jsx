@@ -52,6 +52,10 @@ const PaymentSuccess = () => {
     router.replace("/visa-checkout");
   };
 
+  const redirectToHome = () => {
+    router.replace("/");
+  };
+
   const persistAuthFromResponse = async (response) => {
     const results =
       response?.data?.data?.results ||
@@ -249,6 +253,9 @@ const PaymentSuccess = () => {
 
         if (finalPaymentType === "gift_card") {
           setPaymentType("gift_card");
+          setTimeout(() => {
+            redirectToHome();
+          }, 2500);
           return;
         }
 
@@ -302,6 +309,9 @@ const PaymentSuccess = () => {
           }
 
           setIsCreatingApplication(false);
+          setTimeout(() => {
+            redirectToHome();
+          }, 2500);
           return;
         }
 
@@ -894,7 +904,15 @@ const PaymentSuccess = () => {
           error
         );
         setTimeout(() => {
-          router.replace("/application-step");
+          if (
+            paymentType === "gift_card" ||
+            paymentType === "traveler_insurance" ||
+            paymentType === "additional_traveler_insurance"
+          ) {
+            redirectToHome();
+          } else {
+            router.replace("/application-step");
+          }
         }, 2000);
       } finally {
         setIsCreatingApplication(false);
