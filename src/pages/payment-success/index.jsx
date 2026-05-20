@@ -931,14 +931,13 @@ const PaymentSuccess = () => {
           </h1>
           <p className="text-gray-600 mb-4">
             Your insurance payment was successful. We have updated your
-            application and sent a confirmation email. No new visa application
-            was created.
+            application and sent a confirmation email.
           </p>
           <button
-            onClick={() => router.push("/dashboard")}
+            onClick={() => router.push("/")}
             className="w-full bg-[#7350FF] text-white py-3 px-6 rounded-lg font-semibold hover:bg-[#7350FF]/90 transition-colors"
           >
-            Go to my applications
+            Return to Home
           </button>
         </div>
       </div>
