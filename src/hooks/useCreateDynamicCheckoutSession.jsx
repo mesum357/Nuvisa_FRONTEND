@@ -146,7 +146,7 @@ const useCreateDynamicCheckoutSession = () => {
     ) {
       successUrl =
         successUrlOverride ||
-        `/payment-success-full?payment_type=${encodeURIComponent(
+        `/payment-success?payment_type=${encodeURIComponent(
           normalizedPaymentType
         )}&application_id=${encodeURIComponent(
           applicationId
