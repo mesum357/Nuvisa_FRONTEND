@@ -35,6 +35,9 @@ import {
 const validateEmail = (value) =>
   !!value && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
+const isValidAuthToken = (token) =>
+  token && token !== "existing_session_reused";
+
 const ExpressPaymentRequestButton = forwardRef(
   (
     {
@@ -436,7 +439,7 @@ const ExpressPaymentRequestButton = forwardRef(
             throw new Error("Missing client secret from payment intent");
           }
 
-          if (data?.token) {
+          if (isValidAuthToken(data?.token)) {
             await localStorageGateway(
               "token",
               localStorageEnums.SET,

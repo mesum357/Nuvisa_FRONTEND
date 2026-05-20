@@ -26,6 +26,9 @@ import { resolveVisaCountryName } from "@/utils/visaCountry";
 import { GIFT_CARD_PRODUCT_NAME } from "@/constants/productLabels";
 import Cookies from "js-cookie";
 
+const isValidAuthToken = (token) =>
+  token && token !== "existing_session_reused";
+
 const PaymentSuccess = () => {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -66,7 +69,7 @@ const PaymentSuccess = () => {
     const token = results?.token;
     const user = results?.user;
 
-    if (token) {
+    if (isValidAuthToken(token)) {
       await localStorageGateway("token", localStorageEnums.SET, token);
       await Cookies.set("token", token);
       dispatch(setAuthState(true));
@@ -237,34 +240,43 @@ const PaymentSuccess = () => {
           }
         }
 
-        const SKIP_APPLICATION_TYPES = [
-          "traveler_insurance",
-          "additional_traveler_insurance",
-          "full_payment",
-          "additional_traveler",
-          "gift_card",
-        ];
-
         const finalPaymentType =
           paymentTypeParam || currentData.paymentType || "application_creation";
         const finalApplicationId = applicationId;
+        const paymentTypeParts = String(finalPaymentType)
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean);
+        const containsGiftCard = paymentTypeParts.includes("gift_card");
+        const containsInsuranceOnly = paymentTypeParts.some((type) =>
+          ["traveler_insurance", "additional_traveler_insurance"].includes(
+            type
+          )
+        );
+        const containsVisaApplication = paymentTypeParts.some((type) =>
+          ["application_creation", "full_payment", "additional_traveler"].includes(
+            type
+          )
+        );
 
-        setPaymentType(finalPaymentType);
+        const inferredPaymentType = containsGiftCard && !containsVisaApplication
+          ? "gift_card"
+          : containsInsuranceOnly && !containsVisaApplication
+            ? paymentTypeParts.includes("additional_traveler_insurance")
+              ? "additional_traveler_insurance"
+              : "traveler_insurance"
+            : finalPaymentType;
 
-        if (finalPaymentType === "gift_card") {
-          setPaymentType("gift_card");
+        setPaymentType(inferredPaymentType);
+
+        if (containsGiftCard && !containsVisaApplication) {
           setTimeout(() => {
             redirectToHome();
           }, 2500);
           return;
         }
 
-        const insuranceOnlyTypes = [
-          "traveler_insurance",
-          "additional_traveler_insurance",
-        ];
-
-        if (insuranceOnlyTypes.includes(finalPaymentType)) {
+        if (containsInsuranceOnly && !containsVisaApplication) {
           const embeddedPaymentIntentIdEarly =
             typeof window !== "undefined"
               ? sessionStorage.getItem("stripePaymentIntentId") || null
@@ -293,7 +305,7 @@ const PaymentSuccess = () => {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
-                    paymentType: finalPaymentType,
+                    paymentType: inferredPaymentType,
                     applicationId: finalApplicationId || undefined,
                     travelerIndex: travelerIndex,
                     email: currentData.email,
@@ -671,10 +683,7 @@ const PaymentSuccess = () => {
           return;
         }
 
-        if (
-          SKIP_APPLICATION_TYPES.includes(finalPaymentType) &&
-          finalPaymentType !== "application_creation"
-        ) {
+        if (!containsVisaApplication && (containsGiftCard || containsInsuranceOnly)) {
           return;
         }
 

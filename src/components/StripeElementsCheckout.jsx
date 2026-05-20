@@ -15,6 +15,9 @@ import { createPaymentIntent } from "@/api/stripePayment";
 import StripePaymentForm from "./StripePaymentForm";
 import Cookies from "js-cookie";
 import { Loader } from "lucide-react";
+
+const isValidAuthToken = (token) =>
+  token && token !== "existing_session_reused";
 const StripeElementsCheckout = forwardRef(
   (
     {
@@ -159,7 +162,7 @@ const StripeElementsCheckout = forwardRef(
             setClientSecret(newClientSecret);
 
             // Store auth token if provided
-            if (data?.token) {
+            if (isValidAuthToken(data?.token)) {
               await localStorageGateway(
                 "token",
                 localStorageEnums.SET,
