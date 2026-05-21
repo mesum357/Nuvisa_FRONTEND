@@ -287,6 +287,22 @@ const VisaCheckout = () => {
       country: data?.country,
     });
 
+  /**
+   * Persists the validated GA4 ecommerce cart (items, value, coupon, currency)
+   * and user_data to sessionStorage immediately when add_payment_info fires.
+   * The purchase event on the success page reads this snapshot instead of
+   * re-deriving items from the payment-gateway response, ensuring the two
+   * events always match exactly.
+   */
+  const saveGa4PurchaseCart = (ecommerce, userData) => {
+    try {
+      sessionStorage.setItem(
+        "nuvisa.ga4PurchaseCart",
+        JSON.stringify({ ecommerce, user_data: userData || null }),
+      );
+    } catch {}
+  };
+
   // Auto-show payment form when payment method is selected
   useEffect(() => {
     const shouldShowForm = selectedPaymentMethod === "stripe";
@@ -1377,6 +1393,13 @@ const VisaCheckout = () => {
           checkoutItems.push(gItem);
         }
 
+        const anyCheckoutQualifies =
+          travelers >= 3 || effectiveInsCount >= 3 || giftCardCount >= 3;
+        const checkoutRootCoupon = resolveCoupon(
+          anyCheckoutQualifies,
+          baseCode || (giftCardCount >= 3 ? "GROUP20" : undefined),
+        );
+
         window.dataLayer.push({ ecommerce: null });
         window.dataLayer.push({
           event: "begin_checkout",
@@ -1386,7 +1409,7 @@ const VisaCheckout = () => {
             tax: 0,
             shipping: 0,
             payment_type: ga4PaymentType,
-            coupon: baseCode,
+            coupon: checkoutRootCoupon,
             items: checkoutItems,
           },
         });
@@ -1913,37 +1936,48 @@ const VisaCheckout = () => {
                                   "Apple Pay",
                                 );
 
+                                const anyApplePayQualifies =
+                                  travelers >= 3 ||
+                                  effectiveInsCount >= 3 ||
+                                  (includeGiftCard && giftCardCount >= 3);
+                                const applePayRootCoupon = resolveCoupon(
+                                  anyApplePayQualifies,
+                                  baseCode || (includeGiftCard && giftCardCount >= 3 ? "GROUP20" : undefined),
+                                );
+
                                 if (!hasTrackedAddPaymentInfo.current) {
                                   hasTrackedAddPaymentInfo.current = true;
                                   const applePayUserData = buildUserData();
                                   setTimeout(() => {
+                                    const applePayEcommerce = {
+                                      currency: "GBP",
+                                      value: Number(totalAmount.toFixed(2)),
+                                      tax: 0,
+                                      shipping: 0,
+                                      payment_type: "Apple Pay",
+                                      coupon: applePayRootCoupon,
+                                      items: paymentItems.map((item) => ({
+                                        ...item,
+                                        item_category:
+                                          item.item_id ===
+                                          "insurance_certificate"
+                                            ? "Insurance"
+                                            : item.item_id ===
+                                                "digital_gift_card"
+                                              ? "Gift Card"
+                                              : "Schengen Visa",
+                                        item_brand: "NUvisa",
+                                      })),
+                                    };
                                     window.dataLayer.push({ ecommerce: null });
                                     window.dataLayer.push({
                                       event: "add_payment_info",
                                       ...(applePayUserData && {
                                         user_data: applePayUserData,
                                       }),
-                                      ecommerce: {
-                                        currency: "GBP",
-                                        value: Number(totalAmount.toFixed(2)),
-                                        tax: 0,
-                                        shipping: 0,
-                                        payment_type: "Apple Pay",
-                                        coupon: baseCode,
-                                        items: paymentItems.map((item) => ({
-                                          ...item,
-                                          item_category:
-                                            item.item_id ===
-                                            "insurance_certificate"
-                                              ? "Insurance"
-                                              : item.item_id ===
-                                                  "digital_gift_card"
-                                                ? "Gift Card"
-                                                : "Schengen Visa",
-                                          item_brand: "NUvisa",
-                                        })),
-                                      },
+                                      ecommerce: applePayEcommerce,
                                     });
+                                    saveGa4PurchaseCart(applePayEcommerce, applePayUserData);
                                   }, 300);
                                 }
                               }
@@ -2098,37 +2132,48 @@ const VisaCheckout = () => {
                                   "Google Pay",
                                 );
 
+                                const anyGooglePayQualifies =
+                                  travelers >= 3 ||
+                                  effectiveInsCount >= 3 ||
+                                  (includeGiftCard && giftCardCount >= 3);
+                                const googlePayRootCoupon = resolveCoupon(
+                                  anyGooglePayQualifies,
+                                  baseCode || (includeGiftCard && giftCardCount >= 3 ? "GROUP20" : undefined),
+                                );
+
                                 if (!hasTrackedAddPaymentInfo.current) {
                                   hasTrackedAddPaymentInfo.current = true;
                                   const googlePayUserData = buildUserData();
                                   setTimeout(() => {
+                                    const googlePayEcommerce = {
+                                      currency: "GBP",
+                                      value: Number(totalAmount.toFixed(2)),
+                                      tax: 0,
+                                      shipping: 0,
+                                      payment_type: "Google Pay",
+                                      coupon: googlePayRootCoupon,
+                                      items: paymentItems.map((item) => ({
+                                        ...item,
+                                        item_category:
+                                          item.item_id ===
+                                          "insurance_certificate"
+                                            ? "Insurance"
+                                            : item.item_id ===
+                                                "digital_gift_card"
+                                              ? "Gift Card"
+                                              : "Schengen Visa",
+                                        item_brand: "NUvisa",
+                                      })),
+                                    };
                                     window.dataLayer.push({ ecommerce: null });
                                     window.dataLayer.push({
                                       event: "add_payment_info",
                                       ...(googlePayUserData && {
                                         user_data: googlePayUserData,
                                       }),
-                                      ecommerce: {
-                                        currency: "GBP",
-                                        value: Number(totalAmount.toFixed(2)),
-                                        tax: 0,
-                                        shipping: 0,
-                                        payment_type: "Google Pay",
-                                        coupon: baseCode,
-                                        items: paymentItems.map((item) => ({
-                                          ...item,
-                                          item_category:
-                                            item.item_id ===
-                                            "insurance_certificate"
-                                              ? "Insurance"
-                                              : item.item_id ===
-                                                  "digital_gift_card"
-                                                ? "Gift Card"
-                                                : "Schengen Visa",
-                                          item_brand: "NUvisa",
-                                        })),
-                                      },
+                                      ecommerce: googlePayEcommerce,
                                     });
+                                    saveGa4PurchaseCart(googlePayEcommerce, googlePayUserData);
                                   }, 300);
                                 }
                               }
@@ -2619,24 +2664,34 @@ const VisaCheckout = () => {
                           }
 
                           sessionStorage.setItem("ga4_payment_type", "Klarna");
+                          const anyKlarnaQualifies =
+                            travelers >= 3 ||
+                            effectiveInsCount >= 3 ||
+                            (includeGiftCard && giftCardCount >= 3);
+                          const klarnaRootCoupon = resolveCoupon(
+                            anyKlarnaQualifies,
+                            baseCode || (includeGiftCard && giftCardCount >= 3 ? "GROUP20" : undefined),
+                          );
                           const klarnaUserData =
                             buildKlarnaUserData(billingData);
+                          const klarnaEcommerce = {
+                            currency: "GBP",
+                            value: Number(total.toFixed(2)),
+                            tax: 0,
+                            shipping: 0,
+                            payment_type: "Klarna",
+                            coupon: klarnaRootCoupon,
+                            items: paymentItems,
+                          };
                           window.dataLayer.push({ ecommerce: null });
                           window.dataLayer.push({
                             event: "add_payment_info",
                             ...(klarnaUserData && {
                               user_data: klarnaUserData,
                             }),
-                            ecommerce: {
-                              currency: "GBP",
-                              value: Number(total.toFixed(2)),
-                              tax: 0,
-                              shipping: 0,
-                              payment_type: "Klarna",
-                              coupon: baseCode,
-                              items: paymentItems,
-                            },
+                            ecommerce: klarnaEcommerce,
                           });
+                          saveGa4PurchaseCart(klarnaEcommerce, klarnaUserData);
                         }}
                         onError={(error) => {
                           console.error("Klarna form error:", error);
@@ -2888,20 +2943,30 @@ const VisaCheckout = () => {
                           return enriched;
                         });
                         const ccUserData = buildUserData();
+                        const anyCcQualifies =
+                          travelers >= 3 ||
+                          effectiveInsCount >= 3 ||
+                          (includeGiftCard && giftCardCount >= 3);
+                        const ccRootCoupon = resolveCoupon(
+                          anyCcQualifies,
+                          baseCode || (includeGiftCard && giftCardCount >= 3 ? "GROUP20" : undefined),
+                        );
+                        const ccEcommerce = {
+                          currency: "GBP",
+                          value: Number(total.toFixed(2)),
+                          tax: 0,
+                          shipping: 0,
+                          payment_type: ga4PaymentType,
+                          coupon: ccRootCoupon,
+                          items: enrichedItems,
+                        };
                         window.dataLayer.push({ ecommerce: null });
                         window.dataLayer.push({
                           event: "add_payment_info",
                           ...(ccUserData && { user_data: ccUserData }),
-                          ecommerce: {
-                            currency: "GBP",
-                            value: Number(total.toFixed(2)),
-                            tax: 0,
-                            shipping: 0,
-                            payment_type: ga4PaymentType,
-                            coupon: baseCode,
-                            items: enrichedItems,
-                          },
+                          ecommerce: ccEcommerce,
                         });
+                        saveGa4PurchaseCart(ccEcommerce, ccUserData);
                       }
                     }
 
@@ -3062,22 +3127,32 @@ const VisaCheckout = () => {
                           return enriched;
                         });
                         const expressUserData = buildUserData();
+                        const anyExpressQualifies =
+                          travelers >= 3 ||
+                          effectiveInsCount >= 3 ||
+                          (includeGiftCard && giftCardCount >= 3);
+                        const expressRootCoupon = resolveCoupon(
+                          anyExpressQualifies,
+                          baseCode || (includeGiftCard && giftCardCount >= 3 ? "GROUP20" : undefined),
+                        );
+                        const expressEcommerce = {
+                          currency: "GBP",
+                          value: Number(total.toFixed(2)),
+                          tax: 0,
+                          shipping: 0,
+                          payment_type: ga4PaymentType,
+                          coupon: expressRootCoupon,
+                          items: enrichedItems,
+                        };
                         window.dataLayer.push({ ecommerce: null });
                         window.dataLayer.push({
                           event: "add_payment_info",
                           ...(expressUserData && {
                             user_data: expressUserData,
                           }),
-                          ecommerce: {
-                            currency: "GBP",
-                            value: Number(total.toFixed(2)),
-                            tax: 0,
-                            shipping: 0,
-                            payment_type: ga4PaymentType,
-                            coupon: baseCode,
-                            items: enrichedItems,
-                          },
+                          ecommerce: expressEcommerce,
                         });
+                        saveGa4PurchaseCart(expressEcommerce, expressUserData);
                       }
                     }
 
