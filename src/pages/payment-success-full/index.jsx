@@ -32,6 +32,16 @@ const ApplicationStepPaymentSuccessPage = () => {
       const currentData = await getCurrentPaymentData();
       const finalApplicationId = applicationId || currentData.applicationId;
 
+      if (!finalApplicationId) {
+        const paymentType = insuranceMetadata?.paymentType || "insurance";
+        const fallbackRoute = paymentType.includes("insurance")
+          ? `/payment-success?payment_type=${encodeURIComponent(paymentType)}`
+          : "/dashboard";
+
+        router.replace(fallbackRoute);
+        return;
+      }
+
       const updatePayload = {
         id: finalApplicationId,
         travelersData: insuranceMetadata?.travelData,

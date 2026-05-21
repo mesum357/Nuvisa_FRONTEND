@@ -15,6 +15,9 @@ import { createPaymentIntent } from "@/api/stripePayment";
 import StripePaymentForm from "./StripePaymentForm";
 import Cookies from "js-cookie";
 import { Loader } from "lucide-react";
+
+const isValidAuthToken = (token) =>
+  token && token !== "existing_session_reused";
 const StripeElementsCheckout = forwardRef(
   (
     {
@@ -159,7 +162,7 @@ const StripeElementsCheckout = forwardRef(
             setClientSecret(newClientSecret);
 
             // Store auth token if provided
-            if (data?.token) {
+            if (isValidAuthToken(data?.token)) {
               await localStorageGateway(
                 "token",
                 localStorageEnums.SET,
@@ -263,11 +266,8 @@ const StripeElementsCheckout = forwardRef(
         // Redirect based on payment type
         if (
           paymentType === "additional_traveler_insurance" ||
-          paymentType === "traveler_insurance" ||
-          paymentType === "full_payment" ||
-          paymentType === "additional_traveler"
+          paymentType === "traveler_insurance"
         ) {
-          // Insurance payment - redirect to application step
           if (applicationId) {
             router.push(
               `/application-step/?application_id=${encodeURIComponent(
@@ -275,6 +275,23 @@ const StripeElementsCheckout = forwardRef(
               )}`
             );
           } else {
+            router.push(
+              `/payment-success?payment_type=${encodeURIComponent(paymentType)}`
+            );
+          }
+        } else if (
+          paymentType === "full_payment" ||
+          paymentType === "additional_traveler"
+        ) {
+          // Payment tied to an existing application should return to the application flow
+          if (applicationId) {
+            router.push(
+              `/application-step/?application_id=${encodeURIComponent(
+                applicationId
+              )}`
+            );
+          } else {
+            // Fallback for application creation flows that still need to resolve after payment
             router.push("/payment-success-full");
           }
         } else {

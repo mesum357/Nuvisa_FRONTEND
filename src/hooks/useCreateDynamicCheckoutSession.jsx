@@ -11,6 +11,9 @@ import { setAuthId, setAuthState } from "@/store/authSlice";
 import Cookies from "js-cookie";
 import React, { useState } from "react";
 
+const isValidAuthToken = (token) =>
+  token && token !== "existing_session_reused";
+
 const useCreateDynamicCheckoutSession = () => {
   const dispatch = useAppDispatch();
   const [cretingDynamicCheckout, setCreatingDynamicCheckout] = useState(false);
@@ -146,7 +149,7 @@ const useCreateDynamicCheckoutSession = () => {
     ) {
       successUrl =
         successUrlOverride ||
-        `/payment-success-full?payment_type=${encodeURIComponent(
+        `/payment-success?payment_type=${encodeURIComponent(
           normalizedPaymentType
         )}&application_id=${encodeURIComponent(
           applicationId
@@ -311,7 +314,7 @@ const useCreateDynamicCheckoutSession = () => {
         response?.data ||
         {};
 
-      if (results?.token) {
+      if (isValidAuthToken(results?.token)) {
         await localStorageGateway("token", localStorageEnums.SET, results.token);
         await Cookies.set("token", results.token);
         dispatch(setAuthState(true));
