@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRef, useState, useEffect } from "react";
 import { useAppSelector } from "@/store";
+import { resolveCoupon } from "@/utils/gtmUserData";
 
 const defaultContactCards = {
   reduce: {
@@ -55,21 +56,7 @@ const PremiumServiceSection = ({ contactCardsData }) => {
         localStorage.getItem("saved_ga4_coupon") ||
         undefined;
 
-      // const resolveCoupon = (qualifies) => {
-      //   const codes = [];
-      //   if (qualifies) codes.push("GROUP20");
-      //   if (baseCode && baseCode !== "GROUP20") codes.push(baseCode);
-      //   return codes.length > 0 ? codes.join(",") : undefined;
-      // };
-
-      // ✅ FIXED — only push GROUP20 if it is the active applied code
-      const resolveCoupon = (qualifies) => {
-        const codes = [];
-        if (qualifies && baseCode === "GROUP20") codes.push("GROUP20");
-        if (baseCode && baseCode !== "GROUP20") codes.push(baseCode);
-        return codes.length > 0 ? codes.join(",") : undefined;
-      };
-      const vCoupon = resolveCoupon(currentTravelers >= 3);
+      const vCoupon = resolveCoupon(currentTravelers >= 3, baseCode);
 
       const vItem = {
         item_id: `visa_${currentCountry.toLowerCase().replace(/\s+/g, "_")}`,

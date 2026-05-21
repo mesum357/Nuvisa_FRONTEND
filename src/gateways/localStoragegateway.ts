@@ -11,6 +11,9 @@ export function localStorageGateway<T>(
   if (keyTypevalue === localStorageEnums.SET && value !== null) {
     localStorage.setItem(key, value);
     return null;
+  } else if (keyTypevalue === localStorageEnums.DELETE) {
+    localStorage.removeItem(key);
+    return null;
   } else {
     const item = localStorage.getItem(key);
     return item !== null ? (item as unknown as T) : null;

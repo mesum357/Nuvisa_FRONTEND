@@ -62,6 +62,7 @@ import { getDynamicMonthText } from "@/utils/getDynamicMonthText";
 import { getCurrentWeekSlotPercentage } from "@/utils/getCurrentWeekSlotPercentage";
 import { getAdminApiBase } from "@/utils/adminApiBase";
 import { GIFT_CARD_PRODUCT_NAME } from "@/constants/productLabels";
+import { buildGtmUserData, clearStaleGtmUserData, resolveCoupon, computeCouponDiscountPerUnit } from "@/utils/gtmUserData";
 import { setExpertSpotsDefaultFromApi } from "@/utils/expertSpots";
 import dynamic from "next/dynamic";
 
@@ -105,7 +106,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
 
   const currentWeekReservedText = useMemo(
     () => getCurrentWeekSlotPercentage(new Date()),
-    []
+    [],
   );
 
   const { content: sliderContent } = useSliderContent();
@@ -143,7 +144,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
       leftSubtitle: moreToLoveData?.leftSubtitle || "",
       rightSubtitle: moreToLoveData?.rightSubtitle || "",
     }),
-    [moreToLoveData]
+    [moreToLoveData],
   );
   // console.log(moreToLoveData);
 
@@ -204,7 +205,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
         setVisaPricingError("");
         const apiBase = String(process.env.NEXT_PUBLIC_API_URL || "").replace(
           /\/+$/,
-          ""
+          "",
         );
         const adminBase = getAdminApiBase();
         const candidates = [
@@ -239,7 +240,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
         if (!mounted) return;
         if (!hasSuccessfulResponse) {
           setVisaPricingError(
-            "Visa pricing is temporarily unavailable. Please try again shortly."
+            "Visa pricing is temporarily unavailable. Please try again shortly.",
           );
           setCountryPricingList([]);
           return;
@@ -264,7 +265,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
               item.id &&
               item.name &&
               Number.isFinite(item.basePrice) &&
-              Number.isFinite(item.strikeOutPrice)
+              Number.isFinite(item.strikeOutPrice),
           );
 
         if (normalized.length === 0) {
@@ -278,7 +279,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
         if (!mounted) return;
         setCountryPricingList([]);
         setVisaPricingError(
-          "Visa pricing is temporarily unavailable. Please try again shortly."
+          "Visa pricing is temporarily unavailable. Please try again shortly.",
         );
       } finally {
         if (mounted) setIsVisaPricingLoading(false);
@@ -298,7 +299,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
 
   const [_isCountryOpen, setIsCountryOpen] = useState(false);
   const [selectedCountry, setSelectedCountryLocal] = useState(
-    visaState.selectedCountry || "Belgium"
+    visaState.selectedCountry || "Belgium",
   );
   const [activeTooltip, setActiveTooltip] = useState(null);
   const [insuranceDays, setInsuranceDays] = useState(0);
@@ -341,7 +342,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
   const persistedDepartureDate = parsePersistedDate(visaState.departureDate);
 
   const [arrivalDate, setArrivalDateLocal] = useState(
-    () => persistedArrivalDate || initialArrivalDate
+    () => persistedArrivalDate || initialArrivalDate,
   );
   const [departureDate, setDepartureDateLocal] = useState(() => {
     if (persistedDepartureDate) return persistedDepartureDate;
@@ -385,7 +386,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
         freeInsurance:
           total.freeInsurance + (card.benefits?.freeInsurance || 0),
       }),
-      { freeTraveler: 0, freeInsurance: 0 }
+      { freeTraveler: 0, freeInsurance: 0 },
     );
   }, [redeemedGiftCards]);
 
@@ -515,7 +516,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
     let monthIndex = monthNames.findIndex((m) => title.includes(m));
     if (monthIndex === -1) {
       monthIndex = monthShort.findIndex(
-        (m) => title === m || title.startsWith(`${m} `)
+        (m) => title === m || title.startsWith(`${m} `),
       );
     }
 
@@ -531,13 +532,13 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
       }
 
       const start = toDateOnly(
-        `${year}-${String(monthIndex + 1).padStart(2, "0")}-01`
+        `${year}-${String(monthIndex + 1).padStart(2, "0")}-01`,
       );
       const lastDay = new Date(year, monthIndex + 1, 0).getDate();
       const end = toDateOnly(
         `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(
-          lastDay
-        ).padStart(2, "0")}`
+          lastDay,
+        ).padStart(2, "0")}`,
       );
 
       if (start && end) return { start, end };
@@ -619,7 +620,8 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
     const basePricing =
       countryPricingLookup[normalizeCountryKey(countryName)] || null;
     const occasionMatch = occasionPricing?.find(
-      (p) => normalizeCountryKey(p.country) === normalizeCountryKey(countryName)
+      (p) =>
+        normalizeCountryKey(p.country) === normalizeCountryKey(countryName),
     );
 
     if (!occasionMatch) return basePricing;
@@ -641,7 +643,8 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
     if (!occasionPricing) return null;
     const countryName = getCountryParam(selectedCountry) || "Belgium";
     const match = occasionPricing.find(
-      (p) => normalizeCountryKey(p.country) === normalizeCountryKey(countryName)
+      (p) =>
+        normalizeCountryKey(p.country) === normalizeCountryKey(countryName),
     );
     if (!match) return null;
 
@@ -672,10 +675,10 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
       currentPrice = hasEarly
         ? early
         : hasOriginal
-        ? original
-        : hasTraditional
-        ? traditional
-        : 0;
+          ? original
+          : hasTraditional
+            ? traditional
+            : 0;
       comparisonPrice = hasOriginal && original !== currentPrice ? original : 0;
       thirdPrice =
         hasTraditional && traditional !== currentPrice ? traditional : 0;
@@ -762,7 +765,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
 
       // Priority 3: Check trip duration limits (only if dates are in correct order)
       const tripDuration = Math.ceil(
-        (departureDate - arrivalDate) / (1000 * 60 * 60 * 24)
+        (departureDate - arrivalDate) / (1000 * 60 * 60 * 24),
       );
 
       // Visa type specific validation
@@ -804,12 +807,12 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
     if (selectedVisaType?.duration_permitted && safeDate && nextDeparture) {
       const maxDays = parseDurationDays(selectedVisaType.duration_permitted);
       const tripDays = Math.ceil(
-        (nextDeparture - safeDate) / (1000 * 60 * 60 * 24)
+        (nextDeparture - safeDate) / (1000 * 60 * 60 * 24),
       );
 
       if (maxDays && tripDays > maxDays) {
         nextDeparture = new Date(
-          safeDate.getTime() + (maxDays - 1) * 24 * 60 * 60 * 1000
+          safeDate.getTime() + (maxDays - 1) * 24 * 60 * 60 * 1000,
         );
       }
     }
@@ -817,8 +820,8 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
     setDepartureDateLocal(nextDeparture);
     dispatch(
       setDepartureDate(
-        nextDeparture ? nextDeparture.toISOString().split("T")[0] : ""
-      )
+        nextDeparture ? nextDeparture.toISOString().split("T")[0] : "",
+      ),
     );
 
     const errors = validateDates(safeDate, nextDeparture, selectedVisaType);
@@ -849,7 +852,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
       const errors = validateDates(
         arrivalDate,
         departureDate,
-        selectedVisaType
+        selectedVisaType,
       );
       setDateValidationErrors(errors);
 
@@ -857,16 +860,16 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
       if (selectedVisaType.duration_permitted && arrivalDate && departureDate) {
         const maxDays = parseDurationDays(selectedVisaType.duration_permitted);
         const currentTripDays = Math.ceil(
-          (departureDate - arrivalDate) / (1000 * 60 * 60 * 24)
+          (departureDate - arrivalDate) / (1000 * 60 * 60 * 24),
         );
 
         if (maxDays && currentTripDays > maxDays) {
           const newDepartureDate = new Date(
-            arrivalDate.getTime() + (maxDays - 1) * 24 * 60 * 60 * 1000
+            arrivalDate.getTime() + (maxDays - 1) * 24 * 60 * 60 * 1000,
           );
           setDepartureDateLocal(newDepartureDate);
           dispatch(
-            setDepartureDate(newDepartureDate.toISOString().split("T")[0])
+            setDepartureDate(newDepartureDate.toISOString().split("T")[0]),
           );
         }
       }
@@ -935,7 +938,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
     try {
       if (!visaState.arrivalDate) {
         const arrivalStr = getLocalDateString(
-          arrivalDate || initialArrivalDate
+          arrivalDate || initialArrivalDate,
         );
         dispatch(setArrivalDate(arrivalStr));
       }
@@ -956,7 +959,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
             (arrivalDate
               ? computeDefaultDeparture(arrivalDate)
               : initialDepartureDate),
-          selectedVisaType
+          selectedVisaType,
         );
         setDateValidationErrors(errors);
       }
@@ -1050,14 +1053,14 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
         "employmentProof",
       ];
       const missingDocs = requiredFields.filter(
-        (field) => !requiredDocuments[field]
+        (field) => !requiredDocuments[field],
       );
 
       if (missingDocs.length > 0) {
         setValidationErrors(new Set(missingDocs));
         // Scroll to documents section
         const documentsSection = document.querySelector(
-          "[data-documents-section]"
+          "[data-documents-section]",
         );
         if (documentsSection) {
           documentsSection.scrollIntoView({
@@ -1197,7 +1200,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
 
       const normalizedTravelers = Math.max(1, Number(travelerCount) || 1);
       const occasionBasePerTraveler = Number(
-        activeOccasionPricing?.currentPrice
+        activeOccasionPricing?.currentPrice,
       );
       const isOccasionVisaPricingActive =
         Number.isFinite(occasionBasePerTraveler) && occasionBasePerTraveler > 0;
@@ -1208,7 +1211,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
 
       return Number((basePerTraveler * normalizedTravelers).toFixed(2));
     },
-    [activeOccasionPricing?.currentPrice, currentVisaFeePerTraveler, travelers]
+    [activeOccasionPricing?.currentPrice, currentVisaFeePerTraveler, travelers],
   );
 
   const effectiveInsuranceDays = useMemo(() => {
@@ -1275,7 +1278,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
 
     // Keep Redux visa total in sync with traveler changes (single source of truth)
     dispatch(
-      setVisaFees(calculateStoredVisaFee({ travelerCount: normalizedValue }))
+      setVisaFees(calculateStoredVisaFee({ travelerCount: normalizedValue })),
     );
   };
 
@@ -1296,31 +1299,34 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
       // 🌟 FIXED: Extract coupon clean without raw text leakage
       const baseCode = visaState?.appliedDiscount?.code || undefined;
 
-      // const resolveCoupon = (qualifies) => {
-      //   const codes = [];
-      //   if (qualifies) codes.push("GROUP20");
-      //   if (baseCode && baseCode !== "GROUP20") codes.push(baseCode);
-      //   return codes.length > 0 ? codes.join(",") : undefined;
-      // };
-      // ✅ FIXED — only push GROUP20 if it is the active applied code
-      const resolveCoupon = (qualifies) => {
-        const codes = [];
-        if (qualifies && baseCode === "GROUP20") codes.push("GROUP20");
-        if (baseCode && baseCode !== "GROUP20") codes.push(baseCode);
-        return codes.length > 0 ? codes.join(",") : undefined;
-      };
-      const vCoupon = resolveCoupon(currentTravelers >= 3);
+      const vCoupon = resolveCoupon(currentTravelers >= 3, baseCode);
+
+      const baseUnitPrice =
+        dynamicPricing?.basePrice ?? countryConfig.visaFee ?? 129;
+      const appliedCode = visaState?.appliedDiscount?.code;
+      const discountPct =
+        appliedCode === "GROUP20" && currentTravelers >= 3
+          ? 20
+          : appliedCode === "STUDENT10"
+            ? visaState?.appliedDiscount?.percentage || 10
+            : 0;
+      const discountedUnitPrice =
+        discountPct > 0
+          ? baseUnitPrice * (1 - discountPct / 100)
+          : baseUnitPrice;
+      const discountAmountPerUnit = Number(
+        (baseUnitPrice - discountedUnitPrice).toFixed(2),
+      );
 
       const vItem = {
         item_id: `visa_${countryName.toLowerCase().replace(/\s+/g, "_")}`,
         item_name: `Visa - ${countryName}`,
         item_category: "Schengen Visa",
         item_brand: "NUvisa",
-        price: Number(
-          (dynamicPricing?.basePrice ?? countryConfig.visaFee ?? 129).toFixed(2)
-        ),
+        price: Number(discountedUnitPrice.toFixed(2)),
         quantity: currentTravelers,
       };
+      if (discountAmountPerUnit > 0) vItem.discount = discountAmountPerUnit;
       if (vCoupon) vItem.coupon = vCoupon;
 
       window.dataLayer.push({ ecommerce: null });
@@ -1328,12 +1334,8 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
         event: "view_item",
         ecommerce: {
           currency: "GBP",
-          value: Number(
-            (dynamicPricing?.basePrice ?? countryConfig.visaFee ?? 129).toFixed(
-              2
-            )
-          ),
-          coupon: baseCode, // 🌟 FIXED: Inject root level coupon
+          value: Number((discountedUnitPrice * currentTravelers).toFixed(2)),
+          coupon: baseCode,
           items: [vItem],
         },
       });
@@ -1341,7 +1343,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
 
     dispatch(setReduxSelectedCountry(String(countryName)));
     dispatch(
-      setVisaFees(Number(dynamicPricing?.basePrice ?? countryConfig.visaFee))
+      setVisaFees(Number(dynamicPricing?.basePrice ?? countryConfig.visaFee)),
     );
     dispatch(setInsuranceFees(Number(countryConfig.insuranceFee)));
   };
@@ -1367,7 +1369,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
       .filter(
         (countryName) =>
           normalizeCountryName(countryName) !==
-          normalizeCountryName(defaultCountryMarker)
+          normalizeCountryName(defaultCountryMarker),
       );
 
     if (!occasionCountryNames.length) {
@@ -1375,11 +1377,11 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
     }
 
     const occasionSet = new Set(
-      occasionCountryNames.map((name) => normalizeCountryName(name))
+      occasionCountryNames.map((name) => normalizeCountryName(name)),
     );
 
     return baseCountries.filter((countryName) =>
-      occasionSet.has(normalizeCountryName(countryName))
+      occasionSet.has(normalizeCountryName(countryName)),
     );
   }, [countryPricingList, normalizeCountryName, occasionCountryNames]);
 
@@ -1387,7 +1389,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
     if (!dropdownCountries.length) return;
     const current = normalizeCountryName(getCountryParam(selectedCountry));
     const hasCurrent = dropdownCountries.some(
-      (country) => normalizeCountryName(country) === current
+      (country) => normalizeCountryName(country) === current,
     );
     if (!hasCurrent) {
       const first = dropdownCountries[0];
@@ -1400,7 +1402,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
     const markerCountry = countries.find(
       (country) =>
         normalizeCountryName(country?.name) ===
-        normalizeCountryName(defaultCountryMarker)
+        normalizeCountryName(defaultCountryMarker),
     );
 
     const value = markerCountry?.appointmentText || "";
@@ -1409,14 +1411,15 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
 
   const carouselCountries = useMemo(
     () => staticCountries.filter((country) => country?.name && country?.image),
-    []
+    [],
   );
 
   const selectedCountryData = useMemo(() => {
     return (
       countries.find(
         (c) =>
-          normalizeCountryName(c.name) === normalizeCountryName(selectedCountry)
+          normalizeCountryName(c.name) ===
+          normalizeCountryName(selectedCountry),
       ) || {}
     );
   }, [countries, selectedCountry, normalizeCountryName]);
@@ -1432,7 +1435,8 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
       const countryFromUrl = router.query.selectedCountry;
       const isAvailableCountry = dropdownCountries.some(
         (country) =>
-          normalizeCountryName(country) === normalizeCountryName(countryFromUrl)
+          normalizeCountryName(country) ===
+          normalizeCountryName(countryFromUrl),
       );
 
       if (isAvailableCountry) {
@@ -1442,7 +1446,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
     } else if (router.query.occasionIdx !== undefined) {
       const matchedCountry = dropdownCountries.find(
         (country) =>
-          normalizeCountryName(country) === normalizeCountryName("Switzerland")
+          normalizeCountryName(country) === normalizeCountryName("Switzerland"),
       );
       if (matchedCountry) {
         setSelectedCountryLocal(matchedCountry);
@@ -1466,7 +1470,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
     const matchedCountry = dropdownCountries.find(
       (country) =>
         normalizeCountryName(country) ===
-        normalizeCountryName(adminDefaultCountry)
+        normalizeCountryName(adminDefaultCountry),
     );
 
     if (!matchedCountry) return;
@@ -1600,7 +1604,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
           selectedRange: eligibleOccasions[0]?.range,
           arrivalDate: activeArrival,
           departureDate: activeDeparture,
-        }
+        },
       );
     }
 
@@ -1646,7 +1650,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
     countries.find(
       (country) =>
         normalizeCountryName(country.name) ===
-        normalizeCountryName(currentCountryName)
+        normalizeCountryName(currentCountryName),
     )?.appointmentText || "Appointment in 10 days or less";
 
   useEffect(() => {
@@ -1748,7 +1752,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
           const maxScroll = Math.max(
             0,
             container.scrollWidth -
-              (containerWidth > 0 ? containerWidth : container.clientWidth)
+              (containerWidth > 0 ? containerWidth : container.clientWidth),
           );
           targetScrollLeft = Math.max(0, Math.min(targetScrollLeft, maxScroll));
 
@@ -1984,7 +1988,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
   const calculateDiscountedVisaFee = useCallback(
     ({ discount = appliedDiscount, hasOnlyInsurance = false } = {}) => {
       const occasionBasePerTraveler = Number(
-        activeOccasionPricing?.currentPrice
+        activeOccasionPricing?.currentPrice,
       );
       const isOccasionVisaPricingActive =
         Number.isFinite(occasionBasePerTraveler) && occasionBasePerTraveler > 0;
@@ -2064,7 +2068,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
       activeOccasionPricing?.currentPrice,
       currentVisaFeePerTraveler,
       travelers,
-    ]
+    ],
   );
 
   useEffect(() => {
@@ -2392,7 +2396,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
         setVisaPriceDisplay({
           isOccasion: true,
           originalPerTraveler: Number(
-            activeOccasionPricing.comparisonPrice || 0
+            activeOccasionPricing.comparisonPrice || 0,
           ),
           traditionalPerTraveler: Number(activeOccasionPricing.thirdPrice || 0),
           // Use occasion labels, fallback to slider content only if empty
@@ -2408,7 +2412,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
             occasionTraditionalText ||
             sliderContent?.slider_traditional ||
             "Traditional",
-        })
+        }),
       );
       return;
     }
@@ -2421,7 +2425,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
         discountedLabel: sliderContent?.slider_save || "",
         originalLabel: sliderContent?.slider_traditional || "Traditional",
         traditionalLabel: "",
-      })
+      }),
     );
   }, [
     dispatch,
@@ -2461,7 +2465,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
         // If valid, redeem it
         const redeemResponse = await redeemGiftCardCode(
           codeUpper,
-          userEmail || undefined
+          userEmail || undefined,
         );
 
         // Handle different response structures
@@ -2486,7 +2490,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
 
           // Check if this code is already redeemed
           const alreadyRedeemed = redeemedGiftCards.some(
-            (card) => card.code === codeUpper
+            (card) => card.code === codeUpper,
           );
           if (alreadyRedeemed) {
             setCouponError("This gift card code has already been redeemed.");
@@ -2499,7 +2503,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
               code: codeUpper,
               benefits,
               quantity,
-            })
+            }),
           );
           setCouponCodeLocal(""); // Clear input after successful redemption
           setCouponError(""); // Clear any error
@@ -2512,11 +2516,11 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
           const insuranceText =
             freeInsuranceCount === 1 ? "insurance" : "insurances";
           showSuccess(
-            `Gift card ${codeUpper} applied! You get ${freeTravelerCount} free ${travelerText} and ${freeInsuranceCount} free ${insuranceText}.`
+            `Gift card ${codeUpper} applied! You get ${freeTravelerCount} free ${travelerText} and ${freeInsuranceCount} free ${insuranceText}.`,
           );
         } else {
           setCouponError(
-            redeemResponse.message || "Failed to redeem gift card"
+            redeemResponse.message || "Failed to redeem gift card",
           );
           setIsRedeemingGiftCard(false);
           return;
@@ -2524,7 +2528,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
       } catch (error) {
         console.error("Gift card redemption error:", error);
         setCouponError(
-          error.message || "Failed to redeem gift card. Please try again."
+          error.message || "Failed to redeem gift card. Please try again.",
         );
         setIsRedeemingGiftCard(false);
         return;
@@ -2560,7 +2564,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
       codeUpper === "GROUP20"
     ) {
       setCouponError(
-        `This coupon requires at least ${discount.requiresMinTravellers} travellers`
+        `This coupon requires at least ${discount.requiresMinTravellers} travellers`,
       );
       return;
     }
@@ -2569,8 +2573,8 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
       selectedVisaType && selectedVisaType.priceGBP
         ? Number(selectedVisaType.priceGBP)
         : selectedVisaType && selectedVisaType.price
-        ? Math.round(Number(selectedVisaType.price) / 100)
-        : baseFee;
+          ? Math.round(Number(selectedVisaType.price) / 100)
+          : baseFee;
     const currentVisaFees = currentBaseFee * travelers;
     const calculatedDiscountAmount =
       (currentVisaFees * discount.percentage) / 100;
@@ -2623,7 +2627,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
 
     if (!recommendedItems.insuranceCertificate || insuranceDays <= 0) {
       setInsuranceCouponError(
-        "Select insurance and travel dates before applying this code"
+        "Select insurance and travel dates before applying this code",
       );
       return;
     }
@@ -2639,14 +2643,14 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
       insuranceCount < discount.requiresMinInsurances
     ) {
       setInsuranceCouponError(
-        `This coupon requires at least ${discount.requiresMinInsurances} insurances`
+        `This coupon requires at least ${discount.requiresMinInsurances} insurances`,
       );
       return;
     }
 
     const originalInsurance = computedInsuranceTotal;
     const discountAmount = Math.round(
-      (originalInsurance * discount.percentage) / 100
+      (originalInsurance * discount.percentage) / 100,
     );
     setAppliedInsuranceDiscount({
       ...discount,
@@ -2695,8 +2699,8 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
             selectedVisaType && selectedVisaType.priceGBP
               ? Number(selectedVisaType.priceGBP)
               : selectedVisaType && selectedVisaType.price
-              ? Math.round(Number(selectedVisaType.price) / 100)
-              : baseFee;
+                ? Math.round(Number(selectedVisaType.price) / 100)
+                : baseFee;
           const currentVisaFees = currentBaseFee * travelers;
           const calculatedDiscountAmount = (currentVisaFees * 20) / 100;
 
@@ -2808,7 +2812,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
       "employmentProof",
     ];
     const missingDocs = requiredFields.filter(
-      (field) => !requiredDocuments[field]
+      (field) => !requiredDocuments[field],
     );
 
     // Check if only insurance is selected (insurance-only checkout)
@@ -2834,14 +2838,14 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
     ) {
       if (!userEmail || !validateEmail(userEmail)) {
         setEmailError(
-          "Please enter a valid student email before proceeding to checkout"
+          "Please enter a valid student email before proceeding to checkout",
         );
         return;
       }
 
       const verificationSent = await sendStudentVerification(
         userEmail,
-        "/get-the-visa"
+        "/get-the-visa",
       );
       if (verificationSent) {
         setPendingCheckoutQuery("proceed"); // Simple flag
@@ -2993,7 +2997,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
           validity_period: String(selectedVisaType.validity_period || ""),
           duration_permitted: String(selectedVisaType.duration_permitted || ""),
           entries_permitted: String(selectedVisaType.entries_permitted || ""),
-        })
+        }),
       );
     }
 
@@ -3022,12 +3026,12 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
       ".edu.",
     ];
     const isEducationalEmail = educationalDomains.some((domain) =>
-      email.toLowerCase().includes(domain)
+      email.toLowerCase().includes(domain),
     );
 
     if (!isEducationalEmail) {
       setEmailError(
-        "Please use your educational institution email address (.edu, .ac.uk, etc.)"
+        "Please use your educational institution email address (.edu, .ac.uk, etc.)",
       );
       return false;
     }
@@ -3113,12 +3117,15 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
     verificationPollRef.current = pollInterval;
 
     // Stop polling after 10 minutes
-    setTimeout(() => {
-      if (verificationPollRef.current) {
-        clearInterval(verificationPollRef.current);
-        verificationPollRef.current = null;
-      }
-    }, 10 * 60 * 1000);
+    setTimeout(
+      () => {
+        if (verificationPollRef.current) {
+          clearInterval(verificationPollRef.current);
+          verificationPollRef.current = null;
+        }
+      },
+      10 * 60 * 1000,
+    );
   };
 
   // Listen for postMessage from verification page so we can immediately mark verified
@@ -3199,7 +3206,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                 code: "STUDENT10",
                 percentage: 10,
                 description: "Student discount",
-              })
+              }),
             );
             setCouponCodeLocal("STUDENT10");
           }
@@ -3221,7 +3228,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
     ];
 
     const missingDocs = requiredFields.filter(
-      (field) => !requiredDocuments[field]
+      (field) => !requiredDocuments[field],
     );
 
     if (missingDocs.length === 0) {
@@ -3243,6 +3250,16 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
   // 🔥 GA4: Track Add To Cart automatically when 5 documents are selected 🔥
   const hasTrackedAddToCartRef = useRef(false);
 
+  // Dedup refs — each event fires at most once per checkout session
+  const hasTrackedBeginCheckoutRef = useRef(false);
+  const hasTrackedAddPaymentInfoRef = useRef(false);
+
+  // Clear stale user-identity keys from a previous session so no test data
+  // or previous user's details can contaminate this session's GTM events.
+  useEffect(() => {
+    clearStaleGtmUserData();
+  }, []);
+
   useEffect(() => {
     const requiredFields = [
       "passport",
@@ -3253,7 +3270,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
     ];
 
     const selectedDocsCount = requiredFields.filter(
-      (field) => requiredDocuments[field]
+      (field) => requiredDocuments[field],
     ).length;
 
     const hasOnlyInsurance =
@@ -3283,31 +3300,18 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
         const effectiveInsCount =
           travelers > 0 ? Math.min(insuranceCount, travelers) : insuranceCount;
 
-        // const resolveCoupon = (qualifies) => {
-        //   const codes = [];
-        //   if (qualifies) codes.push("GROUP20");
-        //   if (baseCode && baseCode !== "GROUP20") codes.push(baseCode);
-        //   return codes.length > 0 ? codes.join(",") : undefined;
-        // };
-
-        // ✅ FIXED — only push GROUP20 if it is the active applied code
-        const resolveCoupon = (qualifies) => {
-          const codes = [];
-          if (qualifies && baseCode === "GROUP20") codes.push("GROUP20");
-          if (baseCode && baseCode !== "GROUP20") codes.push(baseCode);
-          return codes.length > 0 ? codes.join(",") : undefined;
-        };
-
         const cartItems = [];
 
         if (!hasOnlyInsurance && travelers > 0) {
           const vItem = {
             item_id: `visa_${countryName.toLowerCase().replace(/\s+/g, "_")}`,
             item_name: `Visa - ${countryName}`,
+            item_category: "Schengen Visa",
+            item_brand: "NUvisa",
             price: Number((visaOnlyPrice / travelers).toFixed(2)),
             quantity: travelers,
           };
-          const vCoupon = resolveCoupon(travelers >= 3);
+          const vCoupon = resolveCoupon(travelers >= 3, baseCode);
           if (vCoupon) vItem.coupon = vCoupon;
           cartItems.push(vItem);
         }
@@ -3316,12 +3320,14 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
           const iItem = {
             item_id: "insurance_certificate",
             item_name: "Insurance Certificate",
+            item_category: "Insurance",
+            item_brand: "NUvisa",
             price: Number(
-              (discountedInsurancePrice / insuranceCount).toFixed(2)
+              (discountedInsurancePrice / insuranceCount).toFixed(2),
             ),
             quantity: insuranceCount,
           };
-          const iCoupon = resolveCoupon(effectiveInsCount >= 3);
+          const iCoupon = resolveCoupon(effectiveInsCount >= 3, baseCode);
           if (iCoupon) iItem.coupon = iCoupon;
           cartItems.push(iItem);
         }
@@ -3330,10 +3336,12 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
           const gItem = {
             item_id: "digital_gift_card",
             item_name: GIFT_CARD_PRODUCT_NAME,
+            item_category: "Gift Card",
+            item_brand: "NUvisa",
             price: Number((discountedGiftCardPrice / giftCardCount).toFixed(2)),
             quantity: giftCardCount,
           };
-          const gCoupon = resolveCoupon(giftCardCount >= 3);
+          const gCoupon = resolveCoupon(giftCardCount >= 3, baseCode || (giftCardCount >= 3 ? "GROUP20" : undefined));
           if (gCoupon) gItem.coupon = gCoupon;
           cartItems.push(gItem);
         }
@@ -3416,7 +3424,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
     const visaDisplay = visaState?.visaPriceDisplay || {};
     const comparisonPerTraveler = Number(visaDisplay.originalPerTraveler || 0);
     const traditionalPerTraveler = Number(
-      visaDisplay.traditionalPerTraveler || 0
+      visaDisplay.traditionalPerTraveler || 0,
     );
 
     const effectiveTravelers =
@@ -3429,8 +3437,8 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
       traditionalPerTraveler > 0
         ? traditionalPerTraveler
         : comparisonPerTraveler > 0
-        ? comparisonPerTraveler
-        : strikeOutPrice;
+          ? comparisonPerTraveler
+          : strikeOutPrice;
     const originalVisaFees = originalVisaPerTraveler * travelers;
     const originalInsuranceFees = originalInsuranceBase; // Dynamic per-day pricing
     const originalGiftCardFees = recommendedItems.giftCard
@@ -3528,6 +3536,10 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
       discountedInsuranceFeesGBP: finalInsuranceFees,
       visaFeesGBP: finalVisaFees,
       couponCode: couponCode || "",
+      // Original (pre-discount) per-item totals — used for GA4 discount field
+      originalVisaFees: originalVisaFees,
+      originalInsuranceFees: originalInsuranceFees,
+      originalGiftCardFees: originalGiftCardFees,
     };
   }, [
     visaState?.visaPriceDisplay,
@@ -3547,6 +3559,9 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
     giftCardBenefits,
   ]);
 
+  // GA4 begin_checkout is fired exclusively inside the Apple Pay and Google Pay
+  // button click handlers below — not automatically on page load.
+
   const discountedVisaDisplayTotal = useMemo(() => {
     const next = calculateDiscountedVisaFee({ discount: appliedDiscount });
     return Number.isFinite(next) ? next : 0;
@@ -3561,7 +3576,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
         : Number(
             activeOccasionPricing.thirdPrice ||
               activeOccasionPricing.comparisonPrice ||
-              0
+              0,
           );
 
     const referenceTotal = referencePerTraveler * Number(travelers || 0);
@@ -3570,7 +3585,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
 
   const selectedVisaTypeDetails = useMemo(() => {
     const candidates = [selectedVisaType, visaState.selectedVisaType].filter(
-      Boolean
+      Boolean,
     );
     return (
       candidates.find((visaType) => visaType?.pricing) || candidates[0] || null
@@ -3579,7 +3594,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
 
   const pricingDetails = selectedVisaTypeDetails?.pricing || null;
   const canShowVisaFeeBreakdown = Boolean(
-    selectedVisaTypeDetails?.id && pricingDetails
+    selectedVisaTypeDetails?.id && pricingDetails,
   );
   const computedPriceSummary = useMemo(() => {
     const originalTotal = Number(calculateOriginalPrice() || 0);
@@ -3588,19 +3603,19 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
     const safeTravelers = Number(travelers || 0);
     const hasOccasionPricing = Boolean(visaState?.visaPriceDisplay?.isOccasion);
     const occasionOriginalPerTraveler = Number(
-      visaState?.visaPriceDisplay?.originalPerTraveler || 0
+      visaState?.visaPriceDisplay?.originalPerTraveler || 0,
     );
     const occasionTraditionalPerTraveler = Number(
-      visaState?.visaPriceDisplay?.traditionalPerTraveler || 0
+      visaState?.visaPriceDisplay?.traditionalPerTraveler || 0,
     );
     const discountedLabel = String(
-      visaState?.visaPriceDisplay?.discountedLabel || ""
+      visaState?.visaPriceDisplay?.discountedLabel || "",
     );
     const originalLabel = String(
-      visaState?.visaPriceDisplay?.originalLabel || ""
+      visaState?.visaPriceDisplay?.originalLabel || "",
     );
     const traditionalLabel = String(
-      visaState?.visaPriceDisplay?.traditionalLabel || ""
+      visaState?.visaPriceDisplay?.traditionalLabel || "",
     );
 
     // Match checkout logic: in occasion mode use traditional strike when available, else original strike.
@@ -3609,8 +3624,8 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
         ? occasionTraditionalPerTraveler
         : occasionOriginalPerTraveler
       : safeTravelers > 0
-      ? originalTotal / safeTravelers
-      : originalTotal;
+        ? originalTotal / safeTravelers
+        : originalTotal;
 
     const comparisonPerTraveler = hasOccasionPricing
       ? occasionOriginalPerTraveler
@@ -3637,7 +3652,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
     const giftCardOriginal = Number(245 * giftCardCount || 0);
     const giftCardCurrent = Number(discountedGiftCardPrice || 0);
     const discountCode = String(
-      appliedDiscount?.code || couponCode || ""
+      appliedDiscount?.code || couponCode || "",
     ).trim();
 
     return {
@@ -4285,7 +4300,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                               ((Number(calculateOriginalPrice()) -
                                 visaOnlyPrice) /
                                 Number(calculateOriginalPrice())) *
-                                100
+                                100,
                             )}
                             %
                           </span>
@@ -4389,7 +4404,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                             setActiveTooltip((prev) =>
                               prev === "priorityAppointment"
                                 ? null
-                                : "priorityAppointment"
+                                : "priorityAppointment",
                             )
                           }
                         >
@@ -4504,7 +4519,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                   const lastDayOfMonth = new Date(
                     firstValidYear,
                     firstValidMonth + 1,
-                    0
+                    0,
                   ).getDate();
 
                   // Check if valid dates are in the last few days of the month (day >= 28)
@@ -4519,7 +4534,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                     openToDate = new Date(
                       firstValidYear,
                       firstValidMonth + 1,
-                      1
+                      1,
                     );
                   }
 
@@ -4676,8 +4691,8 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                           requiredDocuments.passport
                             ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
                             : validationErrors.has("passport")
-                            ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
-                            : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
+                              ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
+                              : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
                         }`}
                         onClick={() => toggleRequiredDocument("passport")}
                       >
@@ -4708,8 +4723,8 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                           requiredDocuments.ukVisa
                             ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
                             : validationErrors.has("ukVisa")
-                            ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
-                            : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
+                              ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
+                              : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
                         }`}
                         onClick={() => toggleRequiredDocument("ukVisa")}
                       >
@@ -4740,8 +4755,8 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                           requiredDocuments.photos
                             ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
                             : validationErrors.has("photos")
-                            ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
-                            : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
+                              ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
+                              : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
                         }`}
                         onClick={() => toggleRequiredDocument("photos")}
                       >
@@ -4772,8 +4787,8 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                           requiredDocuments.bankStatements
                             ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
                             : validationErrors.has("bankStatements")
-                            ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
-                            : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
+                              ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
+                              : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
                         }`}
                         onClick={() => toggleRequiredDocument("bankStatements")}
                       >
@@ -4805,8 +4820,8 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                           requiredDocuments.employmentProof
                             ? "bg-[#7350FF]/10 border-[#7350FF] shadow-lg shadow-[#7350FF]/20"
                             : validationErrors.has("employmentProof")
-                            ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
-                            : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
+                              ? "bg-red-500/10 border-red-500 shadow-lg shadow-red-500/20"
+                              : "bg-white/5 border-white/20 hover:bg-white/10 hover:border-white/30"
                         }`}
                         onClick={() =>
                           toggleRequiredDocument("employmentProof")
@@ -4934,9 +4949,9 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                   expressPaymentData.visaFees > 0
                     ? "application_creation,gift_card"
                     : expressPaymentData.includeGiftCard &&
-                      expressPaymentData.visaFees === 0
-                    ? "gift_card"
-                    : "application_creation"
+                        expressPaymentData.visaFees === 0
+                      ? "gift_card"
+                      : "application_creation"
                 }
                 onBeforePayment={validateBeforeExpressPayment}
                 visaFees={expressPaymentData.visaFees}
@@ -4984,7 +4999,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                                 ?.triggerPaymentRequest
                             ) {
                               showError(
-                                "Payment system is not initialized. Please refresh and try again."
+                                "Payment system is not initialized. Please refresh and try again.",
                               );
                               return;
                             }
@@ -5003,33 +5018,13 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                               // 🌟 FIXED: Use strictly verified discount
                               const baseCode =
                                 appliedDiscount?.code || undefined;
+                              const hasCoupon = !!baseCode;
 
                               // 🌟 FIXED: Safe math handling
                               const effectiveInsCount =
                                 travelers > 0
                                   ? Math.min(insuranceCount, travelers)
                                   : insuranceCount;
-
-                              // const resolveCoupon = (qualifies) => {
-                              //   const codes = [];
-                              //   if (qualifies) codes.push("GROUP20");
-                              //   if (baseCode && baseCode !== "GROUP20")
-                              //     codes.push(baseCode);
-                              //   return codes.length > 0
-                              //     ? codes.join(",")
-                              //     : undefined;
-                              // };
-                              // ✅ FIXED — only push GROUP20 if it is the active applied code
-                              const resolveCoupon = (qualifies) => {
-                                const codes = [];
-                                if (qualifies && baseCode === "GROUP20")
-                                  codes.push("GROUP20");
-                                if (baseCode && baseCode !== "GROUP20")
-                                  codes.push(baseCode);
-                                return codes.length > 0
-                                  ? codes.join(",")
-                                  : undefined;
-                              };
 
                               const paymentItems = [];
 
@@ -5039,15 +5034,14 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                                     .toLowerCase()
                                     .replace(/\s+/g, "_")}`,
                                   item_name: `Visa - ${countryName}`,
-                                  // 🌟 FIXED: True Item Unit Price
                                   price: Number(
                                     (
                                       expressPaymentData.visaFees / travelers
-                                    ).toFixed(2)
+                                    ).toFixed(2),
                                   ),
                                   quantity: travelers,
                                 };
-                                const vCoupon = resolveCoupon(travelers >= 3);
+                                const vCoupon = resolveCoupon(travelers >= 3, baseCode);
                                 if (vCoupon) vItem.coupon = vCoupon;
                                 paymentItems.push(vItem);
                               }
@@ -5059,17 +5053,17 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                                 const iItem = {
                                   item_id: "insurance_certificate",
                                   item_name: "Insurance Certificate",
-                                  // 🌟 FIXED: True Item Unit Price
                                   price: Number(
                                     (
                                       expressPaymentData.insuranceFees /
                                       insuranceCount
-                                    ).toFixed(2)
+                                    ).toFixed(2),
                                   ),
                                   quantity: insuranceCount,
                                 };
                                 const iCoupon = resolveCoupon(
-                                  effectiveInsCount >= 3
+                                  effectiveInsCount >= 3,
+                                  baseCode,
                                 );
                                 if (iCoupon) iItem.coupon = iCoupon;
                                 paymentItems.push(iItem);
@@ -5082,17 +5076,17 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                                 const gItem = {
                                   item_id: "digital_gift_card",
                                   item_name: GIFT_CARD_PRODUCT_NAME,
-                                  // 🌟 FIXED: True Item Unit Price
                                   price: Number(
                                     (
                                       expressPaymentData.giftCardFees /
                                       giftCardCount
-                                    ).toFixed(2)
+                                    ).toFixed(2),
                                   ),
                                   quantity: giftCardCount,
                                 };
                                 const gCoupon = resolveCoupon(
-                                  giftCardCount >= 3
+                                  giftCardCount >= 3,
+                                  baseCode || (giftCardCount >= 3 ? "GROUP20" : undefined),
                                 );
                                 if (gCoupon) gItem.coupon = gCoupon;
                                 paymentItems.push(gItem);
@@ -5100,72 +5094,94 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
 
                               sessionStorage.setItem(
                                 "ga4_payment_type",
-                                "Apple Pay"
+                                "Apple Pay",
                               );
 
-                              window.dataLayer.push({ ecommerce: null });
-                              window.dataLayer.push({
-                                event: "begin_checkout",
-                                ecommerce: {
-                                  currency: "GBP",
-                                  value: Number(
-                                    expressPaymentData.totalAmount.toFixed(2)
-                                  ),
-                                  coupon: baseCode, // 🌟 FIXED
-                                  items: paymentItems,
-                                },
-                              });
+                              if (!hasTrackedAddPaymentInfoRef.current) {
+                                hasTrackedAddPaymentInfoRef.current = true;
+                                const enrichedItems = paymentItems.map(
+                                  (item) => {
+                                    const isInsurance =
+                                      item.item_id === "insurance_certificate";
+                                    const isGiftCard =
+                                      item.item_id === "digital_gift_card";
+                                    const lineFinalFees = isInsurance
+                                      ? expressPaymentData.insuranceFees
+                                      : isGiftCard
+                                        ? expressPaymentData.giftCardFees
+                                        : expressPaymentData.visaFees;
+                                    const qty = item.quantity || 1;
+                                    const discountPerUnit = isGiftCard
+                                      ? computeCouponDiscountPerUnit(lineFinalFees, qty, appliedDiscount || (giftCardCount >= 3 ? { code: "GROUP20", percentage: 20 } : null))
+                                      : hasCoupon
+                                        ? computeCouponDiscountPerUnit(lineFinalFees, qty, appliedDiscount)
+                                        : 0;
+                                    const enriched = {
+                                      ...item,
+                                      item_category: isInsurance
+                                        ? "Insurance"
+                                        : isGiftCard
+                                          ? "Gift Card"
+                                          : "Schengen Visa",
+                                      item_brand: "NUvisa",
+                                    };
+                                    if (discountPerUnit > 0)
+                                      enriched.discount = discountPerUnit;
+                                    return enriched;
+                                  },
+                                );
 
-                              setTimeout(() => {
-                                window.dataLayer.push({ ecommerce: null });
-                                window.dataLayer.push({
-                                  event: "add_payment_info",
-                                  user_data: {
-                                    email: userEmail || undefined,
-                                    phone_number: (() => {
-                                      const r = localStorageGateway(
-                                        "userPhone",
-                                        localStorageEnums.GET
-                                      );
-                                      if (!r) return undefined;
-                                      const d = String(r).replace(/\D/g, "");
-                                      if (d.startsWith("44") && d.length >= 12)
-                                        return `+${d}`;
-                                      if (d.length === 11 && d.startsWith("0"))
-                                        return `+44${d.slice(1)}`;
-                                      if (d.length === 10) return `+44${d}`;
-                                      return d.length > 10
-                                        ? `+${d}`
-                                        : undefined;
-                                    })(),
-                                    address: {
-                                      first_name:
-                                        localStorageGateway(
-                                          "userFirstName",
-                                          localStorageEnums.GET
-                                        ) || undefined,
-                                      last_name:
-                                        localStorageGateway(
-                                          "userLastName",
-                                          localStorageEnums.GET
-                                        ) || undefined,
-                                      street: undefined,
-                                      city: undefined,
-                                      postal_code: undefined,
-                                      country: undefined,
+                                // begin_checkout fires immediately on Apple Pay click
+                                if (!hasTrackedBeginCheckoutRef.current) {
+                                  hasTrackedBeginCheckoutRef.current = true;
+                                  window.dataLayer.push({ ecommerce: null });
+                                  window.dataLayer.push({
+                                    event: "begin_checkout",
+                                    ecommerce: {
+                                      currency: "GBP",
+                                      value: Number(
+                                        expressPaymentData.totalAmount.toFixed(
+                                          2,
+                                        ),
+                                      ),
+                                      tax: 0,
+                                      shipping: 0,
+                                      payment_type: "Apple Pay",
+                                      coupon: baseCode,
+                                      items: enrichedItems,
                                     },
-                                  },
-                                  ecommerce: {
-                                    currency: "GBP",
-                                    value: Number(
-                                      expressPaymentData.totalAmount.toFixed(2)
-                                    ),
-                                    payment_type: "Apple Pay",
-                                    coupon: baseCode, // 🌟 FIXED
-                                    items: paymentItems,
-                                  },
+                                  });
+                                }
+
+                                // Apple Pay has no billing-form fields —
+                                // only include user_data if the user typed
+                                // their email in this session.
+                                const applePayUserData = buildGtmUserData({
+                                  email: userEmail || undefined,
                                 });
-                              }, 300);
+                                setTimeout(() => {
+                                  window.dataLayer.push({ ecommerce: null });
+                                  window.dataLayer.push({
+                                    event: "add_payment_info",
+                                    ...(applePayUserData && {
+                                      user_data: applePayUserData,
+                                    }),
+                                    ecommerce: {
+                                      currency: "GBP",
+                                      value: Number(
+                                        expressPaymentData.totalAmount.toFixed(
+                                          2,
+                                        ),
+                                      ),
+                                      tax: 0,
+                                      shipping: 0,
+                                      payment_type: "Apple Pay",
+                                      coupon: baseCode,
+                                      items: enrichedItems,
+                                    },
+                                  });
+                                }, 300);
+                              }
                             }
 
                             const triggerResult =
@@ -5210,7 +5226,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                                 ?.triggerPaymentRequest
                             ) {
                               showError(
-                                "Payment system is not initialized. Please refresh and try again."
+                                "Payment system is not initialized. Please refresh and try again.",
                               );
                               return;
                             }
@@ -5229,34 +5245,13 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                               // 🌟 FIXED: Use strictly verified discount
                               const baseCode =
                                 appliedDiscount?.code || undefined;
+                              const hasCoupon = !!baseCode;
 
                               // 🌟 FIXED: Safe math handling
                               const effectiveInsCount =
                                 travelers > 0
                                   ? Math.min(insuranceCount, travelers)
                                   : insuranceCount;
-
-                              // const resolveCoupon = (qualifies) => {
-                              //   const codes = [];
-                              //   if (qualifies) codes.push("GROUP20");
-                              //   if (baseCode && baseCode !== "GROUP20")
-                              //     codes.push(baseCode);
-                              //   return codes.length > 0
-                              //     ? codes.join(",")
-                              //     : undefined;
-                              // };
-
-                              // ✅ FIXED — only push GROUP20 if it is the active applied code
-                              const resolveCoupon = (qualifies) => {
-                                const codes = [];
-                                if (qualifies && baseCode === "GROUP20")
-                                  codes.push("GROUP20");
-                                if (baseCode && baseCode !== "GROUP20")
-                                  codes.push(baseCode);
-                                return codes.length > 0
-                                  ? codes.join(",")
-                                  : undefined;
-                              };
 
                               const paymentItems = [];
 
@@ -5266,15 +5261,14 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                                     .toLowerCase()
                                     .replace(/\s+/g, "_")}`,
                                   item_name: `Visa - ${countryName}`,
-                                  // 🌟 FIXED: True Item Unit Price
                                   price: Number(
                                     (
                                       expressPaymentData.visaFees / travelers
-                                    ).toFixed(2)
+                                    ).toFixed(2),
                                   ),
                                   quantity: travelers,
                                 };
-                                const vCoupon = resolveCoupon(travelers >= 3);
+                                const vCoupon = resolveCoupon(travelers >= 3, baseCode);
                                 if (vCoupon) vItem.coupon = vCoupon;
                                 paymentItems.push(vItem);
                               }
@@ -5286,17 +5280,17 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                                 const iItem = {
                                   item_id: "insurance_certificate",
                                   item_name: "Insurance Certificate",
-                                  // 🌟 FIXED: True Item Unit Price
                                   price: Number(
                                     (
                                       expressPaymentData.insuranceFees /
                                       insuranceCount
-                                    ).toFixed(2)
+                                    ).toFixed(2),
                                   ),
                                   quantity: insuranceCount,
                                 };
                                 const iCoupon = resolveCoupon(
-                                  effectiveInsCount >= 3
+                                  effectiveInsCount >= 3,
+                                  baseCode,
                                 );
                                 if (iCoupon) iItem.coupon = iCoupon;
                                 paymentItems.push(iItem);
@@ -5309,17 +5303,17 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                                 const gItem = {
                                   item_id: "digital_gift_card",
                                   item_name: GIFT_CARD_PRODUCT_NAME,
-                                  // 🌟 FIXED: True Item Unit Price
                                   price: Number(
                                     (
                                       expressPaymentData.giftCardFees /
                                       giftCardCount
-                                    ).toFixed(2)
+                                    ).toFixed(2),
                                   ),
                                   quantity: giftCardCount,
                                 };
                                 const gCoupon = resolveCoupon(
-                                  giftCardCount >= 3
+                                  giftCardCount >= 3,
+                                  baseCode || (giftCardCount >= 3 ? "GROUP20" : undefined),
                                 );
                                 if (gCoupon) gItem.coupon = gCoupon;
                                 paymentItems.push(gItem);
@@ -5327,72 +5321,94 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
 
                               sessionStorage.setItem(
                                 "ga4_payment_type",
-                                "Google Pay"
+                                "Google Pay",
                               );
 
-                              window.dataLayer.push({ ecommerce: null });
-                              window.dataLayer.push({
-                                event: "begin_checkout",
-                                ecommerce: {
-                                  currency: "GBP",
-                                  value: Number(
-                                    expressPaymentData.totalAmount.toFixed(2)
-                                  ),
-                                  coupon: baseCode, // 🌟 FIXED
-                                  items: paymentItems,
-                                },
-                              });
+                              if (!hasTrackedAddPaymentInfoRef.current) {
+                                hasTrackedAddPaymentInfoRef.current = true;
+                                const enrichedItems = paymentItems.map(
+                                  (item) => {
+                                    const isInsurance =
+                                      item.item_id === "insurance_certificate";
+                                    const isGiftCard =
+                                      item.item_id === "digital_gift_card";
+                                    const lineFinalFees = isInsurance
+                                      ? expressPaymentData.insuranceFees
+                                      : isGiftCard
+                                        ? expressPaymentData.giftCardFees
+                                        : expressPaymentData.visaFees;
+                                    const qty = item.quantity || 1;
+                                    const discountPerUnit = isGiftCard
+                                      ? computeCouponDiscountPerUnit(lineFinalFees, qty, appliedDiscount || (giftCardCount >= 3 ? { code: "GROUP20", percentage: 20 } : null))
+                                      : hasCoupon
+                                        ? computeCouponDiscountPerUnit(lineFinalFees, qty, appliedDiscount)
+                                        : 0;
+                                    const enriched = {
+                                      ...item,
+                                      item_category: isInsurance
+                                        ? "Insurance"
+                                        : isGiftCard
+                                          ? "Gift Card"
+                                          : "Schengen Visa",
+                                      item_brand: "NUvisa",
+                                    };
+                                    if (discountPerUnit > 0)
+                                      enriched.discount = discountPerUnit;
+                                    return enriched;
+                                  },
+                                );
 
-                              setTimeout(() => {
-                                window.dataLayer.push({ ecommerce: null });
-                                window.dataLayer.push({
-                                  event: "add_payment_info",
-                                  user_data: {
-                                    email: userEmail || undefined,
-                                    phone_number: (() => {
-                                      const r = localStorageGateway(
-                                        "userPhone",
-                                        localStorageEnums.GET
-                                      );
-                                      if (!r) return undefined;
-                                      const d = String(r).replace(/\D/g, "");
-                                      if (d.startsWith("44") && d.length >= 12)
-                                        return `+${d}`;
-                                      if (d.length === 11 && d.startsWith("0"))
-                                        return `+44${d.slice(1)}`;
-                                      if (d.length === 10) return `+44${d}`;
-                                      return d.length > 10
-                                        ? `+${d}`
-                                        : undefined;
-                                    })(),
-                                    address: {
-                                      first_name:
-                                        localStorageGateway(
-                                          "userFirstName",
-                                          localStorageEnums.GET
-                                        ) || undefined,
-                                      last_name:
-                                        localStorageGateway(
-                                          "userLastName",
-                                          localStorageEnums.GET
-                                        ) || undefined,
-                                      street: undefined,
-                                      city: undefined,
-                                      postal_code: undefined,
-                                      country: undefined,
+                                // begin_checkout fires immediately on Google Pay click
+                                if (!hasTrackedBeginCheckoutRef.current) {
+                                  hasTrackedBeginCheckoutRef.current = true;
+                                  window.dataLayer.push({ ecommerce: null });
+                                  window.dataLayer.push({
+                                    event: "begin_checkout",
+                                    ecommerce: {
+                                      currency: "GBP",
+                                      value: Number(
+                                        expressPaymentData.totalAmount.toFixed(
+                                          2,
+                                        ),
+                                      ),
+                                      tax: 0,
+                                      shipping: 0,
+                                      payment_type: "Google Pay",
+                                      coupon: baseCode,
+                                      items: enrichedItems,
                                     },
-                                  },
-                                  ecommerce: {
-                                    currency: "GBP",
-                                    value: Number(
-                                      expressPaymentData.totalAmount.toFixed(2)
-                                    ),
-                                    payment_type: "Google Pay",
-                                    coupon: baseCode, // 🌟 FIXED
-                                    items: paymentItems,
-                                  },
+                                  });
+                                }
+
+                                // Google Pay has no billing-form fields —
+                                // only include user_data if the user typed
+                                // their email in this session.
+                                const googlePayUserData = buildGtmUserData({
+                                  email: userEmail || undefined,
                                 });
-                              }, 300);
+                                setTimeout(() => {
+                                  window.dataLayer.push({ ecommerce: null });
+                                  window.dataLayer.push({
+                                    event: "add_payment_info",
+                                    ...(googlePayUserData && {
+                                      user_data: googlePayUserData,
+                                    }),
+                                    ecommerce: {
+                                      currency: "GBP",
+                                      value: Number(
+                                        expressPaymentData.totalAmount.toFixed(
+                                          2,
+                                        ),
+                                      ),
+                                      tax: 0,
+                                      shipping: 0,
+                                      payment_type: "Google Pay",
+                                      coupon: baseCode,
+                                      items: enrichedItems,
+                                    },
+                                  });
+                                }, 300);
+                              }
                             }
 
                             const triggerResult =
@@ -5457,14 +5473,14 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                       giftCardCount={giftCardCount}
                       hasAdditionalTravellers={travelers > 1}
                       includeInsurance={Boolean(
-                        recommendedItems.insuranceCertificate
+                        recommendedItems.insuranceCertificate,
                       )}
                       includeGiftCard={Boolean(recommendedItems.giftCard)}
                       onToggleAdditionalTravellers={(checked) => {
                         const nextTravelers = checked ? 2 : 1;
                         if (insuranceCount > nextTravelers) {
                           dispatch(
-                            setReduxInsuranceCount(Number(nextTravelers))
+                            setReduxInsuranceCount(Number(nextTravelers)),
                           );
                         }
                         dispatch(setReduxTravelers(Number(nextTravelers)));
@@ -5472,8 +5488,8 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                           setVisaFees(
                             calculateStoredVisaFee({
                               travelerCount: nextTravelers,
-                            })
-                          )
+                            }),
+                          ),
                         );
                       }}
                       onToggleInsurance={() =>
@@ -5679,14 +5695,14 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                       giftCardRedeemed || appliedDiscount
                         ? "border-green-400"
                         : couponError
-                        ? "border-red-400"
-                        : "border-gray-500"
+                          ? "border-red-400"
+                          : "border-gray-500"
                     } bg-[#24242D] text-white rounded-md p-2 text-sm max-sm:text-xs ${
                       giftCardRedeemed || appliedDiscount
                         ? "outline-none ring-2 ring-green-400"
                         : couponError
-                        ? "outline-none ring-2 ring-red-400"
-                        : "focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          ? "outline-none ring-2 ring-red-400"
+                          : "focus:outline-none focus:ring-2 focus:ring-purple-500"
                     }`}
                     disabled={appliedDiscount || isRedeemingGiftCard}
                   />
@@ -5920,8 +5936,8 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
               {selectedPaymentMethod === "stripe"
                 ? "CONTINUE WITH CREDIT CARD"
                 : selectedPaymentMethod === "klarna"
-                ? "CONTINUE WITH KLARNA"
-                : "CONTINUE TO CHECKOUT"}
+                  ? "CONTINUE WITH KLARNA"
+                  : "CONTINUE TO CHECKOUT"}
             </span>
             <span className="bg-white rounded-full p-1.5 transition-transform duration-300 group-hover:rotate-45 group-hover:translate-x-1 group-hover:-translate-y-0 max-sm:p-1">
               <ArrowUpRight className="w-5 h-5 text-[#6B4EFF] max-sm:w-4 max-sm:h-4" />

@@ -10,6 +10,7 @@ import {
   setTravelers,
 } from "@/store/visaSlice";
 import { getCountryConfig } from "@/constants/countryConfig";
+import { resolveCoupon } from "@/utils/gtmUserData";
 import GetTheVisaButton from "./layout/GetTheVisaButton";
 import { getAdminApiBase } from "@/utils/adminApiBase";
 import { useCountriesWithAppointmentTexts } from "@/hooks/useCountriesWithAppointmentTexts";
@@ -116,29 +117,28 @@ const VisaSolution = ({
         localStorage.getItem("saved_ga4_coupon") ||
         undefined;
 
-      // const resolveCoupon = (qualifies) => {
-      //   const codes = [];
-      //   if (qualifies) codes.push("GROUP20");
-      //   if (baseCode && baseCode !== "GROUP20") codes.push(baseCode);
-      //   return codes.length > 0 ? codes.join(",") : undefined;
-      // };
+      const vCoupon = resolveCoupon(currentTravelers >= 3, baseCode);
 
-      // ✅ FIXED — only push GROUP20 if it is the active applied code
-      const resolveCoupon = (qualifies) => {
-        const codes = [];
-        if (qualifies && baseCode === "GROUP20") codes.push("GROUP20");
-        if (baseCode && baseCode !== "GROUP20") codes.push(baseCode);
-        return codes.length > 0 ? codes.join(",") : undefined;
-      };
-      const vCoupon = resolveCoupon(currentTravelers >= 3);
+      const appliedCode = visaState?.appliedDiscount?.code;
+      const discountPct =
+        appliedCode === "GROUP20" && currentTravelers >= 3
+          ? 20
+          : appliedCode === "STUDENT10"
+          ? visaState?.appliedDiscount?.percentage || 10
+          : 0;
+      const discountedItemPrice =
+        discountPct > 0 ? itemPrice * (1 - discountPct / 100) : itemPrice;
+      const discountAmountPerUnit = Number((itemPrice - discountedItemPrice).toFixed(2));
 
       const vItem = {
         item_id: `visa_${countryName.toLowerCase().replace(/\s+/g, "_")}`,
         item_name: `Visa - ${countryName}`,
         item_category: "Schengen Visa",
-        price: Number(itemPrice.toFixed(2)), // Individual Unit Price
+        item_brand: "NUvisa",
+        price: Number(discountedItemPrice.toFixed(2)),
         quantity: currentTravelers,
       };
+      if (discountAmountPerUnit > 0) vItem.discount = discountAmountPerUnit;
       if (vCoupon) vItem.coupon = vCoupon;
 
       window.dataLayer.push({ ecommerce: null });
@@ -146,8 +146,8 @@ const VisaSolution = ({
         event: "view_item",
         ecommerce: {
           currency: "GBP",
-          value: Number((itemPrice * currentTravelers).toFixed(2)), // 🌟 FIXED: Multiplied by currentTravelers for total value accuracy
-          coupon: baseCode, // 🌟 FIXED: Standard ecommerce property tracking alignment
+          value: Number((discountedItemPrice * currentTravelers).toFixed(2)),
+          coupon: baseCode,
           items: [vItem],
         },
       });

@@ -30,6 +30,7 @@ import { useToast } from "@/contexts/ToastContext";
 import Drawer from "./Drawer";
 import { getAdminApiBase } from "@/utils/adminApiBase";
 import { GIFT_CARD_PRODUCT_NAME } from "@/constants/productLabels";
+import { resolveCoupon } from "@/utils/gtmUserData";
 import { title } from "process";
 
 const StickyBottomBar = ({ triggerElementId }) => {
@@ -110,7 +111,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
       "calculating visa fee per traveler, has visa type data:",
       hasVisaTypeData,
       "visaState selectedVisaType:",
-      visaState.selectedVisaType
+      visaState.selectedVisaType,
     );
     // If no visa type data, use API pricing from countryPricingList
     if (!hasVisaTypeData) {
@@ -124,7 +125,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
       return Number(visaState.selectedVisaType.priceGBP);
     if (visaState.selectedVisaType?.price) {
       const converted = Math.round(
-        Number(visaState.selectedVisaType.price) / 100
+        Number(visaState.selectedVisaType.price) / 100,
       );
       if (converted > 0) return converted;
     }
@@ -155,7 +156,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
       if (diffTime < 0) return 1;
       const inclusiveDays = Math.max(
         1,
-        Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
+        Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1,
       );
       return inclusiveDays;
     } catch {
@@ -228,11 +229,11 @@ const StickyBottomBar = ({ triggerElementId }) => {
     if (prevInsurance !== currentInsurance) {
       if (prevInsurance < 3 && currentInsurance >= 3) {
         showSuccess(
-          "Insurance group discount unlocked! 20% off for 3+ insurances"
+          "Insurance group discount unlocked! 20% off for 3+ insurances",
         );
       } else if (prevInsurance >= 3 && currentInsurance < 3) {
         showSuccess(
-          "Insurance group discount removed — fewer than 3 insurances"
+          "Insurance group discount removed — fewer than 3 insurances",
         );
       }
       prevInsuranceCountRef.current = currentInsurance;
@@ -254,11 +255,11 @@ const StickyBottomBar = ({ triggerElementId }) => {
     if (prevGiftCard !== currentGiftCard) {
       if (prevGiftCard < 3 && currentGiftCard >= 3) {
         showSuccess(
-          "Gift card group discount unlocked! 20% off for 3+ gift cards"
+          "Gift card group discount unlocked! 20% off for 3+ gift cards",
         );
       } else if (prevGiftCard >= 3 && currentGiftCard < 3) {
         showSuccess(
-          "Gift card group discount removed — fewer than 3 gift cards"
+          "Gift card group discount removed — fewer than 3 gift cards",
         );
       }
       prevGiftCardCountRef.current = currentGiftCard;
@@ -272,7 +273,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
       try {
         const apiBase = String(process.env.NEXT_PUBLIC_API_URL || "").replace(
           /\/+$/,
-          ""
+          "",
         );
         const adminBase = getAdminApiBase();
         const candidates = [
@@ -318,20 +319,20 @@ const StickyBottomBar = ({ triggerElementId }) => {
         const defaultCountry = "Belgium";
         console.log(normalized);
         const defaultItem = normalized.find(
-          (item) => item.country === defaultCountry
+          (item) => item.country === defaultCountry,
         );
         console.log(" selected country and default", defaultItem, "Belgium");
         if (defaultItem) {
           setItems((prevItems) => {
             const otherItems = prevItems.filter(
-              (item) => item.id !== "schengen"
+              (item) => item.id !== "schengen",
             );
             return [{ ...prevItems[0], ...defaultItem }, ...otherItems];
           });
         } else {
           setItems((prevItems) => {
             const otherItems = prevItems.filter(
-              (item) => item.id !== "schengen"
+              (item) => item.id !== "schengen",
             );
             return [{ ...prevItems[0], ...normalized[0] }, ...otherItems];
           });
@@ -380,7 +381,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
           if (newQuantity < prev.insurance) {
             const adjustedInsuranceCount = Math.min(
               prev.insurance,
-              newQuantity
+              newQuantity,
             );
             updated.insurance = adjustedInsuranceCount;
             dispatch(setReduxInsuranceCount(adjustedInsuranceCount));
@@ -408,7 +409,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
         return updated;
       });
     },
-    [travelerCount, recommendedItems, dispatch]
+    [travelerCount, recommendedItems, dispatch],
   );
 
   // Memoize total items calculation
@@ -434,7 +435,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
       "redux visa fees:",
       reduxVisaFees,
       "traveler count:",
-      travelerCount
+      travelerCount,
     );
     console.log("base discount", effectiveVisaFeePerTraveler);
     const baseDiscountedVisaFees =
@@ -553,7 +554,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
           return 0;
       }
     },
-    [discountedPrices]
+    [discountedPrices],
   );
 
   const schengenMaxDiscountAmount = useMemo(() => {
@@ -563,7 +564,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
       quantities.schengen > 0 ? Number(discountedPrices.visa || 0) : 129;
     const maxStrikePerTraveler = Math.max(
       Number(visaPriceDisplay?.originalPerTraveler || 0),
-      Number(visaPriceDisplay?.traditionalPerTraveler || 0)
+      Number(visaPriceDisplay?.traditionalPerTraveler || 0),
     );
     const maxStrikeTotal = maxStrikePerTraveler * schengenQtyForDisplay;
     return Math.max(0, maxStrikeTotal - displayedDiscountedTotal);
@@ -579,7 +580,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
       quantities.schengen > 0 ? quantities.schengen : 1;
     const maxStrikePerTraveler = Math.max(
       Number(visaPriceDisplay?.originalPerTraveler || 0),
-      Number(visaPriceDisplay?.traditionalPerTraveler || 0)
+      Number(visaPriceDisplay?.traditionalPerTraveler || 0),
     );
     const maxStrikeTotal = maxStrikePerTraveler * schengenQtyForDisplay;
     if (maxStrikeTotal <= 0) return 0;
@@ -622,7 +623,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
       if (quantities.insurance > 0) {
         localStorage.setItem(
           "saved_ga4_insurance_count",
-          String(quantities.insurance)
+          String(quantities.insurance),
         );
       } else {
         localStorage.removeItem("saved_ga4_insurance_count");
@@ -634,70 +635,61 @@ const StickyBottomBar = ({ triggerElementId }) => {
           ? Math.min(quantities.insurance, quantities.schengen)
           : quantities.insurance;
 
-      // const resolveCoupon = (qualifies) => {
-      //   const codes = [];
-      //   if (qualifies) codes.push("GROUP20");
-      //   if (baseCode && baseCode !== "GROUP20") codes.push(baseCode);
-      //   return codes.length > 0 ? codes.join(",") : undefined;
-      // };
-
-      // ✅ FIXED — only push GROUP20 if it is the active applied code
-      const resolveCoupon = (qualifies) => {
-        const codes = [];
-        if (qualifies && baseCode === "GROUP20") codes.push("GROUP20");
-        if (baseCode && baseCode !== "GROUP20") codes.push(baseCode);
-        return codes.length > 0 ? codes.join(",") : undefined;
-      };
-
       const cartItems = [];
 
       if (quantities.schengen > 0) {
         const countryName = visaState.selectedCountry || "Schengen";
+        const vUnitPrice = Number(
+          (discountedPrices.visa / quantities.schengen).toFixed(2),
+        );
         const vItem = {
           item_id: `visa_${countryName.toLowerCase().replace(/\s+/g, "_")}`,
           item_name: `Visa - ${countryName}`,
-          // 🌟 FIXED: Map true individual item unit price after discounts
-          price: Number(
-            (discountedPrices.visa / quantities.schengen).toFixed(2)
-          ),
+          item_category: "Schengen Visa",
+          item_brand: "NUvisa",
+          price: vUnitPrice,
           quantity: quantities.schengen,
         };
-        const vCoupon = resolveCoupon(quantities.schengen >= 3);
+        const vCoupon = resolveCoupon(quantities.schengen >= 3, baseCode);
         if (vCoupon) vItem.coupon = vCoupon;
         cartItems.push(vItem);
       }
 
       if (quantities.insurance > 0) {
+        const iUnitPrice = Number(
+          (discountedPrices.insurance / quantities.insurance).toFixed(2),
+        );
         const iItem = {
           item_id: "insurance_certificate",
           item_name: "Insurance Certificate",
-          // 🌟 FIXED: Map true individual item unit price after discounts
-          price: Number(
-            (discountedPrices.insurance / quantities.insurance).toFixed(2)
-          ),
+          item_category: "Insurance",
+          item_brand: "NUvisa",
+          price: iUnitPrice,
           quantity: quantities.insurance,
         };
-        const iCoupon = resolveCoupon(effectiveInsCount >= 3);
+        const iCoupon = resolveCoupon(effectiveInsCount >= 3, baseCode);
         if (iCoupon) iItem.coupon = iCoupon;
         cartItems.push(iItem);
       }
 
       if (quantities.giftCard > 0) {
+        const gUnitPrice = Number(
+          (discountedPrices.giftCard / quantities.giftCard).toFixed(2),
+        );
         const gItem = {
           item_id: "digital_gift_card",
           item_name: GIFT_CARD_PRODUCT_NAME,
-          // 🌟 FIXED: Map true individual item unit price after discounts
-          price: Number(
-            (discountedPrices.giftCard / quantities.giftCard).toFixed(2)
-          ),
+          item_category: "Gift Card",
+          item_brand: "NUvisa",
+          price: gUnitPrice,
           quantity: quantities.giftCard,
         };
-        const gCoupon = resolveCoupon(quantities.giftCard >= 3);
+        const gCoupon = resolveCoupon(quantities.giftCard >= 3, baseCode);
         if (gCoupon) gItem.coupon = gCoupon;
         cartItems.push(gItem);
       }
 
-      window.dataLayer.push({ ecommerce: null }); // Clear previous ecommerce object
+      window.dataLayer.push({ ecommerce: null });
       window.dataLayer.push({
         event: "view_item",
         ecommerce: {
@@ -741,7 +733,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
             updateVisibility();
           });
         },
-        { threshold: 0.1 }
+        { threshold: 0.1 },
       );
 
       footerObserver.observe(footerElement);
@@ -756,7 +748,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
       const shouldBeVisible = hasScrolledEnough && !isFooterVisible;
 
       setIsVisible((prev) =>
-        prev !== shouldBeVisible ? shouldBeVisible : prev
+        prev !== shouldBeVisible ? shouldBeVisible : prev,
       );
     };
 
@@ -898,7 +890,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
                             {(
                               Number(
                                 visaPriceDisplay?.originalPerTraveler ||
-                                  item.originalPrice
+                                  item.originalPrice,
                               ) *
                               (quantities[item.id] > 0
                                 ? quantities[item.id]
@@ -922,7 +914,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
                               £
                               {(
                                 Number(
-                                  visaPriceDisplay?.traditionalPerTraveler || 0
+                                  visaPriceDisplay?.traditionalPerTraveler || 0,
                                 ) *
                                 (quantities[item.id] > 0
                                   ? quantities[item.id]
@@ -997,7 +989,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
             <div className="flex items-center gap-4 justify-center flex-1">
               {items
                 .filter(
-                  (item) => item.id === "insurance" || item.id === "giftCard"
+                  (item) => item.id === "insurance" || item.id === "giftCard",
                 )
                 .map((item) => (
                   <div
@@ -1095,7 +1087,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
                                   item.id,
                                   quantities[item.id] > 0
                                     ? -quantities[item.id]
-                                    : 1
+                                    : 1,
                                 )
                               }
                               className="sr-only peer"
@@ -1194,7 +1186,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
                               {(
                                 Number(
                                   visaPriceDisplay?.originalPerTraveler ||
-                                    item.originalPrice
+                                    item.originalPrice,
                                 ) *
                                 (quantities[item.id] > 0
                                   ? quantities[item.id]
@@ -1208,7 +1200,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
                             )}
                           </div>
                           {Number(
-                            visaPriceDisplay?.traditionalPerTraveler || 0
+                            visaPriceDisplay?.traditionalPerTraveler || 0,
                           ) > 0 && (
                             <div className="flex gap-1 flex-col">
                               <span className="text-gray-500 line-through text-sm">
@@ -1216,7 +1208,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
                                 {(
                                   Number(
                                     visaPriceDisplay?.traditionalPerTraveler ||
-                                      0
+                                      0,
                                   ) *
                                   (quantities[item.id] > 0
                                     ? quantities[item.id]
@@ -1381,7 +1373,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
                       onChange={() =>
                         updateQuantity(
                           item.id,
-                          quantities[item.id] > 0 ? -quantities[item.id] : 1
+                          quantities[item.id] > 0 ? -quantities[item.id] : 1,
                         )
                       }
                       className="sr-only peer"

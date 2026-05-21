@@ -2,6 +2,7 @@
 import { updateVisaApplication } from "@/api/visaApplications";
 import { localStorageEnums } from "@/enums/localstorage.enums";
 import { localStorageGateway } from "@/gateways/localStoragegateway";
+import { buildGtmUserData, resolveCoupon, computeCouponDiscountPerUnit } from "@/utils/gtmUserData";
 import usePaymentData from "@/hooks/usePaymentData";
 import { useAppSelector } from "@/store";
 import { GIFT_CARD_PRODUCT_NAME } from "@/constants/productLabels";
@@ -72,20 +73,14 @@ const ApplicationStepPaymentSuccessPage = () => {
             visaState.appliedDiscount?.code ||
             localStorage.getItem("saved_ga4_coupon") ||
             undefined;
+          const hasCoupon = !!baseCode;
+          const couponAppliedDiscount = visaState.appliedDiscount || null;
 
           // effectiveInsCount used only for GROUP20 coupon threshold check
           const effectiveInsCount =
             travelers > 0
               ? Math.min(insuranceCount, travelers)
               : insuranceCount;
-
-          // ✅ FIXED: only push GROUP20 if it is the active applied code
-          const resolveCoupon = (qualifies) => {
-            const codes = [];
-            if (qualifies && baseCode === "GROUP20") codes.push("GROUP20");
-            if (baseCode && baseCode !== "GROUP20") codes.push(baseCode);
-            return codes.length > 0 ? codes.join(",") : undefined;
-          };
 
           const purchaseItems = [];
 
@@ -100,8 +95,12 @@ const ApplicationStepPaymentSuccessPage = () => {
               price: Number((visaTotal / travelers).toFixed(2)),
               quantity: travelers,
             };
-            const vCoupon = resolveCoupon(travelers >= 3);
+            const vCoupon = resolveCoupon(travelers >= 3, baseCode);
             if (vCoupon) vItem.coupon = vCoupon;
+            const vDiscount = hasCoupon
+              ? computeCouponDiscountPerUnit(visaTotal, travelers, couponAppliedDiscount)
+              : 0;
+            if (vDiscount > 0) vItem.discount = vDiscount;
             purchaseItems.push(vItem);
           }
 
@@ -121,8 +120,12 @@ const ApplicationStepPaymentSuccessPage = () => {
               price: Number((insuranceTotal / insuranceCount).toFixed(2)),
               quantity: insuranceCount,
             };
-            const iCoupon = resolveCoupon(effectiveInsCount >= 3);
+            const iCoupon = resolveCoupon(effectiveInsCount >= 3, baseCode);
             if (iCoupon) iItem.coupon = iCoupon;
+            const iDiscount = hasCoupon
+              ? computeCouponDiscountPerUnit(insuranceTotal, insuranceCount, couponAppliedDiscount)
+              : 0;
+            if (iDiscount > 0) iItem.discount = iDiscount;
             purchaseItems.push(iItem);
           }
 
@@ -137,8 +140,10 @@ const ApplicationStepPaymentSuccessPage = () => {
               price: Number((giftCardTotal / giftCardCount).toFixed(2)),
               quantity: giftCardCount,
             };
-            const gCoupon = resolveCoupon(giftCardCount >= 3);
+            const gCoupon = resolveCoupon(giftCardCount >= 3, baseCode || (giftCardCount >= 3 ? "GROUP20" : undefined));
             if (gCoupon) gItem.coupon = gCoupon;
+            const gDiscount = computeCouponDiscountPerUnit(giftCardTotal, giftCardCount, couponAppliedDiscount || (giftCardCount >= 3 ? { code: "GROUP20", percentage: 20 } : null));
+            if (gDiscount > 0) gItem.discount = gDiscount;
             purchaseItems.push(gItem);
           }
 
@@ -158,21 +163,9 @@ const ApplicationStepPaymentSuccessPage = () => {
               ? Number(visaState.totalAmount)
               : 0;
 
-          // E.164 normalizer
-          const normalizePhoneE164 = (rawPhone) => {
-            if (!rawPhone) return undefined;
-            const digits = String(rawPhone).replace(/\D/g, "");
-            if (!digits) return undefined;
-            if (digits.startsWith("44") && digits.length >= 12)
-              return `+${digits}`;
-            if (digits.length === 11 && digits.startsWith("0"))
-              return `+44${digits.slice(1)}`;
-            if (digits.length === 10) return `+44${digits}`;
-            if (digits.length > 10) return `+${digits}`;
-            return undefined;
-          };
-
-          // Try Klarna form first (has full address), fall back to stored name fields
+          // Build user_data from current-session storage values.
+          // For Klarna payments klarnaFormData holds the full billing form.
+          // For Stripe/Apple/Google Pay only email and phone are available.
           const klarnaRaw = localStorage.getItem("klarnaFormData");
           const klarnaUser = klarnaRaw
             ? (() => {
@@ -184,40 +177,33 @@ const ApplicationStepPaymentSuccessPage = () => {
               })()
             : null;
 
-          const purchaseUserEmail =
-            klarnaUser?.email ||
-            localStorageGateway("userEmail", localStorageEnums.GET) ||
-            undefined;
-
-          const rawPhone =
-            klarnaUser?.phone ||
-            localStorageGateway("userPhone", localStorageEnums.GET) ||
-            undefined;
+          const purchaseUserData = buildGtmUserData({
+            email:
+              klarnaUser?.email ||
+              localStorageGateway("userEmail", localStorageEnums.GET) ||
+              undefined,
+            phone:
+              klarnaUser?.phone ||
+              localStorageGateway("userPhone", localStorageEnums.GET) ||
+              undefined,
+            // Address fields are only available for Klarna (billing form).
+            firstName: klarnaUser?.firstName || undefined,
+            lastName: klarnaUser?.lastName || undefined,
+            street: klarnaUser?.address || undefined,
+            city: klarnaUser?.city || undefined,
+            postalCode: klarnaUser?.postalCode || undefined,
+            country: klarnaUser?.country || undefined,
+          });
 
           window.dataLayer.push({
             event: "purchase",
-            user_data: {
-              email: purchaseUserEmail,
-              phone_number: normalizePhoneE164(rawPhone),
-              address: {
-                first_name:
-                  klarnaUser?.firstName ||
-                  localStorageGateway("userFirstName", localStorageEnums.GET) ||
-                  undefined,
-                last_name:
-                  klarnaUser?.lastName ||
-                  localStorageGateway("userLastName", localStorageEnums.GET) ||
-                  undefined,
-                street: klarnaUser?.address || undefined,
-                city: klarnaUser?.city || undefined,
-                postal_code: klarnaUser?.postalCode || undefined,
-                country: klarnaUser?.country || undefined,
-              },
-            },
+            ...(purchaseUserData && { user_data: purchaseUserData }),
             ecommerce: {
               transaction_id: finalApplicationId || `TXN_${Date.now()}`,
               affiliation: "NUvisa Online",
               value: Number(transactionValue.toFixed(2)),
+              tax: 0,
+              shipping: 0,
               currency: "GBP",
               payment_type: ga4PaymentType,
               coupon: baseCode,
@@ -228,18 +214,20 @@ const ApplicationStepPaymentSuccessPage = () => {
 
         await updateVisaApplication(token, updatePayload);
 
-        // ✅ Clean up tracking keys after purchase fires — prevent stale data on next session
+        // ✅ Clean up all user-identity tracking keys after purchase fires.
         try {
-          // Remove phone + Klarna form data (one-time use)
           localStorageGateway("userPhone", localStorageEnums.DELETE);
+          localStorageGateway("userFirstName", localStorageEnums.DELETE);
+          localStorageGateway("userLastName", localStorageEnums.DELETE);
           localStorage.removeItem("klarnaFormData");
+          sessionStorage.removeItem("klarnaFormDataSet");
 
           // Remove GA4-specific tracking keys written by StickyBottomBar
           localStorage.removeItem("saved_ga4_insurance_count");
           localStorage.removeItem("saved_ga4_coupon");
 
-          // Note: userEmail, userFirstName, userLastName are intentionally kept —
-          // OrderCheckout pre-fills from them, which is existing desired behaviour.
+          // userEmail is kept so OrderCheckout can pre-fill the contact
+          // form on the user's next visit (always visible / editable).
         } catch {}
 
         setTimeout(() => {

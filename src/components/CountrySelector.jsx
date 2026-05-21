@@ -11,6 +11,7 @@ import {
   setTravelers,
 } from "@/store/visaSlice";
 import { getCountryConfig } from "@/constants/countryConfig";
+import { resolveCoupon } from "@/utils/gtmUserData";
 
 export const schengenCountries = [
   { name: "Austria", code: "at" },
@@ -66,14 +67,7 @@ export default function CountrySelector() {
         localStorage.getItem("saved_ga4_coupon") ||
         undefined;
 
-      // ✅ FIX 2: only push GROUP20 if it is the actual active applied code
-      const resolveCoupon = (qualifies) => {
-        const codes = [];
-        if (qualifies && baseCode === "GROUP20") codes.push("GROUP20");
-        if (baseCode && baseCode !== "GROUP20") codes.push(baseCode);
-        return codes.length > 0 ? codes.join(",") : undefined;
-      };
-      const vCoupon = resolveCoupon(currentTravelers >= 3);
+      const vCoupon = resolveCoupon(currentTravelers >= 3, baseCode);
 
       const vItem = {
         item_id: `visa_${countryName.toLowerCase().replace(/\s+/g, "_")}`,
