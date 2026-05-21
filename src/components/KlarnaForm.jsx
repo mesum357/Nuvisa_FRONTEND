@@ -47,6 +47,8 @@ const KlarnaForm = ({
   onSuccess,
   onError,
   onSubmittingChange,
+  /** Called with live billing form data before the Stripe redirect fires. */
+  onAddPaymentInfo,
 }) => {
   const [formData, setFormData] = useState({
     firstName: "",
@@ -101,8 +103,26 @@ const KlarnaForm = ({
         ...formData,
       };
 
-      // Store in localStorage for potential use
+      // Store in localStorage for success-page purchase event, and mark it as
+      // current-session so buildUserData() knows it is not stale.
       localStorage.setItem("klarnaFormData", JSON.stringify(klarnaData));
+      try {
+        sessionStorage.setItem("klarnaFormDataSet", "1");
+      } catch {}
+
+      // Fire add_payment_info GTM event with the real, validated billing data.
+      if (onAddPaymentInfo) {
+        onAddPaymentInfo({
+          email,
+          phone: formData.phone,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          street: formData.address,
+          city: formData.city,
+          postalCode: formData.postalCode,
+          country: formData.country,
+        });
+      }
 
       // Determine currency based on country for Klarna
       // Klarna is only available for certain countries/currencies

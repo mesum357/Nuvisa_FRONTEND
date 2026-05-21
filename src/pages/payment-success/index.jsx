@@ -15,6 +15,7 @@ import { createApplication } from "@/api/visa";
 import { createOrUpdateApplication } from "@/api/visaApplications";
 import { localStorageEnums } from "@/enums/localstorage.enums";
 import { localStorageGateway } from "@/gateways/localStoragegateway";
+import { buildGtmUserData, normalizePhoneE164, resolveCoupon, computeCouponDiscountPerUnit } from "@/utils/gtmUserData";
 import { decrementExpertSpotsOnSuccessfulCheckout } from "@/utils/expertSpots";
 import { redeemGiftCardCode } from "@/api/giftCard";
 import {
@@ -80,7 +81,7 @@ const PaymentSuccess = () => {
       await localStorageGateway(
         "user",
         localStorageEnums.SET,
-        JSON.stringify(user)
+        JSON.stringify(user),
       );
       if (user.id) {
         dispatch(setAuthId(user.id));
@@ -143,7 +144,7 @@ const PaymentSuccess = () => {
           sessionStorage.removeItem("nuvisa.klarnaPaymentSucceeded");
         } catch {}
         console.log(
-          "[PaymentSuccess] Klarna payment not completed (redirect_status) — checkout"
+          "[PaymentSuccess] Klarna payment not completed (redirect_status) — checkout",
         );
         redirectToCheckout();
         return;
@@ -165,7 +166,7 @@ const PaymentSuccess = () => {
 
           console.log(
             "[PaymentSuccess] Klarna redirect outcome:",
-            klarnaOutcome
+            klarnaOutcome,
           );
 
           if (!klarnaOutcome.succeeded) {
@@ -175,7 +176,7 @@ const PaymentSuccess = () => {
             } catch {}
             console.error(
               "[PaymentSuccess] Klarna verification failed — redirecting to /visa-checkout",
-              klarnaOutcome
+              klarnaOutcome,
             );
             redirectToCheckout();
             return;
@@ -186,7 +187,7 @@ const PaymentSuccess = () => {
             sessionStorage.setItem("nuvisa.klarnaPaymentSucceeded", "1");
           } catch {}
           console.log(
-            "[PaymentSuccess] Klarna succeeded — continuing application flow"
+            "[PaymentSuccess] Klarna succeeded — continuing application flow",
           );
         }
 
@@ -210,7 +211,7 @@ const PaymentSuccess = () => {
         if (!paymentTypeParam || !applicationId) {
           try {
             const storedMetadata = localStorage.getItem(
-              "insurancePaymentMetadata"
+              "insurancePaymentMetadata",
             );
             if (storedMetadata) {
               const metadata = JSON.parse(storedMetadata);
@@ -313,7 +314,7 @@ const PaymentSuccess = () => {
                     orderId: usedStoredInsuranceMetadata?.orderId,
                     sessionId: stripePaymentIdEarly,
                   }),
-                }
+                },
               );
             } catch (error) {
               console.error("Insurance payment update failed:", error);
@@ -345,7 +346,7 @@ const PaymentSuccess = () => {
                   amount: currentData.totalAmount,
                   sessionId: sessionId,
                 }),
-              }
+              },
             );
           } catch (error) {
             console.error("Error updating payment status:", error);
@@ -353,7 +354,7 @@ const PaymentSuccess = () => {
 
           if (finalApplicationId) {
             router.replace(
-              `/application-step/?application_id=${finalApplicationId}`
+              `/application-step/?application_id=${finalApplicationId}`,
             );
           }
           return;
@@ -388,8 +389,8 @@ const PaymentSuccess = () => {
               `${
                 process.env.NEXT_PUBLIC_API_URL
               }/stripe_payment/session-metadata?payment_id=${encodeURIComponent(
-                stripePaymentId
-              )}`
+                stripePaymentId,
+              )}`,
             );
             const json = await res.json();
             const meta =
@@ -409,7 +410,7 @@ const PaymentSuccess = () => {
         const resolvedCountry = resolveVisaCountryName(
           sessionMetadata.country ||
             currentData.selectedCountry ||
-            currentData.paymentMetadata?.country
+            currentData.paymentMetadata?.country,
         );
 
         const mergedData = {
@@ -543,7 +544,7 @@ const PaymentSuccess = () => {
                   (
                     Number(mergedData?.amountWithDiscount || 149) /
                     numberOfTravelers
-                  ).toFixed(2)
+                  ).toFixed(2),
                 ) || 0,
               paymentDate: new Date().toISOString(),
               paymentMethod: "stripe",
@@ -551,7 +552,7 @@ const PaymentSuccess = () => {
               insuranceType: hasInsurance ? "purchase" : "none",
               paidInCheckout: isCheckoutPayment,
             },
-          })
+          }),
         );
 
         const applicationPayload = {
@@ -624,7 +625,7 @@ const PaymentSuccess = () => {
                     amount: postAmount,
                     orderId: postOrderId,
                   }),
-                }
+                },
               );
 
               await createOrUpdateApplication("", {
@@ -640,7 +641,7 @@ const PaymentSuccess = () => {
                           insurancePaymentCompleted: true,
                         },
                       }
-                    : traveler
+                    : traveler,
                 ),
                 insurancePaymentCompleted: true,
               });
@@ -657,7 +658,7 @@ const PaymentSuccess = () => {
                     amount: postAmount,
                     orderId: postOrderId,
                   }),
-                }
+                },
               );
 
               await createOrUpdateApplication("", {
@@ -671,13 +672,13 @@ const PaymentSuccess = () => {
           } catch (error) {
             console.error(
               "Error updating traveler/application insurance:",
-              error
+              error,
             );
           }
 
           setTimeout(() => {
             router.replace(
-              `/application-step/?application_id=${finalApplicationId}`
+              `/application-step/?application_id=${finalApplicationId}`,
             );
           }, 2000);
           return;
@@ -688,7 +689,7 @@ const PaymentSuccess = () => {
         }
 
         const pendingGiftCards = (visaState.redeemedGiftCards || []).filter(
-          (card) => card.pendingRedeem
+          (card) => card.pendingRedeem,
         );
         if (pendingGiftCards.length > 0 && mergedData.email) {
           for (const card of pendingGiftCards) {
@@ -697,7 +698,7 @@ const PaymentSuccess = () => {
             } catch (redeemErr) {
               console.error(
                 "Gift card redeem after payment failed:",
-                redeemErr
+                redeemErr,
               );
             }
           }
@@ -717,6 +718,8 @@ const PaymentSuccess = () => {
               visaState.appliedDiscount?.code ||
               localStorage.getItem("saved_ga4_coupon") ||
               undefined;
+            const hasCoupon = !!baseCode;
+            const couponAppliedDiscount = visaState.appliedDiscount || null;
 
             const countryName = mergedData.selectedCountry || "Schengen";
 
@@ -725,16 +728,16 @@ const PaymentSuccess = () => {
               Number(mergedData?.storedMetadata?.insuranceCount) > 0
                 ? Number(mergedData.storedMetadata.insuranceCount)
                 : Number(mergedData?.insuranceCount) > 0
-                ? Number(mergedData.insuranceCount)
-                : Number(visaState.insuranceCount) > 0 // ← ADDED: Redux fallback
-                ? Number(visaState.insuranceCount)
-                : hasInsurance && Number(mergedData.insurancePayment) > 0
-                ? 1
-                : 0;
+                  ? Number(mergedData.insuranceCount)
+                  : Number(visaState.insuranceCount) > 0 // ← ADDED: Redux fallback
+                    ? Number(visaState.insuranceCount)
+                    : hasInsurance && Number(mergedData.insurancePayment) > 0
+                      ? 1
+                      : 0;
 
             const giftCardCount = Math.max(
               Number(visaState.giftCardCount || 0),
-              0
+              0,
             );
 
             // effectiveInsCount is only used for GROUP20 coupon threshold — safe to cap at travelers
@@ -742,13 +745,6 @@ const PaymentSuccess = () => {
               numberOfTravelers > 0
                 ? Math.min(insCount, numberOfTravelers)
                 : insCount;
-
-            const resolveCoupon = (qualifies) => {
-              const codes = [];
-              if (qualifies && baseCode === "GROUP20") codes.push("GROUP20");
-              if (baseCode && baseCode !== "GROUP20") codes.push(baseCode);
-              return codes.length > 0 ? codes.join(",") : undefined;
-            };
 
             const purchaseItems = [];
 
@@ -760,15 +756,21 @@ const PaymentSuccess = () => {
                   .toLowerCase()
                   .replace(/\s+/g, "_")}`,
                 item_name: `Visa - ${countryName}`,
+                item_category: "Schengen Visa",
+                item_brand: "NUvisa",
                 price: Number((visaTotal / numberOfTravelers).toFixed(2)),
                 quantity: numberOfTravelers,
               };
-              const vCoupon = resolveCoupon(numberOfTravelers >= 3);
+              const vCoupon = resolveCoupon(numberOfTravelers >= 3, baseCode);
               if (vCoupon) vItem.coupon = vCoupon;
+              const vDiscount = hasCoupon
+                ? computeCouponDiscountPerUnit(visaTotal, numberOfTravelers, couponAppliedDiscount)
+                : 0;
+              if (vDiscount > 0) vItem.discount = vDiscount;
               purchaseItems.push(vItem);
             }
 
-            // Insurance item — quantity and price now both derived from insCount, never travelers
+            // Insurance item — quantity and price both derived from insCount, never travelers
             if (
               hasInsurance &&
               Number(mergedData.insurancePayment) > 0 &&
@@ -778,11 +780,17 @@ const PaymentSuccess = () => {
               const iItem = {
                 item_id: "insurance_certificate",
                 item_name: "Insurance Certificate",
-                price: Number((insuranceTotal / insCount).toFixed(2)), // ✅ correct unit price
-                quantity: insCount, // ✅ correct quantity
+                item_category: "Insurance",
+                item_brand: "NUvisa",
+                price: Number((insuranceTotal / insCount).toFixed(2)),
+                quantity: insCount,
               };
-              const iCoupon = resolveCoupon(effectiveInsCount >= 3);
+              const iCoupon = resolveCoupon(effectiveInsCount >= 3, baseCode);
               if (iCoupon) iItem.coupon = iCoupon;
+              const iDiscount = hasCoupon
+                ? computeCouponDiscountPerUnit(insuranceTotal, insCount, couponAppliedDiscount)
+                : 0;
+              if (iDiscount > 0) iItem.discount = iDiscount;
               purchaseItems.push(iItem);
             }
 
@@ -792,11 +800,15 @@ const PaymentSuccess = () => {
               const gItem = {
                 item_id: "digital_gift_card",
                 item_name: GIFT_CARD_PRODUCT_NAME,
+                item_category: "Gift Card",
+                item_brand: "NUvisa",
                 price: Number((giftCardTotal / giftCardCount).toFixed(2)),
                 quantity: giftCardCount,
               };
-              const gCoupon = resolveCoupon(giftCardCount >= 3);
+              const gCoupon = resolveCoupon(giftCardCount >= 3, baseCode || (giftCardCount >= 3 ? "GROUP20" : undefined));
               if (gCoupon) gItem.coupon = gCoupon;
+              const gDiscount = computeCouponDiscountPerUnit(giftCardTotal, giftCardCount, couponAppliedDiscount || (giftCardCount >= 3 ? { code: "GROUP20", percentage: 20 } : null));
+              if (gDiscount > 0) gItem.discount = gDiscount;
               purchaseItems.push(gItem);
             }
 
@@ -809,21 +821,9 @@ const PaymentSuccess = () => {
               sessionStorage.removeItem("ga4_payment_type");
             } catch {}
 
-            // ✅ Read user_data from localStorage (same pattern as token/insurancePaymentMetadata)
-            // E.164 normalizer (same helper — put in a shared util ideally)
-            const normalizePhoneE164 = (rawPhone) => {
-              if (!rawPhone) return undefined;
-              const digits = String(rawPhone).replace(/\D/g, "");
-              if (!digits) return undefined;
-              if (digits.startsWith("44") && digits.length >= 12)
-                return `+${digits}`;
-              if (digits.length === 11 && digits.startsWith("0"))
-                return `+44${digits.slice(1)}`;
-              if (digits.length === 10) return `+44${digits}`;
-              if (digits.length > 10) return `+${digits}`;
-              return undefined;
-            };
-
+            // Build user_data from current-session localStorage values.
+            // For Klarna payments klarnaFormData holds the full billing form.
+            // For Stripe/Apple/Google Pay only email and phone are available.
             const klarnaRaw = localStorage.getItem("klarnaFormData");
             const klarnaUser = klarnaRaw
               ? (() => {
@@ -835,46 +835,36 @@ const PaymentSuccess = () => {
                 })()
               : null;
 
-            const purchaseUserEmail =
-              klarnaUser?.email ||
-              localStorageGateway("userEmail", localStorageEnums.GET) ||
-              undefined;
-
-            const rawPhone =
-              klarnaUser?.phone ||
-              localStorageGateway("userPhone", localStorageEnums.GET) ||
-              undefined;
-
-            // Always build address — use Klarna fields if available,
-            // fall back to individually stored name fields for Stripe/Apple/Google Pay
-            const purchaseUserAddress = {
-              first_name:
-                klarnaUser?.firstName ||
-                localStorageGateway("userFirstName", localStorageEnums.GET) ||
+            const purchaseUserData = buildGtmUserData({
+              email:
+                klarnaUser?.email ||
+                localStorageGateway("userEmail", localStorageEnums.GET) ||
                 undefined,
-              last_name:
-                klarnaUser?.lastName ||
-                localStorageGateway("userLastName", localStorageEnums.GET) ||
+              phone:
+                klarnaUser?.phone ||
+                localStorageGateway("userPhone", localStorageEnums.GET) ||
                 undefined,
+              // Address fields are only available for Klarna (billing form).
+              firstName: klarnaUser?.firstName || undefined,
+              lastName: klarnaUser?.lastName || undefined,
               street: klarnaUser?.address || undefined,
               city: klarnaUser?.city || undefined,
-              postal_code: klarnaUser?.postalCode || undefined,
+              postalCode: klarnaUser?.postalCode || undefined,
               country: klarnaUser?.country || undefined,
-            };
+            });
 
             window.dataLayer.push({
               event: "purchase",
-              user_data: {
-                email: purchaseUserEmail,
-                phone_number: normalizePhoneE164(rawPhone),
-                address: purchaseUserAddress, // ← always present, never conditionally omitted
-              },
+              ...(purchaseUserData && { user_data: purchaseUserData }),
               ecommerce: {
                 transaction_id:
                   stripePaymentId ||
                   applicationResponse?.data?.data?.results?.application?.id ||
                   `TXN_${Date.now()}`,
+                affiliation: "NUvisa Online",
                 value: Number(Number(mergedData.totalAmount || 0).toFixed(2)),
+                tax: 0,
+                shipping: 0,
                 currency: "GBP",
                 payment_type: ga4PaymentType,
                 coupon: baseCode,
@@ -883,24 +873,26 @@ const PaymentSuccess = () => {
             });
           }
 
-          // ✅ Clean up tracking keys after purchase fires — prevent stale data on next session
+          // ✅ Clean up all user-identity tracking keys after purchase fires.
           try {
-            // Remove phone + Klarna form data (one-time use)
             localStorageGateway("userPhone", localStorageEnums.DELETE);
+            localStorageGateway("userFirstName", localStorageEnums.DELETE);
+            localStorageGateway("userLastName", localStorageEnums.DELETE);
             localStorage.removeItem("klarnaFormData");
+            sessionStorage.removeItem("klarnaFormDataSet");
 
             // Remove GA4-specific tracking keys written by StickyBottomBar
             localStorage.removeItem("saved_ga4_insurance_count");
             localStorage.removeItem("saved_ga4_coupon");
 
-            // Note: userEmail, userFirstName, userLastName are intentionally kept —
-            // OrderCheckout pre-fills from them, which is existing desired behaviour.
+            // userEmail is kept so OrderCheckout can pre-fill the contact
+            // form on the user's next visit (always visible / editable).
           } catch {}
 
           setTimeout(() => {
             router.replace(
               "/application-step/?application_id=" +
-                applicationResponse?.data?.data?.results?.application?.id
+                applicationResponse?.data?.data?.results?.application?.id,
             );
           }, 2000);
         } else {
@@ -910,7 +902,7 @@ const PaymentSuccess = () => {
       } catch (error) {
         console.error(
           "Error storing payment data or creating application:",
-          error
+          error,
         );
         setTimeout(() => {
           if (
@@ -1033,8 +1025,8 @@ const PaymentSuccess = () => {
           {pagePhase === "creating_application"
             ? "Creating your visa application.."
             : pagePhase === "redirecting_checkout"
-            ? "Returning to checkout..."
-            : "Confirming your payment..."}
+              ? "Returning to checkout..."
+              : "Confirming your payment..."}
         </p>
       </div>
     </div>

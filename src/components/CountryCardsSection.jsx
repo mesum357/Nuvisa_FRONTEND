@@ -23,6 +23,7 @@ import { staticCountries } from "@/constants/staticCountries";
 import Link from "next/link";
 import { getAdminApiBase } from "@/utils/adminApiBase";
 import { DEFAULT_OCCASIONS } from "@/constants/defaultOccasions";
+import { resolveCoupon } from "@/utils/gtmUserData";
 
 const REQUIRED_DOCUMENTS_CTA_TEXT = "Check Required Documents";
 
@@ -71,7 +72,7 @@ const CountryCardsSection = ({
       String(value || "")
         .trim()
         .toLowerCase(),
-    []
+    [],
   );
 
   // 1. Move this UP here so the function below can see it!
@@ -105,20 +106,7 @@ const CountryCardsSection = ({
           localStorage.getItem("saved_ga4_coupon") ||
           undefined;
 
-        // const resolveCoupon = (qualifies) => {
-        //   const codes = [];
-        //   if (qualifies) codes.push("GROUP20");
-        //   if (baseCode && baseCode !== "GROUP20") codes.push(baseCode);
-        //   return codes.length > 0 ? codes.join(",") : undefined;
-        // };
-        // ✅ FIXED — only push GROUP20 if it is the active applied code
-        const resolveCoupon = (qualifies) => {
-          const codes = [];
-          if (qualifies && baseCode === "GROUP20") codes.push("GROUP20");
-          if (baseCode && baseCode !== "GROUP20") codes.push(baseCode);
-          return codes.length > 0 ? codes.join(",") : undefined;
-        };
-        const vCoupon = resolveCoupon(currentTravelers >= 3);
+        const vCoupon = resolveCoupon(currentTravelers >= 3, baseCode);
 
         // ✅ Apply discount to unit price so view_item reflects what the user sees
         // const discountPercentage = visaState?.appliedDiscount?.percentage || 0;
@@ -133,8 +121,8 @@ const CountryCardsSection = ({
           appliedCode === "GROUP20" && currentTravelers >= 3
             ? 20
             : appliedCode === "STUDENT10"
-            ? visaState?.appliedDiscount?.percentage || 10
-            : 0;
+              ? visaState?.appliedDiscount?.percentage || 10
+              : 0;
 
         const discountedVisaFee =
           discountPercentage > 0
@@ -178,10 +166,10 @@ const CountryCardsSection = ({
 
       router.push(
         `/get-the-visa?selectedCountry=${encodeURIComponent(
-          countryName
+          countryName,
         )}&visaFees=${finalVisaFee}&insuranceFees=${
           countryConfig.insuranceFee
-        }&travelers=${currentTravelerCount}`
+        }&travelers=${currentTravelerCount}`,
       );
     },
     [
@@ -191,7 +179,7 @@ const CountryCardsSection = ({
       router,
       countryPricingLookup,
       normalizeCountryKey,
-    ]
+    ],
   );
 
   const [dynamicSection, setDynamicSection] = useState(null);
@@ -241,7 +229,7 @@ const CountryCardsSection = ({
               setOccasions(occResult.data.occasions);
             } else {
               const fallbackRes = await fetch(
-                `/api/country-section?t=${Date.now()}`
+                `/api/country-section?t=${Date.now()}`,
               );
               if (fallbackRes.ok) {
                 const fallbackJson = await fallbackRes.json();
@@ -253,7 +241,7 @@ const CountryCardsSection = ({
             }
           } else {
             const fallbackRes = await fetch(
-              `/api/country-section?t=${Date.now()}`
+              `/api/country-section?t=${Date.now()}`,
             );
             if (fallbackRes.ok) {
               const fallbackJson = await fallbackRes.json();
@@ -297,7 +285,7 @@ const CountryCardsSection = ({
         setIsVisaPricingLoading(true);
         const apiBase = String(process.env.NEXT_PUBLIC_API_URL || "").replace(
           /\/+$/,
-          ""
+          "",
         );
         const adminBase = getAdminApiBase();
         const candidates = [
@@ -340,7 +328,7 @@ const CountryCardsSection = ({
             basePrice: Number(item?.basePrice),
           }))
           .filter(
-            (item) => item.id && item.name && Number.isFinite(item.basePrice)
+            (item) => item.id && item.name && Number.isFinite(item.basePrice),
           );
 
         setCountryPricingList(normalized);
@@ -379,7 +367,7 @@ const CountryCardsSection = ({
     if (appointmentTexts && appointmentTexts.length > 0) {
       const recordWithSectionContent =
         appointmentTexts.find(
-          (record) => record.sectionTitle && record.sectionDescription
+          (record) => record.sectionTitle && record.sectionDescription,
         ) || appointmentTexts[0];
 
       setSectionContent({
@@ -410,7 +398,7 @@ const CountryCardsSection = ({
       // Merge dynamic items with rich data from hookCountries (especially images)
       return dynamicSection.countries.map((dynCountry) => {
         const richMatch = hookCountries.find(
-          (h) => h.name.toLowerCase() === dynCountry.name.toLowerCase()
+          (h) => h.name.toLowerCase() === dynCountry.name.toLowerCase(),
         );
         return {
           ...richMatch,
@@ -488,7 +476,7 @@ const CountryCardsSection = ({
     let monthIndex = monthNames.findIndex((m) => title.includes(m));
     if (monthIndex === -1)
       monthIndex = monthShort.findIndex(
-        (m) => title === m || title.startsWith(m + " ")
+        (m) => title === m || title.startsWith(m + " "),
       );
     if (monthIndex !== -1) {
       let year = currentYear;
@@ -506,7 +494,7 @@ const CountryCardsSection = ({
       const lastDay = new Date(year, monthIndex + 1, 0).getDate();
       const departure = `${year}-${String(monthIndex + 1).padStart(
         2,
-        "0"
+        "0",
       )}-${String(lastDay).padStart(2, "0")}`;
       return { arrivalDate: arrival, departureDate: departure };
     }
@@ -624,15 +612,15 @@ const CountryCardsSection = ({
                 {dynamicSection
                   ? dynamicSection.title
                   : image
-                  ? "Everyday Steals"
-                  : sectionContent.title}
+                    ? "Everyday Steals"
+                    : sectionContent.title}
               </h3>
               <p className="text-xs opacity-90">
                 {dynamicSection
                   ? dynamicSection.description
                   : image
-                  ? "Best deals on flights and hotels"
-                  : sectionContent.description}
+                    ? "Best deals on flights and hotels"
+                    : sectionContent.description}
               </p>
             </div>
           </div>
@@ -651,7 +639,7 @@ const CountryCardsSection = ({
                     const occasionName = occ.title || "Occasion";
                     const currentTravelers = Math.max(
                       Number(visaState?.travelers || 1),
-                      1
+                      1,
                     );
 
                     // 🌟 FIXED: Use strictly verified coupon with local storage fallback
@@ -660,23 +648,7 @@ const CountryCardsSection = ({
                       localStorage.getItem("saved_ga4_coupon") ||
                       undefined;
 
-                    // const resolveCoupon = (qualifies) => {
-                    //   const codes = [];
-                    //   if (qualifies) codes.push("GROUP20");
-                    //   if (baseCode && baseCode !== "GROUP20")
-                    //     codes.push(baseCode);
-                    //   return codes.length > 0 ? codes.join(",") : undefined;
-                    // };
-                    // ✅ FIXED — only push GROUP20 if it is the active applied code
-                    const resolveCoupon = (qualifies) => {
-                      const codes = [];
-                      if (qualifies && baseCode === "GROUP20")
-                        codes.push("GROUP20");
-                      if (baseCode && baseCode !== "GROUP20")
-                        codes.push(baseCode);
-                      return codes.length > 0 ? codes.join(",") : undefined;
-                    };
-                    const vCoupon = resolveCoupon(currentTravelers >= 3);
+                    const vCoupon = resolveCoupon(currentTravelers >= 3, baseCode);
 
                     // ✅ Apply discount to unit price so view_item reflects what the user sees
                     // const discountPercentage =
@@ -692,10 +664,17 @@ const CountryCardsSection = ({
                       appliedCode === "GROUP20" && currentTravelers >= 3
                         ? 20
                         : appliedCode === "STUDENT10"
-                        ? visaState?.appliedDiscount?.percentage || 10
-                        : 0;
+                          ? visaState?.appliedDiscount?.percentage || 10
+                          : 0;
 
-                    ///////
+                    const discountedPrice =
+                      discountPercentage > 0
+                        ? price * (1 - discountPercentage / 100)
+                        : price;
+
+                    const discountAmountPerUnit = Number(
+                      (price - discountedPrice).toFixed(2),
+                    );
 
                     const vItem = {
                       item_id: `visa_${occasionName
@@ -704,9 +683,11 @@ const CountryCardsSection = ({
                       item_name: `Visa - ${occasionName}`,
                       item_category: "Schengen Visa",
                       item_brand: "NUvisa",
-                      price: Number(discountedPrice.toFixed(2)), // ✅ discounted unit price
+                      price: Number(discountedPrice.toFixed(2)),
                       quantity: currentTravelers,
                     };
+                    if (discountAmountPerUnit > 0)
+                      vItem.discount = discountAmountPerUnit;
 
                     if (vCoupon) vItem.coupon = vCoupon;
 
@@ -716,7 +697,7 @@ const CountryCardsSection = ({
                       ecommerce: {
                         currency: "GBP",
                         value: Number(
-                          (discountedPrice * currentTravelers).toFixed(2)
+                          (discountedPrice * currentTravelers).toFixed(2),
                         ), // 🌟 FIXED: Multiplied unit price by quantity for true value
                         coupon: baseCode, // 🌟 FIXED: Mapped configuration level coupon tracking
                         items: [vItem],
