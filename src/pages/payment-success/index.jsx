@@ -714,106 +714,6 @@ const PaymentSuccess = () => {
         ) {
           // 🔥 GTM: FIRE PURCHASE EVENT 🔥
           if (typeof window !== "undefined" && window.dataLayer) {
-            const baseCode =
-              visaState.appliedDiscount?.code ||
-              localStorage.getItem("saved_ga4_coupon") ||
-              undefined;
-            const hasCoupon = !!baseCode;
-            const couponAppliedDiscount = visaState.appliedDiscount || null;
-
-            const countryName = mergedData.selectedCountry || "Schengen";
-
-            // ✅ FIXED: Never fall back to traveler count for insurance quantity
-            const insCount =
-              Number(mergedData?.storedMetadata?.insuranceCount) > 0
-                ? Number(mergedData.storedMetadata.insuranceCount)
-                : Number(mergedData?.insuranceCount) > 0
-                  ? Number(mergedData.insuranceCount)
-                  : Number(visaState.insuranceCount) > 0 // ← ADDED: Redux fallback
-                    ? Number(visaState.insuranceCount)
-                    : hasInsurance && Number(mergedData.insurancePayment) > 0
-                      ? 1
-                      : 0;
-
-            const giftCardCount = Math.max(
-              Number(visaState.giftCardCount || 0),
-              0,
-            );
-
-            // effectiveInsCount is only used for GROUP20 coupon threshold — safe to cap at travelers
-            const effectiveInsCount =
-              numberOfTravelers > 0
-                ? Math.min(insCount, numberOfTravelers)
-                : insCount;
-
-            const purchaseItems = [];
-
-            // Visa item
-            if (numberOfTravelers > 0) {
-              const visaTotal = Number(mergedData.paymentWithoutInsurance) || 0;
-              const vItem = {
-                item_id: `visa_${countryName
-                  .toLowerCase()
-                  .replace(/\s+/g, "_")}`,
-                item_name: `Visa - ${countryName}`,
-                item_category: "Schengen Visa",
-                item_brand: "NUvisa",
-                price: Number((visaTotal / numberOfTravelers).toFixed(2)),
-                quantity: numberOfTravelers,
-              };
-              const vCoupon = resolveCoupon(numberOfTravelers >= 3, baseCode);
-              if (vCoupon) vItem.coupon = vCoupon;
-              const vDiscount = hasCoupon
-                ? computeCouponDiscountPerUnit(visaTotal, numberOfTravelers, couponAppliedDiscount)
-                : 0;
-              if (vDiscount > 0) vItem.discount = vDiscount;
-              purchaseItems.push(vItem);
-            }
-
-            // Insurance item — quantity and price both derived from insCount, never travelers
-            if (
-              hasInsurance &&
-              Number(mergedData.insurancePayment) > 0 &&
-              insCount > 0
-            ) {
-              const insuranceTotal = Number(mergedData.insurancePayment) || 0;
-              const iItem = {
-                item_id: "insurance_certificate",
-                item_name: "Insurance Certificate",
-                item_category: "Insurance",
-                item_brand: "NUvisa",
-                price: Number((insuranceTotal / insCount).toFixed(2)),
-                quantity: insCount,
-              };
-              const iCoupon = resolveCoupon(effectiveInsCount >= 3, baseCode);
-              if (iCoupon) iItem.coupon = iCoupon;
-              const iDiscount = hasCoupon
-                ? computeCouponDiscountPerUnit(insuranceTotal, insCount, couponAppliedDiscount)
-                : 0;
-              if (iDiscount > 0) iItem.discount = iDiscount;
-              purchaseItems.push(iItem);
-            }
-
-            // Gift card item
-            if (giftCardCount > 0) {
-              const giftCardTotal = Number(visaState.giftCardFees) || 0;
-              const gItem = {
-                item_id: "digital_gift_card",
-                item_name: GIFT_CARD_PRODUCT_NAME,
-                item_category: "Gift Card",
-                item_brand: "NUvisa",
-                price: Number((giftCardTotal / giftCardCount).toFixed(2)),
-                quantity: giftCardCount,
-              };
-              const gCoupon = resolveCoupon(giftCardCount >= 3, baseCode || (giftCardCount >= 3 ? "GROUP20" : undefined));
-              if (gCoupon) gItem.coupon = gCoupon;
-              const gDiscount = computeCouponDiscountPerUnit(giftCardTotal, giftCardCount, couponAppliedDiscount || (giftCardCount >= 3 ? { code: "GROUP20", percentage: 20 } : null));
-              if (gDiscount > 0) gItem.discount = gDiscount;
-              purchaseItems.push(gItem);
-            }
-
-            window.dataLayer.push({ ecommerce: null });
-
             const ga4PaymentType =
               sessionStorage.getItem("ga4_payment_type") ||
               (isKlarnaRedirect ? "Klarna" : "Credit Card");
@@ -821,56 +721,164 @@ const PaymentSuccess = () => {
               sessionStorage.removeItem("ga4_payment_type");
             } catch {}
 
-            // Build user_data from current-session localStorage values.
-            // For Klarna payments klarnaFormData holds the full billing form.
-            // For Stripe/Apple/Google Pay only email and phone are available.
-            const klarnaRaw = localStorage.getItem("klarnaFormData");
-            const klarnaUser = klarnaRaw
-              ? (() => {
-                  try {
-                    return JSON.parse(klarnaRaw);
-                  } catch {
-                    return null;
-                  }
-                })()
-              : null;
+            const transactionId =
+              stripePaymentId ||
+              applicationResponse?.data?.data?.results?.application?.id ||
+              `TXN_${Date.now()}`;
 
-            const purchaseUserData = buildGtmUserData({
-              email:
-                klarnaUser?.email ||
-                localStorageGateway("userEmail", localStorageEnums.GET) ||
-                undefined,
-              phone:
-                klarnaUser?.phone ||
-                localStorageGateway("userPhone", localStorageEnums.GET) ||
-                undefined,
-              // Address fields are only available for Klarna (billing form).
-              firstName: klarnaUser?.firstName || undefined,
-              lastName: klarnaUser?.lastName || undefined,
-              street: klarnaUser?.address || undefined,
-              city: klarnaUser?.city || undefined,
-              postalCode: klarnaUser?.postalCode || undefined,
-              country: klarnaUser?.country || undefined,
-            });
+            // Primary path: use the cart snapshot saved when add_payment_info fired.
+            // This guarantees purchase items/value/coupon exactly match add_payment_info.
+            let savedCart = null;
+            try {
+              const raw = sessionStorage.getItem("nuvisa.ga4PurchaseCart");
+              if (raw) {
+                savedCart = JSON.parse(raw);
+                // Remove immediately to prevent duplicate events on page refresh.
+                sessionStorage.removeItem("nuvisa.ga4PurchaseCart");
+              }
+            } catch {}
 
-            window.dataLayer.push({
-              event: "purchase",
-              ...(purchaseUserData && { user_data: purchaseUserData }),
-              ecommerce: {
-                transaction_id:
-                  stripePaymentId ||
-                  applicationResponse?.data?.data?.results?.application?.id ||
-                  `TXN_${Date.now()}`,
-                affiliation: "NUvisa Online",
-                value: Number(Number(mergedData.totalAmount || 0).toFixed(2)),
-                tax: 0,
-                shipping: 0,
-                currency: "GBP",
-                payment_type: ga4PaymentType,
-                coupon: baseCode,
-                items: purchaseItems,
-              },
-            });
+            if (savedCart?.ecommerce) {
+              window.dataLayer.push({ ecommerce: null });
+              window.dataLayer.push({
+                event: "purchase",
+                ...(savedCart.user_data && { user_data: savedCart.user_data }),
+                ecommerce: {
+                  ...savedCart.ecommerce,
+                  transaction_id: transactionId,
+                  affiliation: "NUvisa Online",
+                  payment_type: ga4PaymentType,
+                },
+              });
+            } else {
+              // Fallback: reconstruct from Redux/localStorage state when no snapshot
+              // is found (e.g. user opened the success URL in a new tab).
+              const baseCode =
+                visaState.appliedDiscount?.code ||
+                localStorage.getItem("saved_ga4_coupon") ||
+                undefined;
+              const hasCoupon = !!baseCode;
+              const couponAppliedDiscount = visaState.appliedDiscount || null;
+
+              const countryName = mergedData.selectedCountry || "Schengen";
+
+              const insCount =
+                Number(mergedData?.storedMetadata?.insuranceCount) > 0
+                  ? Number(mergedData.storedMetadata.insuranceCount)
+                  : Number(mergedData?.insuranceCount) > 0
+                    ? Number(mergedData.insuranceCount)
+                    : Number(visaState.insuranceCount) > 0
+                      ? Number(visaState.insuranceCount)
+                      : hasInsurance && Number(mergedData.insurancePayment) > 0
+                        ? 1
+                        : 0;
+
+              const giftCardCount = Math.max(
+                Number(visaState.giftCardCount || 0),
+                0,
+              );
+
+              const effectiveInsCount =
+                numberOfTravelers > 0
+                  ? Math.min(insCount, numberOfTravelers)
+                  : insCount;
+
+              const purchaseItems = [];
+
+              if (numberOfTravelers > 0) {
+                const visaTotal = Number(mergedData.paymentWithoutInsurance) || 0;
+                const vItem = {
+                  item_id: `visa_${countryName.toLowerCase().replace(/\s+/g, "_")}`,
+                  item_name: `Visa - ${countryName}`,
+                  item_category: "Schengen Visa",
+                  item_brand: "NUvisa",
+                  price: Number((visaTotal / numberOfTravelers).toFixed(2)),
+                  quantity: numberOfTravelers,
+                };
+                const vCoupon = resolveCoupon(numberOfTravelers >= 3, baseCode);
+                if (vCoupon) vItem.coupon = vCoupon;
+                const vDiscount = hasCoupon
+                  ? computeCouponDiscountPerUnit(visaTotal, numberOfTravelers, couponAppliedDiscount)
+                  : 0;
+                if (vDiscount > 0) vItem.discount = vDiscount;
+                purchaseItems.push(vItem);
+              }
+
+              if (hasInsurance && Number(mergedData.insurancePayment) > 0 && insCount > 0) {
+                const insuranceTotal = Number(mergedData.insurancePayment) || 0;
+                const iItem = {
+                  item_id: "insurance_certificate",
+                  item_name: "Insurance Certificate",
+                  item_category: "Insurance",
+                  item_brand: "NUvisa",
+                  price: Number((insuranceTotal / insCount).toFixed(2)),
+                  quantity: insCount,
+                };
+                const iCoupon = resolveCoupon(effectiveInsCount >= 3, baseCode);
+                if (iCoupon) iItem.coupon = iCoupon;
+                const iDiscount = hasCoupon
+                  ? computeCouponDiscountPerUnit(insuranceTotal, insCount, couponAppliedDiscount)
+                  : 0;
+                if (iDiscount > 0) iItem.discount = iDiscount;
+                purchaseItems.push(iItem);
+              }
+
+              if (giftCardCount > 0) {
+                const giftCardTotal = Number(visaState.giftCardFees) || 0;
+                const gItem = {
+                  item_id: "digital_gift_card",
+                  item_name: GIFT_CARD_PRODUCT_NAME,
+                  item_category: "Gift Card",
+                  item_brand: "NUvisa",
+                  price: Number((giftCardTotal / giftCardCount).toFixed(2)),
+                  quantity: giftCardCount,
+                };
+                const gCoupon = resolveCoupon(giftCardCount >= 3, baseCode || (giftCardCount >= 3 ? "GROUP20" : undefined));
+                if (gCoupon) gItem.coupon = gCoupon;
+                const gDiscount = computeCouponDiscountPerUnit(giftCardTotal, giftCardCount, couponAppliedDiscount || (giftCardCount >= 3 ? { code: "GROUP20", percentage: 20 } : null));
+                if (gDiscount > 0) gItem.discount = gDiscount;
+                purchaseItems.push(gItem);
+              }
+
+              const klarnaRaw = localStorage.getItem("klarnaFormData");
+              const klarnaUser = klarnaRaw
+                ? (() => { try { return JSON.parse(klarnaRaw); } catch { return null; } })()
+                : null;
+
+              const purchaseUserData = buildGtmUserData({
+                email:
+                  klarnaUser?.email ||
+                  localStorageGateway("userEmail", localStorageEnums.GET) ||
+                  undefined,
+                phone:
+                  klarnaUser?.phone ||
+                  localStorageGateway("userPhone", localStorageEnums.GET) ||
+                  undefined,
+                firstName: klarnaUser?.firstName || undefined,
+                lastName: klarnaUser?.lastName || undefined,
+                street: klarnaUser?.address || undefined,
+                city: klarnaUser?.city || undefined,
+                postalCode: klarnaUser?.postalCode || undefined,
+                country: klarnaUser?.country || undefined,
+              });
+
+              window.dataLayer.push({ ecommerce: null });
+              window.dataLayer.push({
+                event: "purchase",
+                ...(purchaseUserData && { user_data: purchaseUserData }),
+                ecommerce: {
+                  transaction_id: transactionId,
+                  affiliation: "NUvisa Online",
+                  value: Number(Number(mergedData.totalAmount || 0).toFixed(2)),
+                  tax: 0,
+                  shipping: 0,
+                  currency: "GBP",
+                  payment_type: ga4PaymentType,
+                  coupon: baseCode,
+                  items: purchaseItems,
+                },
+              });
+            }
           }
 
           // ✅ Clean up all user-identity tracking keys after purchase fires.

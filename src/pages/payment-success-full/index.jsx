@@ -157,8 +157,6 @@ const ApplicationStepPaymentSuccessPage = () => {
             purchaseItems.push(gItem);
           }
 
-          window.dataLayer.push({ ecommerce: null });
-
           const ga4PaymentType =
             sessionStorage.getItem("ga4_payment_type") ||
             (isInsuranceOnlyAddon ? "Credit Card" : "Credit Card - Visa");
@@ -166,60 +164,80 @@ const ApplicationStepPaymentSuccessPage = () => {
             sessionStorage.removeItem("ga4_payment_type");
           } catch {}
 
-          const transactionValue =
-            Number(insuranceMetadata?.insurancePaymentAmount) > 0
-              ? Number(insuranceMetadata.insurancePaymentAmount)
-              : Number(visaState.totalAmount) > 0
-              ? Number(visaState.totalAmount)
-              : 0;
+          const transactionId = finalApplicationId || `TXN_${Date.now()}`;
 
-          // Build user_data from current-session storage values.
-          // For Klarna payments klarnaFormData holds the full billing form.
-          // For Stripe/Apple/Google Pay only email and phone are available.
-          const klarnaRaw = localStorage.getItem("klarnaFormData");
-          const klarnaUser = klarnaRaw
-            ? (() => {
-                try {
-                  return JSON.parse(klarnaRaw);
-                } catch {
-                  return null;
-                }
-              })()
-            : null;
+          // Primary path: use the cart snapshot saved when add_payment_info fired.
+          // This guarantees purchase items/value/coupon exactly match add_payment_info.
+          let savedCart = null;
+          try {
+            const raw = sessionStorage.getItem("nuvisa.ga4PurchaseCart");
+            if (raw) {
+              savedCart = JSON.parse(raw);
+              // Remove immediately to prevent duplicate events on page refresh.
+              sessionStorage.removeItem("nuvisa.ga4PurchaseCart");
+            }
+          } catch {}
 
-          const purchaseUserData = buildGtmUserData({
-            email:
-              klarnaUser?.email ||
-              localStorageGateway("userEmail", localStorageEnums.GET) ||
-              undefined,
-            phone:
-              klarnaUser?.phone ||
-              localStorageGateway("userPhone", localStorageEnums.GET) ||
-              undefined,
-            // Address fields are only available for Klarna (billing form).
-            firstName: klarnaUser?.firstName || undefined,
-            lastName: klarnaUser?.lastName || undefined,
-            street: klarnaUser?.address || undefined,
-            city: klarnaUser?.city || undefined,
-            postalCode: klarnaUser?.postalCode || undefined,
-            country: klarnaUser?.country || undefined,
-          });
+          window.dataLayer.push({ ecommerce: null });
 
-          window.dataLayer.push({
-            event: "purchase",
-            ...(purchaseUserData && { user_data: purchaseUserData }),
-            ecommerce: {
-              transaction_id: finalApplicationId || `TXN_${Date.now()}`,
-              affiliation: "NUvisa Online",
-              value: Number(transactionValue.toFixed(2)),
-              tax: 0,
-              shipping: 0,
-              currency: "GBP",
-              payment_type: ga4PaymentType,
-              coupon: baseCode,
-              items: purchaseItems,
-            },
-          });
+          if (savedCart?.ecommerce) {
+            window.dataLayer.push({
+              event: "purchase",
+              ...(savedCart.user_data && { user_data: savedCart.user_data }),
+              ecommerce: {
+                ...savedCart.ecommerce,
+                transaction_id: transactionId,
+                affiliation: "NUvisa Online",
+                payment_type: ga4PaymentType,
+              },
+            });
+          } else {
+            // Fallback: reconstruct from metadata when no snapshot is found.
+            const transactionValue =
+              Number(insuranceMetadata?.insurancePaymentAmount) > 0
+                ? Number(insuranceMetadata.insurancePaymentAmount)
+                : Number(visaState.totalAmount) > 0
+                ? Number(visaState.totalAmount)
+                : 0;
+
+            const klarnaRaw = localStorage.getItem("klarnaFormData");
+            const klarnaUser = klarnaRaw
+              ? (() => { try { return JSON.parse(klarnaRaw); } catch { return null; } })()
+              : null;
+
+            const purchaseUserData = buildGtmUserData({
+              email:
+                klarnaUser?.email ||
+                localStorageGateway("userEmail", localStorageEnums.GET) ||
+                undefined,
+              phone:
+                klarnaUser?.phone ||
+                localStorageGateway("userPhone", localStorageEnums.GET) ||
+                undefined,
+              firstName: klarnaUser?.firstName || undefined,
+              lastName: klarnaUser?.lastName || undefined,
+              street: klarnaUser?.address || undefined,
+              city: klarnaUser?.city || undefined,
+              postalCode: klarnaUser?.postalCode || undefined,
+              country: klarnaUser?.country || undefined,
+            });
+
+            window.dataLayer.push({
+              event: "purchase",
+              ...(purchaseUserData && { user_data: purchaseUserData }),
+              ecommerce: {
+                transaction_id: transactionId,
+                affiliation: "NUvisa Online",
+                value: Number(transactionValue.toFixed(2)),
+                tax: 0,
+                shipping: 0,
+                currency: "GBP",
+                payment_type: ga4PaymentType,
+                coupon: baseCode,
+                items: purchaseItems,
+              },
+            });
+          }
         }
 
         await updateVisaApplication(token, updatePayload);

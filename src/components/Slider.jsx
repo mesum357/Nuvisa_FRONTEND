@@ -1335,7 +1335,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
         ecommerce: {
           currency: "GBP",
           value: Number((discountedUnitPrice * currentTravelers).toFixed(2)),
-          coupon: baseCode,
+          coupon: vCoupon,
           items: [vItem],
         },
       });
@@ -3353,13 +3353,20 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
             : 0) +
           (recommendedItems.giftCard ? discountedGiftCardPrice : 0);
 
+        const anyCartQualifies =
+          travelers >= 3 || effectiveInsCount >= 3 || giftCardCount >= 3;
+        const cartRootCoupon = resolveCoupon(
+          anyCartQualifies,
+          baseCode || (giftCardCount >= 3 ? "GROUP20" : undefined),
+        );
+
         window.dataLayer.push({ ecommerce: null });
         window.dataLayer.push({
           event: "add_to_cart",
           ecommerce: {
             currency: "GBP",
             value: Number(finalCartValue.toFixed(2)),
-            coupon: baseCode,
+            coupon: cartRootCoupon,
             items: cartItems,
           },
         });
@@ -5131,6 +5138,16 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                                   },
                                 );
 
+                                // GROUP20 only qualifies at root level when at least one item meets threshold
+                                const anyAppleQualifies =
+                                  travelers >= 3 ||
+                                  effectiveInsCount >= 3 ||
+                                  (expressPaymentData.includeGiftCard && giftCardCount >= 3);
+                                const appleRootCoupon = resolveCoupon(
+                                  anyAppleQualifies,
+                                  baseCode || (expressPaymentData.includeGiftCard && giftCardCount >= 3 ? "GROUP20" : undefined),
+                                );
+
                                 // begin_checkout fires immediately on Apple Pay click
                                 if (!hasTrackedBeginCheckoutRef.current) {
                                   hasTrackedBeginCheckoutRef.current = true;
@@ -5147,7 +5164,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                                       tax: 0,
                                       shipping: 0,
                                       payment_type: "Apple Pay",
-                                      coupon: baseCode,
+                                      coupon: appleRootCoupon,
                                       items: enrichedItems,
                                     },
                                   });
@@ -5158,28 +5175,34 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                                 // their email in this session.
                                 const applePayUserData = buildGtmUserData({
                                   email: userEmail || undefined,
+                                  phone: (() => { try { return localStorage.getItem("userPhone") || undefined; } catch { return undefined; } })(),
                                 });
                                 setTimeout(() => {
+                                  const applePayEcommerce = {
+                                    currency: "GBP",
+                                    value: Number(
+                                      expressPaymentData.totalAmount.toFixed(2),
+                                    ),
+                                    tax: 0,
+                                    shipping: 0,
+                                    payment_type: "Apple Pay",
+                                    coupon: appleRootCoupon,
+                                    items: enrichedItems,
+                                  };
                                   window.dataLayer.push({ ecommerce: null });
                                   window.dataLayer.push({
                                     event: "add_payment_info",
                                     ...(applePayUserData && {
                                       user_data: applePayUserData,
                                     }),
-                                    ecommerce: {
-                                      currency: "GBP",
-                                      value: Number(
-                                        expressPaymentData.totalAmount.toFixed(
-                                          2,
-                                        ),
-                                      ),
-                                      tax: 0,
-                                      shipping: 0,
-                                      payment_type: "Apple Pay",
-                                      coupon: baseCode,
-                                      items: enrichedItems,
-                                    },
+                                    ecommerce: applePayEcommerce,
                                   });
+                                  try {
+                                    sessionStorage.setItem(
+                                      "nuvisa.ga4PurchaseCart",
+                                      JSON.stringify({ ecommerce: applePayEcommerce, user_data: applePayUserData || null }),
+                                    );
+                                  } catch {}
                                 }, 300);
                               }
                             }
@@ -5358,6 +5381,16 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                                   },
                                 );
 
+                                // GROUP20 only qualifies at root level when at least one item meets threshold
+                                const anyGoogleQualifies =
+                                  travelers >= 3 ||
+                                  effectiveInsCount >= 3 ||
+                                  (expressPaymentData.includeGiftCard && giftCardCount >= 3);
+                                const googleRootCoupon = resolveCoupon(
+                                  anyGoogleQualifies,
+                                  baseCode || (expressPaymentData.includeGiftCard && giftCardCount >= 3 ? "GROUP20" : undefined),
+                                );
+
                                 // begin_checkout fires immediately on Google Pay click
                                 if (!hasTrackedBeginCheckoutRef.current) {
                                   hasTrackedBeginCheckoutRef.current = true;
@@ -5374,7 +5407,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                                       tax: 0,
                                       shipping: 0,
                                       payment_type: "Google Pay",
-                                      coupon: baseCode,
+                                      coupon: googleRootCoupon,
                                       items: enrichedItems,
                                     },
                                   });
@@ -5385,28 +5418,34 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                                 // their email in this session.
                                 const googlePayUserData = buildGtmUserData({
                                   email: userEmail || undefined,
+                                  phone: (() => { try { return localStorage.getItem("userPhone") || undefined; } catch { return undefined; } })(),
                                 });
                                 setTimeout(() => {
+                                  const googlePayEcommerce = {
+                                    currency: "GBP",
+                                    value: Number(
+                                      expressPaymentData.totalAmount.toFixed(2),
+                                    ),
+                                    tax: 0,
+                                    shipping: 0,
+                                    payment_type: "Google Pay",
+                                    coupon: googleRootCoupon,
+                                    items: enrichedItems,
+                                  };
                                   window.dataLayer.push({ ecommerce: null });
                                   window.dataLayer.push({
                                     event: "add_payment_info",
                                     ...(googlePayUserData && {
                                       user_data: googlePayUserData,
                                     }),
-                                    ecommerce: {
-                                      currency: "GBP",
-                                      value: Number(
-                                        expressPaymentData.totalAmount.toFixed(
-                                          2,
-                                        ),
-                                      ),
-                                      tax: 0,
-                                      shipping: 0,
-                                      payment_type: "Google Pay",
-                                      coupon: baseCode,
-                                      items: enrichedItems,
-                                    },
+                                    ecommerce: googlePayEcommerce,
                                   });
+                                  try {
+                                    sessionStorage.setItem(
+                                      "nuvisa.ga4PurchaseCart",
+                                      JSON.stringify({ ecommerce: googlePayEcommerce, user_data: googlePayUserData || null }),
+                                    );
+                                  } catch {}
                                 }, 300);
                               }
                             }
