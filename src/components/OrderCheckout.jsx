@@ -2583,14 +2583,12 @@ const VisaCheckout = () => {
                           console.log("Klarna form submitted:", data);
                         }}
                         onAddPaymentInfo={(billingData) => {
-                          if (
-                            typeof window === "undefined" ||
-                            !window.dataLayer
-                          )
-                            return;
-                          if (hasTrackedAddPaymentInfo.current) return;
-                          hasTrackedAddPaymentInfo.current = true;
-
+                          // BUG FIX: Build cart data unconditionally so saveGa4PurchaseCart
+                          // and ga4_payment_type are always persisted before the Klarna
+                          // redirect.  Previously these were inside the dataLayer / dedup
+                          // guards, which caused the success-page purchase event to fire
+                          // with stale or no data when window.dataLayer was unavailable or
+                          // hasTrackedAddPaymentInfo was already set by another method.
                           const countryName = selectedCountry || "Schengen";
                           const baseCode =
                             appliedDiscount?.code ||
@@ -2663,7 +2661,6 @@ const VisaCheckout = () => {
                             paymentItems.push(gItem);
                           }
 
-                          sessionStorage.setItem("ga4_payment_type", "Klarna");
                           const anyKlarnaQualifies =
                             travelers >= 3 ||
                             effectiveInsCount >= 3 ||
@@ -2683,6 +2680,21 @@ const VisaCheckout = () => {
                             coupon: klarnaRootCoupon,
                             items: paymentItems,
                           };
+
+                          // Always persist for success-page purchase event regardless
+                          // of dataLayer availability or GA4 dedup state.
+                          sessionStorage.setItem("ga4_payment_type", "Klarna");
+                          saveGa4PurchaseCart(klarnaEcommerce, klarnaUserData);
+
+                          // GA4 add_payment_info event — only push when dataLayer exists
+                          // and the dedup guard has not already fired.
+                          if (
+                            typeof window === "undefined" ||
+                            !window.dataLayer ||
+                            hasTrackedAddPaymentInfo.current
+                          )
+                            return;
+                          hasTrackedAddPaymentInfo.current = true;
                           window.dataLayer.push({ ecommerce: null });
                           window.dataLayer.push({
                             event: "add_payment_info",
@@ -2691,7 +2703,6 @@ const VisaCheckout = () => {
                             }),
                             ecommerce: klarnaEcommerce,
                           });
-                          saveGa4PurchaseCart(klarnaEcommerce, klarnaUserData);
                         }}
                         onError={(error) => {
                           console.error("Klarna form error:", error);
