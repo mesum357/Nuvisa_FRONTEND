@@ -3260,6 +3260,34 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
     clearStaleGtmUserData();
   }, []);
 
+  // BUG FIX (Bugs 3 & 4): Reset all GA4 funnel dedup refs whenever cart content
+  // changes.  Without this, adding items or changing quantity after the first
+  // Apple Pay / Google Pay click left hasTrackedBeginCheckoutRef and
+  // hasTrackedAddPaymentInfoRef as `true`, so subsequent clicks never fired
+  // begin_checkout or add_payment_info — and the success-page purchase event
+  // would reference the old cart.  Resetting on every cart-key change ensures
+  // the next click always fires fresh, correctly-valued events.
+  const prevCartKeyRef = useRef(null);
+  useEffect(() => {
+    const cartKey = [
+      travelers,
+      insuranceCount,
+      giftCardCount,
+      recommendedItems.insuranceCertificate ? "1" : "0",
+      recommendedItems.giftCard ? "1" : "0",
+      appliedDiscount?.code || "",
+    ].join("-");
+
+    if (prevCartKeyRef.current !== null && prevCartKeyRef.current !== cartKey) {
+      // Cart content changed — reset dedup refs so the next express-payment
+      // click fires begin_checkout + add_payment_info with the updated cart.
+      hasTrackedBeginCheckoutRef.current = false;
+      hasTrackedAddPaymentInfoRef.current = false;
+      hasTrackedAddToCartRef.current = false;
+    }
+    prevCartKeyRef.current = cartKey;
+  }, [travelers, insuranceCount, giftCardCount, recommendedItems, appliedDiscount]);
+
   useEffect(() => {
     const requiredFields = [
       "passport",
@@ -3273,10 +3301,32 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
       (field) => requiredDocuments[field],
     ).length;
 
+    // BUG FIX: Only fire a standalone add_to_cart for non-visa items (insurance /
+    // gift card) when travelers = 0.  When travelers > 0 these items are included
+    // in the main cart event that fires after all 5 required documents are ticked,
+    // so firing early creates a duplicate / incorrect separate event.
     const hasOnlyInsurance =
       recommendedItems.insuranceCertificate &&
       !recommendedItems.giftCard &&
-      selectedDocsCount === 0;
+      selectedDocsCount === 0 &&
+      Number(travelers) === 0;
+
+    // Mirrors the insurance fix: gift-card-only (no visa, no insurance) with
+    // zero travelers also triggers a standalone add_to_cart.
+    const hasOnlyGiftCard =
+      recommendedItems.giftCard &&
+      giftCardCount > 0 &&
+      !recommendedItems.insuranceCertificate &&
+      selectedDocsCount === 0 &&
+      Number(travelers) === 0;
+
+    // Combined: any non-visa-only state that should trigger a standalone event.
+    const hasOnlyNonVisa = hasOnlyInsurance || hasOnlyGiftCard ||
+      (recommendedItems.insuranceCertificate &&
+        recommendedItems.giftCard &&
+        giftCardCount > 0 &&
+        selectedDocsCount === 0 &&
+        Number(travelers) === 0);
 
     // ✅ FIX: bail out if memoized prices haven't resolved yet (SSR/hydration safety)
     if (
@@ -3288,7 +3338,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
     }
 
     if (
-      (selectedDocsCount >= 5 || hasOnlyInsurance) &&
+      (selectedDocsCount >= 5 || hasOnlyNonVisa) &&
       !hasTrackedAddToCartRef.current
     ) {
       hasTrackedAddToCartRef.current = true;
@@ -3302,7 +3352,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
 
         const cartItems = [];
 
-        if (!hasOnlyInsurance && travelers > 0) {
+        if (!hasOnlyNonVisa && travelers > 0) {
           const vItem = {
             item_id: `visa_${countryName.toLowerCase().replace(/\s+/g, "_")}`,
             item_name: `Visa - ${countryName}`,
@@ -3347,7 +3397,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
         }
 
         const finalCartValue =
-          (!hasOnlyInsurance ? visaOnlyPrice : 0) +
+          (!hasOnlyNonVisa ? visaOnlyPrice : 0) +
           (recommendedItems.insuranceCertificate
             ? discountedInsurancePrice
             : 0) +
@@ -3373,7 +3423,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
       }
     }
 
-    if (selectedDocsCount < 5 && !hasOnlyInsurance) {
+    if (selectedDocsCount < 5 && !hasOnlyNonVisa) {
       hasTrackedAddToCartRef.current = false;
     }
   }, [
