@@ -143,6 +143,21 @@ const useCreateDynamicCheckoutSession = () => {
       }
       successUrl =
         successUrlOverride || `/payment-success?${insuranceParams.toString()}`;
+
+      if (!applicationId) {
+        const paymentMetadata = {
+          paymentType: normalizedPaymentType,
+          checkoutType: "insurance_only",
+          insuranceOnly: "true",
+          applicationId: null,
+          timestamp: Date.now(),
+          email,
+          amount,
+          noOfInsurance: noOfInsurance || 0,
+          insurancePaymentAmount: insurancePaymentAmount || 0,
+        };
+        localStorage.setItem("paymentMetadata", JSON.stringify(paymentMetadata));
+      }
     } else if (
       normalizedPaymentType === "full_payment" ||
       normalizedPaymentType === "additional_traveler"
@@ -284,6 +299,10 @@ const useCreateDynamicCheckoutSession = () => {
         : {}),
       ...(phone !== undefined && phone !== null && String(phone).trim() !== ""
         ? { phone: String(phone).trim() }
+        : {}),
+      // Flag insurance-only checkout for webhook (no application creation)
+      ...(normalizedPaymentType === "traveler_insurance" && !normalizedApplicationId
+        ? { checkoutType: "insurance_only", insuranceOnly: "true" }
         : {}),
     };
 

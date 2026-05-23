@@ -1,6 +1,6 @@
-// Simple in-memory cache per server instance
-const cacheStore = new Map();
-const DEFAULT_TTL_MS = 5 * 60 * 1000; // 5 minutes
+import { getHeaderCacheStore } from "@/lib/contentApiCache";
+
+const DEFAULT_TTL_MS = 5 * 1000;
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -13,6 +13,7 @@ export default async function handler(req, res) {
     const now = Date.now();
 
     // Serve from cache if fresh
+    const cacheStore = getHeaderCacheStore();
     const cached = cacheStore.get(sectionKey);
     if (cached && now - cached.timestamp < (process.env.HEADER_CONTENT_TTL_MS ? Number(process.env.HEADER_CONTENT_TTL_MS) : DEFAULT_TTL_MS)) {
       res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=120');

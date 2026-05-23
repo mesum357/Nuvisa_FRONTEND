@@ -64,7 +64,7 @@ const initialState: IVisaState = {
   selectedCountry: "",
   visaFees: 0,
   insuranceFees: 0, // Will be set dynamically based on selected country
-  travelers: 0,
+  travelers: 1,
   visaTypeId: "",
   selectedVisaType: null,
   arrivalDate: "",

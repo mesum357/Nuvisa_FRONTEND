@@ -16,7 +16,10 @@ import { createOrUpdateApplication } from "@/api/visaApplications";
 import { localStorageEnums } from "@/enums/localstorage.enums";
 import { localStorageGateway } from "@/gateways/localStoragegateway";
 import { buildGtmUserData, normalizePhoneE164, resolveCoupon, computeCouponDiscountPerUnit } from "@/utils/gtmUserData";
-import { decrementExpertSpotsOnSuccessfulCheckout } from "@/utils/expertSpots";
+import {
+  decrementExpertSpotsOnSuccessfulCheckout,
+  decrementExpertSpotsViaApi,
+} from "@/utils/expertSpots";
 import { redeemGiftCardCode } from "@/api/giftCard";
 import {
   isExplicitKlarnaRedirectFailure,
@@ -288,10 +291,6 @@ const PaymentSuccess = () => {
             embeddedPaymentIntentIdEarly ||
             null;
 
-          if (stripePaymentIdEarly) {
-            decrementExpertSpotsOnSuccessfulCheckout(stripePaymentIdEarly);
-          }
-
           if (currentData.email && process.env.NEXT_PUBLIC_API_URL) {
             try {
               const postAmountRaw =
@@ -379,7 +378,7 @@ const PaymentSuccess = () => {
         }
 
         if (dedupePaymentId) {
-          decrementExpertSpotsOnSuccessfulCheckout(dedupePaymentId);
+          await decrementExpertSpotsViaApi(dedupePaymentId);
         }
 
         let sessionMetadata = {};

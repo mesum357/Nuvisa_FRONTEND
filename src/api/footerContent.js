@@ -24,10 +24,10 @@ export const fetchFooterContent = async (section = null) => {
   // Only skip localhost URLs in production (allow them in development)
   const shouldSkipLocalhost = isProduction() && isLocalhost(adminApiUrl);
   const apiEndpoints = [
-    // 1. Admin panel API (if configured and not localhost in production)
-    adminApiUrl && !shouldSkipLocalhost ? `${adminApiUrl.replace(/\/+$/, '')}/api/public/footer-content` : null,
-    // 2. Frontend's own API route (fallback)
+    // 1. Frontend's own API route (fast local proxy)
     '/api/footer-content',
+    // 2. Admin panel API (if configured and not localhost in production)
+    adminApiUrl && !shouldSkipLocalhost ? `${adminApiUrl.replace(/\/+$/, '')}/api/public/footer-content` : null,
   ].filter(Boolean);
 
   const endpoint = section ? `?section=${section}` : '';
@@ -42,7 +42,7 @@ export const fetchFooterContent = async (section = null) => {
           'Content-Type': 'application/json',
         },
         withCredentials: false, // Don't send cookies for public endpoint
-        timeout: 5000, // 5 second timeout
+        timeout: 10000, // 10 second timeout
       });
       
       if (res?.data?.success) return res.data.data;

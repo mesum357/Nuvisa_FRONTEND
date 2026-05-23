@@ -4,7 +4,12 @@ import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
 import Image from "next/image";
 import WhatsAppBadge from "./WhatsAppBadge";
-import { expertSpotsConstants, syncExpertSpots, setExpertSpotsDefaultFromApi } from "@/utils/expertSpots";
+import {
+  expertSpotsConstants,
+  syncExpertSpots,
+  setExpertSpotsDefaultFromApi,
+  fetchDailySlotsFromApi,
+} from "@/utils/expertSpots";
 import { getExpertSection } from "@/api/expertSection";
 
 const { DEFAULT_SPOTS_LEFT } = expertSpotsConstants;
@@ -25,6 +30,12 @@ const ExpertSection = ({ checked = false, onChange = () => {} }) => {
   const [spotsLeft, setSpotsLeft] = useState(DEFAULT_SPOTS_LEFT);
   const [content, setContent] = useState(DEFAULTS);
   const [isVisible, setIsVisible] = useState(true);
+
+  useEffect(() => {
+    fetchDailySlotsFromApi().then((fromApi) => {
+      if (fromApi != null) setSpotsLeft(fromApi);
+    });
+  }, []);
 
   useEffect(() => {
     // Fetch dynamic content from API

@@ -253,8 +253,8 @@ const PremiumServiceSection = ({ contactCardsData }) => {
                   }}
                 >
                   <Image
-                    src="/image/hero-poster.png"
-                    alt="Icon"
+                    src="/image/hero-1104.webp"
+                    alt="Reduce your odds of rejection"
                     fill
                     className="object-contain p-6 md:p-10 pointer-events-none"
                     loading="lazy"

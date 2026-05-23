@@ -5,12 +5,23 @@ import {
   updateVisaApplication,
 } from "@/api/visaApplications";
 import ApplicationCompletedSection from "@/components/ApplicationCompletedSection";
-import DocumentUploadSection from "@/components/DocumentUploadSection";
 import { Header } from "@/components/layout/Header";
-import PassportInformationSection from "@/components/PassportInformationSection";
 import ProgressHeader from "@/components/ProgressHeader";
-import VisitDetailSection from "@/components/VisitDetailSection";
 import ClientOnly from "@/components/ClientOnly";
+import { lazySection } from "@/utils/lazySections";
+
+const DocumentUploadSection = lazySection(
+  () => import("@/components/DocumentUploadSection"),
+  "200px"
+);
+const PassportInformationSection = lazySection(
+  () => import("@/components/PassportInformationSection"),
+  "200px"
+);
+const VisitDetailSection = lazySection(
+  () => import("@/components/VisitDetailSection"),
+  "200px"
+);
 import { localStorageEnums } from "@/enums/localstorage.enums";
 import { localStorageGateway } from "@/gateways/localStoragegateway";
 import { useAppSelector, useAppDispatch } from "@/store";
@@ -28,7 +39,10 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ChevronLeft, Loader2 } from "lucide-react";
 import { useToast } from "@/contexts/ToastContext";
-import BookingAppointment from "@/components/BookingAppointment";
+const BookingAppointment = lazySection(
+  () => import("@/components/BookingAppointment"),
+  "200px"
+);
 import useCreateDynamicCheckoutSession from "@/hooks/useCreateDynamicCheckoutSession";
 import { countryCodeMap } from "@/utils/countryCodeMap";
 import {

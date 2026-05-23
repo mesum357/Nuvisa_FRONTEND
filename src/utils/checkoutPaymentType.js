@@ -26,6 +26,10 @@ export function resolveCheckoutPaymentType({
     types.push("traveler_insurance");
   }
 
+  if (hasInsurance && !hasVisa && !hasGiftCard) {
+    return "traveler_insurance";
+  }
+
   if (types.length === 0) {
     if (hasInsurance) return "traveler_insurance";
     if (hasGiftCard) return "gift_card";

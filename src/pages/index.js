@@ -2,7 +2,7 @@
 import dynamic from "next/dynamic";
 import Navbar from "@/components/Navbar";
 import DeferredHomeHeroVideo from "@/components/home/DeferredHomeHeroVideo";
-import AppDownloadPopup from "@/components/AppDownloadPopup";
+import LazyWhenVisible from "@/components/LazyWhenVisible";
 import { useHeroContent } from "@/hooks/useHeroContent";
 import { Info } from "lucide-react";
 import Link from "next/link";
@@ -15,18 +15,36 @@ const CountryCardsSection = dynamic(() => import("@/components/CountryCardsSecti
 const VisaHeroSection = dynamic(() => import("@/components/CountryRotator"), {
   loading: () => <div className="min-h-[80px]" />,
 });
-const Footer = dynamic(() => import("@/components/Footer"));
-const OurMission = dynamic(() => import("@/components/OurMission"));
-const PremiumServiceSection = dynamic(() => import("@/components/PremiumServiceSection"));
-const VisaSolution = dynamic(() => import("@/components/VisaSolution"));
-const VisaFinanceFeatureSection = dynamic(() =>
-  import("@/components/home/VisaFinanceFeatureSection")
+const sectionSkeleton = (minH = "120px") => () => (
+  <div className="animate-pulse bg-gray-100/40 dark:bg-gray-800/30 rounded-lg min-h-[120px]" style={{ minHeight: minH }} />
+);
+const Footer = dynamic(() => import("@/components/Footer"), {
+  loading: sectionSkeleton("200px"),
+});
+const OurMission = dynamic(() => import("@/components/OurMission"), {
+  loading: sectionSkeleton(),
+});
+const PremiumServiceSection = dynamic(() => import("@/components/PremiumServiceSection"), {
+  loading: sectionSkeleton(),
+});
+const VisaSolution = dynamic(() => import("@/components/VisaSolution"), {
+  loading: sectionSkeleton(),
+});
+const VisaFinanceFeatureSection = dynamic(
+  () => import("@/components/home/VisaFinanceFeatureSection"),
+  { loading: sectionSkeleton("360px") }
 );
 const StickyBottomBar = dynamic(() => import("@/components/StickyBottomBar"), { ssr: false });
 const Reviews = dynamic(() => import("@/components/Reviews"), { loading: () => null });
 const VisaProcessSection = dynamic(() => import("@/components/home/VisaProcessSection"));
 const DiscountTicket = dynamic(() => import("@/components/DiscountTicket"));
-import FAQSection from "@/components/Faqs";
+const FAQSection = dynamic(() => import("@/components/Faqs"), {
+  loading: sectionSkeleton("240px"),
+});
+const AppDownloadPopup = dynamic(() => import("@/components/AppDownloadPopup"), {
+  ssr: false,
+  loading: () => null,
+});
 
 const defaultContactCards = {
   reduce: {
@@ -136,8 +154,8 @@ const Index = () => {
     const fetchHomepageDynamicContent = async () => {
       try {
         const [contentHomeRes, backendCmsRes, occasionRes] = await Promise.all([
-          fetch("/api/content-home").catch(() => null),
-          fetch("/api/homepage-content").catch(() => null),
+          fetch(`/api/content-home?t=${Date.now()}`).catch(() => null),
+          fetch(`/api/homepage-content?t=${Date.now()}`).catch(() => null),
           fetch("/api/occasion-content").catch(() => null),
         ]);
 
@@ -447,6 +465,8 @@ const Index = () => {
 
         <CountryCardsSection urgentDescription={urgentDescription} />
       </div>
+
+      <LazyWhenVisible minHeight="400px" className="w-full">
       <VisaSolution
         title={topDestinationContent.title}
         subtitle={topDestinationContent.subtitle}
@@ -477,6 +497,7 @@ const Index = () => {
       </div>
 
       <PremiumServiceSection contactCardsData={contactCards} />
+      </LazyWhenVisible>
 
       {/* Price Guarantee Section */}
       <div className="bg-gradient-to-br from-purple-100 to-[#f3e6ff]">
@@ -529,10 +550,12 @@ const Index = () => {
         </div>
       </div>
 
-      <div className="bg-gradient-to-br from-purple-100 to-[#f3e6ff]">
-        <OurMission />
-        <Footer />
-      </div>
+      <LazyWhenVisible minHeight="280px" className="w-full">
+        <div className="bg-gradient-to-br from-purple-100 to-[#f3e6ff]">
+          <OurMission />
+          <Footer />
+        </div>
+      </LazyWhenVisible>
 
       <StickyBottomBar key="index-page" />
       <AppDownloadPopup />

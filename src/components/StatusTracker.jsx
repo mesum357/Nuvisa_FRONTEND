@@ -11,6 +11,10 @@ import {
   ExternalLink
 } from "lucide-react";
 import { getApplicationStatus } from "@/api/applicationStatus";
+import {
+  getPassportStatusLabel,
+  getPassportStatusMessage,
+} from "@/constants/passportStatusMessages";
 import { localStorageGateway } from "@/gateways/localStoragegateway";
 import { localStorageEnums } from "@/enums/localstorage.enums";
 
@@ -127,22 +131,28 @@ const StatusTracker = ({ applicationId, className = "", initialStatus = null, on
         ? [{
             id: normalizeStatus(status?.status),
             title: normalizeStatus(status?.status) === 'approved'
-              ? 'Approved'
+              ? getPassportStatusLabel('ready', status?.statusDisplay)
               : normalizeStatus(status?.status) === 'rejected'
                 ? 'Rejected'
-                : 'Decision made, passport dispatched/ready',
+                : getPassportStatusLabel(
+                    status?.status,
+                    status?.statusDisplay || status?.statusMessage
+                  ),
             description: normalizeStatus(status?.status) === 'approved'
-              ? 'Your application has been approved'
+              ? getPassportStatusMessage('ready', status?.statusDisplay)
               : normalizeStatus(status?.status) === 'rejected'
                 ? 'Your application has been rejected'
-                : 'A final decision has been made on your application',
+                : getPassportStatusMessage(
+                    status?.status,
+                    status?.statusDisplay || status?.statusMessage
+                  ),
             completed: progress >= 100,
             current: progress === 100
           }]
         : [{
             id: 'decision',
-            title: 'Decision made, passport dispatched/ready',
-            description: 'Final decision on your application',
+            title: getPassportStatusLabel('decision_made'),
+            description: getPassportStatusMessage('decision_made'),
             completed: progress >= 100,
             current: progress === 100
           }]

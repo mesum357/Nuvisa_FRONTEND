@@ -25,6 +25,7 @@ import {
   setTotalAmount,
   setInsuranceOnly,
   triggerDocumentValidation,
+  setVisaPriceDisplay,
 } from "@/store/visaSlice";
 import { useToast } from "@/contexts/ToastContext";
 import Drawer from "./Drawer";
@@ -59,12 +60,22 @@ const StickyBottomBar = ({ triggerElementId }) => {
   const isInitialMountTravelerRef = useRef(true);
   const isInitialMountInsuranceRef = useRef(true);
   const isInitialMountGiftCardRef = useRef(true);
+  const hasInitializedDefaultTravelersRef = useRef(false);
 
   const [quantities, setQuantities] = useState({
-    schengen: travelerCount,
+    schengen: Math.max(1, travelerCount),
     insurance: insuranceCount,
     giftCard: giftCardCount,
   });
+
+  // First visit: default bottom-bar travellers to 1 (user can still decrement to 0)
+  useEffect(() => {
+    if (hasInitializedDefaultTravelersRef.current) return;
+    hasInitializedDefaultTravelersRef.current = true;
+    if ((visaState.travelers ?? 0) < 1) {
+      dispatch(setTravelers(1));
+    }
+  }, [dispatch, visaState.travelers]);
 
   const perDayInsurancePrice = 2;
   const DEFAULT_INSURANCE_DAYS = 15;
@@ -107,17 +118,8 @@ const StickyBottomBar = ({ triggerElementId }) => {
     // Check if visaState has selected visa type data
     const hasVisaTypeData =
       visaState.selectedVisaType?.priceGBP || visaState.selectedVisaType?.price;
-    console.log(
-      "calculating visa fee per traveler, has visa type data:",
-      hasVisaTypeData,
-      "visaState selectedVisaType:",
-      visaState.selectedVisaType,
-    );
     // If no visa type data, use API pricing from countryPricingList
     if (!hasVisaTypeData) {
-      //
-      console.log(" falling back to items state for visa fee, ", items);
-      // Fallback to items state (which is also updated from API)
       return items.find((item) => item.id === "schengen")?.currentPrice || 129;
     }
     // Use Redux pricing if available
@@ -317,11 +319,10 @@ const StickyBottomBar = ({ triggerElementId }) => {
         }));
         // find belgium item and select that one if it exists, otherwise take the first item
         const defaultCountry = "Belgium";
-        console.log(normalized);
         const defaultItem = normalized.find(
           (item) => item.country === defaultCountry,
         );
-        console.log(" selected country and default", defaultItem, "Belgium");
+        const pricingItem = defaultItem || normalized[0];
         if (defaultItem) {
           setItems((prevItems) => {
             const otherItems = prevItems.filter(
@@ -338,6 +339,29 @@ const StickyBottomBar = ({ triggerElementId }) => {
           });
         }
 
+        if (pricingItem) {
+          const originalPerTraveler =
+            Number(pricingItem.originalPrice) || 295;
+          const currentPerTraveler = Number(pricingItem.currentPrice) || 129;
+          dispatch(
+            setVisaPriceDisplay({
+              isOccasion: false,
+              originalPerTraveler,
+              traditionalPerTraveler: originalPerTraveler,
+              discountedLabel: "You save",
+              originalLabel: "Traditional fee",
+              traditionalLabel: "Traditional",
+            }),
+          );
+          if (!visaState.visaFees && (visaState.travelers ?? 0) > 0) {
+            dispatch(
+              setVisaFees(
+                currentPerTraveler * Math.max(1, visaState.travelers ?? 1),
+              ),
+            );
+          }
+        }
+
         setCountryPricingList(normalized);
       } catch (error) {
         console.error("Failed to fetch visa pricing:", error);
@@ -350,10 +374,6 @@ const StickyBottomBar = ({ triggerElementId }) => {
       mounted = false;
     };
   }, []);
-
-  useEffect(() => {
-    console.log("country pricing list", countryPricingList);
-  }, [countryPricingList]);
 
   // Memoize updateQuantity to prevent unnecessary re-renders
   const updateQuantity = useCallback(
@@ -427,17 +447,6 @@ const StickyBottomBar = ({ triggerElementId }) => {
       ? reduxVisaFees / travelerCount
       : visaFeePerTraveler;
 
-    console.log(
-      "visa fee per traveler for discount calculation",
-      effectiveVisaFeePerTraveler,
-      "can use redux visa fees:",
-      canUseReduxVisaFees,
-      "redux visa fees:",
-      reduxVisaFees,
-      "traveler count:",
-      travelerCount,
-    );
-    console.log("base discount", effectiveVisaFeePerTraveler);
     const baseDiscountedVisaFees =
       effectiveVisaFeePerTraveler * quantities.schengen;
     const baseDiscountedInsuranceFees = insuranceBaseFees;
@@ -792,7 +801,6 @@ const StickyBottomBar = ({ triggerElementId }) => {
     return () => window.removeEventListener("scroll", checkVisibility);
   }, [triggerElementId]);
 
-  console.log("items", items);
   // Measure sticky bar height to offset drawer
   useEffect(() => {
     if (!isVisible) return;
@@ -825,7 +833,6 @@ const StickyBottomBar = ({ triggerElementId }) => {
   }, [isDrawerOpen]);
 
   if (!isVisible) return null;
-  console.log(quantities);
   return (
     <>
       <div
@@ -1173,12 +1180,22 @@ const StickyBottomBar = ({ triggerElementId }) => {
                                 ? getItemDiscountedPrice(item.id).toFixed(2)
                                 : visaFeePerTraveler}
                             </span>
-                            {!!visaPriceDisplay?.discountedLabel && (
+                            {!!visaPriceDisplay?.discountedLabel ? (
                               <span className="text-[10px] text-gray-500 font-medium">
                                 {visaPriceDisplay.discountedLabel}{" "}
                                 {schengenMaxDiscountPercent}%
                               </span>
-                            )}
+                            ) : item.currentPrice < item.originalPrice ? (
+                              <span className="text-[10px] text-gray-500 font-medium">
+                                You save{" "}
+                                {(
+                                  ((item.originalPrice - item.currentPrice) /
+                                    item.originalPrice) *
+                                  100
+                                ).toFixed(0)}
+                                % Traditional fee
+                              </span>
+                            ) : null}
                           </div>
                           <div className="flex gap-1 flex-col">
                             <span className="text-gray-400 line-through text-sm">

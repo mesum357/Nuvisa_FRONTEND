@@ -18,6 +18,7 @@ export const apigateway = async ({
   const config = {
     method: method,
     url: `${process.env.NEXT_PUBLIC_API_URL}${endpoint}`,
+    timeout: 10000,
     headers: {
       "Content-Type": contentType ? contentType : "application/json",
       ...(token && { Authorization: `Bearer ${token}` }),

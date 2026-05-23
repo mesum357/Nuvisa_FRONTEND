@@ -199,6 +199,17 @@ const VisaFeeBreakdown = ({
 
   const totalSaveAmount = subtotalAmount - totalAmount;
 
+  const saveDenominator =
+    subtotalAmount > 0
+      ? subtotalAmount
+      : effectiveTravelersComparisonTotal > 0
+        ? effectiveTravelersComparisonTotal
+        : 0;
+  const savePercent =
+    saveDenominator > 0 && Number.isFinite(totalSaveAmount)
+      ? Math.min(100, Math.max(0, (totalSaveAmount / saveDenominator) * 100))
+      : 0;
+
   return (
     <div className="w-full">
       <button
@@ -393,7 +404,7 @@ const VisaFeeBreakdown = ({
 
             <div className="flex justify-between text-sm text-green-400">
               <span>You save</span>
-              <span>{(totalSaveAmount/effectiveTravelersComparisonTotal * 100 || 0).toFixed(2)}%</span>
+              <span>{savePercent.toFixed(0)}%</span>
             </div>
 
             <div className="flex justify-between font-gilroy-bold text-xl pt-2 border-t border-white/15">

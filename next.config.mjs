@@ -5,6 +5,23 @@ const nextConfig = {
   reactStrictMode: true,
   compress: true,
   poweredByHeader: false,
+  compiler: isProduction
+    ? {
+        removeConsole: {
+          exclude: ["error", "warn"],
+        },
+      }
+    : undefined,
+  experimental: {
+    optimizePackageImports: [
+      "lucide-react",
+      "react-icons",
+      "react-icons/fa",
+      "react-feather",
+      "@stripe/react-stripe-js",
+      "@stripe/stripe-js",
+    ],
+  },
   env: {
     NEXT_PUBLIC_ADMIN_API_URL: process.env.NEXT_PUBLIC_ADMIN_API_URL,
   },
@@ -21,6 +38,20 @@ const nextConfig = {
         protocol: "https",
         hostname: "www.nuvisa.co.uk",
       },
+      {
+        protocol: "https",
+        hostname: "nuvisa-admin.vercel.app",
+      },
+      ...(process.env.NEXT_PUBLIC_ADMIN_API_URL?.includes("localhost")
+        ? [
+            {
+              protocol: "http",
+              hostname: "localhost",
+              port: "3001",
+              pathname: "/**",
+            },
+          ]
+        : []),
     ],
   },
   async headers() {

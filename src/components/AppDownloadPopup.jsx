@@ -20,7 +20,7 @@ const DEFAULT_POPUP_STATE = {
 };
 
 const getFallbackPopupContent = () => ({
-  isActive: true,
+  isActive: false,
   triggerDelaySeconds: 45,
   showOnDates: [],
   mainHeading: "❤️ NEW CUSTOMER OFFER - £129 fee for your first visa",
@@ -82,8 +82,13 @@ const initializeAnswers = (questions = []) =>
     return acc;
   }, {});
 
+const EXIT_INTENT_SESSION_KEY = "exitIntentShown";
+const EXIT_INTENT_DISMISSED_KEY = "exitIntentDismissed";
+
 const AppDownloadPopup = () => {
   const [isVisible, setIsVisible] = useState(false);
+  const [showExitIntent, setShowExitIntent] = useState(false);
+  const [exitIntentContent, setExitIntentContent] = useState(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState({});
   const [error, setError] = useState("");
@@ -339,11 +344,73 @@ const AppDownloadPopup = () => {
     }
   };
 
-  const closePopup = () => {
+  const dismissExitIntent = () => {
+    sessionStorage.setItem(EXIT_INTENT_DISMISSED_KEY, "1");
+    sessionStorage.setItem(EXIT_INTENT_SESSION_KEY, "1");
+    setShowExitIntent(false);
+    setIsAnimating(false);
+    sessionStorage.setItem("popupSessionStatus", "hidden");
+    setTimeout(() => setIsVisible(false), 300);
+  };
+
+  const closePopup = async () => {
+    const exitDismissed =
+      sessionStorage.getItem(EXIT_INTENT_DISMISSED_KEY) === "1";
+    const exitShown = sessionStorage.getItem(EXIT_INTENT_SESSION_KEY) === "1";
+
+    if (!exitDismissed && !exitShown) {
+      try {
+        const res = await fetch("/api/exit-intent-content");
+        const json = res.ok ? await res.json() : null;
+        const content = json?.data;
+        if (content?.isActive !== false) {
+          setExitIntentContent(content);
+          setShowExitIntent(true);
+          sessionStorage.setItem(EXIT_INTENT_SESSION_KEY, "1");
+          return;
+        }
+      } catch {
+        // fall through to normal close
+      }
+    }
+
     setIsAnimating(false);
     sessionStorage.setItem("popupSessionStatus", "hidden");
     setTimeout(() => setIsVisible(false), 500);
   };
+
+  if (showExitIntent && exitIntentContent) {
+    return (
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[10000] px-4">
+        <div className="bg-[#23232B] rounded-2xl max-w-md w-full p-6 relative border border-gray-700 shadow-2xl">
+          <button
+            type="button"
+            onClick={dismissExitIntent}
+            className="absolute top-3 right-3 text-gray-400 hover:text-white p-1"
+            aria-label="Close"
+          >
+            <X size={24} />
+          </button>
+          <h3 className="text-xl font-bold text-white pr-8">
+            {exitIntentContent.heading}
+          </h3>
+          <p className="text-gray-300 mt-3 text-sm leading-relaxed">
+            {exitIntentContent.body}
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              dismissExitIntent();
+              router.push(exitIntentContent.ctaUrl || "/get-the-visa");
+            }}
+            className="mt-5 w-full bg-blue-700 hover:bg-blue-600 text-white font-semibold py-3 rounded-lg"
+          >
+            {exitIntentContent.ctaText || "Continue"}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!isVisible || isLoadingContent || !dbContent) return null;
 
