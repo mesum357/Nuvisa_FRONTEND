@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3002",
-    "build": "prisma migrate deploy && prisma generate && next build",
+    "build": "prisma generate && next build",
+    "build:migrate": "prisma migrate deploy && prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
     "check-setup": "node check-setup.js",
@@ -58,7 +59,7 @@
     "tsx": "^4.21.0"
   },
   "packageManager": "pnpm@10.3.0",
-"engines": {
-  "node": ">=18"
-}
+  "engines": {
+    "node": "20.x"
+  }
 }
