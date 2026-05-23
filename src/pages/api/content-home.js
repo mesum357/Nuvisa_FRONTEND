@@ -1,15 +1,45 @@
-/** Public homepage key/value content (server proxy — admin /api/content requires auth). */
-const CACHE_TTL_MS = 5 * 60 * 1000;
-let cache = { data: null, expiresAt: 0 };
+/** Public homepage key/value content — backend CMS + Nuvisa-Admin site_content. */
+import { fetchWithTimeout } from "@/utils/fetchWithTimeout";
+
+import {
+  getContentHomeCache,
+  setContentHomeCache,
+} from "@/lib/contentApiCache";
+
+const CACHE_TTL_MS = 5 * 1000;
+
+async function fetchAdminSiteContent(adminUrl) {
+  if (!adminUrl) return {};
+  try {
+    const res = await fetchWithTimeout(`${adminUrl}/api/content`, {
+      headers: { "Content-Type": "application/json" },
+    });
+    if (!res.ok) return {};
+    const json = await res.json();
+    const rows = Array.isArray(json?.data) ? json.data : [];
+    const byKey = {};
+    for (const row of rows) {
+      if (row?.key != null) {
+        byKey[row.key] = row.value;
+      }
+    }
+    return byKey;
+  } catch (e) {
+    console.warn("content-home admin:", e?.message);
+    return {};
+  }
+}
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  const bust = req.query?.t;
   const now = Date.now();
-  if (cache.data && cache.expiresAt > now) {
-    res.setHeader("Cache-Control", "public, s-maxage=120, stale-while-revalidate=300");
+  const cache = getContentHomeCache();
+  if (!bust && cache.data && cache.expiresAt > now) {
+    res.setHeader("Cache-Control", "public, s-maxage=30, stale-while-revalidate=60");
     return res.status(200).json(cache.data);
   }
 
@@ -18,7 +48,7 @@ export default async function handler(req, res) {
 
   if (apiBase) {
     try {
-      const cmsRes = await fetch(`${apiBase}/cms/homepage`);
+      const cmsRes = await fetchWithTimeout(`${apiBase}/cms/homepage`);
       if (cmsRes.ok) {
         const json = await cmsRes.json();
         Object.assign(byKey, json?.data?.results || json?.results || {});
@@ -28,8 +58,13 @@ export default async function handler(req, res) {
     }
   }
 
+  const { getAdminApiBase } = await import("@/utils/adminApiBase");
+  const adminUrl = getAdminApiBase();
+  const adminKeys = await fetchAdminSiteContent(adminUrl);
+  Object.assign(byKey, adminKeys);
+
   const payload = { success: true, data: byKey };
-  cache = { data: payload, expiresAt: now + CACHE_TTL_MS };
-  res.setHeader("Cache-Control", "public, s-maxage=120, stale-while-revalidate=300");
+  setContentHomeCache({ data: payload, expiresAt: now + CACHE_TTL_MS });
+  res.setHeader("Cache-Control", "public, s-maxage=30, stale-while-revalidate=60");
   return res.status(200).json(payload);
 }

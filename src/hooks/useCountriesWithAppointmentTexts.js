@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { fetchAppointmentTexts } from "@/api/appointmentText";
-import { getAdminApiBase } from "@/utils/adminApiBase";
+import { getAdminApiBase, resolveCountryImageUrl } from "@/utils/adminApiBase";
 import { getCountryConfig } from "@/constants/countryConfig";
 
 export const useCountriesWithAppointmentTexts = ({
@@ -155,17 +155,9 @@ export const useCountriesWithAppointmentTexts = ({
           : {};
       let countryImage = "";
       if (visaCountry.image) {
-        countryImage = visaCountry.image.startsWith("http")
-          ? visaCountry.image
-          : visaCountry.image.startsWith("/")
-            ? `${getAdminApiBase()}${visaCountry.image}`
-            : `${getAdminApiBase()}/${visaCountry.image}`;
+        countryImage = resolveCountryImageUrl(visaCountry.image);
       } else if (countryData.image) {
-        countryImage = countryData.image.startsWith("http")
-          ? countryData.image
-          : countryData.image.startsWith("/")
-            ? `${getAdminApiBase()}${countryData.image}`
-            : `${getAdminApiBase()}/${countryData.image}`;
+        countryImage = resolveCountryImageUrl(countryData.image);
       } else if (staticCountry?.image) {
         countryImage = staticCountry.image;
       }

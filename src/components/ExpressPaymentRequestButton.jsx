@@ -90,6 +90,15 @@ const ExpressPaymentRequestButton = forwardRef(
     const hasLoggedUnsupportedRef = useRef(false);
 
     const logExpressDebug = (stage, details = {}) => {
+      if (process.env.NODE_ENV !== "development") return;
+      const noisyStages = new Set([
+        "payment_request_init_skipped",
+        "pre_render_error_stripe_not_initialized",
+        "can_make_payment_unavailable",
+      ]);
+      if (noisyStages.has(stage) && !process.env.NEXT_PUBLIC_DEBUG_EXPRESS_PAYMENT) {
+        return;
+      }
       console.log("[ExpressPayment][Debug]", {
         stage,
         route: router?.asPath || "",
@@ -705,6 +714,9 @@ const ExpressPaymentRequestButton = forwardRef(
     }
 
     if (!stripe || !elements) {
+      if (hideUI) {
+        return null;
+      }
       if (!hasLoggedStripeInitErrorRef.current) {
         logExpressDebug("pre_render_error_stripe_not_initialized", {
           userFacingMessage: "Stripe is not initialized. Please refresh and try again.",

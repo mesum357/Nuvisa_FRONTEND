@@ -1,20 +1,29 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import ClientOnly from "../ClientOnly";
-import ComparisonSection from "../ComparisonSection";
-import FAQSection from "../Faqs";
-import Footer from "../Footer";
 import Navbar from "../Navbar";
-import OurMission from "../OurMission";
-import SeamlessExperience from "../SeamlessExperience";
-import CountrySlider from "../Slider";
-import VisaFinanceFeatureSection from "./VisaFinanceFeatureSection";
-import VisaSolution from "../VisaSolution";
-import StickyBottomBar from "../StickyBottomBar";
 import submit from "../../../public/icons/submit.png";
 import { useKlarnaContent } from "../../hooks/useKlarnaContent";
 import { useProcessContent } from "../../hooks/useProcessContent";
 import { getAdminApiBase } from "@/utils/adminApiBase";
+import { lazySection } from "@/utils/lazySections";
+import LazyWhenVisible from "@/components/LazyWhenVisible";
+
+const CountrySlider = lazySection(() => import("../Slider"), "420px");
+const ComparisonSection = lazySection(() => import("../ComparisonSection"), "280px");
+const VisaSolution = lazySection(() => import("../VisaSolution"), "320px");
+const VisaFinanceFeatureSection = lazySection(
+  () => import("./VisaFinanceFeatureSection"),
+  "360px"
+);
+const FAQSection = lazySection(() => import("../Faqs"), "240px");
+const SeamlessExperience = lazySection(() => import("../SeamlessExperience"), "120px");
+const OurMission = lazySection(() => import("../OurMission"), "200px");
+const Footer = lazySection(() => import("../Footer"), "220px");
+const StickyBottomBar = lazySection(() => import("../StickyBottomBar"), "0px", {
+  ssr: false,
+  loading: () => null,
+});
 
 const VisaInformation = ({ showKlarnaSection = true }) => {
   const { processContent, loading: processLoading } = useProcessContent();
@@ -110,12 +119,13 @@ const VisaInformation = ({ showKlarnaSection = true }) => {
     <ClientOnly>
       <div className="bg-[#1E1E27] text-white w-full overflow-x-clip">
         <Navbar />
-        <div className="w-full mx-auto flex flex-col gap-0 items-center justify-center mt-5 ">
+        <div className="w-full max-w-[88rem] mx-auto flex flex-col gap-0 items-center justify-center mt-5 px-4 sm:px-6 lg:px-8 max-sm:px-3 pb-24 lg:pb-8">
           <CountrySlider
             moreToLoveData={moreToLoveData}
             checkoutButtonDescription={checkoutButtonDescription}
           />
 
+          <LazyWhenVisible minHeight="480px" className="w-full flex flex-col">
           {/* Visa Type Selection */}
           <section id={"comparison-section"}>
             <ComparisonSection />
@@ -162,7 +172,7 @@ const VisaInformation = ({ showKlarnaSection = true }) => {
                             width={80}
                             height={80}
                             className="w-20 h-20 md:mb-3 object-contain"
-                            priority
+                            loading="lazy"
                           />
                           <h1 className="text-xl md:text-3xl md:my-6 font-bold">
                             {processLoading
@@ -186,7 +196,7 @@ const VisaInformation = ({ showKlarnaSection = true }) => {
                             width={80}
                             height={80}
                             className="w-20 h-20 md:mb-3 object-contain"
-                            priority
+                            loading="lazy"
                           />
                           <h1 className="text-xl md:text-3xl md:my-6 font-bold">
                             {processLoading
@@ -210,7 +220,7 @@ const VisaInformation = ({ showKlarnaSection = true }) => {
                             width={80}
                             height={80}
                             className="w-20 h-20 md:mb-3 object-contain"
-                            priority
+                            loading="lazy"
                           />
                           <h1 className="text-xl md:text-3xl md:my-6 font-bold">
                             {processLoading
@@ -234,7 +244,7 @@ const VisaInformation = ({ showKlarnaSection = true }) => {
                             width={80}
                             height={80}
                             className="w-20 h-20 md:mb-3 object-contain"
-                            priority
+                            loading="lazy"
                           />
                           <h1 className="text-xl md:text-3xl md:my-6 font-bold">
                             {processLoading
@@ -270,8 +280,7 @@ const VisaInformation = ({ showKlarnaSection = true }) => {
                     alt="Klarna"
                     width={100}
                     height={40}
-                    className=""
-                    priority
+                    loading="lazy"
                   />
                   {klarnaLoading ? "Loading..." : klarnaContent.heading}
                 </h2>
@@ -300,6 +309,7 @@ const VisaInformation = ({ showKlarnaSection = true }) => {
           )}
           <OurMission className="bg-[#F3E6FF] py-10" />
           <Footer />
+          </LazyWhenVisible>
         </div>
 
         {/* Sticky Bottom Bar */}

@@ -1,0 +1,244 @@
+{
+  "label": "baseline",
+  "capturedAt": "2026-05-23T07:39:19.190Z",
+  "baseUrl": "http://127.0.0.1:3010",
+  "fetchMetrics": [
+    {
+      "route": "/",
+      "url": "http://127.0.0.1:3010/",
+      "avgMs": 89,
+      "avgHtmlKB": 124.3,
+      "samples": [
+        {
+          "ms": 125,
+          "status": 200,
+          "htmlKB": 124.3
+        },
+        {
+          "ms": 112,
+          "status": 200,
+          "htmlKB": 124.3
+        },
+        {
+          "ms": 29,
+          "status": 200,
+          "htmlKB": 124.3
+        }
+      ]
+    },
+    {
+      "route": "/get-the-visa",
+      "url": "http://127.0.0.1:3010/get-the-visa",
+      "avgMs": 109,
+      "avgHtmlKB": 3.5,
+      "samples": [
+        {
+          "ms": 56,
+          "status": 200,
+          "htmlKB": 3.5
+        },
+        {
+          "ms": 248,
+          "status": 200,
+          "htmlKB": 3.5
+        },
+        {
+          "ms": 24,
+          "status": 200,
+          "htmlKB": 3.5
+        }
+      ]
+    },
+    {
+      "route": "/checkout",
+      "url": "http://127.0.0.1:3010/checkout",
+      "avgMs": 18,
+      "avgHtmlKB": 8.5,
+      "samples": [
+        {
+          "ms": 15,
+          "status": 200,
+          "htmlKB": 8.5
+        },
+        {
+          "ms": 24,
+          "status": 200,
+          "htmlKB": 8.5
+        },
+        {
+          "ms": 15,
+          "status": 200,
+          "htmlKB": 8.5
+        }
+      ]
+    },
+    {
+      "route": "/our-guarantee",
+      "url": "http://127.0.0.1:3010/our-guarantee",
+      "avgMs": 12,
+      "avgHtmlKB": 11.2,
+      "samples": [
+        {
+          "ms": 15,
+          "status": 200,
+          "htmlKB": 11.2
+        },
+        {
+          "ms": 9,
+          "status": 200,
+          "htmlKB": 11.2
+        },
+        {
+          "ms": 12,
+          "status": 200,
+          "htmlKB": 11.2
+        }
+      ]
+    }
+  ],
+  "lighthouseMetrics": [
+    {
+      "route": "/",
+      "score": 39,
+      "fcpMs": 1847.4154500000002,
+      "lcpMs": 4354.4412,
+      "tbtMs": 2584,
+      "cls": 0.27192500000000003,
+      "speedIndex": 3999.7405644431265
+    },
+    {
+      "route": "/get-the-visa",
+      "score": 34,
+      "fcpMs": 1634.013,
+      "lcpMs": 9730.554,
+      "tbtMs": 5353.287750000001,
+      "cls": 0.065271,
+      "speedIndex": 10410.097851900664
+    },
+    {
+      "route": "/checkout",
+      "score": 80,
+      "fcpMs": 1843.4895,
+      "lcpMs": 2907.986,
+      "tbtMs": 521.0000000000002,
+      "cls": 0.000229,
+      "speedIndex": 2483.127739319653
+    },
+    {
+      "route": "/our-guarantee",
+      "score": 63,
+      "fcpMs": 1838.7560999999998,
+      "lcpMs": 3461.6748,
+      "tbtMs": 511.5,
+      "cls": 0.27536499999999997,
+      "speedIndex": 2591.8532440162926
+    }
+  ],
+  "buildStats": [
+    {
+      "page": "/application-step",
+      "jsKB": 1009.5,
+      "fileCount": 14
+    },
+    {
+      "page": "/get-the-visa",
+      "jsKB": 914.1,
+      "fileCount": 15
+    },
+    {
+      "page": "/dashboard",
+      "jsKB": 632.7,
+      "fileCount": 11
+    },
+    {
+      "page": "/admin",
+      "jsKB": 617.3,
+      "fileCount": 11
+    },
+    {
+      "page": "/my-profile",
+      "jsKB": 573.5,
+      "fileCount": 10
+    },
+    {
+      "page": "/visa-checkout",
+      "jsKB": 561,
+      "fileCount": 12
+    },
+    {
+      "page": "/",
+      "jsKB": 515.6,
+      "fileCount": 10
+    },
+    {
+      "page": "/privacy-policy",
+      "jsKB": 489.7,
+      "fileCount": 10
+    },
+    {
+      "page": "/_app",
+      "jsKB": 489.5,
+      "fileCount": 7
+    },
+    {
+      "page": "/faq",
+      "jsKB": 489.5,
+      "fileCount": 10
+    },
+    {
+      "page": "/terms-of-service",
+      "jsKB": 488,
+      "fileCount": 10
+    },
+    {
+      "page": "/our-guarantee",
+      "jsKB": 485.2,
+      "fileCount": 10
+    },
+    {
+      "page": "/refund-policy",
+      "jsKB": 484.4,
+      "fileCount": 10
+    },
+    {
+      "page": "/feedback",
+      "jsKB": 482.7,
+      "fileCount": 10
+    },
+    {
+      "page": "/stripe-elements-checkout",
+      "jsKB": 472.6,
+      "fileCount": 9
+    },
+    {
+      "page": "/payment-success",
+      "jsKB": 445.4,
+      "fileCount": 7
+    },
+    {
+      "page": "/payment-success-full",
+      "jsKB": 422.1,
+      "fileCount": 7
+    },
+    {
+      "page": "/login",
+      "jsKB": 421.2,
+      "fileCount": 7
+    },
+    {
+      "page": "/checkout",
+      "jsKB": 357.7,
+      "fileCount": 6
+    },
+    {
+      "page": "/_error",
+      "jsKB": 316.5,
+      "fileCount": 5
+    },
+    {
+      "page": "/passport-info",
+      "jsKB": 312,
+      "fileCount": 5
+    }
+  ]
+}

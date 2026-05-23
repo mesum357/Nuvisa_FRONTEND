@@ -1,6 +1,18 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowUpRight } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+
+const BACKGROUND_IMAGES = [
+  "/image/schengen-finance-bg.png",
+  "/image/get-the-visa-image.png",
+  "/image/get-the-visa-image-1.png",
+];
+
+const SLIDE_INTERVAL_MS = 5000;
+const FADE_DURATION_MS = 900;
 
 const proofPoints = [
   {
@@ -18,14 +30,45 @@ const proofPoints = [
 ];
 
 const VisaFinanceFeatureSection = () => {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const timerRef = useRef(null);
+
+  const imageCount = BACKGROUND_IMAGES.length;
+
+  useEffect(() => {
+    if (imageCount <= 1) return undefined;
+
+    timerRef.current = setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % imageCount);
+    }, SLIDE_INTERVAL_MS);
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [imageCount]);
+
   return (
     <section className="visa-finance-section">
       <div className="visa-finance-panel">
+        <div className="visa-finance-backgrounds" aria-hidden="true">
+          {BACKGROUND_IMAGES.map((src, index) => (
+            <div
+              key={src}
+              className={`visa-finance-background-layer${
+                index === activeIndex ? " is-active" : ""
+              }`}
+              style={{ backgroundImage: `url("${src}")` }}
+            />
+          ))}
+          <div className="visa-finance-background-overlay" />
+        </div>
+
         <div className="visa-finance-content">
           <div className="visa-finance-copy">
             <h2 className="visa-finance-title">
               Get the Schengen visa
-              <br className="hidden sm:block" /> from just £30<span className="visa-finance-slash">/</span>month
+              <br className="hidden sm:block" /> from just £30
+              <span className="visa-finance-slash">/</span>month
             </h2>
 
             <p className="visa-finance-description">
@@ -79,15 +122,38 @@ const VisaFinanceFeatureSection = () => {
           justify-content: center;
           overflow: hidden;
           border-radius: 42px;
-          background-image: linear-gradient(
-              rgba(0, 0, 0, 0.52),
-              rgba(0, 0, 0, 0.52)
-            ),
-            url("/image/schengen-finance-bg.png");
-          background-size: cover;
-          background-position: center;
           color: #ffffff;
           padding: 56px 80px;
+        }
+
+        .visa-finance-backgrounds {
+          position: absolute;
+          inset: 0;
+          z-index: 0;
+          overflow: hidden;
+          border-radius: inherit;
+        }
+
+        .visa-finance-background-layer {
+          position: absolute;
+          inset: 0;
+          background-size: cover;
+          background-position: center;
+          background-repeat: no-repeat;
+          opacity: 0;
+          transition: opacity ${FADE_DURATION_MS}ms ease-in-out;
+          will-change: opacity;
+        }
+
+        .visa-finance-background-layer.is-active {
+          opacity: 1;
+        }
+
+        .visa-finance-background-overlay {
+          position: absolute;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.52);
+          pointer-events: none;
         }
 
         .visa-finance-content {
@@ -236,8 +302,11 @@ const VisaFinanceFeatureSection = () => {
           .visa-finance-panel {
             min-height: 680px;
             border-radius: 34px;
-            background-position: 68% center;
             padding: 46px 22px;
+          }
+
+          .visa-finance-background-layer {
+            background-position: 68% center;
           }
 
           .visa-finance-content {
@@ -279,6 +348,12 @@ const VisaFinanceFeatureSection = () => {
           .visa-finance-proof-label {
             margin-top: 12px;
             font-size: 15px;
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .visa-finance-background-layer {
+            transition: none;
           }
         }
       `}</style>

@@ -19,6 +19,7 @@ import {
   AlertCircle
 } from "lucide-react";
 import { getApplicationStatus } from "@/api/applicationStatus";
+import { getPassportStatusMessage } from "@/constants/passportStatusMessages";
 import { localStorageGateway } from "@/gateways/localStoragegateway";
 import { localStorageEnums } from "@/enums/localstorage.enums";
 
@@ -125,9 +126,18 @@ const ApplicationCompletedSection = ({
         }
       };
 
+      const statusDisplay =
+        app.statusMessage ||
+        app.statusDisplay ||
+        app.applicationData?.statusMessage ||
+        app.applicationData?.statusDisplay ||
+        null;
+
       return {
         id: app.id,
         status: normalizeStatus(app.applicationStatus || app.status || app.applicationData?.applicationStatus || "submitted"),
+        statusDisplay,
+        statusMessage: statusDisplay,
         submittedAt: app.createdAt || app.submittedAt || app.applicationData?.createdAt || null,
         estimatedProcessingTime: app.estimatedProcessingTime || null,
         orderId: app.orderId || app.order_id || app.applicationData?.orderId || null,
@@ -155,8 +165,15 @@ const ApplicationCompletedSection = ({
         const rawApp =
           response.data.results?.application || response.data.application || response.data.applicationData || response.data;
 
-        const mapped = mapApplicationToStatus(rawApp);
+        let mapped = mapApplicationToStatus(rawApp);
         if (mapped) {
+          if (response.data.statusMessage || response.data.statusDisplay) {
+            mapped = {
+              ...mapped,
+              statusDisplay: response.data.statusMessage || response.data.statusDisplay,
+              statusMessage: response.data.statusMessage || response.data.statusDisplay,
+            };
+          }
           setApplicationStatus(mapped);
         } else {
           console.error("API returned success but mapping failed:", response.data);
@@ -224,7 +241,7 @@ const ApplicationCompletedSection = ({
     }
   };
 
-  const getStatusConfig = (status) => {
+  const getStatusConfig = (status, statusDisplay) => {
     switch (status) {
       case "submitted":
         return {
@@ -256,7 +273,10 @@ const ApplicationCompletedSection = ({
           bgColor: "bg-green-400/10",
           borderColor: "border-green-400/20",
           icon: CheckCircle,
-          message: "Decision made, passport dispatched/ready"
+          message: getPassportStatusMessage(
+            "decision_made",
+            applicationStatus?.statusDisplay || applicationStatus?.statusMessage
+          ),
         };
       case "approved":
         return {
@@ -287,7 +307,10 @@ const ApplicationCompletedSection = ({
 
   // Use applicationStatus from our existing endpoint
   const currentStatus = applicationStatus;
-  const statusConfig = getStatusConfig(currentStatus?.status);
+  const statusConfig = getStatusConfig(
+    currentStatus?.status,
+    currentStatus?.statusDisplay || currentStatus?.statusMessage
+  );
   const StatusIcon = statusConfig.icon;
 
 

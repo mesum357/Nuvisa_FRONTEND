@@ -3,9 +3,15 @@ import {
   archiveVisaApplication,
   unarchiveVisaApplication,
 } from "@/api/visaApplications";
+import dynamic from "next/dynamic";
 import ClientOnly from "@/components/ClientOnly";
-import CountrySelector from "@/components/CountrySelector";
 import { Header } from "@/components/layout/Header";
+
+const CountrySelector = dynamic(() => import("@/components/CountrySelector"), {
+  loading: () => (
+    <div className="h-12 w-full max-w-md animate-pulse rounded-lg bg-white/10" />
+  ),
+});
 import schengenCountries from "@/enums/flagCodes";
 import { localStorageEnums } from "@/enums/localstorage.enums";
 import { localStorageGateway } from "@/gateways/localStoragegateway";
@@ -697,7 +703,7 @@ const ProgressTimeline = ({ currentStatus, applicant, allTravelers = [], current
     { id: "under_review", label: "Under Review", shortLabel: "Review", icon: <FileText size={16} /> },
     { id: "appointment_booked", label: "Appointment booked", shortLabel: "Appt.", icon: <CalendarDays size={16} /> },
     { id: "at_embassy", label: "At embassy", shortLabel: "Embassy", icon: <Building2 size={16} /> },
-    { id: "decision_made", label: "Decision made, passport dispatched/ready", shortLabel: "Decision", icon: <CheckCircle2 size={16} /> },
+    { id: "decision_made", label: "Decision made", shortLabel: "Decision", icon: <CheckCircle2 size={16} /> },
   ];
 
   const getCurrentStepIndex = (statusOrProgress) => {

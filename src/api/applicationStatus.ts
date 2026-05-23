@@ -1,5 +1,10 @@
 import { backendApiEnums } from "@/enums/backendApi.enums";
 import { apigateway } from "@/gateways/apigateway";
+import {
+  getPassportStatusLabel,
+  getPassportStatusMessage,
+  isPassportFinalStage,
+} from "@/constants/passportStatusMessages";
 
 const normalizeStatus = (status) =>
   String(status || "")
@@ -125,11 +130,21 @@ export const getApplicationStatus = async (token, applicationId) => {
         return `ORD${numericTail(rawOrderId, 6)}`;
       };
 
+      const statusDisplay =
+        applicationData.statusMessage ||
+        applicationData.statusDisplay ||
+        applicationData.status_message ||
+        null;
+
       return {
         success: true,
         data: {
           id: applicationData.id || applicationId,
           status: derivedStatus,
+          statusDisplay,
+          statusMessage: isPassportFinalStage(derivedStatus)
+            ? getPassportStatusMessage(derivedStatus, statusDisplay)
+            : statusDisplay,
           submittedAt: applicationData.createdAt || new Date().toISOString(),
           estimatedProcessingTime: '3 working hours',
           orderId: applicationData.orderId,
@@ -179,7 +194,7 @@ const getStatusStage = (status) => {
     case "at_embassy":
       return "At Embassy";
     case "decision_made":
-      return "Decision Made";
+      return getPassportStatusLabel("decision_made");
     case "payment_required":
       return "Payment Processing";
     case "approved":
@@ -240,8 +255,8 @@ const getNextSteps = (status) => {
       ];
     case "decision_made":
       return [
-        "Final decision has been made",
-        "Check your email for passport dispatch or collection updates",
+        getPassportStatusMessage("decision_made"),
+        "Check your email for further instructions",
       ];
     case "payment_required":
       return [
@@ -282,7 +297,7 @@ const getStatusDescription = (status) => {
     case "at_embassy":
       return "Your documents are with the embassy";
     case "decision_made":
-      return "A final decision has been made on your application";
+      return getPassportStatusMessage("decision_made");
     case "payment_required":
       return "Additional payment required to complete processing";
     case "approved":

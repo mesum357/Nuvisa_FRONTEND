@@ -44,17 +44,30 @@ import {
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import QtyInput from "./QtyInput";
-import "react-datepicker/dist/react-datepicker.css";
 import { FaApple } from "react-icons/fa";
 import { useToast } from "@/contexts/ToastContext";
 import { CommonDatePicker } from "@/ui/date-picker";
 import { useSliderContent } from "@/hooks/useSliderContent";
 import SimpleAlert from "./SimpleAlert";
-import ConfirmationModal from "./ConfirmationModal";
-import StripeProvider from "./StripeProvider";
-import ExpressPaymentRequestButton from "./ExpressPaymentRequestButton";
-import ExpertSection from "./ExpertSection";
+import LazyWhenVisible from "./LazyWhenVisible";
+import CountryCarousel from "./slider/CountryCarousel";
+import { normalizeCountryKey, parseOccasionPrice } from "./slider/sliderUtils";
 import VisaFeeBreakdown from "./VisaFeeBreakdown";
+import dynamic from "next/dynamic";
+
+const ConfirmationModal = dynamic(() => import("./ConfirmationModal"), {
+  ssr: false,
+});
+const StripeProvider = dynamic(() => import("./StripeProvider"), {
+  ssr: false,
+});
+const ExpressPaymentRequestButton = dynamic(
+  () => import("./ExpressPaymentRequestButton"),
+  { ssr: false },
+);
+const ExpertSection = dynamic(() => import("./ExpertSection"), {
+  loading: () => <div className="min-h-[120px]" aria-hidden />,
+});
 import { validateGiftCardCode, redeemGiftCardCode } from "@/api/giftCard";
 import { useCountriesWithAppointmentTexts } from "@/hooks/useCountriesWithAppointmentTexts";
 import { staticCountries } from "@/constants/staticCountries";
@@ -64,45 +77,16 @@ import { getAdminApiBase } from "@/utils/adminApiBase";
 import { GIFT_CARD_PRODUCT_NAME } from "@/constants/productLabels";
 import { buildGtmUserData, clearStaleGtmUserData, resolveCoupon, computeCouponDiscountPerUnit } from "@/utils/gtmUserData";
 import { setExpertSpotsDefaultFromApi } from "@/utils/expertSpots";
-import dynamic from "next/dynamic";
-
-const normalizeCountryKey = (value) =>
-  String(value || "")
-    .trim()
-    .toLowerCase();
-
-const parseOccasionPrice = (value) => {
-  if (typeof value === "number") {
-    return Number.isFinite(value) ? value : NaN;
-  }
-
-  const raw = String(value ?? "").trim();
-  if (!raw) return NaN;
-
-  // Accept admin-entered values like "129", "1,299", "129.50" and "129,50".
-  let normalized = raw.replace(/[^\d.,-]/g, "");
-  if (!normalized) return NaN;
-
-  const hasComma = normalized.includes(",");
-  const hasDot = normalized.includes(".");
-
-  if (hasComma && hasDot) {
-    normalized = normalized.replace(/,/g, "");
-  } else if (hasComma && !hasDot) {
-    normalized = /,\d{1,2}$/.test(normalized)
-      ? normalized.replace(",", ".")
-      : normalized.replace(/,/g, "");
-  }
-
-  const parsed = Number(normalized);
-  return Number.isFinite(parsed) ? parsed : NaN;
-};
 
 const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { showError, showSuccess } = useToast();
   const MIN_SAFE_DAYS_BEFORE_TRAVEL = 15;
+
+  useEffect(() => {
+    import("react-datepicker/dist/react-datepicker.css");
+  }, []);
 
   const currentWeekReservedText = useMemo(
     () => getCurrentWeekSlotPercentage(new Date()),
@@ -247,8 +231,8 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
         }
 
         if (!Array.isArray(payload) || payload.length === 0) {
-          setCountryPricingList([]);
-          return;
+          const { DEFAULT_VISA_PRICING } = await import("@/data/defaultVisaPricing");
+          payload = DEFAULT_VISA_PRICING;
         }
         // console.log("payload receive", payload);
         const normalized = payload
@@ -1595,7 +1579,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
 
     const activeOccasion = eligibleOccasions[0] || null;
 
-    if (eligibleOccasions.length > 1) {
+    if (eligibleOccasions.length > 1 && process.env.NODE_ENV === "development") {
       console.log(
         "[Slider][OccasionSelection] Multiple eligible occasions by start date; selecting first",
         {
@@ -1609,11 +1593,13 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
     }
 
     if (!activeOccasion) {
-      console.log("[Slider][OccasionSelection] No eligible occasion", {
-        mode: "start-date-only",
-        arrivalDate: activeArrival,
-        departureDate: activeDeparture,
-      });
+      if (process.env.NODE_ENV === "development") {
+        console.log("[Slider][OccasionSelection] No eligible occasion", {
+          mode: "start-date-only",
+          arrivalDate: activeArrival,
+          departureDate: activeDeparture,
+        });
+      }
       setOccasionPricing(null);
       setOccasionCountryNames([]);
       setOccasionDateRange(null);
@@ -1631,18 +1617,6 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
     setOccasionCountryNames(countries);
     setOccasionDateRange(activeOccasion.range);
     setOccasionTraditionalText(activeOccasion.traditionalPriceText);
-
-    console.log("[Slider][OccasionSelection] Selected occasion", {
-      mode: "start-date-only",
-      selectedIndex: activeOccasion.index,
-      selectedRange: activeOccasion.range,
-      arrivalDate: activeArrival,
-      departureDate: activeDeparture,
-      departureOutsideRange:
-        activeDeparture < activeOccasion.range.start ||
-        activeDeparture > activeOccasion.range.end,
-      countriesCount: countries.length,
-    });
   }, [allOccasions, arrivalDate, departureDate, resolveOccasionRange]);
 
   const currentCountryName = getCountryParam(selectedCountry) || "Belgium";
@@ -1845,7 +1819,18 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
 
   const handleInsuranceChange = (increment) => {
     const newValue = insuranceCount + increment;
-    if (newValue < 0 || newValue > travelers) return;
+    if (newValue < 0) return;
+
+    // Insurance certificates are per traveller — raising insurance can raise traveller count
+    if (increment > 0 && newValue > travelers) {
+      dispatch(setReduxTravelers(Number(newValue)));
+      dispatch(
+        setVisaFees(
+          calculateStoredVisaFee({ travelerCount: newValue }),
+        ),
+      );
+    }
+
     dispatch(setReduxInsuranceCount(Number(newValue)));
     if (newValue > 0 && !recommendedItems.insuranceCertificate) {
       const next = { ...recommendedItems, insuranceCertificate: true };
@@ -2008,7 +1993,6 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
 
       let finalVisaFees = baseDiscountedVisaFees;
       const appliedDiscounts = [];
-      console.log("base discount", baseDiscountedVisaFees);
       if (travelersQualify) {
         const quantityDiscount = (finalVisaFees * 20) / 100;
         finalVisaFees = finalVisaFees - quantityDiscount;
@@ -2045,22 +2029,6 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
 
       const roundedVisaFees = Number(finalVisaFees.toFixed(2));
 
-      console.log("[Slider] visa fee recalculation", {
-        discountCode: discount?.code || null,
-        discountDescription: discount?.description || null,
-        usingOccasionPricing: isOccasionVisaPricingActive,
-        occasionBasePerTraveler: isOccasionVisaPricingActive
-          ? occasionBasePerTraveler
-          : null,
-        occasionVisaDiscountSuppressed: isOccasionVisaPricingActive,
-        hasOnlyInsurance,
-        travelers,
-        currentVisaFeePerTraveler: visaFeePerTraveler,
-        baseDiscountedVisaFees,
-        appliedDiscounts,
-        roundedVisaFees,
-      });
-
       return roundedVisaFees;
     },
     [
@@ -2079,11 +2047,6 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
     }
 
     if (visaState.visaFees !== nextVisaFees) {
-      console.log("[Slider] dispatching updated visaFees", {
-        previousVisaFees: visaState.visaFees,
-        nextVisaFees,
-        discountCode: appliedDiscount?.code || null,
-      });
       dispatch(setVisaFees(nextVisaFees));
     }
   }, [appliedDiscount, calculateStoredVisaFee, dispatch, visaState.visaFees]);
@@ -2594,13 +2557,6 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
     }
 
     const updatedVisaFees = calculateStoredVisaFee();
-
-    console.log("[Slider] coupon applied, keeping stored base visa fee", {
-      code: codeUpper,
-      baseVisaFee: currentVisaFeePerTraveler * travelers,
-      travelers,
-      updatedVisaFees,
-    });
 
     dispatch(setVisaFees(updatedVisaFees));
 
@@ -3874,11 +3830,9 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
         setTimeout(() => {
           setIsHighlighted(true);
           setDocumentsAccordionOpen(true);
-          console.log("Highlighting ON");
 
           setTimeout(() => {
             setIsHighlighted(false);
-            console.log("Highlighting OFF");
           }, 3000);
         }, 800);
       }
@@ -3920,11 +3874,9 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
       if (window.location.hash === "#add-to-cart" && mainSectionRef.current) {
         setTimeout(() => {
           setIsHighlighted(true);
-          console.log("Highlighting ON");
 
           setTimeout(() => {
             setIsHighlighted(false);
-            console.log("Highlighting OFF");
           }, 3000);
         }, 800);
       }
@@ -3940,7 +3892,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
   }, [router]);
   // console.log("active ocassions", allOccasions);
   return (
-    <div className="w-full max-w-[1300px] gap-20 max-lg:flex-col max-lg:gap-10 flex items-start justify-center px-5 max-sm:px-3">
+    <div className="w-full max-w-[88rem] mx-auto grid grid-cols-1 lg:grid-cols-2 items-start gap-10 md:gap-12 lg:gap-14 xl:gap-16 px-4 sm:px-6 lg:px-8 max-sm:px-3 min-w-0">
       {/* System Alerts */}
       <SimpleAlert
         isOpen={alertState.isOpen}
@@ -3964,10 +3916,10 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
       />
 
       {/* Left Column */}
-      <div className="w-full gap-3 flex flex-col items-start lg:max-w-[60%] max-sm:gap-4 mt-0 md:mt-4 lg:sticky lg:top-5 lg:self-start">
+      <div className="w-full min-w-0 gap-3 flex flex-col items-start max-sm:gap-4 mt-0 md:mt-4 lg:sticky lg:top-24 lg:self-start xl:pr-2 2xl:pr-4">
         {/* Badges Section */}
         <section className="text-center text-white rounded-2xl p-2 w-full max-sm:p-1">
-          <div className="w-full hidden md:flex justify-start items-center gap-2 px-3 max-sm:gap-3 max-sm:px-1">
+          <div className="w-full hidden md:flex flex-wrap justify-start items-center gap-2 px-3 max-sm:gap-3 max-sm:px-1">
             <button className="bg-[#24242D] border border-white px-4 py-[10px] rounded-full font-medium text-white select-none transition-colors relative overflow-hidden max-sm:w-full max-sm:px-4 max-sm:py-3">
               <span className="relative z-10 font-bold text-[22px] leading-none max-sm:text-[15px]">
                 {sliderContent["badge_1_text"]}
@@ -3983,259 +3935,147 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
         </section>
 
         {/* Visa Information Section */}
-        <section className="w-full gap-3 flex flex-col items-start max-sm:gap-4">
-          <section className="w-full">
-            <div className="bg-[#24242D] rounded-2xl shadow-sm p-4 max-sm:p-3">
-              <div className="bg-[#24242D] flex justify-between  text-white max-sm:flex-col max-sm:items-start max-sm:gap-4">
-                <h2 className="text-3xl md:text-[40px] font-gilroy-bold my-auto max-sm:text-2xl max-sm:mb-2">
-                  Visa <br className="hidden sm:block" /> information
+        <section className="w-full flex flex-col items-start gap-4 sm:gap-5">
+          <section className="w-full min-w-0">
+            <div className="bg-[#24242D] rounded-2xl shadow-sm p-5 sm:p-6 md:p-7 overflow-hidden text-white">
+              <div className="flex flex-col gap-6 sm:gap-7 lg:grid lg:grid-cols-[minmax(0,10.5rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,12rem)_minmax(0,1fr)] lg:gap-x-8 xl:gap-x-10 lg:items-start">
+                <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-[40px] font-gilroy-bold leading-tight shrink-0">
+                  Visa{" "}
+                  <span className="whitespace-nowrap">information</span>
                 </h2>
-                <div className="flex gap-8 justify-between w-full md:px-5 px-0">
-                  <div className="flex max-sm:py-2 flex-col gap-1 max-sm:gap-2  max-sm:w-full">
-                    {/* Visa Types */}
-                    <div className="flex items-center max-sm:text-sm">
-                      <FileText className="h-5 w-5 text-[#24242D] stroke-[#24242D] mr-3 fill-white max-sm:mr-2 max-sm:h-4 max-sm:w-4" />
-                      <span className="whitespace-nowrap">Visa Types</span>
-                    </div>
 
-                    {/* Stay Duration */}
-                    <div className="flex items-center max-sm:text-sm">
-                      <Home className="h-5 w-5 mr-3 text-white max-sm:mr-2 max-sm:h-4 max-sm:w-4" />
-                      <span className="whitespace-nowrap">Stay Duration</span>
+                <ul className="flex flex-col gap-0 w-full min-w-0 divide-y divide-white/15">
+                  {/* Visa Types → Sticker */}
+                  <li className="flex flex-col gap-2 py-4 first:pt-0 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-4 md:py-5">
+                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 text-sm sm:text-base text-white/90">
+                      <FileText className="h-5 w-5 shrink-0 text-[#24242D] stroke-[#24242D] fill-white sm:h-5 sm:w-5" />
+                      <span className="break-words leading-snug">Visa Types</span>
                     </div>
-
-                    {/* Term Type */}
-                    <div className="flex items-center max-sm:text-sm">
-                      <ClipboardList className="h-5 w-5 text-[#24242D] stroke-[#24242D] mr-3 fill-white max-sm:mr-2 max-sm:h-4 max-sm:w-4" />
-                      <span className="whitespace-nowrap">Term Type</span>
-                    </div>
-
-                    {/* Entry */}
-                    <div className="flex items-center max-sm:text-sm">
-                      <Clock className="h-5 w-5 mr-3 text-white max-sm:mr-2 max-sm:h-4 max-sm:w-4" />
-                      <span className="whitespace-nowrap">Entry</span>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col mr-10 max-sm:mr-0 max-sm:w-full max-sm:mt-2">
-                    <div className="grid gap-1 max-sm:gap-2">
-                      {/* Sticker */}
-                      <div
-                        className="relative border-b border-dashed border-white/40 w-fit font-semibold max-sm:w-full"
-                        onMouseEnter={() => setActiveTooltip("sticker")}
-                        onMouseLeave={() => setActiveTooltip(null)}
-                      >
-                        <div className="flex items-center max-sm:justify-between">
-                          <span className="max-sm:text-sm whitespace-nowrap">
-                            Sticker
-                          </span>
+                    <div
+                      className="relative font-semibold text-sm sm:text-base leading-snug pl-7 sm:pl-0 sm:text-right sm:max-w-[55%] min-w-0"
+                      onMouseEnter={() => setActiveTooltip("sticker")}
+                      onMouseLeave={() => setActiveTooltip(null)}
+                    >
+                      <span className="break-words border-b border-dashed border-white/40 pb-0.5 sm:border-0 sm:pb-0">
+                        Sticker
+                      </span>
+                      {activeTooltip === "sticker" && (
+                        <div className="absolute z-10 bottom-full right-0 sm:right-0 mb-2 w-[min(100%,16rem)] sm:w-64 bg-[#24242D] text-white p-3 rounded-lg shadow-lg border border-gray-200">
+                          <p className="text-xs leading-relaxed">{tooltips.sticker}</p>
+                          <div className="absolute -bottom-1 right-4 w-4 h-4 bg-[#24242D] transform rotate-45 border-b border-r border-gray-200" />
                         </div>
-
-                        {activeTooltip === "sticker" && (
-                          <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200 max-sm:w-48 max-sm:-left-20">
-                            <p className="text-xs max-sm:text-xs">
-                              {tooltips.sticker}
-                            </p>
-                            <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200 max-sm:left-20"></div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Duration */}
-                      <div
-                        className="relative border-b border-dashed border-white/40 w-fit font-semibold max-sm:w-full"
-                        onMouseEnter={() => setActiveTooltip("duration")}
-                        onMouseLeave={() => setActiveTooltip(null)}
-                      >
-                        <div className="flex items-center max-sm:justify-between">
-                          <span className="max-sm:text-sm whitespace-nowrap">
-                            Upto 90 Days
-                          </span>
-                        </div>
-
-                        {activeTooltip === "duration" && (
-                          <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200 max-sm:w-48 max-sm:-left-20">
-                            <div className="text-xs max-sm:text-xs">
-                              {tooltips.duration.map((line, index) => (
-                                <p
-                                  key={index}
-                                  className={
-                                    index > 0 ? "mt-1 max-sm:mt-0.5" : ""
-                                  }
-                                >
-                                  {line}
-                                </p>
-                              ))}
-                            </div>
-                            <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200 max-sm:left-20"></div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Term Type */}
-                      <div
-                        className="relative border-b border-dashed border-white/40 w-fit font-semibold max-sm:w-full"
-                        onMouseEnter={() => setActiveTooltip("term")}
-                        onMouseLeave={() => setActiveTooltip(null)}
-                      >
-                        <div className="flex items-center max-sm:justify-between">
-                          <span className="max-sm:text-sm whitespace-nowrap">
-                            Short Term
-                          </span>
-                        </div>
-
-                        {activeTooltip === "term" && (
-                          <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200 max-sm:w-48 max-sm:-left-20">
-                            <p className="text-xs max-sm:text-xs">
-                              {tooltips.term}
-                            </p>
-                            <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200 max-sm:left-20"></div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Entry */}
-                      <div
-                        className="relative border-b border-dashed border-white/40 w-fit font-semibold max-sm:w-full"
-                        onMouseEnter={() => setActiveTooltip("entry")}
-                        onMouseLeave={() => setActiveTooltip(null)}
-                      >
-                        <div className="flex items-center max-sm:justify-between">
-                          <span className="max-sm:text-sm whitespace-nowrap">
-                            Multiple or Single
-                          </span>
-                        </div>
-
-                        {activeTooltip === "entry" && (
-                          <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200 max-sm:w-48 max-sm:-left-20">
-                            <p className="text-xs max-sm:text-xs">
-                              {tooltips.entry}
-                            </p>
-                            <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200 max-sm:left-20"></div>
-                          </div>
-                        )}
-                      </div>
+                      )}
                     </div>
-                  </div>
-                </div>
+                  </li>
+
+                  {/* Stay Duration */}
+                  <li className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-4 md:py-5">
+                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 text-sm sm:text-base text-white/90">
+                      <Home className="h-5 w-5 shrink-0 text-white" />
+                      <span className="break-words leading-snug">Stay Duration</span>
+                    </div>
+                    <div
+                      className="relative font-semibold text-sm sm:text-base leading-snug pl-7 sm:pl-0 sm:text-right sm:max-w-[55%] min-w-0"
+                      onMouseEnter={() => setActiveTooltip("duration")}
+                      onMouseLeave={() => setActiveTooltip(null)}
+                    >
+                      <span className="break-words border-b border-dashed border-white/40 pb-0.5 sm:border-0 sm:pb-0">
+                        Upto 90 Days
+                      </span>
+                      {activeTooltip === "duration" && (
+                        <div className="absolute z-10 bottom-full right-0 mb-2 w-[min(100%,16rem)] sm:w-64 bg-[#24242D] text-white p-3 rounded-lg shadow-lg border border-gray-200">
+                          <div className="text-xs leading-relaxed space-y-1">
+                            {tooltips.duration.map((line, index) => (
+                              <p key={index}>{line}</p>
+                            ))}
+                          </div>
+                          <div className="absolute -bottom-1 right-4 w-4 h-4 bg-[#24242D] transform rotate-45 border-b border-r border-gray-200" />
+                        </div>
+                      )}
+                    </div>
+                  </li>
+
+                  {/* Term Type */}
+                  <li className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-4 md:py-5">
+                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 text-sm sm:text-base text-white/90">
+                      <ClipboardList className="h-5 w-5 shrink-0 text-[#24242D] stroke-[#24242D] fill-white" />
+                      <span className="break-words leading-snug">Term Type</span>
+                    </div>
+                    <div
+                      className="relative font-semibold text-sm sm:text-base leading-snug pl-7 sm:pl-0 sm:text-right sm:max-w-[55%] min-w-0"
+                      onMouseEnter={() => setActiveTooltip("term")}
+                      onMouseLeave={() => setActiveTooltip(null)}
+                    >
+                      <span className="break-words border-b border-dashed border-white/40 pb-0.5 sm:border-0 sm:pb-0">
+                        Short Term
+                      </span>
+                      {activeTooltip === "term" && (
+                        <div className="absolute z-10 bottom-full right-0 mb-2 w-[min(100%,16rem)] sm:w-64 bg-[#24242D] text-white p-3 rounded-lg shadow-lg border border-gray-200">
+                          <p className="text-xs leading-relaxed">{tooltips.term}</p>
+                          <div className="absolute -bottom-1 right-4 w-4 h-4 bg-[#24242D] transform rotate-45 border-b border-r border-gray-200" />
+                        </div>
+                      )}
+                    </div>
+                  </li>
+
+                  {/* Entry */}
+                  <li className="flex flex-col gap-2 py-4 last:pb-0 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-4 md:py-5">
+                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 text-sm sm:text-base text-white/90">
+                      <Clock className="h-5 w-5 shrink-0 text-white" />
+                      <span className="break-words leading-snug">Entry</span>
+                    </div>
+                    <div
+                      className="relative font-semibold text-sm sm:text-base leading-snug pl-7 sm:pl-0 sm:text-right sm:max-w-[55%] min-w-0"
+                      onMouseEnter={() => setActiveTooltip("entry")}
+                      onMouseLeave={() => setActiveTooltip(null)}
+                    >
+                      <span className="break-words border-b border-dashed border-white/40 pb-0.5 sm:border-0 sm:pb-0">
+                        Multiple or Single
+                      </span>
+                      {activeTooltip === "entry" && (
+                        <div className="absolute z-10 bottom-full right-0 mb-2 w-[min(100%,16rem)] sm:w-64 bg-[#24242D] text-white p-3 rounded-lg shadow-lg border border-gray-200">
+                          <p className="text-xs leading-relaxed">{tooltips.entry}</p>
+                          <div className="absolute -bottom-1 right-4 w-4 h-4 bg-[#24242D] transform rotate-45 border-b border-r border-gray-200" />
+                        </div>
+                      )}
+                    </div>
+                  </li>
+                </ul>
               </div>
 
-              <div className="text-left my-4 max-sm:my-3">
-                <p className="flex gap-2 max-sm:gap-1 max-sm:text-sm">
+              <div className="mt-6 sm:mt-7 pt-5 sm:pt-6 border-t border-white/15 text-left">
+                <p className="flex gap-3 sm:gap-3.5 text-sm sm:text-base leading-relaxed min-w-0">
                   <Image
                     src="/icons/megaphone.png"
                     width={24}
                     height={20}
-                    className="w-6 h-5 max-sm:w-5 max-sm:h-4"
+                    className="w-6 h-5 sm:w-6 sm:h-5 shrink-0 mt-0.5"
                     alt="Notice"
-                    priority
+                    loading="lazy"
                   />
-                  <span>{sliderContent["embassy_notice_text"]}</span>
+                  <span className="min-w-0 break-words text-white/95">
+                    {sliderContent["embassy_notice_text"]}
+                  </span>
                 </p>
               </div>
             </div>
           </section>
 
-          {/* Slider Section */}
-          <section className="mt-1 w-full max-sm:mt-0">
-            <div className="relative w-full">
-              {/* Slider container */}
-              <div className="overflow-hidden rounded-3xl shadow-lg max-sm:rounded-2xl">
-                <div className="relative h-full w-full">
-                  <Image
-                    src={
-                      activeCarouselCountry?.image ||
-                      "/image/country/default.jpg"
-                    }
-                    alt={activeCarouselCountry?.name || "Country"}
-                    width={800}
-                    height={800}
-                    className="w-full aspect-square object-cover"
-                    priority
-                  />
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6 max-sm:p-4">
-                    <h3 className="text-2xl font-gilroy-bold text-white max-sm:text-xl mb-5">
-                      {activeCarouselCountry?.name || ""}
-                    </h3>
-                  </div>
-                </div>
-              </div>
-
-              {/* Navigation arrows */}
-              <button
-                onClick={goToPrevious}
-                className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/70 flex items-center text-black/80 hover:bg-white p-2 rounded-full shadow-md transition-all duration-300 z-10 max-sm:left-2 max-sm:p-1.5"
-                aria-label="Previous slide"
-              >
-                <ChevronLeft size={24} className="max-sm:w-5 max-sm:h-5" />
-              </button>
-              <button
-                onClick={goToNext}
-                className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/70 flex items-center text-black/80 hover:bg-white p-2 rounded-full shadow-md transition-all duration-300 z-10 max-sm:right-2 max-sm:p-1.5"
-                aria-label="Next slide"
-              >
-                <ChevronRight size={24} className="max-sm:w-5 max-sm:h-5" />
-              </button>
-
-              <div className="flex justify-center gap-2 absolute bottom-5 left-1/2 -translate-x-1/2 max-sm:bottom-3">
-                {carouselCountries.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => {
-                      setCurrentIndex(index);
-                      resetTimer();
-                    }}
-                    className={`w-2.5 h-2.5 cursor-pointer rounded-full transition-all max-sm:w-2 max-sm:h-2 ${
-                      index === currentIndex
-                        ? "bg-white w-6 max-sm:w-4"
-                        : "bg-white/50"
-                    }`}
-                    aria-label={`Go to slide ${index + 1}`}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Thumbnails for slider navigation */}
-            <div
-              ref={thumbnailContainerRef}
-              className="flex justify-start pb-10 gap-2 max-lg:hidden mt-8 overflow-x-auto overflow-y-hidden w-full max-sm:mt-4 px-4"
-              style={{
-                scrollbarWidth: "none",
-                msOverflowStyle: "none",
-                WebkitOverflowScrolling: "touch",
-              }}
-            >
-              {carouselCountries.map((country, index) => (
-                <Image
-                  key={country.id}
-                  src={country.image}
-                  alt={country.name}
-                  width={80}
-                  height={80}
-                  onClick={() => {
-                    setCurrentIndex(index);
-                    resetTimer();
-                  }}
-                  className={`w-20 aspect-square object-cover cursor-pointer rounded-xl border-2 transition-all max-sm:w-12 max-sm:rounded-lg ${
-                    index === currentIndex
-                      ? "border-[#7350FF]"
-                      : "border-white opacity-70 hover:opacity-100"
-                  }`}
-                  priority
-                  style={{ boxSizing: "border-box" }}
-                />
-              ))}
-            </div>
-            {/* <p className="text-[18px] hidden md:block mt-3 mb-5 text-white font-gilroy-bold text-center max-sm:text-[16px] max-sm:mt-8">
-              {sliderContent["urgent_note_text"]}
-            </p> */}
-          </section>
+          <CountryCarousel
+            carouselCountries={carouselCountries}
+            activeCarouselCountry={activeCarouselCountry}
+            currentIndex={currentIndex}
+            setCurrentIndex={setCurrentIndex}
+            goToPrevious={goToPrevious}
+            goToNext={goToNext}
+            resetTimer={resetTimer}
+            thumbnailContainerRef={thumbnailContainerRef}
+          />
         </section>
       </div>
 
       {/* Right Column */}
-      <div className="w-full gap-4 flex flex-col items-start lg:max-w-[60%] max-sm:gap-4 mt-0 md:mt-4">
+      <div className="w-full min-w-0 gap-4 flex flex-col items-start max-sm:gap-4 mt-0 md:mt-4 lg:pl-0 xl:pl-2">
         {/* NRI Badge Section */}
         <section className="text-center text-white rounded-2xl p-2 w-full max-sm:p-1">
           <div className="flex justify-start items-center">
@@ -4245,10 +4085,9 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
               } rounded-full font-medium text-sm text-white select-none transition-colors relative overflow-hidden text-center max-sm:w-full max-sm:px-3 max-sm:py-2`}
             >
               <span
-                className={`relative z-10 leading-none text-center font-bold flex justify-center items-center ${
+                className={`relative z-10 leading-none text-center font-bold flex justify-center items-center text-sm md:text-base lg:text-[17px] ${
                   hasEuFlagBadge ? "" : "pt-2"
                 } max-sm:text-[18px]`}
-                style={{ fontSize: "17px" }}
               >
                 {renderedNriBadgeText}
               </span>
@@ -4261,7 +4100,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
         <section
           ref={mainSectionRef}
           id="add-to-cart"
-          className="bg-[#24242D] text-white rounded-t-2xl  p-6 w-full max-sm:p-4"
+          className="bg-[#24242D] text-white rounded-t-2xl p-4 sm:p-5 lg:p-6 xl:p-7 w-full max-sm:p-4"
         >
           <div className="w-full">
             {/* Header with pricing */}
@@ -4273,14 +4112,14 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                 {sliderContent?.slider_description ||
                   "Complete visa service with all necessary documents"}
               </p>
-              <div className="flex items-center justify-between gap-3 mb-4 max-sm:flex-col max-sm:items-start max-sm:gap-1">
+              <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 mb-4 max-sm:gap-3">
                 {selectedCountryData.isActive !== false ? (
                   activeOccasionPricing ? (
                     <div className="flex flex-col gap-2">
                       {/* Row 1: Discounted + Original */}
-                      <div className="flex gap-12 max-sm:w-full max-sm:justify-between items-center">
+                      <div className="flex flex-wrap gap-6 md:gap-8 lg:gap-12 max-sm:w-full max-sm:justify-between items-center">
                         <div className="flex flex-col items-center">
-                          <span className="text-2xl font-gilroy-bold max-sm:text-xl">
+                          <span className="text-2xl lg:text-3xl font-gilroy-bold max-sm:text-xl">
                             £{discountedVisaDisplayTotal.toFixed(2)}
                           </span>
                           {occasionDisplayedSaveAmount > 0 && (
@@ -4345,9 +4184,9 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                     </div>
                   ) : (
                     /* Default 2-tier pricing */
-                    <div className="flex gap-12 max-sm:w-full max-sm:justify-between items-center">
+                    <div className="flex flex-wrap gap-6 md:gap-8 lg:gap-12 max-sm:w-full max-sm:justify-between items-center">
                       <div className="flex flex-col items-center">
-                        <span className="text-2xl font-gilroy-bold max-sm:text-xl">
+                        <span className="text-2xl lg:text-3xl font-gilroy-bold max-sm:text-xl">
                           £{visaOnlyPrice.toFixed(2)}
                         </span>
                         {Number(calculateOriginalPrice()) > visaOnlyPrice && (
@@ -4383,7 +4222,8 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                   </div>
                 )}
 
-                <div className="flex items-center gap-2 shadow-lg shadow-black/20 p-2 rounded-full max-sm:w-full max-sm:justify-between max-sm:px-4">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full xl:w-auto xl:justify-end">
+                <div className="flex items-center gap-2 shadow-lg shadow-black/20 p-2 rounded-full max-sm:w-full max-sm:justify-between max-sm:px-4 shrink-0">
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 rounded-full flex items-center justify-center">
                       <UserIcon className="fill-white max-sm:w-3 max-sm:h-3" />
@@ -4407,7 +4247,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                 </div>
 
                 {/* Country Selector */}
-                <div className="w-fit max-sm:w-full">
+                <div className="w-full sm:w-fit min-w-0 max-sm:w-full">
                   <label htmlFor="country-select" className="sr-only">
                     Select Country
                   </label>
@@ -4419,7 +4259,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                       disabled={
                         isVisaPricingLoading || !dropdownCountries.length
                       }
-                      className="px-2 py-2 font-semibold rounded-full shadow-black/20 shadow-lg cursor-pointer focus:outline-none max-sm:w-full max-sm:text-center"
+                      className="w-full sm:w-auto max-w-full px-2 py-2 font-semibold rounded-full shadow-black/20 shadow-lg cursor-pointer focus:outline-none max-sm:text-center"
                     >
                       {isVisaPricingLoading ? (
                         <option value="" className="bg-gray-400 text-gray-800">
@@ -4482,6 +4322,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                     </div>
                   )}
                 </div>
+                </div>
               </div>
             </div>
           </div>
@@ -4499,7 +4340,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                         width={40}
                         height={40}
                         className="max-sm:w-6 max-sm:h-6"
-                        priority
+                        loading="lazy"
                       />
                     </div>
                     <div className="flex flex-col gap-0 justify-end leading-tight">
@@ -4530,7 +4371,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                       width={40}
                       height={40}
                       className="w-10 aspect-square max-sm:w-6 max-sm:h-6"
-                      priority
+                      loading="lazy"
                     />
                   </div>
                   <div className="flex flex-col gap-0 justify-end leading-tight">
@@ -4741,7 +4582,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                 >
                   <div className="px-4 pb-4 max-sm:px-3 max-sm:pb-3">
                     <div className="h-px bg-white/10 mb-4"></div>
-                    <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1 max-sm:gap-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-sm:gap-2">
                       {/* Passport */}
                       <div
                         className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border max-sm:p-2 ${
@@ -4986,6 +4827,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
               </div>
             </div>
 
+            <LazyWhenVisible minHeight="320px" rootMargin="320px 0px" className="w-full">
             <StripeProvider>
               {/* Hidden component that handles payment logic - buttons below trigger it */}
               <ExpressPaymentRequestButton
@@ -5596,12 +5438,15 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                 );
               })()}
             </StripeProvider>
+            </LazyWhenVisible>
           </div>
 
+          <LazyWhenVisible minHeight="120px" rootMargin="240px 0px" className="w-full">
           <ExpertSection
             checked={isExpertSelected}
             onChange={setIsExpertSelected}
           />
+          </LazyWhenVisible>
 
           {/* Recommended Section */}
           <div className="mt-6">
@@ -5611,11 +5456,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
 
             {/* Insurance Certificate & Gift Card Section */}
             <div className="w-full mb-4 max-sm:mb-3">
-              <div className="flex gap-4 max-sm:gap-3 items-stretch">
-                {/* 1. Insurance Certificate Box */}
-                {/* Insurance Certificate & Gift Card Section */}
-                <div className="w-full mb-4 max-sm:mb-3">
-                  <div className="flex gap-4 max-sm:gap-3 items-stretch">
+              <div className="flex flex-col sm:flex-row gap-4 max-sm:gap-3 items-stretch min-w-0">
                     {/* 1. Insurance Certificate Box */}
                     <div
                       className={`flex-1 flex flex-col border px-4  pt-3 max-sm:px-2  rounded-2xl text-white transition-all overflow-hidden bg-white/5 ${
@@ -5653,11 +5494,11 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                             alt="Insurance"
                             width={100}
                             height={56}
-                            className="w-full h-full object-cover"
-                            priority
+                            className="w-full h-auto object-cover"
+                            loading="lazy"
                           />
                         </div>
-                        <h3 className="font-bold whitespace-nowrap text-base max-sm:text-[14px] leading-tight text-center px-1">
+                        <h3 className="font-bold text-base max-sm:text-[14px] leading-tight text-center px-1 break-words">
                           {more_to_love.leftTitle}
                         </h3>
                         {more_to_love.leftSubtitle && (
@@ -5718,8 +5559,8 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                             alt="Gift Card"
                             width={100}
                             height={56}
-                            className="w-full h-full object-cover"
-                            priority
+                            className="w-full h-auto object-cover"
+                            loading="lazy"
                           />
                         </div>
                         <h3 className="font-bold text-base max-sm:text-[14px] leading-tight text-center px-1">
@@ -5750,8 +5591,6 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                         </div>
                       </div>
                     </div>
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -6058,7 +5897,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
               width={20}
               height={20}
               className="inline-block mr-1 size-5 text-white max-sm:w-4 max-sm:h-4"
-              priority
+              loading="lazy"
             />
             Get Help
           </a>

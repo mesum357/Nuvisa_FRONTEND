@@ -115,7 +115,7 @@ const Footer = () => {
                     alt="Icon"
                     width={130}
                     height={20}
-                    className="object-contain"
+                    className="h-auto w-[130px] object-contain"
                     priority
                   />{" "}
                 </Link>

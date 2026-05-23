@@ -451,7 +451,7 @@ const VisaSolution = ({
       </svg>
 
       <div
-        id={title === "Everyday Steals" && "everyday-steals"}
+        id={title === "Everyday Steals" ? "everyday-steals" : undefined}
         className="w-full max-w-[86rem] mx-auto flex flex-col gap-6 items-center justify-center"
       >
         <div className=" w-full flex items-center gap-5 md:gap-10 max-md:flex-col max-md:text-left px-6">

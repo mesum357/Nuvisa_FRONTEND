@@ -158,7 +158,6 @@ const ComparisonSection = () => {
   const detailSections = data?.detailSections || defaultData.detailSections;
   const comparisonColumns = data?.comparisonColumns || defaultData.comparisonColumns;
   const comparisonRows = data?.comparisonRows || defaultData.comparisonRows;
-  console.log("Comparison Data:", comparisonData);
   const trustBadges = [
     { icon: <Shield size={20} strokeWidth={1.5} />, label: "SECURE DATA" },
     { icon: <Headphones size={20} strokeWidth={1.5} />, label: "EXPERT GUIDANCE" },

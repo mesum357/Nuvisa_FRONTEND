@@ -7,6 +7,20 @@ export default function Document() {
     <Html lang="en">
       <Head>
         {/* GTM + payment scripts load via _app (lazy / checkout-only) */}
+        <link
+          rel="preload"
+          href="/fonts/gilroy-bold/Gilroy-Medium.ttf"
+          as="font"
+          type="font/ttf"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preload"
+          href="/fonts/gilroy-bold/Gilroy-Bold.ttf"
+          as="font"
+          type="font/ttf"
+          crossOrigin="anonymous"
+        />
 
         {/* ===== FAVICONS ===== */}
         <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2" />

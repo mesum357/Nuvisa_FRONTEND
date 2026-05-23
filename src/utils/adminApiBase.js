@@ -31,4 +31,24 @@ export const getAdminApiBase = () => {
 	return raw.replace(/\/+$/, '');
 };
 
+/** Resolve country/appointment image paths from admin API or local public assets. */
+export const resolveCountryImageUrl = (image) => {
+	if (!image || typeof image !== 'string') return '';
+
+	const trimmed = image.trim();
+	if (!trimmed) return '';
+
+	if (/^https?:\/\//i.test(trimmed)) {
+		return trimmed;
+	}
+
+	// Frontend static assets in /public/image — never prefix with admin API host
+	if (trimmed.startsWith('/image/') || trimmed.startsWith('/icons/')) {
+		return trimmed;
+	}
+
+	const adminBase = getAdminApiBase();
+	return trimmed.startsWith('/') ? `${adminBase}${trimmed}` : `${adminBase}/${trimmed}`;
+};
+
 

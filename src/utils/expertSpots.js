@@ -88,6 +88,71 @@ export const syncExpertSpots = () => {
   return spots;
 };
 
+export const fetchDailySlotsFromApi = async () => {
+  if (typeof window === "undefined") return null;
+  try {
+    const res = await fetch("/api/daily-slots", { cache: "no-store" });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const data = json?.data;
+    if (!data || data.remaining == null) return null;
+    const defaultSpots = normalizeDefaultSpots(data.defaultSpots ?? data.remaining);
+    const remaining = normalizeSpotsLeft(data.remaining, defaultSpots);
+    localStorage.setItem(DEFAULT_SPOTS_FROM_API_STORAGE_KEY, String(defaultSpots));
+    localStorage.setItem(SPOTS_LEFT_STORAGE_KEY, String(remaining));
+    const { dayKey } = getUkDateParts();
+    localStorage.setItem(LAST_RESET_DAY_STORAGE_KEY, dayKey);
+    try {
+      window.dispatchEvent(
+        new CustomEvent("expert-spots-updated", { detail: { spots: remaining } })
+      );
+    } catch {
+      // ignore
+    }
+    return remaining;
+  } catch {
+    return null;
+  }
+};
+
+export const decrementExpertSpotsViaApi = async (paymentId) => {
+  if (typeof window === "undefined") return syncExpertSpots();
+  const normalizedPaymentId = String(paymentId || "").trim();
+  const processed = readProcessedPayments();
+  if (normalizedPaymentId && processed.includes(normalizedPaymentId)) {
+    return syncExpertSpots();
+  }
+  try {
+    const res = await fetch("/api/daily-slots", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    if (res.ok) {
+      const json = await res.json();
+      const remaining = Number(json?.data?.remaining);
+      if (Number.isFinite(remaining)) {
+        const defaultSpots = getDynamicDefaultSpots();
+        localStorage.setItem(SPOTS_LEFT_STORAGE_KEY, String(remaining));
+        if (normalizedPaymentId) {
+          writeProcessedPayments([...processed, normalizedPaymentId]);
+        }
+        try {
+          window.dispatchEvent(
+            new CustomEvent("expert-spots-updated", { detail: { spots: remaining } })
+          );
+        } catch {
+          // ignore
+        }
+        return remaining;
+      }
+    }
+  } catch {
+    // fall through to local decrement
+  }
+  return decrementExpertSpotsOnSuccessfulCheckout(paymentId);
+};
+
 export const setExpertSpotsDefaultFromApi = (value) => {
   if (typeof window === "undefined") return DEFAULT_SPOTS_LEFT;
 
