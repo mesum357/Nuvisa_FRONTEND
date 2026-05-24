@@ -65,11 +65,11 @@ export const useCountriesWithAppointmentTexts = ({
     const loadData = async () => {
       try {
         setIsLoading(true);
-        const adminBase = getAdminApiBase();
-
         const [appTextsResponse, visaCountriesResponse] = await Promise.all([
           fetchAppointmentTexts(),
-          fetch(`${adminBase}/api/visa-countries?active=true`).then(res => res.ok ? res.json() : { success: false })
+          fetch('/api/visa-countries?active=true').then((res) =>
+            res.ok ? res.json() : { success: false },
+          ),
         ]);
 
         if (!active) return;

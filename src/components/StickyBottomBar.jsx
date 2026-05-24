@@ -29,7 +29,7 @@ import {
 } from "@/store/visaSlice";
 import { useToast } from "@/contexts/ToastContext";
 import Drawer from "./Drawer";
-import { getAdminApiBase } from "@/utils/adminApiBase";
+import { fetchVisaPricingResults } from "@/utils/fetchVisaPricingClient";
 import { GIFT_CARD_PRODUCT_NAME } from "@/constants/productLabels";
 import { resolveCoupon } from "@/utils/gtmUserData";
 import { title } from "process";
@@ -273,37 +273,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
 
     const fetchVisaPricing = async () => {
       try {
-        const apiBase = String(process.env.NEXT_PUBLIC_API_URL || "").replace(
-          /\/+$/,
-          "",
-        );
-        const adminBase = getAdminApiBase();
-        const candidates = [
-          `/api/visa-pricing`,
-          `${apiBase}/visa_pricing`,
-          `${apiBase}/api/visa_pricing`,
-          `${apiBase}/api/public/visa_pricing`,
-          `${apiBase}/api/public/visa-pricing`,
-          `${adminBase}/api/visa_pricing`,
-          `${adminBase}/visa_pricing`,
-          `${adminBase}/api/public/visa_pricing`,
-          `${adminBase}/api/public/visa-pricing`,
-        ].filter((url) => /^https?:\/\//i.test(url) || url.startsWith("/"));
-
-        let payload = null;
-        for (const endpoint of candidates) {
-          try {
-            const res = await fetch(endpoint, { method: "GET" });
-            if (!res.ok) continue;
-            const json = await res.json();
-            const status = String(json?.status || "").toUpperCase();
-            if (status === "ERROR") continue;
-            payload = json?.data?.results || [];
-            if (Array.isArray(payload)) break;
-          } catch {
-            // Try next endpoint
-          }
-        }
+        const { results: payload } = await fetchVisaPricingResults();
 
         if (!mounted) return;
         if (!Array.isArray(payload) || payload.length === 0) {

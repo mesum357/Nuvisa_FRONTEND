@@ -2,8 +2,6 @@
  * API Helper utility for making HTTP requests
  */
 
-import { getAdminApiBase } from '@/utils/adminApiBase';
-
 /**
  * Fetch data from API with error handling
  * @param {string} endpoint - API endpoint path
@@ -11,8 +9,7 @@ import { getAdminApiBase } from '@/utils/adminApiBase';
  */
 export const fetchContent = async (endpoint) => {
   try {
-    const API_BASE_URL = getAdminApiBase();
-    const response = await fetch(`${API_BASE_URL}/api/public/${endpoint}`, {
+    const response = await fetch(`/api/public/${endpoint}`, {
       headers: {
         'Content-Type': 'application/json',
       },

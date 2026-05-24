@@ -14,9 +14,9 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { getAdminApiBase } = await import("@/utils/adminApiBase");
+    const { getAdminApiBase, getPublicApiBase } = await import("@/utils/adminApiBase");
     const adminUrl = getAdminApiBase().replace(/\/+$/, "");
-    const apiUrl = String(process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+    const apiUrl = getPublicApiBase();
     const bases = [apiUrl, adminUrl].filter(Boolean);
     const paths = [
       "/visa_pricing",

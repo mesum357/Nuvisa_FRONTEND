@@ -77,7 +77,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+    const { getPublicApiBase } = await import("@/utils/adminApiBase");
+    const apiBase = getPublicApiBase();
 
     const fromDb = await fetchOccasionContentFromDb();
     const fromCms = await fetchBackendCms(apiBase);

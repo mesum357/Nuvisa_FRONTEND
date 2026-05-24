@@ -12,7 +12,7 @@ import {
 import { getCountryConfig } from "@/constants/countryConfig";
 import { resolveCoupon } from "@/utils/gtmUserData";
 import GetTheVisaButton from "./layout/GetTheVisaButton";
-import { getAdminApiBase } from "@/utils/adminApiBase";
+import { fetchVisaPricingResults } from "@/utils/fetchVisaPricingClient";
 import { useCountriesWithAppointmentTexts } from "@/hooks/useCountriesWithAppointmentTexts";
 import Link from "next/link";
 import DeferredSectionVideo from "./home/DeferredSectionVideo";
@@ -180,35 +180,7 @@ const VisaSolution = ({
     const fetchVisaPricing = async () => {
       try {
         setIsVisaPricingLoading(true);
-        const apiBase = String(process.env.NEXT_PUBLIC_API_URL || "").replace(
-          /\/+$/,
-          ""
-        );
-        const adminBase = getAdminApiBase();
-        const candidates = [
-          `/api/visa-pricing`,
-          `${apiBase}/visa_pricing`,
-          `${apiBase}/api/visa_pricing`,
-          `${apiBase}/api/public/visa_pricing`,
-          `${apiBase}/api/public/visa-pricing`,
-          `${adminBase}/api/visa_pricing`,
-          `${adminBase}/visa_pricing`,
-          `${adminBase}/api/public/visa_pricing`,
-          `${adminBase}/api/public/visa-pricing`,
-        ].filter((url) => /^https?:\/\//i.test(url) || url.startsWith("/"));
-
-        let payload = null;
-        for (const endpoint of candidates) {
-          try {
-            const res = await fetch(endpoint, { method: "GET" });
-            if (!res.ok) continue;
-            const json = await res.json();
-            const status = String(json?.status || "").toUpperCase();
-            if (status === "ERROR") continue;
-            payload = json?.data?.results || [];
-            if (Array.isArray(payload)) break;
-          } catch {}
-        }
+        const { results: payload } = await fetchVisaPricingResults();
 
         if (!mounted) return;
         if (!Array.isArray(payload) || payload.length === 0) {

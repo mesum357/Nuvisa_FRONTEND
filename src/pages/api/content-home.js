@@ -48,7 +48,8 @@ export default async function handler(req, res) {
   }
 
   const byKey = {};
-  const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+  const { getPublicApiBase } = await import("@/utils/adminApiBase");
+  const apiBase = getPublicApiBase();
 
   if (apiBase) {
     try {

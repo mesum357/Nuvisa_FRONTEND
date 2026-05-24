@@ -1,6 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getAdminApiBase } from '@/utils/adminApiBase';
-
 export const useVisaCountries = (activeOnly = true) => {
   const [countries, setCountries] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -9,8 +7,9 @@ export const useVisaCountries = (activeOnly = true) => {
   const fetchCountries = useCallback(async () => {
     try {
       setIsLoading(true);
-      const adminBase = getAdminApiBase();
-      const response = await fetch(`${adminBase}/api/visa-countries${activeOnly ? '?active=true' : ''}`);
+      const response = await fetch(
+        `/api/visa-countries${activeOnly ? '?active=true' : ''}`,
+      );
       
       if (!response.ok) {
         throw new Error('Failed to fetch visa countries');

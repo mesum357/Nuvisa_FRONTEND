@@ -1,14 +1,9 @@
 import axios from "axios";
-import { getAdminApiBase } from '@/utils/adminApiBase';
 
-// Fetch appointment texts from Nuvisa-Admin API
+// Fetch appointment texts via same-origin API proxy (avoids CORS on production).
 export const fetchAppointmentTexts = async () => {
-  // Use getAdminApiBase() which handles localhost URLs and provides fallback
-  const baseUrl = getAdminApiBase();
-  const url = `${baseUrl}/api/appointment-text`;
-  
   try {
-    const res = await axios.get(url, {
+    const res = await axios.get('/api/appointment-text', {
       headers: {
         'Content-Type': 'application/json',
       },

@@ -48,7 +48,8 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+  const { getPublicApiBase } = await import("@/utils/adminApiBase");
+  const apiBase = getPublicApiBase();
   const fromAdmin = await fetchAdminCountrySection();
   const fromCms = await fetchBackendCms(apiBase);
 

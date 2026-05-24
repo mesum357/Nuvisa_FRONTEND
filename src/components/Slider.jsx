@@ -77,7 +77,7 @@ import { useCountriesWithAppointmentTexts } from "@/hooks/useCountriesWithAppoin
 import { staticCountries } from "@/constants/staticCountries";
 import { getDynamicMonthText } from "@/utils/getDynamicMonthText";
 import { getCurrentWeekSlotPercentage } from "@/utils/getCurrentWeekSlotPercentage";
-import { getAdminApiBase } from "@/utils/adminApiBase";
+import { fetchVisaPricingResults } from "@/utils/fetchVisaPricingClient";
 import { GIFT_CARD_PRODUCT_NAME } from "@/constants/productLabels";
 import { buildGtmUserData, clearStaleGtmUserData, resolveCoupon, computeCouponDiscountPerUnit } from "@/utils/gtmUserData";
 import { setExpertSpotsDefaultFromApi } from "@/utils/expertSpots";
@@ -195,39 +195,8 @@ const CountrySlider = ({
       try {
         setIsVisaPricingLoading(true);
         setVisaPricingError("");
-        const apiBase = String(process.env.NEXT_PUBLIC_API_URL || "").replace(
-          /\/+$/,
-          "",
-        );
-        const adminBase = getAdminApiBase();
-        const candidates = [
-          `/api/visa-pricing`,
-          `${apiBase}/visa_pricing`,
-          `${apiBase}/api/visa_pricing`,
-          `${apiBase}/api/public/visa_pricing`,
-          `${apiBase}/api/public/visa-pricing`,
-          `${adminBase}/api/visa_pricing`,
-          `${adminBase}/visa_pricing`,
-          `${adminBase}/api/public/visa_pricing`,
-          `${adminBase}/api/public/visa-pricing`,
-        ].filter((url) => /^https?:\/\//i.test(url) || url.startsWith("/"));
-
-        let payload = null;
-        let hasSuccessfulResponse = false;
-        for (const endpoint of candidates) {
-          try {
-            const res = await fetch(endpoint, { method: "GET" });
-            if (!res.ok) continue;
-            hasSuccessfulResponse = true;
-            const json = await res.json();
-            const status = String(json?.status || "").toUpperCase();
-            if (status === "ERROR") continue;
-            payload = json?.data?.results || [];
-            if (Array.isArray(payload)) break;
-          } catch {
-            // Try next endpoint
-          }
-        }
+        const { results: payload, ok: hasSuccessfulResponse } =
+          await fetchVisaPricingResults();
 
         if (!mounted) return;
         if (!hasSuccessfulResponse) {

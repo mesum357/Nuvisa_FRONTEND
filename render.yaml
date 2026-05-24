@@ -1,11 +1,15 @@
-# Render Blueprint — optional; or mirror these settings in the Render dashboard.
+# Render Blueprint — optional; mirror these settings in the Render dashboard.
+# Required env vars (set in Render → Environment):
+#   NEXT_PUBLIC_API_URL     — production NestJS backend (NOT localhost)
+#   DATABASE_URL / DIRECT_URL — Postgres for Prisma CMS routes
+#   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY — must match backend Stripe mode
 services:
   - type: web
     name: nuvisa-frontend
     runtime: node
     buildCommand: npm install && npm run build
     startCommand: npm start
-    # Runs after a successful build, with production env vars (needs DB access).
+    # Only runs when DATABASE_URL is configured; omit preDeploy if CMS DB is external.
     preDeployCommand: npx prisma migrate deploy
     envVars:
       - key: NODE_VERSION

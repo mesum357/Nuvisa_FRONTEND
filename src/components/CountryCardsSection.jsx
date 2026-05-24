@@ -21,7 +21,7 @@ import { getCountryConfig } from "@/constants/countryConfig";
 import { useCountriesWithAppointmentTexts } from "@/hooks/useCountriesWithAppointmentTexts";
 import { staticCountries } from "@/constants/staticCountries";
 import Link from "next/link";
-import { getAdminApiBase } from "@/utils/adminApiBase";
+import { fetchVisaPricingResults } from "@/utils/fetchVisaPricingClient";
 import { DEFAULT_OCCASIONS } from "@/constants/defaultOccasions";
 import { resolveCoupon } from "@/utils/gtmUserData";
 
@@ -283,37 +283,7 @@ const CountryCardsSection = ({
     const fetchVisaPricing = async () => {
       try {
         setIsVisaPricingLoading(true);
-        const apiBase = String(process.env.NEXT_PUBLIC_API_URL || "").replace(
-          /\/+$/,
-          "",
-        );
-        const adminBase = getAdminApiBase();
-        const candidates = [
-          `/api/visa-pricing`,
-          `${apiBase}/visa_pricing`,
-          `${apiBase}/api/visa_pricing`,
-          `${apiBase}/api/public/visa_pricing`,
-          `${apiBase}/api/public/visa-pricing`,
-          `${adminBase}/api/visa_pricing`,
-          `${adminBase}/visa_pricing`,
-          `${adminBase}/api/public/visa_pricing`,
-          `${adminBase}/api/public/visa-pricing`,
-        ].filter((url) => /^https?:\/\//i.test(url) || url.startsWith("/"));
-
-        let payload = null;
-        for (const endpoint of candidates) {
-          try {
-            const res = await fetch(endpoint, { method: "GET" });
-            if (!res.ok) continue;
-            const json = await res.json();
-            const status = String(json?.status || "").toUpperCase();
-            if (status === "ERROR") continue;
-            payload = json?.data?.results || [];
-            if (Array.isArray(payload)) break;
-          } catch {
-            // Try next endpoint
-          }
-        }
+        const { results: payload } = await fetchVisaPricingResults();
 
         if (!mounted) return;
         if (!Array.isArray(payload) || payload.length === 0) {

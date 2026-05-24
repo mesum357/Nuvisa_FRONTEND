@@ -1,4 +1,3 @@
-import { getAdminApiBase } from "@/utils/adminApiBase";
 import axios from "axios";
 
 export const getComparisonSection = async (
@@ -13,11 +12,12 @@ export const getComparisonSection = async (
       throw new Error('Comparison section API should only be called client-side');
     }
 
-    const countryParam = country ? `&country=${encodeURIComponent(country)}` : '';
-    const occasionParam = isOccasion ? '&isOccasion=true' : '';
-    const arrivalDateParam = arrivalDate ? `&arrivalDate=${encodeURIComponent(arrivalDate)}` : '';
-    const departureDateParam = departureDate ? `&departureDate=${encodeURIComponent(departureDate)}` : '';
-    const response = await axios.get(`${getAdminApiBase()}/api/comparison-section?path=active${countryParam}${occasionParam}${arrivalDateParam}${departureDateParam}`);
+    const params = new URLSearchParams({ path: 'active' });
+    if (country) params.set('country', country);
+    if (isOccasion) params.set('isOccasion', 'true');
+    if (arrivalDate) params.set('arrivalDate', arrivalDate);
+    if (departureDate) params.set('departureDate', departureDate);
+    const response = await axios.get(`/api/comparison-section?${params.toString()}`);
     return response;
   } catch (error) {
     console.error('Error fetching comparison section:', error);
