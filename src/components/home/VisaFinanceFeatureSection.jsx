@@ -532,6 +532,12 @@ const VisaFinanceFeatureSection = () => {
             transition: none;
           }
         }
+
+        @media (prefers-reduced-motion: reduce) {
+          .visa-finance-background-layer {
+            transition: none;
+          }
+        }
       `}</style>
     </section>
   );

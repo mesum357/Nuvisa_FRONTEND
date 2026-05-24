@@ -1,0 +1,12 @@
+# Render Blueprint — optional; or mirror these settings in the Render dashboard.
+services:
+  - type: web
+    name: nuvisa-frontend
+    runtime: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    # Runs after a successful build, with production env vars (needs DB access).
+    preDeployCommand: npx prisma migrate deploy
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
