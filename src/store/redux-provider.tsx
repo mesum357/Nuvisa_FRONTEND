@@ -4,7 +4,13 @@ import { store } from "./index";
 import { persistStore } from "redux-persist";
 import { setAuthState } from "./authSlice";
 
-persistStore(store);
+let persistStarted = false;
+
+function startPersistStore() {
+  if (persistStarted || typeof window === "undefined") return;
+  persistStarted = true;
+  persistStore(store);
+}
 
 function InnerProvider({ children }: { children: React.ReactNode }) {
   const dispatch = useDispatch();
@@ -45,6 +51,18 @@ export default function ReduxProvider({
 }: {
   children: React.ReactNode;
 }) {
+  useEffect(() => {
+    const start = () => startPersistStore();
+
+    if ("requestIdleCallback" in window) {
+      const idleId = window.requestIdleCallback(start, { timeout: 4000 });
+      return () => window.cancelIdleCallback(idleId);
+    }
+
+    const timer = window.setTimeout(start, 2000);
+    return () => window.clearTimeout(timer);
+  }, []);
+
   return (
     <Provider store={store}>
       <InnerProvider>{children}</InnerProvider>

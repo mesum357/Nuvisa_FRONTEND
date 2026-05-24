@@ -12,6 +12,7 @@ export default function Document() {
           rel="preload"
           href="/image/hero-poster.png"
           as="image"
+          type="image/png"
           fetchPriority="high"
         />
         <link
