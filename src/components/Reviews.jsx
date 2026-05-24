@@ -141,7 +141,7 @@ export default function Reviews() {
                                                 width={40}
                                                 height={40}
                                                 className="h-[40px] w-[40px] rounded-full object-cover"
-                                                priority
+                                                loading="lazy"
                                             />
                                             <div>
                                                 <h3 className="font-semibold text-white text-sm">{r.name}</h3>

@@ -5,6 +5,8 @@ import DeferredHomeHeroVideo from "@/components/home/DeferredHomeHeroVideo";
 import LazyWhenVisible from "@/components/LazyWhenVisible";
 import { useHeroContent } from "@/hooks/useHeroContent";
 import { Info } from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
 import HomePageHead from "@/components/seo/HomePageHead";
 import { useState, useEffect, useRef } from "react";
 

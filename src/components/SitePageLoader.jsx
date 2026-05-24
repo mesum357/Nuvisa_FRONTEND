@@ -2,18 +2,24 @@
 
 import { useEffect, useRef, useState } from "react";
 
+const SHOW_DELAY_MS = 400;
 const MAX_VISIBLE_MS = 900;
 
 /**
- * Brief first-visit overlay only. Dismisses on DOMContentLoaded (not window.load)
- * so a 26MB hero MP4 does not block LCP.
+ * Optional overlay — not rendered on SSR so LCP can be the hero poster.
+ * Only appears if the page is still loading after SHOW_DELAY_MS.
  */
 export default function SitePageLoader() {
-  const [visible, setVisible] = useState(true);
+  const [visible, setVisible] = useState(false);
   const hideTimerRef = useRef(null);
+  const showTimerRef = useRef(null);
 
   useEffect(() => {
     const hide = () => {
+      if (showTimerRef.current) {
+        clearTimeout(showTimerRef.current);
+        showTimerRef.current = null;
+      }
       if (hideTimerRef.current) return;
       hideTimerRef.current = setTimeout(() => {
         setVisible(false);
@@ -21,24 +27,32 @@ export default function SitePageLoader() {
       }, 0);
     };
 
+    const onReady = () => {
+      hide();
+    };
+
     if (
       document.readyState === "interactive" ||
       document.readyState === "complete"
     ) {
-      hide();
-    } else {
-      document.addEventListener("DOMContentLoaded", hide, { once: true });
+      onReady();
+      return undefined;
     }
 
-    const cap = window.setTimeout(hide, MAX_VISIBLE_MS);
+    document.addEventListener("DOMContentLoaded", onReady, { once: true });
+    const cap = window.setTimeout(onReady, MAX_VISIBLE_MS);
+
+    showTimerRef.current = window.setTimeout(() => {
+      if (document.readyState === "loading") {
+        setVisible(true);
+      }
+    }, SHOW_DELAY_MS);
 
     return () => {
-      document.removeEventListener("DOMContentLoaded", hide);
+      document.removeEventListener("DOMContentLoaded", onReady);
       window.clearTimeout(cap);
-      if (hideTimerRef.current) {
-        clearTimeout(hideTimerRef.current);
-        hideTimerRef.current = null;
-      }
+      if (showTimerRef.current) clearTimeout(showTimerRef.current);
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
     };
   }, []);
 
