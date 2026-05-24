@@ -14,42 +14,7 @@ export default function App({ Component, pageProps }) {
     router.pathname?.includes("payment") ||
     router.pathname?.includes("application-step");
 
-  useEffect(() => {
-    if (typeof window === "undefined" || !isCheckoutRoute) return;
-
-    let cancelled = false;
-    const initStripe = () => {
-      try {
-        if (window.Stripe && process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
-          window.stripeInstance = window.Stripe(
-            process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-          );
-          return true;
-        }
-      } catch (error) {
-        console.warn("Stripe initialization skipped:", error.message);
-        window.stripeInstance = null;
-      }
-      return false;
-    };
-
-    if (initStripe()) return;
-
-    const interval = setInterval(() => {
-      if (cancelled) return;
-      if (initStripe()) clearInterval(interval);
-    }, 250);
-
-    const stop = setTimeout(() => clearInterval(interval), 12000);
-
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-      clearTimeout(stop);
-    };
-  }, [isCheckoutRoute]);
-
-  // 3. GTM ROUTER LISTENER (This fixes the missing dataLayer issue)
+  // GTM router listener
   useEffect(() => {
     const handleRouteChange = (url) => {
       if (typeof window !== "undefined") {

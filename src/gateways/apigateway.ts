@@ -1,6 +1,6 @@
 import { logMessage } from "@/utils/logMessage";
 import { logoutFunction } from "@/utils/logoutFunction";
-import { getPublicApiBase } from "@/utils/adminApiBase";
+import { getPublicApiBase, resolvePaymentApiUrl } from "@/utils/adminApiBase";
 import axios from "axios";
 
 const PAYMENT_ENDPOINTS = new Set([
@@ -23,9 +23,13 @@ export const apigateway = async ({
   directAction = false,
   timeout = 10000,
 }) => {
+  const requestUrl = PAYMENT_ENDPOINTS.has(endpoint)
+    ? resolvePaymentApiUrl(endpoint)
+    : `${getPublicApiBase()}${endpoint}`;
+
   const config = {
     method: method,
-    url: `${getPublicApiBase()}${endpoint}`,
+    url: requestUrl,
     timeout,
     headers: {
       "Content-Type": contentType ? contentType : "application/json",

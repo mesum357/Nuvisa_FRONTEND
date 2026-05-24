@@ -1,6 +1,7 @@
 # Render Blueprint — optional; mirror these settings in the Render dashboard.
 # Required env vars (set in Render → Environment):
-#   NEXT_PUBLIC_API_URL     — production NestJS backend (NOT localhost)
+#   NEXT_PUBLIC_API_URL     — production NestJS backend (NOT localhost), baked into client bundle at build
+#   BACKEND_API_URL         — same NestJS URL for server-side proxies (Stripe, CMS); set if NEXT_PUBLIC was wrong at build
 #   DATABASE_URL / DIRECT_URL — Postgres for Prisma CMS routes
 #   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY — must match backend Stripe mode
 services:

@@ -1,11 +1,8 @@
 import Script from "next/script";
 
-/** Stripe + Google Pay — checkout routes only (not loaded on homepage). */
+/** Google Pay — checkout routes only. Stripe is loaded once via @stripe/stripe-js in StripeProvider. */
 export default function LoadPaymentScripts() {
   return (
-    <>
-      <Script src="https://js.stripe.com/v3/" strategy="lazyOnload" />
-      <Script src="https://pay.google.com/gp/p/js/pay.js" strategy="lazyOnload" />
-    </>
+    <Script src="https://pay.google.com/gp/p/js/pay.js" strategy="lazyOnload" />
   );
 }

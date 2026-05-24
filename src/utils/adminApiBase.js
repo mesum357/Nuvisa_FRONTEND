@@ -49,16 +49,50 @@ export const getAdminApiBase = () => {
 	return raw.replace(/\/+$/, '');
 };
 
-/** NestJS backend base URL; never returns localhost on deployed hosts. */
+/** NestJS backend base URL for browser-side API calls. */
 export const getPublicApiBase = () => {
 	const raw = process.env.NEXT_PUBLIC_API_URL;
 	if (!raw) return '';
 
-	if (shouldBlockLocalhostUrls() && isLocalhost(raw)) {
+	// Only strip localhost in the browser on a deployed site (not on the Node server).
+	if (isDeployedBrowser() && isLocalhost(raw)) {
 		return '';
 	}
 
 	return raw.replace(/\/+$/, '');
+};
+
+/** NestJS backend URL for Next.js API route proxies (server-only env preferred). */
+export const getBackendApiBase = () => {
+	const serverUrl = process.env.BACKEND_API_URL || process.env.API_URL;
+	if (serverUrl) {
+		return String(serverUrl).replace(/\/+$/, '');
+	}
+
+	const raw = process.env.NEXT_PUBLIC_API_URL;
+	if (!raw) return '';
+
+	if (process.env.NODE_ENV === 'production' && isLocalhost(raw)) {
+		return '';
+	}
+
+	return raw.replace(/\/+$/, '');
+};
+
+const STRIPE_PROXY_PREFIX = '/api/stripe/';
+
+/** Resolve payment endpoint — same-origin proxy when public API base is unavailable. */
+export const resolvePaymentApiUrl = (endpoint) => {
+	const base = getPublicApiBase();
+	if (base) {
+		return `${base}${endpoint}`;
+	}
+
+	if (endpoint.startsWith('/stripe_payment/')) {
+		return `${STRIPE_PROXY_PREFIX}${endpoint.slice('/stripe_payment/'.length)}`;
+	}
+
+	return endpoint;
 };
 
 /** Resolve country/appointment image paths from admin API or local public assets. */
