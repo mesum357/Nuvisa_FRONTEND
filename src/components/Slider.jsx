@@ -195,8 +195,9 @@ const CountrySlider = ({
       try {
         setIsVisaPricingLoading(true);
         setVisaPricingError("");
-        const { results: payload, ok: hasSuccessfulResponse } =
+        const { results, ok: hasSuccessfulResponse } =
           await fetchVisaPricingResults();
+        let payload = results;
 
         if (!mounted) return;
         if (!hasSuccessfulResponse) {
