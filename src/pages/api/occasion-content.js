@@ -70,45 +70,65 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+  const now = Date.now();
+  if (occasionResponseCache.data && occasionResponseCache.expiresAt > now) {
+    res.setHeader("Cache-Control", CONTENT_API_HTTP_CACHE);
+    return res.status(200).json(occasionResponseCache.data);
+  }
 
-  const fromDb = await fetchOccasionContentFromDb();
-  const fromCms = await fetchBackendCms(apiBase);
-  const fromAdmin = await fetchAdminOccasions();
+  try {
+    const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
 
-  const merged = {
-    title: fromDb?.title || fromCms?.title || fromAdmin?.title || "",
-    description:
-      fromDb?.description || fromCms?.description || fromAdmin?.description || "",
-    occasions:
-      fromDb?.occasions?.length > 0
-        ? fromDb.occasions
-        : fromCms?.occasions?.length > 0
-        ? fromCms.occasions
-        : fromAdmin?.occasions || [],
-  };
+    const fromDb = await fetchOccasionContentFromDb();
+    const fromCms = await fetchBackendCms(apiBase);
+    const fromAdmin = await fetchAdminOccasions();
 
-  const source = fromDb?.occasions?.length
-    ? fromDb.source
-    : fromCms?.occasions?.length
-    ? fromCms.source
-    : fromAdmin?.occasions?.length
-    ? fromAdmin.source
-    : fromDb?.title || fromDb?.description
-    ? fromDb.source
-    : fromCms?.title || fromCms?.description
-    ? fromCms.source
-    : fromAdmin?.title || fromAdmin?.description
-    ? fromAdmin.source
-    : "defaults";
+    const merged = {
+      title: fromDb?.title || fromCms?.title || fromAdmin?.title || "",
+      description:
+        fromDb?.description || fromCms?.description || fromAdmin?.description || "",
+      occasions:
+        fromDb?.occasions?.length > 0
+          ? fromDb.occasions
+          : fromCms?.occasions?.length > 0
+          ? fromCms.occasions
+          : fromAdmin?.occasions || [],
+    };
 
-  const data = finalizeOccasionPayload(merged, { allowDefaults: true });
-  const payload = { success: true, data, source };
+    const source = fromDb?.occasions?.length
+      ? fromDb.source
+      : fromCms?.occasions?.length
+      ? fromCms.source
+      : fromAdmin?.occasions?.length
+      ? fromAdmin.source
+      : fromDb?.title || fromDb?.description
+      ? fromDb.source
+      : fromCms?.title || fromCms?.description
+      ? fromCms.source
+      : fromAdmin?.title || fromAdmin?.description
+      ? fromAdmin.source
+      : "defaults";
 
-  occasionResponseCache = {
-    data: payload,
-    expiresAt: now + CONTENT_API_CACHE_TTL_MS,
-  };
-  res.setHeader("Cache-Control", CONTENT_API_HTTP_CACHE);
-  return res.status(200).json(payload);
+    const data = finalizeOccasionPayload(merged, { allowDefaults: true });
+    const payload = { success: true, data, source };
+
+    occasionResponseCache = {
+      data: payload,
+      expiresAt: now + CONTENT_API_CACHE_TTL_MS,
+    };
+    res.setHeader("Cache-Control", CONTENT_API_HTTP_CACHE);
+    return res.status(200).json(payload);
+  } catch (error) {
+    console.error("occasion-content error:", error?.message || error);
+    if (occasionResponseCache.data) {
+      res.setHeader("Cache-Control", CONTENT_API_HTTP_CACHE);
+      return res.status(200).json(occasionResponseCache.data);
+    }
+    const data = finalizeOccasionPayload(
+      { title: "", description: "", occasions: [] },
+      { allowDefaults: true },
+    );
+    res.setHeader("Cache-Control", CONTENT_API_HTTP_CACHE);
+    return res.status(200).json({ success: true, data, source: "defaults-error" });
+  }
 }
