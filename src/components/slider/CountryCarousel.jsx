@@ -22,7 +22,7 @@ export default function CountryCarousel({
   compact = false,
 }) {
   const heroSrc =
-    activeCarouselCountry?.image || "/image/country/default.jpg";
+    activeCarouselCountry?.image || "/image/country/Germany.jpg";
 
   useEffect(() => {
     const first = carouselCountries[0]?.image;

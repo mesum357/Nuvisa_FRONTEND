@@ -6,53 +6,39 @@ import {
 
 let faqsCache = { key: "", data: null, expiresAt: 0 };
 
-const ADMIN_FAQ_BASES = () => {
-  const fromEnv = [
-    process.env.NEXT_PUBLIC_ADMIN_API_URL,
-    process.env.NEXT_PUBLIC_ADMIN_URL,
-    process.env.ADMIN_PUBLIC_URL,
-  ]
-    .filter(Boolean)
-    .map((u) => String(u).replace(/\/+$/, ""));
-
-  return [
-    ...new Set([
-      ...fromEnv,
-      "https://nuvisa-admin.vercel.app",
-      "https://nuvisa-admin-updated.vercel.app",
-    ]),
-  ];
-};
+const ADMIN_FETCH_TIMEOUT_MS = 5000;
 
 async function fetchAdminPublicFaqs(queryString = "") {
-  for (const base of ADMIN_FAQ_BASES()) {
-    const url = `${base}/api/public/faqs${queryString}`;
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 12000);
-      const response = await fetch(url, {
-        method: "GET",
-        headers: { Accept: "application/json" },
-        signal: controller.signal,
-        cache: "no-store",
-      });
-      clearTimeout(timeout);
+  const { getAdminApiBase } = await import("@/utils/adminApiBase");
+  const base = getAdminApiBase();
+  const url = `${base}/api/public/faqs${queryString}`;
 
-      if (!response.ok) continue;
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), ADMIN_FETCH_TIMEOUT_MS);
+    const response = await fetch(url, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      signal: controller.signal,
+      cache: "no-store",
+    });
+    clearTimeout(timeout);
 
-      const data = await response.json();
-      if (data?.success && Array.isArray(data.data)) {
-        return data.data.map((row) => ({
-          ...row,
-          faqType: row.faqType || row.category,
-        }));
-      }
-      if (Array.isArray(data?.data)) return data.data;
-      if (Array.isArray(data)) return data;
-    } catch (error) {
-      console.error("Admin FAQs fetch failed:", url, error?.message || error);
+    if (!response.ok) return [];
+
+    const data = await response.json();
+    if (data?.success && Array.isArray(data.data)) {
+      return data.data.map((row) => ({
+        ...row,
+        faqType: row.faqType || row.category,
+      }));
     }
+    if (Array.isArray(data?.data)) return data.data;
+    if (Array.isArray(data)) return data;
+  } catch (error) {
+    console.error("Admin FAQs fetch failed:", url, error?.message || error);
   }
+
   return [];
 }
 

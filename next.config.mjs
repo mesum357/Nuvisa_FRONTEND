@@ -28,6 +28,10 @@ const nextConfig = {
     NEXT_PUBLIC_ADMIN_API_URL: process.env.NEXT_PUBLIC_ADMIN_API_URL,
   },
   images: {
+    // Render's small instances often 502 on /_next/image under load (sharp + memory).
+    unoptimized:
+      process.env.NEXT_IMAGE_UNOPTIMIZED === "true" ||
+      process.env.RENDER === "true",
     deviceSizes: [320, 420, 640, 768, 1024, 1200, 1440, 1920],
     formats: ["image/avif", "image/webp"],
     minimumCacheTTL: 3600,
