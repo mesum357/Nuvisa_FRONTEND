@@ -10,7 +10,7 @@ export const useHeroContent = () => {
     discountTicketText: 'Students! Get 10% Off',
     discountTicketLink: '/get-the-visa',
   });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {

@@ -6,9 +6,7 @@ import Link from "next/link";
 const DISCOUNT_CODE_HASH = "discount-code";
 const FALLBACK_DISCOUNT_LINK = `/get-the-visa#${DISCOUNT_CODE_HASH}`;
 
-const getDiscountTicketHref = (loading, content) => {
-    if (loading) return FALLBACK_DISCOUNT_LINK;
-
+const getDiscountTicketHref = (content) => {
     const configuredLink = content?.discountTicketLink?.trim();
     if (!configuredLink) return FALLBACK_DISCOUNT_LINK;
 
@@ -16,7 +14,7 @@ const getDiscountTicketHref = (loading, content) => {
     return `${baseLink || "/get-the-visa"}#${DISCOUNT_CODE_HASH}`;
 };
 
-const DiscountTicket = ({ loading, content }) => {
+const DiscountTicket = ({ content }) => {
     const [visible, setVisible] = useState(true);
     const [animateIn, setAnimateIn] = useState(false);
 
@@ -47,7 +45,7 @@ const DiscountTicket = ({ loading, content }) => {
             </button>
 
             {/* Ticket as Link */}
-            <Link href={getDiscountTicketHref(loading, content)}>
+            <Link href={getDiscountTicketHref(content)}>
                 <div
                     className="sec_bg border-r-0 border-l border-t border-b border-[#423577] text-white text-xs font-bold tracking-widest cursor-pointer select-none"
                     style={{
@@ -59,7 +57,7 @@ const DiscountTicket = ({ loading, content }) => {
                         boxShadow: "2px 0 12px rgba(0,0,0,0.18)",
                     }}
                 >
-                    {loading ? "Students! Get 10% Off" : content.discountTicketText}
+                    {content.discountTicketText}
                 </div>
             </Link>
         </div>

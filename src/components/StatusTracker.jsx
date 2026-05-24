@@ -11,10 +11,7 @@ import {
   ExternalLink
 } from "lucide-react";
 import { getApplicationStatus } from "@/api/applicationStatus";
-import {
-  getPassportStatusLabel,
-  getPassportStatusMessage,
-} from "@/constants/passportStatusMessages";
+import { getApplicationStatusContent } from "@/constants/applicationStatusMessages";
 import { localStorageGateway } from "@/gateways/localStoragegateway";
 import { localStorageEnums } from "@/enums/localstorage.enums";
 
@@ -98,66 +95,51 @@ const StatusTracker = ({ applicationId, className = "", initialStatus = null, on
 
     const progress = status?.progress ?? statusToProgress(status?.status);
 
-    const steps = [
-      {
-        id: 'submitted',
-        title: 'Application Submitted',
-        description: 'Your application has been received',
-        completed: progress >= 25,
-        current: progress > 0 && progress < 50
-      },
-      {
-        id: 'review',
-        title: 'Under review',
-        description: 'Documents are being reviewed by our team',
-        completed: progress >= 50,
-        current: progress >= 25 && progress < 75
-      },
-      {
-        id: 'appointment',
-        title: 'Appointment booked',
-        description: 'Visa appointment has been successfully scheduled',
-        completed: progress >= 75,
-        current: progress >= 50 && progress < 100
-      },
-      {
-        title: "At Embassy",
-        id: "at_embassy",
-        description: "Application is currently at the embassy",
-        completed: progress >= 90,
-        current: progress >= 75 && progress < 100
-      },
-      ...(['approved', 'rejected', 'decision_made'].includes(normalizeStatus(status?.status))
-        ? [{
-            id: normalizeStatus(status?.status),
-            title: normalizeStatus(status?.status) === 'approved'
-              ? getPassportStatusLabel('ready', status?.statusDisplay)
-              : normalizeStatus(status?.status) === 'rejected'
-                ? 'Rejected'
-                : getPassportStatusLabel(
-                    status?.status,
-                    status?.statusDisplay || status?.statusMessage
-                  ),
-            description: normalizeStatus(status?.status) === 'approved'
-              ? getPassportStatusMessage('ready', status?.statusDisplay)
-              : normalizeStatus(status?.status) === 'rejected'
-                ? 'Your application has been rejected'
-                : getPassportStatusMessage(
-                    status?.status,
-                    status?.statusDisplay || status?.statusMessage
-                  ),
-            completed: progress >= 100,
-            current: progress === 100
-          }]
-        : [{
-            id: 'decision',
-            title: getPassportStatusLabel('decision_made'),
-            description: getPassportStatusMessage('decision_made'),
-            completed: progress >= 100,
-            current: progress === 100
-          }]
-      )
+    const stepStatusKeys = [
+      "submitted",
+      "under_review",
+      "appointment_booked",
+      "at_embassy",
     ];
+
+    const steps = stepStatusKeys.map((key, index) => {
+      const copy = getApplicationStatusContent(key);
+      const completedAt = [25, 50, 75, 90][index];
+      const currentRanges = [
+        { min: 0, max: 50 },
+        { min: 25, max: 75 },
+        { min: 50, max: 100 },
+        { min: 75, max: 100 },
+      ];
+      const range = currentRanges[index];
+
+      return {
+        id: key,
+        title: copy.progressTitle,
+        description: copy.progressDescription,
+        completed: progress >= completedAt,
+        current: progress >= range.min && progress < range.max,
+      };
+    });
+
+    const finalStatusKey = ['approved', 'rejected', 'decision_made'].includes(
+      normalizeStatus(status?.status)
+    )
+      ? normalizeStatus(status?.status)
+      : 'decision_made';
+
+    const finalCopy = getApplicationStatusContent(
+      finalStatusKey,
+      status?.statusDisplay || status?.statusMessage
+    );
+
+    steps.push({
+      id: finalStatusKey,
+      title: finalCopy.progressTitle,
+      description: finalCopy.progressDescription,
+      completed: progress >= 100,
+      current: progress === 100,
+    });
 
     return steps;
   };
@@ -207,18 +189,10 @@ const StatusTracker = ({ applicationId, className = "", initialStatus = null, on
           <h3 className="text-lg font-gilroy-bold text-white">Application Progress</h3>
           {status && (
             <p className={`text-sm font-medium ${getStatusColor(status.status)}`}>
-              {(() => {
-                const label = (status.status || '')
-                  .toString()
-                  .replace(/[_-]+/g, ' ')
-                  .replace(/\s+/g, ' ')
-                  .trim()
-                  .toLowerCase()
-                  .split(' ')
-                  .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : ''))
-                  .join(' ');
-                return `Status: ${label}`;
-              })()}
+              {`Status: ${getApplicationStatusContent(
+                status.status,
+                status.statusDisplay || status.statusMessage
+              ).label}`}
             </p>
           )}
         </div>

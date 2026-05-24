@@ -11,8 +11,17 @@ export const sectionSkeleton =
       />
     );
 
-export const lazySection = (importFn, minHeight = "120px", options = {}) =>
-  dynamic(importFn, {
-    loading: sectionSkeleton(minHeight),
-    ...options,
+export const lazySection = (importFn, minHeight = "120px", options = {}) => {
+  const { ssr = true, loading, ...rest } = options;
+
+  return dynamic(importFn, {
+    ssr,
+    loading:
+      loading !== undefined
+        ? loading
+        : ssr === false
+          ? () => null
+          : sectionSkeleton(minHeight),
+    ...rest,
   });
+};

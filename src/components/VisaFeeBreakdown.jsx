@@ -100,15 +100,15 @@ const VisaFeeBreakdown = ({
   const fallbackTravelersOriginalTotal =
     travelersCount > 0
       ? computedPerTravelerOriginal * travelersCount
-      : computedOriginalTotal;
+      : 0;
   const fallbackTravelersCurrentTotal =
     travelersCount > 0
       ? computedPerTravelerCurrent * travelersCount
-      : computedVisaOnlyTotal;
+      : 0;
   const fallbackTravelersComparisonTotal =
     travelersCount > 0
       ? computedPerTravelerComparison * travelersCount
-      : computedOriginalTotal;
+      : 0;
   const fallbackTravelersTraditionalTotal =
     travelersCount > 0
       ? computedPerTravelerTraditional * travelersCount
@@ -116,13 +116,17 @@ const VisaFeeBreakdown = ({
 
   // Prefer totals from Slider summary (occasion-aware), fallback to local derivation.
   const travelersOriginalTotal =
-    providedTravelersOriginalTotal > 0
-      ? providedTravelersOriginalTotal
-      : fallbackTravelersOriginalTotal;
+    travelersCount === 0
+      ? 0
+      : providedTravelersOriginalTotal > 0
+        ? providedTravelersOriginalTotal
+        : fallbackTravelersOriginalTotal;
   const travelersCurrentTotal =
-    providedTravelersCurrentTotal > 0
-      ? providedTravelersCurrentTotal
-      : fallbackTravelersCurrentTotal;
+    travelersCount === 0
+      ? 0
+      : providedTravelersCurrentTotal > 0
+        ? providedTravelersCurrentTotal
+        : fallbackTravelersCurrentTotal;
   const providedTravelersComparisonTotal = Number(priceSummary?.travelersComparisonTotal || 0);
   const providedTravelersTraditionalTotal = Number(priceSummary?.travelersTraditionalTotal || 0);
   const travelersComparisonTotal =
@@ -135,13 +139,17 @@ const VisaFeeBreakdown = ({
       : fallbackTravelersTraditionalTotal;
 
   const effectiveTravelersCurrentTotal =
-    Number(travelerPricing?.currentTotal) > 0
-      ? Number(travelerPricing.currentTotal)
-      : travelersCurrentTotal;
+    travelersCount === 0
+      ? 0
+      : Number(travelerPricing?.currentTotal) > 0
+        ? Number(travelerPricing.currentTotal)
+        : travelersCurrentTotal;
   const effectiveTravelersOriginalTotal =
-    Number(travelerPricing?.strikeTotal) > 0
-      ? Number(travelerPricing.strikeTotal)
-      : travelersOriginalTotal;
+    travelersCount === 0
+      ? 0
+      : Number(travelerPricing?.strikeTotal) > 0
+        ? Number(travelerPricing.strikeTotal)
+        : travelersOriginalTotal;
   const effectiveTravelersComparisonTotal =
     Number(travelerPricing?.comparisonTotal) > 0
       ? Number(travelerPricing.comparisonTotal)

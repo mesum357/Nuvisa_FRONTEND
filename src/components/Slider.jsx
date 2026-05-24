@@ -69,6 +69,10 @@ const ExpertSection = dynamic(() => import("./ExpertSection"), {
   loading: () => <div className="min-h-[120px]" aria-hidden />,
 });
 import { validateGiftCardCode, redeemGiftCardCode } from "@/api/giftCard";
+import {
+  buildGiftCardValidationContext,
+  getGiftCardEligibilityError,
+} from "@/utils/giftCardEligibility";
 import { useCountriesWithAppointmentTexts } from "@/hooks/useCountriesWithAppointmentTexts";
 import { staticCountries } from "@/constants/staticCountries";
 import { getDynamicMonthText } from "@/utils/getDynamicMonthText";
@@ -78,7 +82,11 @@ import { GIFT_CARD_PRODUCT_NAME } from "@/constants/productLabels";
 import { buildGtmUserData, clearStaleGtmUserData, resolveCoupon, computeCouponDiscountPerUnit } from "@/utils/gtmUserData";
 import { setExpertSpotsDefaultFromApi } from "@/utils/expertSpots";
 
-const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
+const CountrySlider = ({
+  moreToLoveData,
+  checkoutButtonDescription,
+  compactLayout = false,
+}) => {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { showError, showSuccess } = useToast();
@@ -1182,7 +1190,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
     ({ travelerCount = travelers, hasOnlyInsurance = false } = {}) => {
       if (hasOnlyInsurance) return 0;
 
-      const normalizedTravelers = Math.max(1, Number(travelerCount) || 1);
+      const normalizedTravelers = Math.max(0, Number(travelerCount) || 0);
       const occasionBasePerTraveler = Number(
         activeOccasionPricing?.currentPrice,
       );
@@ -1251,7 +1259,9 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
 
   const _handleTravelerChange = (increment) => {
     const newValue = travelers + increment;
-    const normalizedValue = Math.max(1, Number(newValue) || 1);
+    if (newValue < 0) return;
+
+    const normalizedValue = Number(newValue) || 0;
 
     // If traveler count decreases, adjust insurance count if needed
     if (insuranceCount > normalizedValue) {
@@ -2413,8 +2423,24 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
       setCouponError("");
 
       try {
-        // First validate the gift card code
-        const validateResponse = await validateGiftCardCode(codeUpper);
+        const giftCardContext = buildGiftCardValidationContext({
+          perTravelerFee: currentVisaFeePerTraveler,
+          travelers,
+          appliedDiscount,
+          appliedGiftCardCount: redeemedGiftCards.length,
+        });
+
+        const eligibilityError = getGiftCardEligibilityError(giftCardContext);
+        if (eligibilityError) {
+          setCouponError(eligibilityError);
+          setIsRedeemingGiftCard(false);
+          return;
+        }
+
+        const validateResponse = await validateGiftCardCode(
+          codeUpper,
+          giftCardContext,
+        );
 
         if (
           validateResponse.status === "ERROR" ||
@@ -2429,6 +2455,7 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
         const redeemResponse = await redeemGiftCardCode(
           codeUpper,
           userEmail || undefined,
+          giftCardContext,
         );
 
         // Handle different response structures
@@ -3890,9 +3917,25 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
       router.events.off("routeChangeComplete", handleScrollAndHighlight);
     };
   }, [router]);
-  // console.log("active ocassions", allOccasions);
+  const visaInfoRowClass = compactLayout
+    ? "flex flex-col gap-1 py-1.5 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:py-2"
+    : "flex flex-col gap-2 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-4 md:py-5";
+  const visaInfoLabelClass = compactLayout
+    ? "flex items-center gap-2 min-w-0 text-xs sm:text-sm text-white/90"
+    : "flex items-center gap-2.5 sm:gap-3 min-w-0 text-sm sm:text-base text-white/90";
+  const visaInfoValueClass = compactLayout
+    ? "relative font-semibold text-xs sm:text-sm leading-snug pl-6 sm:pl-0 sm:text-right sm:max-w-[55%] min-w-0"
+    : "relative font-semibold text-sm sm:text-base leading-snug pl-7 sm:pl-0 sm:text-right sm:max-w-[55%] min-w-0";
+  const visaInfoIconClass = compactLayout ? "h-4 w-4 shrink-0" : "h-5 w-5 shrink-0";
+
   return (
-    <div className="w-full max-w-[88rem] mx-auto grid grid-cols-1 lg:grid-cols-2 items-start gap-10 md:gap-12 lg:gap-14 xl:gap-16 px-4 sm:px-6 lg:px-8 max-sm:px-3 min-w-0">
+    <div
+      className={`w-full max-w-[88rem] mx-auto grid grid-cols-1 lg:grid-cols-2 items-start px-4 sm:px-6 lg:px-8 max-sm:px-3 min-w-0 ${
+        compactLayout
+          ? "gap-4 sm:gap-5 md:gap-6 lg:gap-8"
+          : "gap-10 md:gap-12 lg:gap-14 xl:gap-16"
+      }`}
+    >
       {/* System Alerts */}
       <SimpleAlert
         isOpen={alertState.isOpen}
@@ -3916,8 +3959,15 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
       />
 
       {/* Left Column */}
-      <div className="w-full min-w-0 gap-3 flex flex-col items-start max-sm:gap-4 mt-0 md:mt-4 lg:sticky lg:top-24 lg:self-start xl:pr-2 2xl:pr-4">
-        {/* Badges Section */}
+      <div
+        className={`w-full min-w-0 flex flex-col items-start mt-0 lg:sticky lg:self-start xl:pr-2 2xl:pr-4 ${
+          compactLayout
+            ? "gap-1 max-sm:gap-1.5 md:mt-0 lg:top-16"
+            : "gap-3 max-sm:gap-4 md:mt-4 lg:top-24"
+        }`}
+      >
+        {/* Badges Section — hidden on Get Visa compact layout to keep hero image in view */}
+        {!compactLayout && (
         <section className="text-center text-white rounded-2xl p-2 w-full max-sm:p-1">
           <div className="w-full hidden md:flex flex-wrap justify-start items-center gap-2 px-3 max-sm:gap-3 max-sm:px-1">
             <button className="bg-[#24242D] border border-white px-4 py-[10px] rounded-full font-medium text-white select-none transition-colors relative overflow-hidden max-sm:w-full max-sm:px-4 max-sm:py-3">
@@ -3933,26 +3983,53 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
             </button>
           </div>
         </section>
+        )}
 
         {/* Visa Information Section */}
-        <section className="w-full flex flex-col items-start gap-4 sm:gap-5">
-          <section className="w-full min-w-0">
-            <div className="bg-[#24242D] rounded-2xl shadow-sm p-5 sm:p-6 md:p-7 overflow-hidden text-white">
-              <div className="flex flex-col gap-6 sm:gap-7 lg:grid lg:grid-cols-[minmax(0,10.5rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,12rem)_minmax(0,1fr)] lg:gap-x-8 xl:gap-x-10 lg:items-start">
-                <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-[40px] font-gilroy-bold leading-tight shrink-0">
+        <section
+          className={`w-full flex flex-col items-start ${
+            compactLayout ? "gap-1.5 sm:gap-2" : "gap-4 sm:gap-5"
+          }`}
+        >
+          <section
+            className={`w-full min-w-0 ${
+              compactLayout ? "" : "order-2 lg:order-none"
+            }`}
+          >
+            <div
+              className={`bg-[#24242D] rounded-2xl shadow-sm overflow-hidden text-white ${
+                compactLayout ? "p-3 sm:p-4" : "p-5 sm:p-6 md:p-7"
+              }`}
+            >
+              <div
+                className={`flex flex-col lg:items-start ${
+                  compactLayout
+                    ? "gap-2 sm:gap-3 sm:grid sm:grid-cols-[minmax(0,6.5rem)_minmax(0,1fr)] md:grid-cols-[minmax(0,7.5rem)_minmax(0,1fr)] sm:gap-x-4 md:gap-x-5"
+                    : "gap-6 sm:gap-7 lg:grid lg:grid-cols-[minmax(0,10.5rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,12rem)_minmax(0,1fr)] lg:gap-x-8 xl:gap-x-10"
+                }`}
+              >
+                <h2
+                  className={`font-gilroy-bold leading-tight shrink-0 ${
+                    compactLayout
+                      ? "text-lg sm:text-xl md:text-2xl"
+                      : "text-2xl sm:text-3xl md:text-4xl lg:text-[40px]"
+                  }`}
+                >
                   Visa{" "}
                   <span className="whitespace-nowrap">information</span>
                 </h2>
 
                 <ul className="flex flex-col gap-0 w-full min-w-0 divide-y divide-white/15">
                   {/* Visa Types → Sticker */}
-                  <li className="flex flex-col gap-2 py-4 first:pt-0 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-4 md:py-5">
-                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 text-sm sm:text-base text-white/90">
-                      <FileText className="h-5 w-5 shrink-0 text-[#24242D] stroke-[#24242D] fill-white sm:h-5 sm:w-5" />
+                  <li className={visaInfoRowClass}>
+                    <div className={visaInfoLabelClass}>
+                      <FileText
+                        className={`${visaInfoIconClass} text-[#24242D] stroke-[#24242D] fill-white`}
+                      />
                       <span className="break-words leading-snug">Visa Types</span>
                     </div>
                     <div
-                      className="relative font-semibold text-sm sm:text-base leading-snug pl-7 sm:pl-0 sm:text-right sm:max-w-[55%] min-w-0"
+                      className={visaInfoValueClass}
                       onMouseEnter={() => setActiveTooltip("sticker")}
                       onMouseLeave={() => setActiveTooltip(null)}
                     >
@@ -3969,13 +4046,13 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                   </li>
 
                   {/* Stay Duration */}
-                  <li className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-4 md:py-5">
-                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 text-sm sm:text-base text-white/90">
-                      <Home className="h-5 w-5 shrink-0 text-white" />
+                  <li className={visaInfoRowClass}>
+                    <div className={visaInfoLabelClass}>
+                      <Home className={`${visaInfoIconClass} text-white`} />
                       <span className="break-words leading-snug">Stay Duration</span>
                     </div>
                     <div
-                      className="relative font-semibold text-sm sm:text-base leading-snug pl-7 sm:pl-0 sm:text-right sm:max-w-[55%] min-w-0"
+                      className={visaInfoValueClass}
                       onMouseEnter={() => setActiveTooltip("duration")}
                       onMouseLeave={() => setActiveTooltip(null)}
                     >
@@ -3996,13 +4073,15 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                   </li>
 
                   {/* Term Type */}
-                  <li className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-4 md:py-5">
-                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 text-sm sm:text-base text-white/90">
-                      <ClipboardList className="h-5 w-5 shrink-0 text-[#24242D] stroke-[#24242D] fill-white" />
+                  <li className={visaInfoRowClass}>
+                    <div className={visaInfoLabelClass}>
+                      <ClipboardList
+                        className={`${visaInfoIconClass} text-[#24242D] stroke-[#24242D] fill-white`}
+                      />
                       <span className="break-words leading-snug">Term Type</span>
                     </div>
                     <div
-                      className="relative font-semibold text-sm sm:text-base leading-snug pl-7 sm:pl-0 sm:text-right sm:max-w-[55%] min-w-0"
+                      className={visaInfoValueClass}
                       onMouseEnter={() => setActiveTooltip("term")}
                       onMouseLeave={() => setActiveTooltip(null)}
                     >
@@ -4019,13 +4098,13 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                   </li>
 
                   {/* Entry */}
-                  <li className="flex flex-col gap-2 py-4 last:pb-0 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-4 md:py-5">
-                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 text-sm sm:text-base text-white/90">
-                      <Clock className="h-5 w-5 shrink-0 text-white" />
+                  <li className={visaInfoRowClass}>
+                    <div className={visaInfoLabelClass}>
+                      <Clock className={`${visaInfoIconClass} text-white`} />
                       <span className="break-words leading-snug">Entry</span>
                     </div>
                     <div
-                      className="relative font-semibold text-sm sm:text-base leading-snug pl-7 sm:pl-0 sm:text-right sm:max-w-[55%] min-w-0"
+                      className={visaInfoValueClass}
                       onMouseEnter={() => setActiveTooltip("entry")}
                       onMouseLeave={() => setActiveTooltip(null)}
                     >
@@ -4043,13 +4122,27 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
                 </ul>
               </div>
 
-              <div className="mt-6 sm:mt-7 pt-5 sm:pt-6 border-t border-white/15 text-left">
-                <p className="flex gap-3 sm:gap-3.5 text-sm sm:text-base leading-relaxed min-w-0">
+              <div
+                className={`border-t border-white/15 text-left ${
+                  compactLayout ? "mt-2.5 pt-2.5" : "mt-6 sm:mt-7 pt-5 sm:pt-6"
+                }`}
+              >
+                <p
+                  className={`flex leading-snug min-w-0 ${
+                    compactLayout
+                      ? "gap-2 text-xs sm:text-sm"
+                      : "gap-3 sm:gap-3.5 text-sm sm:text-base leading-relaxed"
+                  }`}
+                >
                   <Image
                     src="/icons/megaphone.png"
                     width={24}
                     height={20}
-                    className="w-6 h-5 sm:w-6 sm:h-5 shrink-0 mt-0.5"
+                    className={
+                      compactLayout
+                        ? "w-5 h-4 shrink-0 mt-0.5"
+                        : "w-6 h-5 sm:w-6 sm:h-5 shrink-0 mt-0.5"
+                    }
                     alt="Notice"
                     loading="lazy"
                   />
@@ -4061,16 +4154,23 @@ const CountrySlider = ({ moreToLoveData, checkoutButtonDescription }) => {
             </div>
           </section>
 
-          <CountryCarousel
-            carouselCountries={carouselCountries}
-            activeCarouselCountry={activeCarouselCountry}
-            currentIndex={currentIndex}
-            setCurrentIndex={setCurrentIndex}
-            goToPrevious={goToPrevious}
-            goToNext={goToNext}
-            resetTimer={resetTimer}
-            thumbnailContainerRef={thumbnailContainerRef}
-          />
+          <div
+            className={
+              compactLayout ? "w-full" : "order-1 lg:order-none w-full"
+            }
+          >
+            <CountryCarousel
+              carouselCountries={carouselCountries}
+              activeCarouselCountry={activeCarouselCountry}
+              currentIndex={currentIndex}
+              setCurrentIndex={setCurrentIndex}
+              goToPrevious={goToPrevious}
+              goToNext={goToNext}
+              resetTimer={resetTimer}
+              thumbnailContainerRef={thumbnailContainerRef}
+              compact={compactLayout}
+            />
+          </div>
         </section>
       </div>
 

@@ -2,17 +2,16 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowUpRight } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-
-const BACKGROUND_IMAGES = [
-  "/image/schengen-finance-bg.png",
-  "/image/get-the-visa-image.png",
-  "/image/get-the-visa-image-1.png",
-];
+import { ArrowUpRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { staticCountries } from "@/constants/staticCountries";
 
 const SLIDE_INTERVAL_MS = 5000;
 const FADE_DURATION_MS = 900;
+
+const carouselCountries = staticCountries.filter(
+  (country) => country?.name && country?.image,
+);
 
 const proofPoints = [
   {
@@ -30,38 +29,115 @@ const proofPoints = [
 ];
 
 const VisaFinanceFeatureSection = () => {
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const timerRef = useRef(null);
 
-  const imageCount = BACKGROUND_IMAGES.length;
+  const carouselLength = carouselCountries.length;
 
-  useEffect(() => {
-    if (imageCount <= 1) return undefined;
+  const resetTimer = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    if (carouselLength <= 1) return;
 
     timerRef.current = setInterval(() => {
-      setActiveIndex((prev) => (prev + 1) % imageCount);
+      setCurrentIndex((prevIndex) => {
+        const isLastSlide = prevIndex === carouselLength - 1;
+        return isLastSlide ? 0 : prevIndex + 1;
+      });
     }, SLIDE_INTERVAL_MS);
+  }, [carouselLength]);
 
+  useEffect(() => {
+    if (!carouselLength) return undefined;
+    if (currentIndex >= carouselLength) {
+      setCurrentIndex(0);
+    }
+    return undefined;
+  }, [carouselLength, currentIndex]);
+
+  useEffect(() => {
+    if (carouselLength <= 1) {
+      if (timerRef.current) clearInterval(timerRef.current);
+      return undefined;
+    }
+
+    resetTimer();
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [imageCount]);
+  }, [carouselLength, resetTimer]);
+
+  const goToPrevious = () => {
+    if (!carouselLength) return;
+    const isFirstSlide = currentIndex === 0;
+    setCurrentIndex(isFirstSlide ? carouselLength - 1 : currentIndex - 1);
+    resetTimer();
+  };
+
+  const goToNext = () => {
+    if (!carouselLength) return;
+    const isLastSlide = currentIndex === carouselLength - 1;
+    setCurrentIndex(isLastSlide ? 0 : currentIndex + 1);
+    resetTimer();
+  };
+
+  const goToSlide = (index) => {
+    setCurrentIndex(index);
+    resetTimer();
+  };
 
   return (
     <section className="visa-finance-section">
       <div className="visa-finance-panel">
         <div className="visa-finance-backgrounds" aria-hidden="true">
-          {BACKGROUND_IMAGES.map((src, index) => (
+          {carouselCountries.map((country, index) => (
             <div
-              key={src}
+              key={country.id}
               className={`visa-finance-background-layer${
-                index === activeIndex ? " is-active" : ""
+                index === currentIndex ? " is-active" : ""
               }`}
-              style={{ backgroundImage: `url("${src}")` }}
+              style={{ backgroundImage: `url("${country.image}")` }}
             />
           ))}
           <div className="visa-finance-background-overlay" />
         </div>
+
+        {carouselLength > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={goToPrevious}
+              className="visa-finance-carousel-btn visa-finance-carousel-btn-prev"
+              aria-label="Previous slide"
+            >
+              <ChevronLeft size={24} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              onClick={goToNext}
+              className="visa-finance-carousel-btn visa-finance-carousel-btn-next"
+              aria-label="Next slide"
+            >
+              <ChevronRight size={24} aria-hidden="true" />
+            </button>
+            <div className="visa-finance-carousel-dots">
+              {carouselCountries.map((country, index) => (
+                <button
+                  key={country.id}
+                  type="button"
+                  onClick={() => goToSlide(index)}
+                  className={`visa-finance-carousel-dot${
+                    index === currentIndex ? " is-active" : ""
+                  }`}
+                  aria-label={`Go to ${country.name}`}
+                  aria-current={index === currentIndex ? "true" : undefined}
+                />
+              ))}
+            </div>
+          </>
+        )}
 
         <div className="visa-finance-content">
           <div className="visa-finance-copy">
@@ -156,9 +232,75 @@ const VisaFinanceFeatureSection = () => {
           pointer-events: none;
         }
 
+        .visa-finance-carousel-btn {
+          position: absolute;
+          top: 50%;
+          z-index: 2;
+          transform: translateY(-50%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 8px;
+          border: none;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.7);
+          color: rgba(0, 0, 0, 0.8);
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+          cursor: pointer;
+          transition:
+            background 300ms ease,
+            transform 300ms ease;
+        }
+
+        .visa-finance-carousel-btn:hover {
+          background: #ffffff;
+        }
+
+        .visa-finance-carousel-btn:focus-visible {
+          outline: 2px solid rgba(255, 255, 255, 0.85);
+          outline-offset: 3px;
+        }
+
+        .visa-finance-carousel-btn-prev {
+          left: 24px;
+        }
+
+        .visa-finance-carousel-btn-next {
+          right: 24px;
+        }
+
+        .visa-finance-carousel-dots {
+          position: absolute;
+          bottom: 28px;
+          left: 50%;
+          z-index: 2;
+          transform: translateX(-50%);
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .visa-finance-carousel-dot {
+          width: 10px;
+          height: 10px;
+          padding: 0;
+          border: none;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.5);
+          cursor: pointer;
+          transition:
+            width 300ms ease,
+            background 300ms ease;
+        }
+
+        .visa-finance-carousel-dot.is-active {
+          width: 24px;
+          background: #ffffff;
+        }
+
         .visa-finance-content {
           position: relative;
-          z-index: 1;
+          z-index: 3;
           width: 100%;
           min-height: 590px;
           display: flex;
@@ -166,6 +308,12 @@ const VisaFinanceFeatureSection = () => {
           align-items: center;
           justify-content: center;
           text-align: center;
+          pointer-events: none;
+        }
+
+        .visa-finance-content :global(a),
+        .visa-finance-content :global(button) {
+          pointer-events: auto;
         }
 
         .visa-finance-copy {
@@ -292,6 +440,14 @@ const VisaFinanceFeatureSection = () => {
           .visa-finance-title {
             font-size: 54px;
           }
+
+          .visa-finance-carousel-btn-prev {
+            left: 16px;
+          }
+
+          .visa-finance-carousel-btn-next {
+            right: 16px;
+          }
         }
 
         @media (max-width: 767px) {
@@ -349,10 +505,30 @@ const VisaFinanceFeatureSection = () => {
             margin-top: 12px;
             font-size: 15px;
           }
+
+          .visa-finance-carousel-btn {
+            padding: 6px;
+          }
+
+          .visa-finance-carousel-btn-prev {
+            left: 10px;
+          }
+
+          .visa-finance-carousel-btn-next {
+            right: 10px;
+          }
+
+          .visa-finance-carousel-dots {
+            bottom: 18px;
+          }
         }
 
         @media (prefers-reduced-motion: reduce) {
           .visa-finance-background-layer {
+            transition: none;
+          }
+
+          .visa-finance-carousel-dot {
             transition: none;
           }
         }

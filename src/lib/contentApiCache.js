@@ -2,6 +2,7 @@
 
 let homepageCache = { data: null, expiresAt: 0 };
 const headerCacheStore = new Map();
+const sliderCacheStore = new Map();
 let contentHomeCache = { data: null, expiresAt: 0 };
 
 export function getHomepageCache() {
@@ -16,6 +17,10 @@ export function getHeaderCacheStore() {
   return headerCacheStore;
 }
 
+export function getSliderCacheStore() {
+  return sliderCacheStore;
+}
+
 export function getContentHomeCache() {
   return contentHomeCache;
 }
@@ -27,5 +32,6 @@ export function setContentHomeCache(next) {
 export function clearContentApiCaches() {
   homepageCache = { data: null, expiresAt: 0 };
   headerCacheStore.clear();
+  sliderCacheStore.clear();
   contentHomeCache = { data: null, expiresAt: 0 };
 }

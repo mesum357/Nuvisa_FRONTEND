@@ -1,3 +1,7 @@
+import {
+  CONTENT_API_HTTP_CACHE,
+} from "@/lib/contentCacheConfig";
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -23,7 +27,7 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    // Return the data directly from admin panel
+    res.setHeader("Cache-Control", CONTENT_API_HTTP_CACHE);
     return res.status(200).json(data);
   } catch (error) {
     console.error('Error fetching footer content:', error);

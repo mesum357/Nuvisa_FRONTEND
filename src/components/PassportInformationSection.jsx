@@ -5,44 +5,7 @@ import { motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
 import UK_CITIES from "@/constants/ukCities";
 
-export default function App({
-  passportData,
-  setPassportData,
-  handleSave,
-  loading,
-  disabled,
-  onBack = null,
-  onNext = null,
-  showIndividualButtons = true,
-}) {
-  const [isComplete, setIsComplete] = useState(false);
-
-  const onComplete = () => {
-    setIsComplete(true);
-    setTimeout(() => setIsComplete(false), 3000); // Reset for demonstration
-  };
-
-  return (
-    <div className=" min-h-screen antialiased text-white">
-      <div className="max-w-7xl mx-auto">
-        <PassportInformationSection
-          passportData={passportData}
-          setPassportData={setPassportData}
-          onComplete={onComplete}
-          isComplete={isComplete}
-          handleSave={handleSave}
-          loading={loading}
-          disabled={disabled}
-          onBack={onBack}
-          onNext={onNext}
-          showIndividualButtons={showIndividualButtons}
-        />
-      </div>
-    </div>
-  );
-}
-
-const PassportInformationSection = ({
+export default function PassportInformationSection({
   passportData,
   setPassportData,
   travelerIndex,
@@ -54,7 +17,7 @@ const PassportInformationSection = ({
   onBack = null,
   onNext = null,
   showIndividualButtons = true,
-}) => {
+}) {
   const [frontPreview, setFrontPreview] = useState(null);
   const [backPreview, setBackPreview] = useState(null);
   const frontInputRef = useRef(null);
@@ -1743,4 +1706,4 @@ const PassportInformationSection = ({
       </form>
     </div>
   );
-};
+}

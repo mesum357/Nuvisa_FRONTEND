@@ -26,6 +26,7 @@ export const createPaymentIntent = async (payload, successCallbackFunction) => {
     method: backendApiEnums.METHODS.POST,
     payload: payload,
     successCallback: successCallbackFunction,
+    timeout: 60000,
   });
 };
 

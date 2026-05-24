@@ -5,8 +5,12 @@ import {
   getContentHomeCache,
   setContentHomeCache,
 } from "@/lib/contentApiCache";
+import {
+  CONTENT_API_CACHE_TTL_MS,
+  CONTENT_API_HTTP_CACHE,
+} from "@/lib/contentCacheConfig";
 
-const CACHE_TTL_MS = 5 * 1000;
+const CACHE_TTL_MS = CONTENT_API_CACHE_TTL_MS;
 
 async function fetchAdminSiteContent(adminUrl) {
   if (!adminUrl) return {};
@@ -35,11 +39,10 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const bust = req.query?.t;
   const now = Date.now();
   const cache = getContentHomeCache();
-  if (!bust && cache.data && cache.expiresAt > now) {
-    res.setHeader("Cache-Control", "public, s-maxage=30, stale-while-revalidate=60");
+  if (cache.data && cache.expiresAt > now) {
+    res.setHeader("Cache-Control", CONTENT_API_HTTP_CACHE);
     return res.status(200).json(cache.data);
   }
 
@@ -65,6 +68,6 @@ export default async function handler(req, res) {
 
   const payload = { success: true, data: byKey };
   setContentHomeCache({ data: payload, expiresAt: now + CACHE_TTL_MS });
-  res.setHeader("Cache-Control", "public, s-maxage=30, stale-while-revalidate=60");
+  res.setHeader("Cache-Control", CONTENT_API_HTTP_CACHE);
   return res.status(200).json(payload);
 }

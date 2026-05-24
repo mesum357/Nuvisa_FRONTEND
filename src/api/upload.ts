@@ -6,11 +6,23 @@ export const uploadFile = async (file) => {
 
   const url = `${process.env.NEXT_PUBLIC_API_URL || ""}/upload`;
 
-  const response = await axios.post(url, form, {
-    timeout: 30000, 
-  });
-
-  return response.data;
+  try {
+    const response = await axios.post(url, form, {
+      timeout: 30000,
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return response.data;
+  } catch (error) {
+    const serverMessage =
+      error?.response?.data?.message ||
+      error?.response?.data?.error;
+    if (serverMessage && typeof serverMessage === "string") {
+      const wrapped = new Error(serverMessage);
+      wrapped.cause = error;
+      throw wrapped;
+    }
+    throw error;
+  }
 };
 
 export const deleteFile = async (fileUrl) => {

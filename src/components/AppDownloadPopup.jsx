@@ -105,7 +105,7 @@ const AppDownloadPopup = () => {
   useEffect(() => {
     const fetchPopupContent = async () => {
       try {
-        const popupResponse = await fetch(`/api/popup-content?t=${Date.now()}`);
+        const popupResponse = await fetch("/api/popup-content");
         const popupJson = popupResponse.ok ? await popupResponse.json() : null;
 
         if (popupJson?.success && popupJson?.data) {

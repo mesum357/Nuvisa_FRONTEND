@@ -1,4 +1,10 @@
 import { fetchFaqsFromDb } from "@/lib/faqsDb";
+import {
+  CONTENT_API_CACHE_TTL_MS,
+  CONTENT_API_HTTP_CACHE,
+} from "@/lib/contentCacheConfig";
+
+let faqsCache = { key: "", data: null, expiresAt: 0 };
 
 const ADMIN_FAQ_BASES = () => {
   const fromEnv = [
@@ -69,9 +75,20 @@ export default async function handler(req, res) {
   if (categoryFilter) query.set("category", String(categoryFilter));
   if (isFeatured !== undefined) query.set("isFeatured", String(isFeatured));
   const queryString = query.toString() ? `?${query.toString()}` : "";
+  const cacheKey = queryString || "__all__";
+  const now = Date.now();
+
+  if (
+    faqsCache.key === cacheKey &&
+    faqsCache.data &&
+    faqsCache.expiresAt > now
+  ) {
+    res.setHeader("Cache-Control", CONTENT_API_HTTP_CACHE);
+    return res.status(200).json({ success: true, data: faqsCache.data });
+  }
 
   let faqs = [];
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV === "production") {
     faqs = await fetchAdminPublicFaqs(queryString);
     if (!faqs.length) {
       faqs = await fetchFaqsFromDb(dbFilters);
@@ -83,6 +100,14 @@ export default async function handler(req, res) {
     }
   }
 
-  res.setHeader("Cache-Control", "no-store, must-revalidate");
+  if (faqs.length > 0) {
+    faqsCache = {
+      key: cacheKey,
+      data: faqs,
+      expiresAt: now + CONTENT_API_CACHE_TTL_MS,
+    };
+  }
+
+  res.setHeader("Cache-Control", CONTENT_API_HTTP_CACHE);
   return res.status(200).json({ success: true, data: faqs });
 }

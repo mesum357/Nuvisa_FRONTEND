@@ -40,6 +40,10 @@ import ExpressPaymentRequestButton from "./ExpressPaymentRequestButton";
 import KlarnaForm from "./KlarnaForm";
 import { useRouter } from "next/router";
 import { validateGiftCardCode, redeemGiftCardCode } from "@/api/giftCard";
+import {
+  buildGiftCardValidationContext,
+  getGiftCardEligibilityError,
+} from "@/utils/giftCardEligibility";
 import { getDynamicMonthText } from "@/utils/getDynamicMonthText";
 import { getCurrentWeekSlotPercentage } from "@/utils/getCurrentWeekSlotPercentage";
 import { decrementExpertSpotsOnSuccessfulCheckout } from "@/utils/expertSpots";
@@ -703,8 +707,24 @@ const VisaCheckout = () => {
       setCouponError("");
 
       try {
-        // First validate the gift card code
-        const validateResponse = await validateGiftCardCode(codeUpper);
+        const giftCardContext = buildGiftCardValidationContext({
+          perTravelerFee: currentVisaFeePerTraveler,
+          travelers,
+          appliedDiscount,
+          appliedGiftCardCount: redeemedGiftCards.length,
+        });
+
+        const eligibilityError = getGiftCardEligibilityError(giftCardContext);
+        if (eligibilityError) {
+          setCouponError(eligibilityError);
+          setIsRedeemingGiftCard(false);
+          return;
+        }
+
+        const validateResponse = await validateGiftCardCode(
+          codeUpper,
+          giftCardContext,
+        );
 
         if (
           validateResponse.status === "ERROR" ||
@@ -1244,6 +1264,10 @@ const VisaCheckout = () => {
   // All values are in GBP (no conversion needed)
   const subtotalGBP = subtotal;
   const totalSavingsGBP = totalSavingsAmount;
+  const savePercent =
+    subtotalGBP > 0 && Number.isFinite(totalSavingsGBP)
+      ? Math.min(100, Math.max(0, (totalSavingsGBP / subtotalGBP) * 100))
+      : 0;
 
   // Individual component GBP values (final amounts after discounts)
   const visaFeesGBP = finalVisaFees;
@@ -3588,15 +3612,7 @@ const VisaCheckout = () => {
             {/* You Save */}
             <div className="flex justify-between text-sm text-green-400">
               <span>You save</span>
-              {console.log("💰 Total Savings:", {
-                totalSavingsGBP,
-                travellerStrikeGBP,
-                travelers,
-              })}
-              <span>
-                {((totalSavingsGBP / travellerStrikeGBP) * 100 || 0).toFixed(2)}
-                %
-              </span>
+              <span>{savePercent.toFixed(0)}%</span>
             </div>
 
             {/* Total */}

@@ -887,8 +887,16 @@ const StickyBottomBar = ({ triggerElementId }) => {
                         </div>
                         <div className="flex gap-1 flex-col">
                           <span
-                            className={` ${
-                              visaPriceDisplay?.traditionalPerTraveler
+                            className={`${
+                              Number(
+                                visaPriceDisplay?.originalPerTraveler ||
+                                  item.originalPrice,
+                              ) >
+                              Number(
+                                quantities[item.id] > 0
+                                  ? getItemDiscountedPrice(item.id)
+                                  : visaFeePerTraveler,
+                              )
                                 ? "text-red-400"
                                 : ""
                             } line-through text-sm`}
@@ -914,27 +922,6 @@ const StickyBottomBar = ({ triggerElementId }) => {
                             </span>
                           )}
                         </div>
-                        {Number(visaPriceDisplay?.traditionalPerTraveler || 0) >
-                          0 && (
-                          <div className="flex  gap-1 flex-col">
-                            <span className="text-gray-500 line-through text-sm">
-                              £
-                              {(
-                                Number(
-                                  visaPriceDisplay?.traditionalPerTraveler || 0,
-                                ) *
-                                (quantities[item.id] > 0
-                                  ? quantities[item.id]
-                                  : 1)
-                              ).toFixed(2)}
-                            </span>
-                            {!!visaPriceDisplay?.traditionalLabel && (
-                              <span className="text-[10px] text-gray-500 font-medium">
-                                {visaPriceDisplay.traditionalLabel}
-                              </span>
-                            )}
-                          </div>
-                        )}
                         {item.badge && (
                           <div className="flex  items-center gap-1">
                             <div
@@ -1193,7 +1180,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
                                     item.originalPrice) *
                                   100
                                 ).toFixed(0)}
-                                % Traditional fee
+                                %
                               </span>
                             ) : null}
                           </div>
@@ -1210,35 +1197,16 @@ const StickyBottomBar = ({ triggerElementId }) => {
                                   : 1)
                               ).toFixed(2)}
                             </span>
-                            {!!visaPriceDisplay?.originalLabel && (
+                            {!!visaPriceDisplay?.originalLabel ? (
                               <span className="text-[10px] text-gray-500 font-medium">
                                 {visaPriceDisplay.originalLabel}
                               </span>
+                            ) : (
+                              <span className="text-[10px] text-gray-500 font-medium">
+                                Traditional fee
+                              </span>
                             )}
                           </div>
-                          {Number(
-                            visaPriceDisplay?.traditionalPerTraveler || 0,
-                          ) > 0 && (
-                            <div className="flex gap-1 flex-col">
-                              <span className="text-gray-500 line-through text-sm">
-                                £
-                                {(
-                                  Number(
-                                    visaPriceDisplay?.traditionalPerTraveler ||
-                                      0,
-                                  ) *
-                                  (quantities[item.id] > 0
-                                    ? quantities[item.id]
-                                    : 1)
-                                ).toFixed(2)}
-                              </span>
-                              {!!visaPriceDisplay?.traditionalLabel && (
-                                <span className="text-[10px] text-gray-500 font-medium">
-                                  {visaPriceDisplay.traditionalLabel}
-                                </span>
-                              )}
-                            </div>
-                          )}
                           {item.badge && (
                             <div
                               className="text-white px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1"

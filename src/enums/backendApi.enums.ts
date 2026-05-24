@@ -55,6 +55,7 @@ export const backendApiEnums = {
     GIFT_CARD: {
       VALIDATE: "/gift-card/validate",
       REDEEM: "/gift-card/redeem",
+      FULFILL_PURCHASE: "/gift-card/fulfill-purchase",
     },
   },
 };

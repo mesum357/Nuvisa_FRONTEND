@@ -20,7 +20,8 @@ import {
   decrementExpertSpotsOnSuccessfulCheckout,
   decrementExpertSpotsViaApi,
 } from "@/utils/expertSpots";
-import { redeemGiftCardCode } from "@/api/giftCard";
+import { fulfillGiftCardPurchase, redeemGiftCardCode } from "@/api/giftCard";
+import { buildGiftCardValidationContext } from "@/utils/giftCardEligibility";
 import {
   isExplicitKlarnaRedirectFailure,
   isStripeRedirectReturn,
@@ -40,6 +41,8 @@ const PaymentSuccess = () => {
   const { getCurrentPaymentData, addPaymentToHistory } = usePaymentData();
   const [isCreatingApplication, setIsCreatingApplication] = useState(false);
   const [paymentType, setPaymentType] = useState("application_creation");
+  const [giftCardCodes, setGiftCardCodes] = useState([]);
+  const [giftCardEmailSent, setGiftCardEmailSent] = useState(true);
   /** verifying_payment | creating_application | redirecting_checkout */
   const [pagePhase, setPagePhase] = useState(() => {
     if (typeof window === "undefined") return "loading";
@@ -274,6 +277,91 @@ const PaymentSuccess = () => {
         setPaymentType(inferredPaymentType);
 
         if (containsGiftCard && !containsVisaApplication) {
+          const embeddedPaymentIntentId =
+            typeof window !== "undefined"
+              ? sessionStorage.getItem("stripePaymentIntentId") || null
+              : null;
+          const stripePaymentId =
+            sessionId || klarnaPaymentIntentId || embeddedPaymentIntentId;
+
+          let giftPaymentMeta = null;
+          try {
+            const storedGiftMeta = localStorage.getItem("paymentMetadata");
+            if (storedGiftMeta) {
+              const parsed = JSON.parse(storedGiftMeta);
+              if (Date.now() - (parsed.timestamp || 0) < 5 * 60 * 1000) {
+                giftPaymentMeta = parsed;
+              }
+            }
+          } catch (metaError) {
+            console.error("Error reading gift card payment metadata:", metaError);
+          }
+
+          const giftEmail =
+            currentData.email ||
+            giftPaymentMeta?.email ||
+            (typeof window !== "undefined"
+              ? localStorageGateway("userEmail", localStorageEnums.GET)
+              : null);
+          const giftAmount =
+            giftPaymentMeta?.amount ||
+            currentData.totalAmount ||
+            currentData.giftCardFees;
+          const giftQuantity = Math.max(
+            1,
+            Number(
+              giftPaymentMeta?.quantity ||
+                visaState.giftCardCount ||
+                1,
+            ),
+          );
+
+          if (giftEmail && giftAmount && process.env.NEXT_PUBLIC_API_URL) {
+            try {
+              const fulfillPayload = {
+                email: giftEmail,
+                amount: String(giftAmount),
+                quantity: giftQuantity,
+              };
+              if (stripePaymentId?.startsWith("cs_")) {
+                fulfillPayload.stripe_session_id = stripePaymentId;
+              }
+              if (stripePaymentId?.startsWith("pi_")) {
+                fulfillPayload.stripe_payment_intent_id = stripePaymentId;
+              } else if (embeddedPaymentIntentId?.startsWith("pi_")) {
+                fulfillPayload.stripe_payment_intent_id =
+                  embeddedPaymentIntentId;
+              }
+
+              const fulfillResponse = await fulfillGiftCardPurchase(fulfillPayload);
+              const fulfillResults =
+                fulfillResponse?.data?.results ||
+                fulfillResponse?.results ||
+                fulfillResponse?.data ||
+                {};
+              const codes = Array.isArray(fulfillResults.codes)
+                ? fulfillResults.codes
+                : [];
+              if (codes.length > 0) {
+                setGiftCardCodes(codes);
+              }
+              if (typeof fulfillResults.emailSent === "boolean") {
+                setGiftCardEmailSent(fulfillResults.emailSent);
+              }
+            } catch (fulfillError) {
+              console.error("Gift card fulfill failed:", fulfillError);
+            }
+          } else {
+            console.warn("Gift card fulfill skipped — missing email or amount", {
+              giftEmail: !!giftEmail,
+              giftAmount: !!giftAmount,
+            });
+          }
+
+          try {
+            localStorage.removeItem("paymentMetadata");
+          } catch {}
+
           setTimeout(() => {
             redirectToHome();
           }, 2500);
@@ -691,9 +779,27 @@ const PaymentSuccess = () => {
           (card) => card.pendingRedeem,
         );
         if (pendingGiftCards.length > 0 && mergedData.email) {
+          const travelerCount = Number(mergedData.travelers) || Number(visaState.travelers) || 0;
+          const packagePrice = Number(visaState.visaFees || 0);
+          let appliedCount = 0;
+
           for (const card of pendingGiftCards) {
             try {
-              await redeemGiftCardCode(card.code, mergedData.email);
+              const giftCardContext = buildGiftCardValidationContext({
+                perTravelerFee:
+                  travelerCount > 0 ? packagePrice / travelerCount : packagePrice,
+                travelers: travelerCount,
+                appliedDiscount: visaState.appliedDiscount,
+                appliedGiftCardCount: appliedCount,
+                packagePrice,
+              });
+
+              await redeemGiftCardCode(
+                card.code,
+                mergedData.email,
+                giftCardContext,
+              );
+              appliedCount += 1;
             } catch (redeemErr) {
               console.error(
                 "Gift card redeem after payment failed:",
@@ -1002,16 +1108,41 @@ const PaymentSuccess = () => {
             <p className="text-gray-600 mb-4">
               Your gift card purchase was successful!
             </p>
-            {userEmail && (
+            {giftCardCodes.length > 0 ? (
+              <div className="mt-4 mb-4 rounded-lg border border-[#7350FF]/30 bg-[#7350FF]/5 p-4 text-left">
+                <p className="text-sm font-semibold text-gray-900 mb-2">
+                  Your redemption code{giftCardCodes.length > 1 ? "s" : ""}:
+                </p>
+                {giftCardCodes.map((code) => (
+                  <p
+                    key={code}
+                    className="font-mono text-lg font-bold text-[#7350FF] tracking-wide py-1"
+                  >
+                    {code}
+                  </p>
+                ))}
+                {!giftCardEmailSent && userEmail && (
+                  <p className="text-sm text-amber-700 mt-3">
+                    We could not deliver the confirmation email to{" "}
+                    <span className="font-semibold">{userEmail}</span> (SMTP
+                    connection issue). Please save the code above — you can still
+                    redeem it at checkout.
+                  </p>
+                )}
+              </div>
+            ) : null}
+            {userEmail && giftCardEmailSent && (
               <p className="text-gray-700 mb-2">
                 A confirmation email with your redemption code has been sent to{" "}
                 <span className="font-semibold">{userEmail}</span>
               </p>
             )}
-            <p className="text-sm text-gray-500 mt-4">
-              Please check your email for the code. The code format is:{" "}
-              <span className="font-mono font-semibold">NU-VISA-XXXXXX</span>
-            </p>
+            {giftCardCodes.length === 0 && (
+              <p className="text-sm text-gray-500 mt-4">
+                Please check your email for the code. The code format is:{" "}
+                <span className="font-mono font-semibold">NU-VISA-XXXXXX</span>
+              </p>
+            )}
           </div>
           <button
             onClick={() => router.push("/")}

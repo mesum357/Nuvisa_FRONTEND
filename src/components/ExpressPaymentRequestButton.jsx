@@ -18,6 +18,8 @@ import Cookies from "js-cookie";
 import { Loader } from "lucide-react";
 
 import { createPaymentIntent } from "@/api/stripePayment";
+import { extractPaymentApiError } from "@/utils/extractPaymentApiError";
+import { parsePaymentIntentApiResponse } from "@/utils/parsePaymentIntentApiResponse";
 import { localStorageEnums } from "@/enums/localstorage.enums";
 import { localStorageGateway } from "@/gateways/localStoragegateway";
 import { useAppDispatch } from "@/store";
@@ -428,25 +430,16 @@ const ExpressPaymentRequestButton = forwardRef(
           });
 
           const response = await createPaymentIntent(checkoutPayload, () => {});
+          const parsed = parsePaymentIntentApiResponse(response);
 
-          if (response?.status !== 200 && response?.status !== 201) {
+          if (!parsed.ok) {
             throw new Error(
-              response?.data?.message || "Unable to initialize payment"
+              parsed.error || "Unable to initialize payment"
             );
           }
 
-          const data =
-            response?.data?.data?.results ||
-            response?.data?.results ||
-            (response?.data?.status === "success"
-              ? response?.data?.data?.results
-              : null);
-
-          const clientSecret = data?.clientSecret;
-
-          if (!clientSecret) {
-            throw new Error("Missing client secret from payment intent");
-          }
+          const data = parsed.data;
+          const clientSecret = parsed.clientSecret;
 
           if (isValidAuthToken(data?.token)) {
             await localStorageGateway(

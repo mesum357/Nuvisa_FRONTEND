@@ -2,6 +2,12 @@ import { logMessage } from "@/utils/logMessage";
 import { logoutFunction } from "@/utils/logoutFunction";
 import axios from "axios";
 
+const PAYMENT_ENDPOINTS = new Set([
+  "/stripe_payment/payment-intent",
+  "/stripe_payment/session",
+  "/stripe_payment/confirm",
+]);
+
 export const apigateway = async ({
   endpoint,
   method,
@@ -14,11 +20,12 @@ export const apigateway = async ({
   contentType = null,
   errorCallback = null,
   directAction = false,
+  timeout = 10000,
 }) => {
   const config = {
     method: method,
     url: `${process.env.NEXT_PUBLIC_API_URL}${endpoint}`,
-    timeout: 10000,
+    timeout,
     headers: {
       "Content-Type": contentType ? contentType : "application/json",
       ...(token && { Authorization: `Bearer ${token}` }),
@@ -58,13 +65,44 @@ export const apigateway = async ({
 
     if (error.response?.data?.message === "UnauthorizedException") {
       await logoutFunction("/login");
-      return;
+      return (
+        error.response ?? {
+          status: 401,
+          data: {
+            status: "error",
+            message: "UnauthorizedException",
+          },
+        }
+      );
     }
 
     const errorMessage = error?.response?.data?.data?.results?.error;
 
-    if (endpoint === "/visa-application/create" || endpoint === "/visa-application/update") {
-      return error.response;
+    if (
+      endpoint === "/visa-application/create" ||
+      endpoint === "/visa-application/update" ||
+      PAYMENT_ENDPOINTS.has(endpoint)
+    ) {
+      if (error.response) {
+        return error.response;
+      }
+      if (error.code === "ECONNABORTED") {
+        return {
+          status: 0,
+          data: {
+            status: "error",
+            message: "Request timed out. Please try again.",
+          },
+        };
+      }
+      return {
+        status: 0,
+        data: {
+          status: "error",
+          message:
+            "Network error. Could not reach the server. Check that the backend is running.",
+        },
+      };
     }
 
     if (isDisplayResponsePopUp) {

@@ -16,7 +16,6 @@ export const fetchContent = async (endpoint) => {
       headers: {
         'Content-Type': 'application/json',
       },
-      cache: 'no-store', // Ensure fresh data on every request
     });
 
     if (!response.ok) {

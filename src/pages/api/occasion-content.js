@@ -1,5 +1,11 @@
 import { fetchOccasionContentFromDb } from "@/lib/occasionContentDb";
 import {
+  CONTENT_API_CACHE_TTL_MS,
+  CONTENT_API_HTTP_CACHE,
+} from "@/lib/contentCacheConfig";
+
+let occasionResponseCache = { data: null, expiresAt: 0 };
+import {
   extractOccasionFromAdminJson,
   finalizeOccasionPayload,
   getAdminApiBases,
@@ -96,12 +102,13 @@ export default async function handler(req, res) {
     ? fromAdmin.source
     : "defaults";
 
-  res.setHeader("Cache-Control", "no-store, must-revalidate");
   const data = finalizeOccasionPayload(merged, { allowDefaults: true });
+  const payload = { success: true, data, source };
 
-  return res.status(200).json({
-    success: true,
-    data,
-    source,
-  });
+  occasionResponseCache = {
+    data: payload,
+    expiresAt: now + CONTENT_API_CACHE_TTL_MS,
+  };
+  res.setHeader("Cache-Control", CONTENT_API_HTTP_CACHE);
+  return res.status(200).json(payload);
 }

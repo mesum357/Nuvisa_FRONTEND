@@ -9,8 +9,7 @@ export const PASSPORT_STATUS_LABELS = {
 };
 
 export const PASSPORT_STATUS_MESSAGES = {
-  decision_made:
-    "A decision has been made on your passport application. Please check your application details for further instructions.",
+  decision_made: "Decision made, passport dispatched/ready",
   dispatched:
     "Your passport has been dispatched. Please allow 3–5 working days for delivery.",
   ready:

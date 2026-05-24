@@ -5,11 +5,10 @@ import Navbar from "../Navbar";
 import submit from "../../../public/icons/submit.png";
 import { useKlarnaContent } from "../../hooks/useKlarnaContent";
 import { useProcessContent } from "../../hooks/useProcessContent";
-import { getAdminApiBase } from "@/utils/adminApiBase";
 import { lazySection } from "@/utils/lazySections";
 import LazyWhenVisible from "@/components/LazyWhenVisible";
 
-const CountrySlider = lazySection(() => import("../Slider"), "420px");
+const CountrySlider = lazySection(() => import("../Slider"), "300px");
 const ComparisonSection = lazySection(() => import("../ComparisonSection"), "280px");
 const VisaSolution = lazySection(() => import("../VisaSolution"), "320px");
 const VisaFinanceFeatureSection = lazySection(
@@ -83,18 +82,16 @@ const VisaInformation = ({ showKlarnaSection = true }) => {
   useEffect(() => {
     const fetchMoreToLove = async () => {
       try {
-        const adminBase = getAdminApiBase();
-        const response = await fetch(
-          `${adminBase}/api/content?t=${Date.now()}`,
-        );
+        const response = await fetch("/api/content-home");
         if (!response.ok) return;
 
         const json = await response.json();
-        const rows = Array.isArray(json?.data) ? json.data : [];
-        const byKey = rows.reduce((acc, row) => {
-          if (row?.key) acc[row.key] = row.value;
-          return acc;
-        }, {});
+        const byKey = json?.data && !Array.isArray(json.data)
+          ? json.data
+          : (Array.isArray(json?.data) ? json.data : []).reduce((acc, row) => {
+              if (row?.key) acc[row.key] = row.value;
+              return acc;
+            }, {});
         setMoreToLoveData({
           title: byKey.more_to_love_title_one || "More to love",
           leftTitle: byKey.more_to_love_left_title || "Insurance Certificate",
@@ -119,10 +116,15 @@ const VisaInformation = ({ showKlarnaSection = true }) => {
     <ClientOnly>
       <div className="bg-[#1E1E27] text-white w-full overflow-x-clip">
         <Navbar />
-        <div className="w-full max-w-[88rem] mx-auto flex flex-col gap-0 items-center justify-center mt-5 px-4 sm:px-6 lg:px-8 max-sm:px-3 pb-24 lg:pb-8">
+        <div
+          className={`w-full max-w-[88rem] mx-auto flex flex-col gap-0 items-center justify-center px-4 sm:px-6 lg:px-8 max-sm:px-3 pb-24 lg:pb-8 ${
+            showKlarnaSection ? "mt-5" : "mt-6 sm:mt-8 md:mt-10 pt-2 sm:pt-3"
+          }`}
+        >
           <CountrySlider
             moreToLoveData={moreToLoveData}
             checkoutButtonDescription={checkoutButtonDescription}
+            compactLayout={!showKlarnaSection}
           />
 
           <LazyWhenVisible minHeight="480px" className="w-full flex flex-col">

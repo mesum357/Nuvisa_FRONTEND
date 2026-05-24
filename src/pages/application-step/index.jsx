@@ -10,17 +10,17 @@ import ProgressHeader from "@/components/ProgressHeader";
 import ClientOnly from "@/components/ClientOnly";
 import { lazySection } from "@/utils/lazySections";
 
-const DocumentUploadSection = lazySection(
-  () => import("@/components/DocumentUploadSection"),
-  "200px"
+const lazyAppStep = (importFn, minHeight = "200px") =>
+  lazySection(importFn, minHeight, { ssr: false });
+
+const DocumentUploadSection = lazyAppStep(
+  () => import("@/components/DocumentUploadSection")
 );
-const PassportInformationSection = lazySection(
-  () => import("@/components/PassportInformationSection"),
-  "200px"
+const PassportInformationSection = lazyAppStep(
+  () => import("@/components/PassportInformationSection")
 );
-const VisitDetailSection = lazySection(
-  () => import("@/components/VisitDetailSection"),
-  "200px"
+const VisitDetailSection = lazyAppStep(
+  () => import("@/components/VisitDetailSection")
 );
 import { localStorageEnums } from "@/enums/localstorage.enums";
 import { localStorageGateway } from "@/gateways/localStoragegateway";
@@ -39,9 +39,8 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ChevronLeft, Loader2 } from "lucide-react";
 import { useToast } from "@/contexts/ToastContext";
-const BookingAppointment = lazySection(
-  () => import("@/components/BookingAppointment"),
-  "200px"
+const BookingAppointment = lazyAppStep(
+  () => import("@/components/BookingAppointment")
 );
 import useCreateDynamicCheckoutSession from "@/hooks/useCreateDynamicCheckoutSession";
 import { countryCodeMap } from "@/utils/countryCodeMap";
@@ -55,6 +54,10 @@ import { useSendStudentVerification } from "@/hooks/useSendStudentVerification";
 import { useCalculatePayment } from "@/hooks/useCalculatePayment";
 import ConfirmationModal from "@/components/ConfirmationModal";
 import { validateGiftCardCode, redeemGiftCardCode } from "@/api/giftCard";
+import {
+  buildGiftCardValidationContext,
+  getGiftCardEligibilityError,
+} from "@/utils/giftCardEligibility";
 import { TravelDates } from "@/components/TravelDates";
 import { InsuranceStep } from "@/components/InsuranceStep";
 import { calculateDays } from "@/utils/calculateDays";
@@ -146,7 +149,10 @@ const MultiStepAccordion = () => {
   };
   const [isInsuranceAssigning, setIsInsuranceAssigning] = useState(false);
 
-  const { paymentData } = useCalculatePayment(applicationId);
+  const { paymentData } = useCalculatePayment(
+    applicationId,
+    parentVisaApplication
+  );
 
   const [travelersData, setTravelersData] = useState([
     {
@@ -1875,7 +1881,7 @@ const MultiStepAccordion = () => {
     if (applicationId) {
       fetchApplicationById();
     }
-  }, [applicationId, paymentData]);
+  }, [applicationId]);
 
   useEffect(() => {
     if (currentStep === "payment" || currentStep === "full_payment") {
@@ -4261,8 +4267,9 @@ const FullPaymentStep = ({
   const dispatch = useAppDispatch();
   const visaState = useAppSelector((state) => state.visa);
   const { paymentData } = useCalculatePayment(
-    parentVisaApplication?.id
-  )
+    parentVisaApplication?.id,
+    parentVisaApplication
+  );
   const { showError: showToastError } = useToast();
   const [paymentError, setPaymentError] = useState("");
   const [isPaying, setIsPaying] = useState(false);
@@ -4316,17 +4323,53 @@ const FullPaymentStep = ({
       setCouponError("");
 
       try {
-        // First validate the gift card code
-        const validateResponse = await validateGiftCardCode(codeUpper);
+        const perTravelerFee =
+          totalTraveler > 0
+            ? Number(paymentData?.totalFullPayment || paymentData?.fullRemainingPayment || 0) /
+              totalTraveler
+            : Number(visaState.visaFees || 0);
+
+        const giftCardContext = buildGiftCardValidationContext({
+          perTravelerFee,
+          travelers: totalTraveler,
+          appliedDiscount,
+          appliedGiftCardCount: redeemedGiftCards.length,
+          packagePrice:
+            Number(paymentData?.totalFullPayment || paymentData?.fullRemainingPayment || 0) ||
+            undefined,
+        });
+
+        const eligibilityError = getGiftCardEligibilityError(giftCardContext);
+        if (eligibilityError) {
+          setCouponError(eligibilityError);
+          setIsRedeemingGiftCard(false);
+          return;
+        }
+
+        const validateResponse = await validateGiftCardCode(
+          codeUpper,
+          giftCardContext,
+        );
         
-        if (validateResponse.status === "ERROR" || !validateResponse.data?.valid) {
-          setCouponError(validateResponse.message || "Invalid gift card code");
+        if (
+          validateResponse.status === "ERROR" ||
+          !validateResponse.data?.results?.valid
+        ) {
+          setCouponError(
+            validateResponse.message ||
+              validateResponse.data?.results?.message ||
+              "Invalid gift card code",
+          );
           setIsRedeemingGiftCard(false);
           return;
         }
 
         // If valid, redeem it
-        const redeemResponse = await redeemGiftCardCode(codeUpper, userEmail || parentVisaApplication?.email || undefined);
+        const redeemResponse = await redeemGiftCardCode(
+          codeUpper,
+          userEmail || parentVisaApplication?.email || undefined,
+          giftCardContext,
+        );
 
         if (redeemResponse.status === "SUCCESS" && redeemResponse.data?.success) {
           // Store gift card benefits in Redux - add to array of redeemed cards

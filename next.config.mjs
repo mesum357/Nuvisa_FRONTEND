@@ -20,6 +20,8 @@ const nextConfig = {
       "react-feather",
       "@stripe/react-stripe-js",
       "@stripe/stripe-js",
+      "framer-motion",
+      "date-fns",
     ],
   },
   env: {
@@ -28,7 +30,7 @@ const nextConfig = {
   images: {
     deviceSizes: [320, 420, 640, 768, 1024, 1200, 1440, 1920],
     formats: ["image/avif", "image/webp"],
-    minimumCacheTTL: 60,
+    minimumCacheTTL: 3600,
     remotePatterns: [
       {
         protocol: "https",

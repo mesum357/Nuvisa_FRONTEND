@@ -19,7 +19,7 @@ import {
   AlertCircle
 } from "lucide-react";
 import { getApplicationStatus } from "@/api/applicationStatus";
-import { getPassportStatusMessage } from "@/constants/passportStatusMessages";
+import { getApplicationStatusContent } from "@/constants/applicationStatusMessages";
 import { localStorageGateway } from "@/gateways/localStoragegateway";
 import { localStorageEnums } from "@/enums/localstorage.enums";
 
@@ -242,6 +242,8 @@ const ApplicationCompletedSection = ({
   };
 
   const getStatusConfig = (status, statusDisplay) => {
+    const copy = getApplicationStatusContent(status, statusDisplay);
+
     switch (status) {
       case "submitted":
         return {
@@ -249,7 +251,9 @@ const ApplicationCompletedSection = ({
           bgColor: "bg-green-400/10",
           borderColor: "border-green-400/20",
           icon: CheckCircle,
-          message: "Application Successfully Submitted"
+          heading: copy.heading,
+          description: copy.description,
+          statusLabel: copy.label,
         };
       case "under_review":
         return {
@@ -257,7 +261,29 @@ const ApplicationCompletedSection = ({
           bgColor: "bg-blue-400/10",
           borderColor: "border-blue-400/20",
           icon: Clock,
-          message: "Application Under Review"
+          heading: copy.heading,
+          description: copy.description,
+          statusLabel: copy.label,
+        };
+      case "appointment_booked":
+        return {
+          color: "text-blue-400",
+          bgColor: "bg-blue-400/10",
+          borderColor: "border-blue-400/20",
+          icon: Calendar,
+          heading: copy.heading,
+          description: copy.description,
+          statusLabel: copy.label,
+        };
+      case "at_embassy":
+        return {
+          color: "text-blue-400",
+          bgColor: "bg-blue-400/10",
+          borderColor: "border-blue-400/20",
+          icon: Clock,
+          heading: copy.heading,
+          description: copy.description,
+          statusLabel: copy.label,
         };
       case "payment_required":
         return {
@@ -265,7 +291,9 @@ const ApplicationCompletedSection = ({
           bgColor: "bg-yellow-400/10",
           borderColor: "border-yellow-400/20",
           icon: AlertCircle,
-          message: "Payment Required"
+          heading: copy.heading,
+          description: copy.description,
+          statusLabel: copy.label,
         };
       case "decision_made":
         return {
@@ -273,10 +301,9 @@ const ApplicationCompletedSection = ({
           bgColor: "bg-green-400/10",
           borderColor: "border-green-400/20",
           icon: CheckCircle,
-          message: getPassportStatusMessage(
-            "decision_made",
-            applicationStatus?.statusDisplay || applicationStatus?.statusMessage
-          ),
+          heading: copy.heading,
+          description: copy.description,
+          statusLabel: copy.label,
         };
       case "approved":
         return {
@@ -284,7 +311,9 @@ const ApplicationCompletedSection = ({
           bgColor: "bg-green-400/10",
           borderColor: "border-green-400/20",
           icon: CheckCircle,
-          message: "Application Approved"
+          heading: copy.heading,
+          description: copy.description,
+          statusLabel: copy.label,
         };
       case "rejected":
         return {
@@ -292,7 +321,9 @@ const ApplicationCompletedSection = ({
           bgColor: "bg-red-400/10",
           borderColor: "border-red-400/20",
           icon: AlertCircle,
-          message: "Application Rejected"
+          heading: copy.heading,
+          description: copy.description,
+          statusLabel: copy.label,
         };
       default:
         return {
@@ -300,7 +331,9 @@ const ApplicationCompletedSection = ({
           bgColor: "bg-gray-400/10",
           borderColor: "border-gray-400/20",
           icon: Clock,
-          message: "Processing Application"
+          heading: copy.heading,
+          description: copy.description,
+          statusLabel: copy.label,
         };
     }
   };
@@ -356,11 +389,9 @@ const ApplicationCompletedSection = ({
             <StatusIcon className={`w-8 h-8 ${statusConfig.color}`} />
           </div>
           <h2 className="text-2xl font-gilroy-bold text-white mb-2">
-            {statusConfig.message}
+            {statusConfig.heading}
           </h2>
-          <p className="text-gray-300">
-            Your visa application has been received and is being processed.
-          </p>
+          <p className="text-gray-300">{statusConfig.description}</p>
         </div>
 
         {/* Application Details */}
@@ -402,7 +433,7 @@ const ApplicationCompletedSection = ({
               <div className="flex items-center gap-2">
                 <div className={`w-2 h-2 ${statusConfig.bgColor} rounded-full`}></div>
                 <p className={`font-medium ${statusConfig.color}`}>
-                  {currentStatus?.status?.replace('_', ' ')?.toUpperCase()}
+                  {statusConfig.statusLabel}
                 </p>
               </div>
             </div>

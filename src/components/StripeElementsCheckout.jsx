@@ -12,6 +12,8 @@ import { setAuthId, setAuthState } from "@/store/authSlice";
 import { localStorageEnums } from "@/enums/localstorage.enums";
 import { localStorageGateway } from "@/gateways/localStoragegateway";
 import { createPaymentIntent } from "@/api/stripePayment";
+import { extractPaymentApiError } from "@/utils/extractPaymentApiError";
+import { parsePaymentIntentApiResponse } from "@/utils/parsePaymentIntentApiResponse";
 import StripePaymentForm from "./StripePaymentForm";
 import Cookies from "js-cookie";
 import { Loader } from "lucide-react";
@@ -66,8 +68,15 @@ const StripeElementsCheckout = forwardRef(
           };
         }
 
-        if (!email || !amount) {
-          return { success: false, message: "Email and amount are required" };
+        const amountNumber = Number(amount);
+        if (!email?.trim()) {
+          return { success: false, message: "Email is required" };
+        }
+        if (!Number.isFinite(amountNumber) || amountNumber < 0.5) {
+          return {
+            success: false,
+            message: "Payment total must be at least £0.50",
+          };
         }
 
         try {
@@ -109,51 +118,17 @@ const StripeElementsCheckout = forwardRef(
           console.log("Creating payment intent with payload:", payload);
           const response = await createPaymentIntent(payload, () => {});
 
-          console.log("Payment intent response:", {
-            status: response?.status,
-            hasData: !!response?.data,
-            responseStructure: response?.data,
-          });
+          const parsed = parsePaymentIntentApiResponse(response);
 
-          if (response?.status === 200 || response?.status === 201) {
-            // Handle different possible response structures
-            // Response structure: { status: "success", data: { results: { clientSecret: "..." } } }
-            const data =
-              response?.data?.data?.results ||
-              response?.data?.results ||
-              (response?.data?.status === "success"
-                ? response?.data?.data?.results
-                : null);
+          if (parsed.ok) {
+            const data = parsed.data;
+            const newClientSecret = parsed.clientSecret;
 
-            const newClientSecret = data?.clientSecret;
-
-            console.log("Extracted clientSecret:", {
-              found: !!newClientSecret,
-              prefix: newClientSecret
-                ? `${newClientSecret.substring(0, 30)}...`
-                : "NOT FOUND",
-              paymentIntentId: newClientSecret
-                ? newClientSecret.split("_secret_")[0]
-                : null,
-              fullClientSecret: newClientSecret, // Log full secret for debugging (remove in production)
-              responseStructure: {
-                hasDataDataResults: !!response?.data?.data?.results,
-                hasDataResults: !!response?.data?.results,
-                dataStatus: response?.data?.status,
-              },
+            console.log("Payment intent created:", {
+              paymentIntentId: newClientSecret.split("_secret_")[0],
             });
 
-            if (!newClientSecret) {
-              console.error(
-                "No client secret in response. Full response:",
-                JSON.stringify(response, null, 2)
-              );
-              throw new Error("No client secret received from server");
-            }
-
-            // Validate clientSecret format (should be: pi_xxx_secret_xxx)
             if (!newClientSecret.includes("_secret_")) {
-              console.error("Invalid clientSecret format:", newClientSecret);
               throw new Error(
                 "Invalid client secret format received from server"
               );
@@ -208,14 +183,17 @@ const StripeElementsCheckout = forwardRef(
             });
 
             return { success: true, clientSecret: newClientSecret };
-          } else {
-            throw new Error(
-              response?.data?.message || "Failed to create payment intent"
-            );
           }
+
+          throw new Error(
+            parsed.error || "Failed to create payment intent. Please try again."
+          );
         } catch (err) {
           console.error("Error creating payment intent:", err);
-          const errorMessage = err.message || "Failed to create payment intent";
+          const errorMessage =
+            extractPaymentApiError(err?.response, err) ||
+            err?.message ||
+            "Failed to create payment intent";
           setError(errorMessage);
           return { success: false, message: errorMessage };
         } finally {

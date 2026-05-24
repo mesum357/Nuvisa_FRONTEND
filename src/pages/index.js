@@ -101,7 +101,7 @@ const buildCountryImagePath = (countryName) =>
   `/image/country/${encodeURIComponent(String(countryName || "").trim())}.jpg`;
 
 const Index = () => {
-  const { heroContent, loading } = useHeroContent();
+  const { heroContent } = useHeroContent();
   const [showTooltip, setShowTooltip] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const tooltipRef = useRef(null);
@@ -153,9 +153,8 @@ const Index = () => {
   useEffect(() => {
     const fetchHomepageDynamicContent = async () => {
       try {
-        const [contentHomeRes, backendCmsRes, occasionRes] = await Promise.all([
-          fetch(`/api/content-home?t=${Date.now()}`).catch(() => null),
-          fetch(`/api/homepage-content?t=${Date.now()}`).catch(() => null),
+        const [contentHomeRes, occasionRes] = await Promise.all([
+          fetch("/api/content-home").catch(() => null),
           fetch("/api/occasion-content").catch(() => null),
         ]);
 
@@ -163,11 +162,6 @@ const Index = () => {
         if (contentHomeRes?.ok) {
           const contentJson = await contentHomeRes.json();
           Object.assign(byKey, contentJson?.data || {});
-        }
-        if (backendCmsRes?.ok) {
-          const backendJson = await backendCmsRes.json();
-          const backendData = backendJson?.data || {};
-          Object.assign(byKey, backendData);
         }
         if (occasionRes?.ok) {
           const occJson = await occasionRes.json();
@@ -335,20 +329,18 @@ const Index = () => {
         <Navbar />
 
         <main className="flex items-center justify-center flex-col pb-[45px] mt-4 md:min-h-[calc(100vh-200px)] px-5 md:px-6">
-          <DiscountTicket loading={loading} content={heroContent} />
+          <DiscountTicket content={heroContent} />
           <div className="relative flex flex-col items-center justify-center text-left sm:text-center max-w-[1200px] min-h-[350px] sm:min-h-[500px] w-full overflow-hidden rounded-[30px] px-4 sm:px-8 pt-3 sm:pt-8 pb-12 sm:pb-20">
             <DeferredHomeHeroVideo poster="/image/hero-poster.png" />
 
             <div className="relative z-10 max-w-4xl">
               <div className="hidden lg:block" />
               <h1 className="text-4xl sm:text-4xl md:text-[5.5rem] font-gilroy-bold leading-tight mb-2 max-sm:mb-2 sm:mb-8 max-sm:tracking-tighter">
-                {loading ? "Don't Postpone Your Happiness!" : heroContent.title}
+                {heroContent.title}
               </h1>
 
               <p className="text-base sm:text-[25px] md:text-[28px] font-extrabold leading-tight md:text-center">
-                {loading ? (
-                  "Flat £200 fee, faster processing, dedicated support"
-                ) : heroContent.description?.includes("+Link+") ? (
+                {heroContent.description?.includes("+Link+") ? (
                   <span className="inline-flex items-center gap-x-1 sm:gap-x-3 gap-y-2 border rounded-4xl px-2 sm:px-3 py-1.5 sm:px-5 sm:py-3">
                     {heroContent.description
                       .split(" I ")

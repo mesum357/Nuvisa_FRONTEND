@@ -1,6 +1,10 @@
 import { getHeaderCacheStore } from "@/lib/contentApiCache";
+import {
+  CONTENT_API_CACHE_TTL_MS,
+  CONTENT_API_HTTP_CACHE,
+} from "@/lib/contentCacheConfig";
 
-const DEFAULT_TTL_MS = 5 * 1000;
+const DEFAULT_TTL_MS = CONTENT_API_CACHE_TTL_MS;
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -16,7 +20,7 @@ export default async function handler(req, res) {
     const cacheStore = getHeaderCacheStore();
     const cached = cacheStore.get(sectionKey);
     if (cached && now - cached.timestamp < (process.env.HEADER_CONTENT_TTL_MS ? Number(process.env.HEADER_CONTENT_TTL_MS) : DEFAULT_TTL_MS)) {
-      res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=120');
+      res.setHeader("Cache-Control", CONTENT_API_HTTP_CACHE);
       return res.status(200).json(cached.data);
     }
 

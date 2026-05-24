@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/router";
 import DeferredAnalytics from "@/components/DeferredAnalytics";
 import LoadPaymentScripts from "@/components/LoadPaymentScripts";
+import SitePageLoader from "@/components/SitePageLoader";
 
 export default function App({ Component, pageProps }) {
   const router = useRouter();
@@ -72,6 +73,7 @@ export default function App({ Component, pageProps }) {
   return (
     <ReduxProvider>
       <ToastProvider>
+        <SitePageLoader />
         <DeferredAnalytics />
         {isCheckoutRoute && <LoadPaymentScripts />}
         <Component {...pageProps} />

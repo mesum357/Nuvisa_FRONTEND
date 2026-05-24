@@ -1,6 +1,10 @@
 import { getHomepageCache, setHomepageCache } from "@/lib/contentApiCache";
+import {
+  CONTENT_API_CACHE_TTL_MS,
+  CONTENT_API_HTTP_CACHE,
+} from "@/lib/contentCacheConfig";
 
-const CACHE_TTL_MS = 5 * 1000;
+const CACHE_TTL_MS = CONTENT_API_CACHE_TTL_MS;
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {
@@ -10,7 +14,7 @@ export default async function handler(req, res) {
   const now = Date.now();
   const cache = getHomepageCache();
   if (cache.data && cache.expiresAt > now) {
-    res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
+    res.setHeader("Cache-Control", CONTENT_API_HTTP_CACHE);
     return res.status(200).json(cache.data);
   }
 
@@ -33,7 +37,7 @@ export default async function handler(req, res) {
       data: json?.data?.results || json?.results || {},
     };
     setHomepageCache({ data: payload, expiresAt: now + CACHE_TTL_MS });
-    res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
+    res.setHeader("Cache-Control", CONTENT_API_HTTP_CACHE);
     return res.status(200).json(payload);
   } catch (error) {
     console.error("homepage-content proxy error:", error?.message);
