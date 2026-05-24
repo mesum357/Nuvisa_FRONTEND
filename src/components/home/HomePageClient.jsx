@@ -2,7 +2,6 @@
 import dynamic from "next/dynamic";
 import Navbar from "@/components/Navbar";
 import DeferredHomeHeroVideo from "@/components/home/DeferredHomeHeroVideo";
-import HomeHeroPoster from "@/components/home/HomeHeroPoster";
 import LazyWhenVisible from "@/components/LazyWhenVisible";
 import { useHeroContent } from "@/hooks/useHeroContent";
 import { Info } from "lucide-react";
@@ -16,7 +15,6 @@ const CountryCardsSection = dynamic(() => import("@/components/CountryCardsSecti
   loading: () => <div className="min-h-[120px]" />,
 });
 const VisaHeroSection = dynamic(() => import("@/components/CountryRotator"), {
-  ssr: false,
   loading: () => <div className="min-h-[80px]" />,
 });
 const sectionSkeleton = (minH = "120px") => () => (
@@ -50,9 +48,7 @@ const StickyBottomBar = dynamic(() => import("@/components/StickyBottomBar"), {
 const Reviews = dynamic(() => import("@/components/Reviews"), {
   loading: () => <div className="min-h-[140px] w-full max-w-[1200px] mx-auto" aria-hidden />,
 });
-const VisaProcessSection = dynamic(() => import("@/components/home/VisaProcessSection"), {
-  loading: sectionSkeleton("320px"),
-});
+const VisaProcessSection = dynamic(() => import("@/components/home/VisaProcessSection"));
 const DiscountTicket = dynamic(() => import("@/components/DiscountTicket"));
 const FAQSection = dynamic(() => import("@/components/Faqs"), {
   loading: sectionSkeleton("240px"),
@@ -113,8 +109,8 @@ const defaultEverydayStealsCountries = [
   { name: "Luxembourg", bgColor: "#ffb1ee", isHidden: false },
 ];
 
-export default function HomePageClient({ initialHeroContent, heroPoster }) {
-  const { heroContent } = useHeroContent(initialHeroContent);
+const Index = () => {
+  const { heroContent } = useHeroContent();
   const [showTooltip, setShowTooltip] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const tooltipRef = useRef(null);
@@ -304,17 +300,7 @@ export default function HomePageClient({ initialHeroContent, heroPoster }) {
       }
     };
 
-    const runFetch = () => {
-      fetchHomepageDynamicContent();
-    };
-
-    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
-      const idleId = window.requestIdleCallback(runFetch, { timeout: 8000 });
-      return () => window.cancelIdleCallback(idleId);
-    }
-
-    const timer = window.setTimeout(runFetch, 3000);
-    return () => window.clearTimeout(timer);
+    fetchHomepageDynamicContent();
   }, []);
 
   const topDestinationSectionCountries = topDestinationCountries
@@ -355,8 +341,7 @@ export default function HomePageClient({ initialHeroContent, heroPoster }) {
         <main className="flex items-center justify-center flex-col pb-[45px] mt-4 md:min-h-[calc(100vh-200px)] px-5 md:px-6">
           <DiscountTicket content={heroContent} />
           <div className="relative flex flex-col items-center justify-center text-left sm:text-center max-w-[1200px] min-h-[350px] sm:min-h-[500px] w-full overflow-hidden rounded-[30px] px-4 sm:px-8 pt-3 sm:pt-8 pb-12 sm:pb-20 aspect-[4/3] sm:aspect-auto">
-            {heroPoster ?? <HomeHeroPoster />}
-            <DeferredHomeHeroVideo />
+            <DeferredHomeHeroVideo poster="/image/hero-poster.png" />
 
             <div className="relative z-10 max-w-4xl min-h-[12rem] sm:min-h-[14rem] w-full">
               <div className="hidden lg:block" />
@@ -494,11 +479,9 @@ export default function HomePageClient({ initialHeroContent, heroPoster }) {
       <VisaFinanceFeatureSection />
       <FAQSection />
 
-      <LazyWhenVisible minHeight="320px" className="w-full">
-        <div className="bg-[#1E1E27] text-white w-full overflow-x-hidden pb-16">
-          <VisaProcessSection />
-        </div>
-      </LazyWhenVisible>
+      <div className="bg-[#1E1E27] text-white w-full overflow-x-hidden pb-16">
+        <VisaProcessSection />
+      </div>
 
       <VisaSolution
         title={visaSolutionContent.title}
@@ -582,4 +565,6 @@ export default function HomePageClient({ initialHeroContent, heroPoster }) {
       <AppDownloadPopup />
     </div>
   );
-}
+};
+
+export default Index;

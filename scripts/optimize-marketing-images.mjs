@@ -20,12 +20,6 @@ const JOBS = [
     quality: 80,
   },
   {
-    dir: "image",
-    files: ["hero-poster.png"],
-    maxWidth: 1200,
-    quality: 82,
-  },
-  {
     dir: "img",
     files: null,
     maxWidth: 96,

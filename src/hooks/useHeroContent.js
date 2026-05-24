@@ -1,29 +1,14 @@
-import { useState, useEffect } from "react";
-import { DEFAULT_HERO_CONTENT } from "@/lib/defaultHeroContent";
+import { useState, useEffect } from 'react';
 
-function mergeHeroFromApi(prevContent, contentMap) {
-  const next = {
-    title: contentMap.hero_title || prevContent.title,
-    description: contentMap.hero_description || prevContent.description,
-    ctaText: contentMap.hero_cta_text || prevContent.ctaText,
-    ctaLink: contentMap.hero_cta_link || prevContent.ctaLink,
-    discountTicketText:
-      contentMap.hero_discount_ticket_text || prevContent.discountTicketText,
-    discountTicketLink:
-      contentMap.hero_discount_ticket_link || prevContent.discountTicketLink,
-  };
-  const unchanged =
-    next.title === prevContent.title &&
-    next.description === prevContent.description &&
-    next.ctaText === prevContent.ctaText &&
-    next.ctaLink === prevContent.ctaLink &&
-    next.discountTicketText === prevContent.discountTicketText &&
-    next.discountTicketLink === prevContent.discountTicketLink;
-  return unchanged ? prevContent : next;
-}
-
-export const useHeroContent = (initialHeroContent = DEFAULT_HERO_CONTENT) => {
-  const [heroContent, setHeroContent] = useState(initialHeroContent);
+export const useHeroContent = () => {
+  const [heroContent, setHeroContent] = useState({
+    title: "Don't Postpone Your Happiness!",
+    description: 'Flat £200 fee, faster processing, dedicated support',
+    ctaText: 'Get the Visa',
+    ctaLink: '/get-the-visa',
+    discountTicketText: 'Students! Get 10% Off',
+    discountTicketLink: '/get-the-visa',
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -32,9 +17,9 @@ export const useHeroContent = (initialHeroContent = DEFAULT_HERO_CONTENT) => {
       try {
         setLoading(true);
         setError(null);
-
-        const response = await fetch("/api/public/hero-content");
-
+        
+        const response = await fetch('/api/public/hero-content');
+        
         if (response.ok) {
           const data = await response.json();
           if (data.success && data.data) {
@@ -42,31 +27,42 @@ export const useHeroContent = (initialHeroContent = DEFAULT_HERO_CONTENT) => {
             data.data.forEach((item) => {
               contentMap[item.key] = item.value;
             });
-
-            setHeroContent((prevContent) =>
-              mergeHeroFromApi(prevContent, contentMap)
-            );
+            
+            setHeroContent((prevContent) => {
+              const next = {
+                title: contentMap.hero_title || prevContent.title,
+                description: contentMap.hero_description || prevContent.description,
+                ctaText: contentMap.hero_cta_text || prevContent.ctaText,
+                ctaLink: contentMap.hero_cta_link || prevContent.ctaLink,
+                discountTicketText:
+                  contentMap.hero_discount_ticket_text || prevContent.discountTicketText,
+                discountTicketLink:
+                  contentMap.hero_discount_ticket_link || prevContent.discountTicketLink,
+              };
+              const unchanged =
+                next.title === prevContent.title &&
+                next.description === prevContent.description &&
+                next.ctaText === prevContent.ctaText &&
+                next.ctaLink === prevContent.ctaLink &&
+                next.discountTicketText === prevContent.discountTicketText &&
+                next.discountTicketLink === prevContent.discountTicketLink;
+              return unchanged ? prevContent : next;
+            });
           }
         } else {
-          console.warn("Failed to fetch hero content from API, using defaults");
+          // Fallback to default values if API fails
+          console.warn('Failed to fetch hero content from API, using defaults');
         }
       } catch (err) {
-        console.warn("Error fetching hero content:", err);
-        setError("Failed to load dynamic content");
+        console.warn('Error fetching hero content:', err);
+        setError('Failed to load dynamic content');
+        // Keep default values
       } finally {
         setLoading(false);
       }
     };
 
-    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
-      const idleId = window.requestIdleCallback(fetchHeroContent, {
-        timeout: 5000,
-      });
-      return () => window.cancelIdleCallback(idleId);
-    }
-
-    const timer = window.setTimeout(fetchHeroContent, 2000);
-    return () => window.clearTimeout(timer);
+    fetchHeroContent();
   }, []);
 
   return {

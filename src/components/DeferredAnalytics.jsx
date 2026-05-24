@@ -4,15 +4,7 @@ import { useEffect, useState } from "react";
 import Script from "next/script";
 
 const GTM_ID = "GTM-K2KZ5XR4";
-const IDLE_TIMEOUT_DESKTOP_MS = 6500;
-const IDLE_TIMEOUT_MOBILE_MS = 10000;
-
-function getAnalyticsIdleTimeoutMs() {
-  if (typeof window === "undefined") return IDLE_TIMEOUT_DESKTOP_MS;
-  return window.matchMedia("(max-width: 767px)").matches
-    ? IDLE_TIMEOUT_MOBILE_MS
-    : IDLE_TIMEOUT_DESKTOP_MS;
-}
+const IDLE_TIMEOUT_MS = 6500;
 
 function markAnalyticsReady() {
   if (typeof window === "undefined") return;
@@ -43,12 +35,10 @@ export default function DeferredAnalytics() {
     let idleId;
     let fallbackTimer;
 
-    const idleTimeoutMs = getAnalyticsIdleTimeoutMs();
-
     if ("requestIdleCallback" in window) {
-      idleId = window.requestIdleCallback(enable, { timeout: idleTimeoutMs });
+      idleId = window.requestIdleCallback(enable, { timeout: IDLE_TIMEOUT_MS });
     } else {
-      fallbackTimer = window.setTimeout(enable, idleTimeoutMs);
+      fallbackTimer = window.setTimeout(enable, IDLE_TIMEOUT_MS);
     }
 
     const events = ["scroll", "click", "keydown", "touchstart", "pointerdown"];
