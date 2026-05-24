@@ -31,6 +31,7 @@ const StripePaymentForm = forwardRef(({
   const [cardholderName, setCardholderName] = useState("");
 
   const elementOptions = {
+    disableLink: true,
     style: {
       base: {
         fontSize: "16px",

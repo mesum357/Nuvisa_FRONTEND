@@ -17,3 +17,7 @@ services:
         value: "20"
       - key: NEXT_IMAGE_UNOPTIMIZED
         value: "true"
+      - key: BACKEND_API_URL
+        value: "https://nuvisa-backend.onrender.com"
+      - key: NEXT_PUBLIC_API_URL
+        value: "https://nuvisa-backend.onrender.com"

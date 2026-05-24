@@ -35,6 +35,9 @@ export const shouldBlockLocalhostUrls = () => {
 	return isProductionBuild() || isDeployedBrowser();
 };
 
+/** Production NestJS host (Render). Used when env still points at localhost. */
+const DEFAULT_PRODUCTION_BACKEND_URL = "https://nuvisa-backend.onrender.com";
+
 // Returns the admin API base URL without any trailing slashes
 export const getAdminApiBase = () => {
 	const raw = process.env.NEXT_PUBLIC_ADMIN_API_URL;
@@ -52,47 +55,54 @@ export const getAdminApiBase = () => {
 /** NestJS backend base URL for browser-side API calls. */
 export const getPublicApiBase = () => {
 	const raw = process.env.NEXT_PUBLIC_API_URL;
-	if (!raw) return '';
-
-	// Only strip localhost in the browser on a deployed site (not on the Node server).
-	if (isDeployedBrowser() && isLocalhost(raw)) {
-		return '';
+	if (raw && !(isDeployedBrowser() && isLocalhost(raw))) {
+		return raw.replace(/\/+$/, "");
 	}
-
-	return raw.replace(/\/+$/, '');
+	if (isDeployedBrowser() || process.env.RENDER === "true") {
+		return DEFAULT_PRODUCTION_BACKEND_URL;
+	}
+	return raw ? raw.replace(/\/+$/, "") : "";
 };
 
 /** NestJS backend URL for Next.js API route proxies (server-only env preferred). */
 export const getBackendApiBase = () => {
 	const serverUrl = process.env.BACKEND_API_URL || process.env.API_URL;
-	if (serverUrl) {
-		return String(serverUrl).replace(/\/+$/, '');
+	if (serverUrl && !(process.env.NODE_ENV === "production" && isLocalhost(serverUrl))) {
+		return String(serverUrl).replace(/\/+$/, "");
 	}
 
 	const raw = process.env.NEXT_PUBLIC_API_URL;
-	if (!raw) return '';
-
-	if (process.env.NODE_ENV === 'production' && isLocalhost(raw)) {
-		return '';
+	if (raw && !(process.env.NODE_ENV === "production" && isLocalhost(raw))) {
+		return raw.replace(/\/+$/, "");
 	}
 
-	return raw.replace(/\/+$/, '');
+	if (process.env.NODE_ENV === "production" || process.env.RENDER === "true") {
+		return DEFAULT_PRODUCTION_BACKEND_URL;
+	}
+
+	return raw ? raw.replace(/\/+$/, "") : "";
 };
 
-const STRIPE_PROXY_PREFIX = '/api/stripe/';
+const STRIPE_PROXY_PREFIX = "/api/stripe/";
 
-/** Resolve payment endpoint — same-origin proxy when public API base is unavailable. */
+/** Payment routes: same-origin proxy on deployed sites (fast, warm frontend → backend). */
 export const resolvePaymentApiUrl = (endpoint) => {
+	if (!endpoint.startsWith("/stripe_payment/")) {
+		return endpoint;
+	}
+
+	const slug = endpoint.slice("/stripe_payment/".length);
+
+	if (isDeployedBrowser()) {
+		return `${STRIPE_PROXY_PREFIX}${slug}`;
+	}
+
 	const base = getPublicApiBase();
 	if (base) {
 		return `${base}${endpoint}`;
 	}
 
-	if (endpoint.startsWith('/stripe_payment/')) {
-		return `${STRIPE_PROXY_PREFIX}${endpoint.slice('/stripe_payment/'.length)}`;
-	}
-
-	return endpoint;
+	return `${STRIPE_PROXY_PREFIX}${slug}`;
 };
 
 /** Resolve country/appointment image paths from admin API or local public assets. */
