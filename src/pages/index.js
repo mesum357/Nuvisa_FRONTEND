@@ -343,13 +343,13 @@ const Index = () => {
           <div className="relative flex flex-col items-center justify-center text-left sm:text-center max-w-[1200px] min-h-[350px] sm:min-h-[500px] w-full overflow-hidden rounded-[30px] px-4 sm:px-8 pt-3 sm:pt-8 pb-12 sm:pb-20 aspect-[4/3] sm:aspect-auto">
             <DeferredHomeHeroVideo poster="/image/hero-poster.png" />
 
-            <div className="relative z-10 max-w-4xl min-h-[12rem] sm:min-h-[14rem]">
+            <div className="relative z-10 max-w-4xl min-h-[12rem] sm:min-h-[14rem] w-full">
               <div className="hidden lg:block" />
-              <h1 className="text-4xl sm:text-4xl md:text-[5.5rem] font-gilroy-bold leading-tight mb-2 max-sm:mb-2 sm:mb-8 max-sm:tracking-tighter [text-wrap:balance]">
+              <h1 className="text-4xl sm:text-4xl md:text-[5.5rem] font-gilroy-bold leading-tight mb-2 max-sm:mb-2 sm:mb-8 max-sm:tracking-tighter [text-wrap:balance] min-h-[2.75rem] sm:min-h-[3rem] md:min-h-[6.5rem]">
                 {heroContent.title}
               </h1>
 
-              <p className="text-base sm:text-[25px] md:text-[28px] font-extrabold leading-tight md:text-center">
+              <p className="text-base sm:text-[25px] md:text-[28px] font-extrabold leading-tight md:text-center min-h-[3.5rem] sm:min-h-[4rem] md:min-h-[4.5rem]">
                 {heroContent.description?.includes("+Link+") ? (
                   <span className="inline-flex items-center gap-x-1 sm:gap-x-3 gap-y-2 border rounded-4xl px-2 sm:px-3 py-1.5 sm:px-5 sm:py-3">
                     {heroContent.description

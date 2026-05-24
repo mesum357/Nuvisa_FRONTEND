@@ -24,6 +24,10 @@ import Link from "next/link";
 import { fetchVisaPricingResults } from "@/utils/fetchVisaPricingClient";
 import { DEFAULT_OCCASIONS } from "@/constants/defaultOccasions";
 import { resolveCoupon } from "@/utils/gtmUserData";
+import {
+  getChooseCountryImagePath,
+  CHOOSE_COUNTRY_IMAGE_FALLBACK,
+} from "@/utils/staticImages";
 
 const REQUIRED_DOCUMENTS_CTA_TEXT = "Check Required Documents";
 
@@ -49,6 +53,13 @@ const CountryCardsSection = ({
   const [isVisaPricingLoading, setIsVisaPricingLoading] = useState(true);
 
   const [isMobile, setIsMobile] = useState(false);
+  const [chooseCountrySrc, setChooseCountrySrc] = useState(() =>
+    image ? image : getChooseCountryImagePath(),
+  );
+
+  useEffect(() => {
+    setChooseCountrySrc(image ? image : getChooseCountryImagePath());
+  }, [image]);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -569,12 +580,17 @@ const CountryCardsSection = ({
         {!loading && !error && (
           <div className="lg:block lg:col-span-3 lg:row-span-3 relative rounded-2xl overflow-hidden group h-full min-h-[600px]">
             <Image
-              src={image || "/image/choose_country.png"}
+              src={chooseCountrySrc}
               alt="Choose Country"
               fill
               className="object-cover transition-transform duration-700 group-hover:scale-105"
-              loading={id === "everyday-steals" ? "lazy" : "eager"}
+              loading="lazy"
               sizes="(max-width: 1024px) 50vw, 33vw"
+              onError={() => {
+                if (!image && chooseCountrySrc !== CHOOSE_COUNTRY_IMAGE_FALLBACK) {
+                  setChooseCountrySrc(CHOOSE_COUNTRY_IMAGE_FALLBACK);
+                }
+              }}
             />
             <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent"></div>
             <div className="absolute bottom-4 left-4 text-white">
@@ -725,7 +741,8 @@ const CountryCardsSection = ({
                   fill
                   sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 20vw"
                   className="object-cover transition-transform duration-500 group-hover:scale-110"
-                  loading={index < 8 ? "eager" : "lazy"}
+                  loading={index < 2 ? "eager" : "lazy"}
+                  fetchPriority={index === 0 ? "high" : "auto"}
                 />
                 <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent"></div>
               </div>

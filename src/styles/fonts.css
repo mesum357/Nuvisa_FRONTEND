@@ -3,7 +3,8 @@
   src: url("/fonts/gilroy-bold/Gilroy-Bold.ttf") format("truetype");
   font-weight: 700;
   font-style: normal;
-  font-display: swap;
+  /* Avoid late swap shifting hero headline (CLS) */
+  font-display: optional;
 }
 
 @font-face {

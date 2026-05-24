@@ -56,20 +56,11 @@ export default function SitePageLoader() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!visible) return undefined;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [visible]);
-
   if (!visible) return null;
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#1E1E27]/95 backdrop-blur-sm"
+      className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#1E1E27]/95 backdrop-blur-sm overscroll-none touch-none"
       role="status"
       aria-live="polite"
       aria-busy="true"

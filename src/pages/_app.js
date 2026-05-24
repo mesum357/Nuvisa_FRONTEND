@@ -14,16 +14,19 @@ export default function App({ Component, pageProps }) {
     router.pathname?.includes("payment") ||
     router.pathname?.includes("application-step");
 
-  // GTM router listener
+  // GTM router listener (queued until DeferredAnalytics enables GTM)
   useEffect(() => {
     const handleRouteChange = (url) => {
-      if (typeof window !== "undefined") {
-        window.dataLayer = window.dataLayer || [];
+      if (typeof window === "undefined") return;
+      if (window.__gtmEnabled && window.dataLayer) {
         window.dataLayer.push({
           event: "pageview",
           page: url,
         });
+        return;
       }
+      window.__gtmPageviewQueue = window.__gtmPageviewQueue || [];
+      window.__gtmPageviewQueue.push(url);
     };
 
     // Listen for page changes after the initial load

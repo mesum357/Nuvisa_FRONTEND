@@ -1,37 +1,51 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
+
+const WORDS = [
+  "Germany",
+  "France",
+  "Italy",
+  "Spain",
+  "Netherlands",
+  "Austria",
+  "Belgium",
+  "Switzerland",
+  "Portugal",
+  "Greece",
+];
 
 const VisaHeroSection = () => {
-  const words = [
-    "Germany",
-    "France",
-    "Italy",
-    "Spain",
-    "Netherlands",
-    "Austria",
-    "Belgium",
-    "Switzerland",
-    "Portugal",
-    "Greece",
-  ];
-
   const wordRefs = useRef([]);
   const wordArray = useRef([]);
   const currentWord = useRef(0);
+  const [animationsReady, setAnimationsReady] = useState(false);
 
   useEffect(() => {
-    // EXACT JS SPLIT LETTERS LOGIC FROM SPREADBOT
+    const start = () => setAnimationsReady(true);
+
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      const id = window.requestIdleCallback(start, { timeout: 2000 });
+      return () => window.cancelIdleCallback(id);
+    }
+
+    const timer = window.setTimeout(start, 2000);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!animationsReady) return undefined;
+
     wordArray.current = [];
 
-    words.forEach((word, idx) => {
+    WORDS.forEach((word, idx) => {
       const letters = [];
-
       const node = wordRefs.current[idx];
-      const content = node.innerText;
+      if (!node) return;
 
-      node.innerText = ""; // clear original word
+      const content = node.innerText;
+      node.innerText = "";
 
       for (let i = 0; i < content.length; i++) {
-        let span = document.createElement("span");
+        const span = document.createElement("span");
         span.className = "letter";
         span.innerText = content.charAt(i);
         node.appendChild(span);
@@ -41,35 +55,35 @@ const VisaHeroSection = () => {
       wordArray.current.push(letters);
     });
 
-    // Show first word like original code
-    wordRefs.current[0].style.opacity = 1;
+    if (wordRefs.current[0]) {
+      wordRefs.current[0].style.opacity = 1;
+    }
 
     const animateLetterOut = (cw, i) => {
-      setTimeout(function() { 
-        cw[i].className = "letter out"; 
+      window.setTimeout(() => {
+        cw[i].className = "letter out";
       }, i * 80);
     };
 
     const animateLetterIn = (nw, i) => {
-      setTimeout(function() { 
-        nw[i].className = "letter in"; 
-      }, 340 + (i * 80));
+      window.setTimeout(() => {
+        nw[i].className = "letter in";
+      }, 340 + i * 80);
     };
 
     const changeWord = () => {
-      let cw = wordArray.current[currentWord.current];
-      let nextIndex =
+      const cw = wordArray.current[currentWord.current];
+      const nextIndex =
         currentWord.current === wordArray.current.length - 1
           ? 0
           : currentWord.current + 1;
-      let nw = wordArray.current[nextIndex];
+      const nw = wordArray.current[nextIndex];
+      if (!cw || !nw) return;
 
-      // OUT ANIMATION
       for (let i = 0; i < cw.length; i++) {
         animateLetterOut(cw, i);
       }
 
-      // IN ANIMATION
       for (let i = 0; i < nw.length; i++) {
         nw[i].className = "letter behind";
         nw[0].parentElement.style.opacity = 1;
@@ -80,9 +94,9 @@ const VisaHeroSection = () => {
     };
 
     changeWord();
-    const interval = setInterval(changeWord, 2000);
-    return () => clearInterval(interval);
-  }, []);
+    const interval = window.setInterval(changeWord, 2000);
+    return () => window.clearInterval(interval);
+  }, [animationsReady]);
 
   return (
     <div className="flex-col flex gap-1 mt-[6px] max-sm:mt-[6px] md:mt-0 items-center justify-center">
@@ -91,6 +105,7 @@ const VisaHeroSection = () => {
           position: relative;
           height: 1em;
           min-height: 1em;
+          min-width: 11ch;
           display: flex;
           justify-content: center;
           align-items: center;
@@ -129,13 +144,15 @@ const VisaHeroSection = () => {
         }
       `}</style>
 
-      <h1 className="text-[40px] whitespace-nowrap uppercase md:text-[60px] font-gilroy-bold mt-2 max-sm:my-[-30px] md:mt-5">
+      <h1 className="text-[40px] whitespace-nowrap uppercase md:text-[60px] font-gilroy-bold mt-2 max-sm:my-[-30px] md:mt-5 min-h-[1.1em]">
         <div className="highlight-animation-top">
-          {words.map((word, index) => (
+          {WORDS.map((word, index) => (
             <div
-              key={index}
+              key={word}
               className="highlight-animation-word"
-              ref={(el) => (wordRefs.current[index] = el)}
+              ref={(el) => {
+                wordRefs.current[index] = el;
+              }}
               style={{ opacity: index === 0 ? 1 : 0 }}
             >
               {word}
