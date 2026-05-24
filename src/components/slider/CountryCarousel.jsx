@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { DEFAULT_COUNTRY_IMAGE, preferCountryWebp } from "@/utils/countryImage";
 
 const HERO_SIZES =
   "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1440px) 800px, 960px";
@@ -21,8 +22,9 @@ export default function CountryCarousel({
   thumbnailContainerRef,
   compact = false,
 }) {
-  const heroSrc =
-    activeCarouselCountry?.image || "/image/country/Germany.jpg";
+  const heroSrc = preferCountryWebp(
+    activeCarouselCountry?.image || DEFAULT_COUNTRY_IMAGE,
+  );
 
   useEffect(() => {
     const first = carouselCountries[0]?.image;
@@ -36,7 +38,7 @@ export default function CountryCarousel({
     const link = document.createElement("link");
     link.rel = "preload";
     link.as = "image";
-    link.href = first;
+    link.href = preferCountryWebp(first);
     link.setAttribute("data-nuvisa-preload", "carousel-hero");
     document.head.appendChild(link);
 
@@ -144,7 +146,7 @@ export default function CountryCarousel({
         {carouselCountries.map((country, index) => (
           <Image
             key={country.id}
-            src={country.image}
+            src={preferCountryWebp(country.image)}
             alt={country.name}
             width={80}
             height={80}

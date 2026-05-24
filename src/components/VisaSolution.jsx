@@ -14,6 +14,7 @@ import { resolveCoupon } from "@/utils/gtmUserData";
 import GetTheVisaButton from "./layout/GetTheVisaButton";
 import { fetchVisaPricingResults } from "@/utils/fetchVisaPricingClient";
 import { useCountriesWithAppointmentTexts } from "@/hooks/useCountriesWithAppointmentTexts";
+import { getCountryImagePath } from "@/utils/countryImage";
 import Link from "next/link";
 import DeferredSectionVideo from "./home/DeferredSectionVideo";
 
@@ -253,19 +254,19 @@ const VisaSolution = ({
   }, [countryPricingList, normalizeCountryKey]);
 
   const defaultCountries = [
-    { name: "Spain", image: "/image/country/Spain.jpg", bgColor: "#8f9bfe" },
+    { name: "Spain", image: getCountryImagePath("Spain"), bgColor: "#8f9bfe" },
     {
       name: "Germany",
-      image: "/image/country/Germany.jpg",
+      image: getCountryImagePath("Germany"),
       bgColor: "#5f9aff",
     },
     {
       name: "Switzerland",
-      image: "/image/country/Switzerland.jpg",
+      image: getCountryImagePath("Switzerland"),
       bgColor: "#ff8e59",
     },
-    { name: "France", image: "/image/country/France.jpg", bgColor: "#daee69" },
-    { name: "Italy", image: "/image/country/Italy.jpg", bgColor: "#ffb1ee" },
+    { name: "France", image: getCountryImagePath("France"), bgColor: "#daee69" },
+    { name: "Italy", image: getCountryImagePath("Italy"), bgColor: "#ffb1ee" },
   ];
 
   const staticData =
@@ -283,35 +284,35 @@ const VisaSolution = ({
             // { name: "Germany", image: "/image/country/Germany.jpg", landmark: "Brandenburg Gate", isActive: true, bgColor: '#ffb1ee' },
             {
               name: "Spain",
-              image: "/image/country/Spain.jpg",
+              image: getCountryImagePath("Spain"),
               landmark: "Sagrada Familia",
               isActive: true,
               bgColor: "#8f9bfe",
             },
             {
               name: "Germany",
-              image: "/image/country/Germany.jpg",
+              image: getCountryImagePath("Germany"),
               landmark: "Pena Palace",
               isActive: true,
               bgColor: "#5f9aff",
             },
             {
               name: "Switzerland",
-              image: "/image/country/Switzerland.jpg",
+              image: getCountryImagePath("Switzerland"),
               landmark: "Matterhorn",
               isActive: true,
               bgColor: "#ff8e59",
             },
             {
               name: "France",
-              image: "/image/country/France.jpg",
+              image: getCountryImagePath("France"),
               landmark: "Eiffel Tower",
               isActive: true,
               bgColor: "#daee69",
             },
             {
               name: "Italy",
-              image: "/image/country/Italy.jpg",
+              image: getCountryImagePath("Italy"),
               landmark: "Colosseum Rome",
               isActive: true,
               bgColor: "#ffb1ee",

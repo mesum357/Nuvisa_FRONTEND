@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { fetchAppointmentTexts } from "@/api/appointmentText";
 import { getAdminApiBase, resolveCountryImageUrl } from "@/utils/adminApiBase";
 import { getCountryConfig } from "@/constants/countryConfig";
+import { getCountryImagePath, isLocalCountryImagePath } from "@/utils/countryImage";
 
 export const useCountriesWithAppointmentTexts = ({
   staticCountries = [],
@@ -164,7 +165,7 @@ export const useCountriesWithAppointmentTexts = ({
 
       if (!countryImage || countryImage === "") {
         // Dynamic fallback based on name
-        countryImage = `/image/country/${countryName}.jpg`;
+        countryImage = getCountryImagePath(countryName);
       }
 
       const mergedCountry = {
@@ -201,7 +202,8 @@ export const useCountriesWithAppointmentTexts = ({
       // AND Keep only if it has a valid image source 
       // (either from staticCountries or from dynamic admin/api sources)
       const isStatic = staticCountryNames.some(sn => normalizeCountryName(sn) === normalized);
-      const hasDynamicImage = country.image && !country.image.includes(`/image/country/`) && !country.image.endsWith(`.jpg`);
+      const hasDynamicImage =
+        country.image && !isLocalCountryImagePath(country.image);
       
       return isStatic || hasDynamicImage;
     });

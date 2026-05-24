@@ -5,6 +5,7 @@ import Image from "next/image";
 import { ArrowUpRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { staticCountries } from "@/constants/staticCountries";
+import { preferCountryWebp } from "@/utils/countryImage";
 
 const SLIDE_INTERVAL_MS = 5000;
 const FADE_DURATION_MS = 900;
@@ -92,15 +93,16 @@ const VisaFinanceFeatureSection = () => {
     <section className="visa-finance-section">
       <div className="visa-finance-panel">
         <div className="visa-finance-backgrounds" aria-hidden="true">
-          {carouselCountries.map((country, index) => (
+          {carouselCountries.length > 0 && (
             <div
-              key={country.id}
-              className={`visa-finance-background-layer${
-                index === currentIndex ? " is-active" : ""
-              }`}
-              style={{ backgroundImage: `url("${country.image}")` }}
+              className="visa-finance-background-layer is-active"
+              style={{
+                backgroundImage: `url("${preferCountryWebp(
+                  carouselCountries[currentIndex]?.image,
+                )}")`,
+              }}
             />
-          ))}
+          )}
           <div className="visa-finance-background-overlay" />
         </div>
 

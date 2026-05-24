@@ -377,7 +377,7 @@ const CountryCardsSection = ({
           image:
             dynCountry.image ||
             richMatch?.image ||
-            "/image/country/Germany.jpg",
+            "/image/country/Germany.webp",
           appointmentText:
             dynCountry.appointmentText ||
             richMatch?.appointmentText ||

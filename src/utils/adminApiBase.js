@@ -1,3 +1,5 @@
+import { preferCountryWebp } from "@/utils/countryImage";
+
 // Helper to check if URL is localhost
 const isLocalhost = (url) => {
 	if (!url) return false;
@@ -118,9 +120,10 @@ export const resolveCountryImageUrl = (image) => {
 
 	// Frontend static assets in /public/image — never prefix with admin API host
 	if (trimmed.startsWith('/image/') || trimmed.startsWith('/icons/')) {
-		return trimmed;
+		return preferCountryWebp(trimmed);
 	}
 
 	const adminBase = getAdminApiBase();
-	return trimmed.startsWith('/') ? `${adminBase}${trimmed}` : `${adminBase}/${trimmed}`;
+	const resolved = trimmed.startsWith('/') ? `${adminBase}${trimmed}` : `${adminBase}/${trimmed}`;
+	return preferCountryWebp(resolved);
 };

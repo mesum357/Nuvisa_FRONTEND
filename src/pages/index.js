@@ -8,6 +8,7 @@ import { Info } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import HomePageHead from "@/components/seo/HomePageHead";
+import { getCountryImagePath } from "@/utils/countryImage";
 import { useState, useEffect, useRef } from "react";
 
 const CountryCardsSection = dynamic(() => import("@/components/CountryCardsSection"), {
@@ -107,9 +108,6 @@ const defaultEverydayStealsCountries = [
   { name: "Latvia", bgColor: "#fdfd55", isHidden: false },
   { name: "Luxembourg", bgColor: "#ffb1ee", isHidden: false },
 ];
-
-const buildCountryImagePath = (countryName) =>
-  `/image/country/${encodeURIComponent(String(countryName || "").trim())}.jpg`;
 
 const Index = () => {
   const { heroContent } = useHeroContent();
@@ -309,7 +307,7 @@ const Index = () => {
     .filter((country) => !country.isHidden)
     .map((country) => ({
       name: country.name,
-      image: buildCountryImagePath(country.name),
+      image: getCountryImagePath(country.name),
       bgColor: country.bgColor,
     }));
 
@@ -317,7 +315,7 @@ const Index = () => {
     .filter((country) => !country.isHidden)
     .map((country) => ({
       name: country.name,
-      image: buildCountryImagePath(country.name),
+      image: getCountryImagePath(country.name),
       bgColor: country.bgColor,
     }));
 
@@ -464,7 +462,9 @@ const Index = () => {
           <div className="relative z-20 -mt-2 md:-mt-12">
             <VisaHeroSection />
           </div>
-          <Reviews />
+          <LazyWhenVisible minHeight="140px" className="w-full max-w-[1200px] mx-auto">
+            <Reviews />
+          </LazyWhenVisible>
         </main>
 
         <CountryCardsSection urgentDescription={urgentDescription} />
