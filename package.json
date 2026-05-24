@@ -16,7 +16,7 @@
     "verify:fixes": "node ../scripts/verify-all-fixes.mjs",
     "verify:fixes:live": "node ../scripts/verify-all-fixes.mjs --site http://localhost:3002 --admin http://localhost:3001 --backend http://localhost:4000"
   },
-  "prisma": { 
+  "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
@@ -56,6 +56,7 @@
     "@types/react": "19.1.13",
     "eslint": "^9",
     "eslint-config-next": "15.4.6",
+    "sharp": "^0.34.5",
     "tailwindcss": "^4.2.2",
     "tsx": "^4.21.0"
   },
