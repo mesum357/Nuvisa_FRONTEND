@@ -2,37 +2,44 @@
 
 import { useEffect, useRef, useState } from "react";
 
-const MIN_VISIBLE_MS = 280;
-const ROUTE_SETTLE_MS = 120;
+const MAX_VISIBLE_MS = 900;
 
 /**
- * Full-screen loader for the first paint only (route changes stay instant).
+ * Brief first-visit overlay only. Dismisses on DOMContentLoaded (not window.load)
+ * so a 26MB hero MP4 does not block LCP.
  */
 export default function SitePageLoader() {
   const [visible, setVisible] = useState(true);
-  const shownAtRef = useRef(0);
   const hideTimerRef = useRef(null);
 
-  const hideLoader = () => {
-    const elapsed = Date.now() - shownAtRef.current;
-    const delay = Math.max(0, MIN_VISIBLE_MS - elapsed) + ROUTE_SETTLE_MS;
-
-    hideTimerRef.current = setTimeout(() => {
-      setVisible(false);
-      hideTimerRef.current = null;
-    }, delay);
-  };
-
   useEffect(() => {
-    const finishInitialLoad = () => hideLoader();
+    const hide = () => {
+      if (hideTimerRef.current) return;
+      hideTimerRef.current = setTimeout(() => {
+        setVisible(false);
+        hideTimerRef.current = null;
+      }, 0);
+    };
 
-    if (document.readyState === "complete") {
-      finishInitialLoad();
+    if (
+      document.readyState === "interactive" ||
+      document.readyState === "complete"
+    ) {
+      hide();
     } else {
-      window.addEventListener("load", finishInitialLoad, { once: true });
+      document.addEventListener("DOMContentLoaded", hide, { once: true });
     }
 
-    return () => window.removeEventListener("load", finishInitialLoad);
+    const cap = window.setTimeout(hide, MAX_VISIBLE_MS);
+
+    return () => {
+      document.removeEventListener("DOMContentLoaded", hide);
+      window.clearTimeout(cap);
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current);
+        hideTimerRef.current = null;
+      }
+    };
   }, []);
 
   useEffect(() => {

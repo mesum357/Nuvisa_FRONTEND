@@ -19,7 +19,14 @@ const DiscountTicket = ({ content }) => {
     const [animateIn, setAnimateIn] = useState(false);
 
     useEffect(() => {
-        const timer = setTimeout(() => setAnimateIn(true), 600);
+        const startAnimation = () => setAnimateIn(true);
+
+        if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+            const id = window.requestIdleCallback(startAnimation, { timeout: 3500 });
+            return () => window.cancelIdleCallback(id);
+        }
+
+        const timer = setTimeout(startAnimation, 3500);
         return () => clearTimeout(timer);
     }, []);
 

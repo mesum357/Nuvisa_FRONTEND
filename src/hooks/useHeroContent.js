@@ -28,14 +28,26 @@ export const useHeroContent = () => {
               contentMap[item.key] = item.value;
             });
             
-            setHeroContent(prevContent => ({
-              title: contentMap['hero_title'] || prevContent.title,
-              description: contentMap['hero_description'] || prevContent.description,
-              ctaText: contentMap['hero_cta_text'] || prevContent.ctaText,
-              ctaLink: contentMap['hero_cta_link'] || prevContent.ctaLink,
-              discountTicketText: contentMap['hero_discount_ticket_text'] || prevContent.discountTicketText,
-              discountTicketLink: contentMap['hero_discount_ticket_link'] || prevContent.discountTicketLink,
-            }));
+            setHeroContent((prevContent) => {
+              const next = {
+                title: contentMap.hero_title || prevContent.title,
+                description: contentMap.hero_description || prevContent.description,
+                ctaText: contentMap.hero_cta_text || prevContent.ctaText,
+                ctaLink: contentMap.hero_cta_link || prevContent.ctaLink,
+                discountTicketText:
+                  contentMap.hero_discount_ticket_text || prevContent.discountTicketText,
+                discountTicketLink:
+                  contentMap.hero_discount_ticket_link || prevContent.discountTicketLink,
+              };
+              const unchanged =
+                next.title === prevContent.title &&
+                next.description === prevContent.description &&
+                next.ctaText === prevContent.ctaText &&
+                next.ctaLink === prevContent.ctaLink &&
+                next.discountTicketText === prevContent.discountTicketText &&
+                next.discountTicketLink === prevContent.discountTicketLink;
+              return unchanged ? prevContent : next;
+            });
           }
         } else {
           // Fallback to default values if API fails

@@ -90,6 +90,7 @@ const VisaHeroSection = () => {
         .highlight-animation-top {
           position: relative;
           height: 1em;
+          min-height: 1em;
           display: flex;
           justify-content: center;
           align-items: center;

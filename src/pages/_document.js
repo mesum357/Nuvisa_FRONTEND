@@ -7,12 +7,12 @@ export default function Document() {
     <Html lang="en">
       <Head>
         {/* GTM + payment scripts load via _app (lazy / checkout-only) */}
+        {/* LCP: hero poster + primary heading font only */}
         <link
           rel="preload"
-          href="/fonts/gilroy-bold/Gilroy-Medium.ttf"
-          as="font"
-          type="font/ttf"
-          crossOrigin="anonymous"
+          href="/image/hero-poster.png"
+          as="image"
+          fetchPriority="high"
         />
         <link
           rel="preload"
@@ -69,13 +69,13 @@ export default function Document() {
 
         {/* Open Graph */}
         <meta property="og:type" content="website" />
-        <meta property="og:image" content="/image/logo.png" />
+        <meta property="og:image" content="https://www.nuvisa.co.uk/image/logo.png" />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
 
         {/* Twitter */}
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:image" content="/image/logo.png" />
+        <meta name="twitter:image" content="https://www.nuvisa.co.uk/image/logo.png" />
       </Head>
       <body className="antialiased">
         {/* GTM noscript fallback */}

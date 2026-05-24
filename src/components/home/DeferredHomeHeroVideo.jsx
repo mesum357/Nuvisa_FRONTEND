@@ -63,22 +63,22 @@ export default function DeferredHomeHeroVideo({
     return () => window.clearTimeout(timer);
   }, []);
 
-  const showPoster = !shouldLoadVideo || !videoReady;
+  const posterHidden = shouldLoadVideo && videoReady;
 
   return (
     <div ref={containerRef} className="absolute inset-0 z-0">
-      {showPoster && (
-        <Image
-          src={poster}
-          alt=""
-          fill
-          priority
-          fetchPriority="high"
-          sizes="100vw"
-          className="object-cover scale-[1.2]"
-          aria-hidden
-        />
-      )}
+      <Image
+        src={poster}
+        alt=""
+        fill
+        priority
+        fetchPriority="high"
+        sizes="100vw"
+        className={`object-cover scale-[1.2] transition-opacity duration-500 ${
+          posterHidden ? "opacity-0" : "opacity-100"
+        }`}
+        aria-hidden
+      />
       {shouldLoadVideo && (
         <video
           className={`w-full h-full object-cover scale-[1.2] transition-opacity duration-500 ${

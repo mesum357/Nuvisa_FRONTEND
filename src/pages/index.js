@@ -5,8 +5,7 @@ import DeferredHomeHeroVideo from "@/components/home/DeferredHomeHeroVideo";
 import LazyWhenVisible from "@/components/LazyWhenVisible";
 import { useHeroContent } from "@/hooks/useHeroContent";
 import { Info } from "lucide-react";
-import Link from "next/link";
-import Image from "next/image";
+import HomePageHead from "@/components/seo/HomePageHead";
 import { useState, useEffect, useRef } from "react";
 
 const CountryCardsSection = dynamic(() => import("@/components/CountryCardsSection"), {
@@ -34,8 +33,18 @@ const VisaFinanceFeatureSection = dynamic(
   () => import("@/components/home/VisaFinanceFeatureSection"),
   { loading: sectionSkeleton("360px") }
 );
-const StickyBottomBar = dynamic(() => import("@/components/StickyBottomBar"), { ssr: false });
-const Reviews = dynamic(() => import("@/components/Reviews"), { loading: () => null });
+const StickyBottomBar = dynamic(() => import("@/components/StickyBottomBar"), {
+  ssr: false,
+  loading: () => (
+    <div
+      className="fixed bottom-0 left-0 right-0 z-40 h-[72px] pointer-events-none"
+      aria-hidden
+    />
+  ),
+});
+const Reviews = dynamic(() => import("@/components/Reviews"), {
+  loading: () => <div className="min-h-[140px] w-full max-w-[1200px] mx-auto" aria-hidden />,
+});
 const VisaProcessSection = dynamic(() => import("@/components/home/VisaProcessSection"));
 const DiscountTicket = dynamic(() => import("@/components/DiscountTicket"));
 const FAQSection = dynamic(() => import("@/components/Faqs"), {
@@ -311,7 +320,8 @@ const Index = () => {
     }));
 
   return (
-    <div className="w-full mx-auto h-full min-h-screen">
+    <div className="w-full mx-auto h-full min-h-screen pb-[72px]">
+      <HomePageHead />
       <style>{`
         @keyframes draw-guarantee {
           from { stroke-dashoffset: 1; }
@@ -330,12 +340,12 @@ const Index = () => {
 
         <main className="flex items-center justify-center flex-col pb-[45px] mt-4 md:min-h-[calc(100vh-200px)] px-5 md:px-6">
           <DiscountTicket content={heroContent} />
-          <div className="relative flex flex-col items-center justify-center text-left sm:text-center max-w-[1200px] min-h-[350px] sm:min-h-[500px] w-full overflow-hidden rounded-[30px] px-4 sm:px-8 pt-3 sm:pt-8 pb-12 sm:pb-20">
+          <div className="relative flex flex-col items-center justify-center text-left sm:text-center max-w-[1200px] min-h-[350px] sm:min-h-[500px] w-full overflow-hidden rounded-[30px] px-4 sm:px-8 pt-3 sm:pt-8 pb-12 sm:pb-20 aspect-[4/3] sm:aspect-auto">
             <DeferredHomeHeroVideo poster="/image/hero-poster.png" />
 
-            <div className="relative z-10 max-w-4xl">
+            <div className="relative z-10 max-w-4xl min-h-[12rem] sm:min-h-[14rem]">
               <div className="hidden lg:block" />
-              <h1 className="text-4xl sm:text-4xl md:text-[5.5rem] font-gilroy-bold leading-tight mb-2 max-sm:mb-2 sm:mb-8 max-sm:tracking-tighter">
+              <h1 className="text-4xl sm:text-4xl md:text-[5.5rem] font-gilroy-bold leading-tight mb-2 max-sm:mb-2 sm:mb-8 max-sm:tracking-tighter [text-wrap:balance]">
                 {heroContent.title}
               </h1>
 
