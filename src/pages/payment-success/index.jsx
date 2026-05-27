@@ -44,6 +44,7 @@ const PaymentSuccess = () => {
   const [paymentType, setPaymentType] = useState("application_creation");
   const [giftCardCodes, setGiftCardCodes] = useState([]);
   const [giftCardEmailSent, setGiftCardEmailSent] = useState(true);
+  const [giftCardFulfillFailed, setGiftCardFulfillFailed] = useState(false);
   /** verifying_payment | creating_application | redirecting_checkout */
   const [pagePhase, setPagePhase] = useState(() => {
     if (typeof window === "undefined") return "loading";
@@ -285,6 +286,10 @@ const PaymentSuccess = () => {
           const stripePaymentId =
             sessionId || klarnaPaymentIntentId || embeddedPaymentIntentId;
 
+          if (stripePaymentId) {
+            await decrementExpertSpotsViaApi(stripePaymentId);
+          }
+
           let giftPaymentMeta = null;
           try {
             const storedGiftMeta = localStorage.getItem("paymentMetadata");
@@ -351,21 +356,22 @@ const PaymentSuccess = () => {
               }
             } catch (fulfillError) {
               console.error("Gift card fulfill failed:", fulfillError);
+              setGiftCardFulfillFailed(true);
             }
           } else {
             console.warn("Gift card fulfill skipped — missing email or amount", {
               giftEmail: !!giftEmail,
               giftAmount: !!giftAmount,
             });
+            setGiftCardFulfillFailed(true);
           }
 
           try {
             localStorage.removeItem("paymentMetadata");
           } catch {}
 
-          setTimeout(() => {
-            redirectToHome();
-          }, 2500);
+          setIsCreatingApplication(false);
+          setPagePhase("complete");
           return;
         }
 
@@ -395,12 +401,15 @@ const PaymentSuccess = () => {
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
                     paymentType: inferredPaymentType,
+                    checkoutType: "insurance_only",
+                    insuranceOnly: "true",
                     applicationId: finalApplicationId || undefined,
                     travelerIndex: travelerIndex,
                     email: currentData.email,
                     amount: postAmountRaw,
                     orderId: usedStoredInsuranceMetadata?.orderId,
                     sessionId: stripePaymentIdEarly,
+                    skipConfirmationEmail: Boolean(stripePaymentIdEarly?.startsWith("cs_")),
                   }),
                 },
               );
@@ -409,10 +418,12 @@ const PaymentSuccess = () => {
             }
           }
 
+          if (stripePaymentIdEarly) {
+            await decrementExpertSpotsViaApi(stripePaymentIdEarly);
+          }
+
           setIsCreatingApplication(false);
-          setTimeout(() => {
-            redirectToHome();
-          }, 2500);
+          setPagePhase("complete");
           return;
         }
 
@@ -546,7 +557,24 @@ const PaymentSuccess = () => {
         setPagePhase("creating_application");
         setIsCreatingApplication(true);
 
-        const numberOfTravelers = Number(mergedData.travelers) || 1;
+        const parsedTravelers = Number(mergedData.travelers);
+        const numberOfTravelers =
+          Number.isFinite(parsedTravelers) && parsedTravelers >= 0
+            ? parsedTravelers
+            : 0;
+
+        const hasVisaLineItem =
+          containsVisaApplication && numberOfTravelers >= 1;
+
+        if (!hasVisaLineItem) {
+          console.warn(
+            "Skipping visa application creation — no visa line item in checkout",
+            { finalPaymentType, numberOfTravelers },
+          );
+          setIsCreatingApplication(false);
+          setPagePhase("complete");
+          return;
+        }
 
         const hasInsurance =
           mergedData.insuranceSelected === "true" ||
@@ -1063,8 +1091,9 @@ const PaymentSuccess = () => {
             Insurance purchase successful!
           </h1>
           <p className="text-gray-600 mb-4">
-            Your insurance payment was successful. We have updated your
-            application and sent a confirmation email.
+            Your insurance payment was successful. A confirmation email has been
+            sent with your purchase details. No visa application was created for
+            this order.
           </p>
           <button
             onClick={() => router.push("/")}
@@ -1140,8 +1169,19 @@ const PaymentSuccess = () => {
             )}
             {giftCardCodes.length === 0 && (
               <p className="text-sm text-gray-500 mt-4">
-                Please check your email for the code. The code format is:{" "}
-                <span className="font-mono font-semibold">NU-VISA-XXXXXX</span>
+                {giftCardFulfillFailed ? (
+                  <>
+                    We could not generate your code automatically. Please contact
+                    support with your payment confirmation, or check your inbox for
+                    the code. Format:{" "}
+                    <span className="font-mono font-semibold">NU-VISA-XXXXXX</span>
+                  </>
+                ) : (
+                  <>
+                    Please check your email for the code. The code format is:{" "}
+                    <span className="font-mono font-semibold">NU-VISA-XXXXXX</span>
+                  </>
+                )}
               </p>
             )}
           </div>

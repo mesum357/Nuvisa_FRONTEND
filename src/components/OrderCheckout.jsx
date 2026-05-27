@@ -51,6 +51,7 @@ import {
   resolveCheckoutPaymentType,
   canCheckoutWithoutDestinationCountry,
   hasCheckoutLineItems,
+  shouldDecrementExpertSpots,
 } from "@/utils/checkoutPaymentType";
 import { GIFT_CARD_PRODUCT_NAME } from "@/constants/productLabels";
 import {
@@ -1518,6 +1519,16 @@ const VisaCheckout = () => {
   const handleProceedToCheckout = async () => {
     localStorageGateway("paymentAmount", localStorageEnums.SET, String(total));
 
+    // Allow zero travellers for gift-card or insurance-only checkouts
+    const allowsZeroTravelers = canCheckoutWithoutDestinationCountry({
+      travelers,
+      finalVisaFees: visaFeesGBP,
+      includeGiftCard,
+      giftCardCount,
+      includeInsurance,
+      insuranceCount,
+    });
+
     localStorageGateway(
       "insurancePaymentMetadata",
       localStorageEnums.SET,
@@ -1525,9 +1536,34 @@ const VisaCheckout = () => {
         JSON.stringify({
           insuranceCount: includeInsurance ? insuranceCount : 0,
           insurancePaymentAmount: discountedInsuranceFeesGBP,
-          timestamp: Date.now(), // ← ADDED: required for PaymentSuccess timestamp check
+          paymentType: checkoutPaymentType,
+          timestamp: Date.now(),
         }),
       ),
+    );
+
+    localStorageGateway(
+      "paymentMetadata",
+      localStorageEnums.SET,
+      JSON.stringify({
+        email: email || userEmail || "",
+        amount: String(total),
+        travellers: allowsZeroTravelers ? "0" : String(travelers),
+        country: selectedCountry || visaState.selectedCountry || "",
+        insurance: includeInsurance ? "true" : "false",
+        paymentType: checkoutPaymentType,
+        checkoutType:
+          checkoutPaymentType === "traveler_insurance"
+            ? "insurance_only"
+            : checkoutPaymentType === "gift_card"
+              ? "gift_card"
+              : undefined,
+        quantity: includeGiftCard ? giftCardCount : 0,
+        noOfInsurance: includeInsurance ? insuranceCount : 0,
+        insurancePaymentAmount: discountedInsuranceFeesGBP,
+        timestamp: Date.now(),
+        paymentDate: new Date().toISOString(),
+      }),
     );
 
     // ✅ Save email + phone so success page user_data works for Stripe/Apple/Google Pay
@@ -1579,15 +1615,6 @@ const VisaCheckout = () => {
       localStorageEnums.SET,
       includeInsurance ? true : false,
     );
-    // Allow zero travellers for gift-card or insurance-only checkouts
-    const allowsZeroTravelers = canCheckoutWithoutDestinationCountry({
-      travelers,
-      finalVisaFees: visaFeesGBP,
-      includeGiftCard,
-      giftCardCount,
-      includeInsurance,
-      insuranceCount,
-    });
 
     const normalizedTravellersForStorage = allowsZeroTravelers
       ? "0"
@@ -2493,9 +2520,13 @@ const VisaCheckout = () => {
                           includeGiftCard={includeGiftCard}
                           giftCardCount={giftCardCount}
                           onPaymentSuccess={(paymentIntentId) => {
-                            decrementExpertSpotsOnSuccessfulCheckout(
-                              paymentIntentId,
-                            );
+                            if (
+                              shouldDecrementExpertSpots(checkoutPaymentType)
+                            ) {
+                              decrementExpertSpotsOnSuccessfulCheckout(
+                                paymentIntentId,
+                              );
+                            }
                           }}
                         />
                       </StripeProvider>

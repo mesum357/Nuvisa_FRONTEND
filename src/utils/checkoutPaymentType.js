@@ -70,3 +70,23 @@ export function hasCheckoutLineItems({
     includeInsurance && Number(insuranceCount) > 0;
   return hasVisa || hasGiftCard || hasInsurance;
 }
+
+export function parsePaymentTypeParts(paymentType) {
+  return String(paymentType || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+export function paymentTypeIncludesVisaApplication(paymentType) {
+  return parsePaymentTypeParts(paymentType).some((type) =>
+    ["application_creation", "full_payment", "additional_traveler"].includes(
+      type,
+    ),
+  );
+}
+
+/** Decrement shared “spots left” on every successful checkout (visa, gift, insurance). */
+export function shouldDecrementExpertSpots(_paymentType) {
+  return true;
+}
