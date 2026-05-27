@@ -9,8 +9,9 @@ import {
 import { localStorageGateway } from "@/gateways/localStoragegateway";
 import { localStorageEnums } from "@/enums/localstorage.enums";
 import axios from "axios";
+import { getPublicApiBase } from "@/utils/adminApiBase";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const apiBase = () => getPublicApiBase() || process.env.NEXT_PUBLIC_API_URL || "";
 
 const authHeaders = (token) => ({
   headers: { Authorization: `Bearer ${token}` },
@@ -57,7 +58,7 @@ export default function ApplicationCasePanel({ applicationId, onUpdated }) {
       const [detailsRes, activityRes, commentsRes, teamRes] = await Promise.all([
         getApplicationDetails(token, applicationId),
         getApplicationActivity(token, applicationId),
-        axios.get(`${BASE_URL}/orders/application/${applicationId}/comments`, authHeaders(token)),
+        axios.get(`${apiBase()}/orders/application/${applicationId}/comments`, authHeaders(token)),
         getTeamMembers(token),
       ]);
 
@@ -135,7 +136,7 @@ export default function ApplicationCasePanel({ applicationId, onUpdated }) {
     setSaving(true);
     try {
       await axios.post(
-        `${BASE_URL}/orders/application/${applicationId}/comments`,
+        `${apiBase()}/orders/application/${applicationId}/comments`,
         { comment: newComment.trim(), isInternal },
         authHeaders(token)
       );

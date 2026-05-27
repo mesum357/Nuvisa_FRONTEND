@@ -1,16 +1,18 @@
 import axios from 'axios';
+import { getPublicApiBase } from '@/utils/adminApiBase';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
-if (!BASE_URL) {
-  throw new Error('NEXT_PUBLIC_API_URL environment variable is required');
+function getAdminApi() {
+  const base = getPublicApiBase() || process.env.NEXT_PUBLIC_API_URL;
+  if (!base) {
+    throw new Error('NEXT_PUBLIC_API_URL environment variable is required');
+  }
+  return axios.create({
+    baseURL: base.replace(/\/+$/, ''),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
 }
-
-const adminApi = axios.create({
-  baseURL: `${BASE_URL}`,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
 
 const addAuthToken = (token) => {
   return {
@@ -27,7 +29,7 @@ const addAuthToken = (token) => {
  */
 export const getApplicationOverview = async (token) => {
   try {
-    const response = await adminApi.get('/orders/application-overview', addAuthToken(token));
+    const response = await getAdminApi().get('/orders/application-overview', addAuthToken(token));
     return response;
   } catch (error) {
     console.error('Error fetching application overview:', error);
@@ -42,7 +44,7 @@ export const getApplicationOverview = async (token) => {
  */
 export const getDocumentsOverview = async (token) => {
   try {
-    const response = await adminApi.get('/orders/documents-overview', addAuthToken(token));
+    const response = await getAdminApi().get('/orders/documents-overview', addAuthToken(token));
     return response;
   } catch (error) {
     console.error('Error fetching documents overview:', error);
@@ -72,7 +74,7 @@ export const searchApplications = async (token, searchParams) => {
       }
     });
 
-    const response = await adminApi.get(`/orders/search?${queryParams.toString()}`, addAuthToken(token));
+    const response = await getAdminApi().get(`/orders/search?${queryParams.toString()}`, addAuthToken(token));
     return response;
   } catch (error) {
     console.error('Error searching applications:', error);
@@ -88,7 +90,7 @@ export const searchApplications = async (token, searchParams) => {
  */
 export const getApplicationDetails = async (token, applicationId) => {
   try {
-    const response = await adminApi.get(`/orders/application/${applicationId}`, addAuthToken(token));
+    const response = await getAdminApi().get(`/orders/application/${applicationId}`, addAuthToken(token));
     return response;
   } catch (error) {
     console.error('Error fetching application details:', error);
@@ -107,7 +109,7 @@ export const getApplicationDetails = async (token, applicationId) => {
  */
 export const updateApplicationStatus = async (token, applicationId, updateData) => {
   try {
-    const response = await adminApi.patch(`/orders/application/${applicationId}/status`, updateData, addAuthToken(token));
+    const response = await getAdminApi().patch(`/orders/application/${applicationId}/status`, updateData, addAuthToken(token));
     return response;
   } catch (error) {
     console.error('Error updating application status:', error);
@@ -124,7 +126,7 @@ export const updateApplicationStatus = async (token, applicationId, updateData) 
  */
 export const getTravelerDocuments = async (token, applicationId, travelerId) => {
   try {
-    const response = await adminApi.get(`/orders/application/${applicationId}/traveler/${travelerId}/documents`, addAuthToken(token));
+    const response = await getAdminApi().get(`/orders/application/${applicationId}/traveler/${travelerId}/documents`, addAuthToken(token));
     return response;
   } catch (error) {
     console.error('Error fetching traveler documents:', error);
@@ -143,7 +145,7 @@ export const getTravelerDocuments = async (token, applicationId, travelerId) => 
  */
 export const updateDocumentStatus = async (token, documentId, updateData) => {
   try {
-    const response = await adminApi.patch(`/orders/document/${documentId}/status`, updateData, addAuthToken(token));
+    const response = await getAdminApi().patch(`/orders/document/${documentId}/status`, updateData, addAuthToken(token));
     return response;
   } catch (error) {
     console.error('Error updating document status:', error);
@@ -160,7 +162,7 @@ export const updateDocumentStatus = async (token, documentId, updateData) => {
 export const getApplicationStats = async (token, filters = {}) => {
   try {
     const queryParams = new URLSearchParams(filters);
-    const response = await adminApi.get(`/orders/stats?${queryParams.toString()}`, addAuthToken(token));
+    const response = await getAdminApi().get(`/orders/stats?${queryParams.toString()}`, addAuthToken(token));
     return response;
   } catch (error) {
     console.error('Error fetching application stats:', error);
@@ -179,7 +181,7 @@ export const getApplicationStats = async (token, filters = {}) => {
  */
 export const exportApplications = async (token, exportParams) => {
   try {
-    const response = await adminApi.post('/orders/export', exportParams, {
+    const response = await getAdminApi().post('/orders/export', exportParams, {
       ...addAuthToken(token),
       responseType: 'blob', // Important for file downloads
     });
@@ -202,7 +204,7 @@ export const exportApplications = async (token, exportParams) => {
  */
 export const sendNotification = async (token, applicationId, notificationData) => {
   try {
-    const response = await adminApi.post(`/orders/application/${applicationId}/notify`, notificationData, addAuthToken(token));
+    const response = await getAdminApi().post(`/orders/application/${applicationId}/notify`, notificationData, addAuthToken(token));
     return response;
   } catch (error) {
     console.error('Error sending notification:', error);
@@ -218,7 +220,7 @@ export const sendNotification = async (token, applicationId, notificationData) =
  */
 export const getApplicationActivity = async (token, applicationId) => {
   try {
-    const response = await adminApi.get(`/orders/application/${applicationId}/activity`, addAuthToken(token));
+    const response = await getAdminApi().get(`/orders/application/${applicationId}/activity`, addAuthToken(token));
     return response;
   } catch (error) {
     console.error('Error fetching application activity:', error);
@@ -227,7 +229,7 @@ export const getApplicationActivity = async (token, applicationId) => {
 };
 
 export const assignApplication = async (token, applicationId, data) => {
-  const response = await adminApi.patch(
+  const response = await getAdminApi().patch(
     `/orders/application/${applicationId}/assign`,
     data,
     addAuthToken(token)
@@ -236,17 +238,17 @@ export const assignApplication = async (token, applicationId, data) => {
 };
 
 export const getTeamMembers = async (token) => {
-  const response = await adminApi.get('/orders/team-members', addAuthToken(token));
+  const response = await getAdminApi().get('/orders/team-members', addAuthToken(token));
   return response;
 };
 
 export const getHomepageCmsSettings = async (token) => {
-  const response = await adminApi.get('/orders/cms/homepage', addAuthToken(token));
+  const response = await getAdminApi().get('/orders/cms/homepage', addAuthToken(token));
   return response;
 };
 
 export const updateHomepageCmsSettings = async (token, data) => {
-  const response = await adminApi.patch('/orders/cms/homepage', data, addAuthToken(token));
+  const response = await getAdminApi().patch('/orders/cms/homepage', data, addAuthToken(token));
   return response;
 };
 
@@ -255,7 +257,7 @@ export const getFeedbackSubmissions = async (token, params = {}) => {
   if (params.page) query.set('page', String(params.page));
   if (params.limit) query.set('limit', String(params.limit));
   const qs = query.toString();
-  const response = await adminApi.get(
+  const response = await getAdminApi().get(
     `/orders/feedback${qs ? `?${qs}` : ''}`,
     addAuthToken(token)
   );
@@ -263,7 +265,7 @@ export const getFeedbackSubmissions = async (token, params = {}) => {
 };
 
 export const postApplicationComment = async (token, applicationId, payload) => {
-  const response = await adminApi.post(
+  const response = await getAdminApi().post(
     `/orders/application/${applicationId}/comments`,
     payload,
     addAuthToken(token)

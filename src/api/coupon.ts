@@ -1,11 +1,12 @@
 // Coupon validation API functions
 import { backendApiEnums } from "@/enums/backendApi.enums";
+import { getPublicApiBase } from "@/utils/adminApiBase";
 
 // Validate coupon code
 export const validateCouponCode = async (code) => {
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}${backendApiEnums.ENDPOINTS.COUPON.VALIDATE}`,
+      `${getPublicApiBase()}${backendApiEnums.ENDPOINTS.COUPON.VALIDATE}`,
       {
         method: "POST",
         headers: {
@@ -32,7 +33,7 @@ export const validateCouponCode = async (code) => {
 export const getAvailableCoupons = async () => {
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}${backendApiEnums.ENDPOINTS.COUPON.AVAILABLE}`,
+      `${getPublicApiBase()}${backendApiEnums.ENDPOINTS.COUPON.AVAILABLE}`,
       {
         method: "GET",
         headers: {
@@ -57,7 +58,7 @@ export const getAvailableCoupons = async () => {
 export const applyCoupon = async (couponCode, orderData) => {
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}${backendApiEnums.ENDPOINTS.COUPON.APPLY}`,
+      `${getPublicApiBase()}${backendApiEnums.ENDPOINTS.COUPON.APPLY}`,
       {
         method: "POST",
         headers: {
@@ -86,7 +87,7 @@ export const applyCoupon = async (couponCode, orderData) => {
 export const removeCoupon = async (couponCode, orderData) => {
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}${backendApiEnums.ENDPOINTS.COUPON.REMOVE}`,
+      `${getPublicApiBase()}${backendApiEnums.ENDPOINTS.COUPON.REMOVE}`,
       {
         method: "POST",
         headers: {
@@ -161,7 +162,7 @@ export const requiresVerification = (couponCode) => {
 export const verifyStudentCoupon = async (couponCode, email) => {
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}${backendApiEnums.ENDPOINTS.COUPON.VERIFY_STUDENT}`,
+      `${getPublicApiBase()}${backendApiEnums.ENDPOINTS.COUPON.VERIFY_STUDENT}`,
       {
         method: "POST",
         headers: {

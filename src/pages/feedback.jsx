@@ -4,6 +4,7 @@ import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Link from "next/link";
+import { getPublicApiBase } from "@/utils/adminApiBase";
 
 export default function FeedbackPage() {
   const [name, setName] = useState("");
@@ -24,7 +25,7 @@ export default function FeedbackPage() {
 
     setSubmitting(true);
     try {
-      const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+      const apiBase = getPublicApiBase();
       const res = await fetch(`${apiBase}/feedback`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

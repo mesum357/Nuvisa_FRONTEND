@@ -30,23 +30,23 @@ const StripePaymentForm = forwardRef(({
   });
   const [cardholderName, setCardholderName] = useState("");
 
-  const elementOptions = {
-    disableLink: true,
-    style: {
-      base: {
-        fontSize: "16px",
-        color: "#1f2937",
-        "::placeholder": {
-          color: "#9ca3af",
-        },
-        fontFamily: "system-ui, -apple-system, sans-serif",
+  const elementStyle = {
+    base: {
+      fontSize: "16px",
+      color: "#1f2937",
+      "::placeholder": {
+        color: "#9ca3af",
       },
-      invalid: {
-        color: "#ef4444",
-        iconColor: "#ef4444",
-      },
+      fontFamily: "system-ui, -apple-system, sans-serif",
+    },
+    invalid: {
+      color: "#ef4444",
+      iconColor: "#ef4444",
     },
   };
+
+  const cardNumberOptions = { disableLink: true, style: elementStyle };
+  const cardFieldOptions = { style: elementStyle };
 
   const handleCardChange = (field) => (event) => {
     setCardComplete(prev => ({ ...prev, [field]: event.complete }));
@@ -169,7 +169,7 @@ const StripePaymentForm = forwardRef(({
         <div className="relative">
           <div className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus-within:border-black focus-within:ring-1 focus-within:ring-black">
             <CardNumberElement
-              options={elementOptions}
+              options={cardNumberOptions}
               onChange={handleCardChange('cardNumber')}
               className="w-full"
             />
@@ -182,7 +182,7 @@ const StripePaymentForm = forwardRef(({
         <div className="relative">
           <div className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus-within:border-black focus-within:ring-1 focus-within:ring-black">
             <CardExpiryElement
-              options={elementOptions}
+              options={cardFieldOptions}
               onChange={handleCardChange('cardExpiry')}
             />
           </div>
@@ -190,7 +190,7 @@ const StripePaymentForm = forwardRef(({
         <div className="relative">
           <div className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus-within:border-black focus-within:ring-1 focus-within:ring-black">
             <CardCvcElement
-              options={elementOptions}
+              options={cardFieldOptions}
               onChange={handleCardChange('cardCvc')}
             />
           </div>

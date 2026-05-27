@@ -1,4 +1,5 @@
 import { loadStripe } from "@stripe/stripe-js";
+import { getPublicApiBase } from "@/utils/adminApiBase";
 
 const KLARNA_FAILURE_REDIRECT_STATUSES = new Set([
   "failed",
@@ -79,12 +80,13 @@ async function retrieveStatusViaStripeJs(clientSecret) {
  * Fetch PaymentIntent status from our backend (Stripe secret key server-side).
  */
 export async function fetchStripePaymentVerification(paymentId) {
-  if (!paymentId || !process.env.NEXT_PUBLIC_API_URL) {
-    console.warn("[KlarnaRedirect] missing paymentId or NEXT_PUBLIC_API_URL");
+  const apiBase = getPublicApiBase();
+  if (!paymentId || !apiBase) {
+    console.warn("[KlarnaRedirect] missing paymentId or API base URL");
     return { metadata: {}, paymentIntentStatus: null };
   }
 
-  const url = `${process.env.NEXT_PUBLIC_API_URL}/stripe_payment/session-metadata?payment_id=${encodeURIComponent(paymentId)}`;
+  const url = `${apiBase}/stripe_payment/session-metadata?payment_id=${encodeURIComponent(paymentId)}`;
 
   try {
     const res = await fetch(url);

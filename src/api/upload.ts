@@ -1,10 +1,12 @@
 import axios from "axios";
 
+import { getPublicApiBase } from "@/utils/adminApiBase";
+
 export const uploadFile = async (file) => {
   const form = new FormData();
   form.append("file", file);
 
-  const url = `${process.env.NEXT_PUBLIC_API_URL || ""}/upload`;
+  const url = `${getPublicApiBase() || ""}/upload`;
 
   try {
     const response = await axios.post(url, form, {
@@ -30,7 +32,7 @@ export const deleteFile = async (fileUrl) => {
     throw new Error("File URL is required");
   }
 
-  const url = `${process.env.NEXT_PUBLIC_API_URL || ""}/upload`;
+  const url = `${getPublicApiBase() || ""}/upload`;
 
   const response = await axios.delete(url, {
     data: { fileUrl },

@@ -54,8 +54,15 @@ export const getAdminApiBase = () => {
 	return raw.replace(/\/+$/, '');
 };
 
+const BACKEND_PROXY_PREFIX = "/api/backend";
+
 /** NestJS backend base URL for browser-side API calls. */
 export const getPublicApiBase = () => {
+	// Same-origin proxy on deployed hosts — avoids separate api-* subdomain DNS/CORS issues.
+	if (isDeployedBrowser()) {
+		return BACKEND_PROXY_PREFIX;
+	}
+
 	const raw = process.env.NEXT_PUBLIC_API_URL;
 	if (raw && !(isDeployedBrowser() && isLocalhost(raw))) {
 		return raw.replace(/\/+$/, "");
@@ -69,7 +76,8 @@ export const getPublicApiBase = () => {
 /** NestJS backend URL for Next.js API route proxies (server-only env preferred). */
 export const getBackendApiBase = () => {
 	const serverUrl = process.env.BACKEND_API_URL || process.env.API_URL;
-	if (serverUrl && !(process.env.NODE_ENV === "production" && isLocalhost(serverUrl))) {
+	// Server-only vars are trusted even on localhost — used for same-VPS proxies (e.g. 127.0.0.1:4001).
+	if (serverUrl) {
 		return String(serverUrl).replace(/\/+$/, "");
 	}
 
@@ -84,6 +92,10 @@ export const getBackendApiBase = () => {
 
 	return raw ? raw.replace(/\/+$/, "") : "";
 };
+
+/** True when browser/API calls should use the same-origin backend proxy. */
+export const hasBrowserBackendProxy = () =>
+	isDeployedBrowser() && Boolean(getBackendApiBase() || process.env.NEXT_PUBLIC_API_URL);
 
 const STRIPE_PROXY_PREFIX = "/api/stripe/";
 

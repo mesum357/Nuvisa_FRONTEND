@@ -117,8 +117,10 @@ const VisaInformation = ({ showKlarnaSection = true }) => {
       <div className="bg-[#1E1E27] text-white w-full overflow-x-clip">
         <Navbar />
         <div
-          className={`w-full max-w-[88rem] mx-auto flex flex-col gap-0 items-center justify-center px-4 sm:px-6 lg:px-8 max-sm:px-3 pb-24 lg:pb-8 ${
-            showKlarnaSection ? "mt-5" : "mt-6 sm:mt-8 md:mt-10 pt-2 sm:pt-3"
+          className={`w-full flex flex-col gap-0 pb-24 lg:pb-8 ${
+            showKlarnaSection
+              ? "max-w-[88rem] mx-auto items-center justify-center px-4 sm:px-6 lg:px-8 max-sm:px-3 mt-5"
+              : "max-w-none items-stretch px-3 sm:px-4 md:px-5 lg:px-6 xl:px-8 mt-6 sm:mt-8 md:mt-10 pt-2 sm:pt-3"
           }`}
         >
           <CountrySlider

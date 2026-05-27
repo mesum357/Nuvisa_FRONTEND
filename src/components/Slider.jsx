@@ -3898,14 +3898,12 @@ const CountrySlider = ({
     : "relative font-semibold text-sm sm:text-base leading-snug pl-7 sm:pl-0 sm:text-right sm:max-w-[55%] min-w-0";
   const visaInfoIconClass = compactLayout ? "h-4 w-4 shrink-0" : "h-5 w-5 shrink-0";
 
+  const gridShellClass = compactLayout
+    ? "w-full max-w-none grid grid-cols-1 lg:grid-cols-2 items-start min-w-0 gap-4 sm:gap-5 md:gap-6 lg:gap-6 xl:gap-8"
+    : "w-full max-w-[88rem] mx-auto grid grid-cols-1 lg:grid-cols-2 items-start px-4 sm:px-6 lg:px-8 max-sm:px-3 min-w-0 gap-10 md:gap-12 lg:gap-14 xl:gap-16";
+
   return (
-    <div
-      className={`w-full max-w-[88rem] mx-auto grid grid-cols-1 lg:grid-cols-2 items-start px-4 sm:px-6 lg:px-8 max-sm:px-3 min-w-0 ${
-        compactLayout
-          ? "gap-4 sm:gap-5 md:gap-6 lg:gap-8"
-          : "gap-10 md:gap-12 lg:gap-14 xl:gap-16"
-      }`}
-    >
+    <div className={gridShellClass}>
       {/* System Alerts */}
       <SimpleAlert
         isOpen={alertState.isOpen}
@@ -3930,10 +3928,10 @@ const CountrySlider = ({
 
       {/* Left Column */}
       <div
-        className={`w-full min-w-0 flex flex-col items-start mt-0 lg:sticky lg:self-start xl:pr-2 2xl:pr-4 ${
+        className={`w-full min-w-0 flex flex-col items-stretch mt-0 lg:sticky lg:self-start ${
           compactLayout
             ? "gap-1 max-sm:gap-1.5 md:mt-0 lg:top-16"
-            : "gap-3 max-sm:gap-4 md:mt-4 lg:top-24"
+            : "gap-3 max-sm:gap-4 md:mt-4 lg:top-24 xl:pr-2 2xl:pr-4"
         }`}
       >
         {/* Badges Section — hidden on Get Visa compact layout to keep hero image in view */}
@@ -4145,7 +4143,11 @@ const CountrySlider = ({
       </div>
 
       {/* Right Column */}
-      <div className="w-full min-w-0 gap-4 flex flex-col items-start max-sm:gap-4 mt-0 md:mt-4 lg:pl-0 xl:pl-2">
+      <div
+        className={`w-full min-w-0 gap-4 flex flex-col items-stretch max-sm:gap-4 mt-0 md:mt-4 ${
+          compactLayout ? "" : "lg:pl-0 xl:pl-2"
+        }`}
+      >
         {/* NRI Badge Section */}
         <section className="text-center text-white rounded-2xl p-2 w-full max-sm:p-1">
           <div className="flex justify-start items-center">

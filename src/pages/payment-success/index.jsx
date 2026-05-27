@@ -28,6 +28,7 @@ import {
   resolveKlarnaRedirectSuccess,
 } from "@/utils/stripeRedirectPayment";
 import { resolveVisaCountryName } from "@/utils/visaCountry";
+import { getPublicApiBase } from "@/utils/adminApiBase";
 import { GIFT_CARD_PRODUCT_NAME } from "@/constants/productLabels";
 import Cookies from "js-cookie";
 
@@ -316,7 +317,7 @@ const PaymentSuccess = () => {
             ),
           );
 
-          if (giftEmail && giftAmount && process.env.NEXT_PUBLIC_API_URL) {
+          if (giftEmail && giftAmount && getPublicApiBase()) {
             try {
               const fulfillPayload = {
                 email: giftEmail,
@@ -379,7 +380,7 @@ const PaymentSuccess = () => {
             embeddedPaymentIntentIdEarly ||
             null;
 
-          if (currentData.email && process.env.NEXT_PUBLIC_API_URL) {
+          if (currentData.email && getPublicApiBase()) {
             try {
               const postAmountRaw =
                 (usedStoredInsuranceMetadata &&
@@ -388,7 +389,7 @@ const PaymentSuccess = () => {
                 currentData.insurancePayment ||
                 "0";
               await fetch(
-                `${process.env.NEXT_PUBLIC_API_URL}/stripe_payment/test-insurance-payment`,
+                `${getPublicApiBase()}/stripe_payment/test-insurance-payment`,
                 {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
@@ -421,7 +422,7 @@ const PaymentSuccess = () => {
         ) {
           try {
             await fetch(
-              `${process.env.NEXT_PUBLIC_API_URL}/stripe_payment/test-insurance-payment`,
+              `${getPublicApiBase()}/stripe_payment/test-insurance-payment`,
               {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -470,11 +471,11 @@ const PaymentSuccess = () => {
         }
 
         let sessionMetadata = {};
-        if (stripePaymentId && process.env.NEXT_PUBLIC_API_URL) {
+        if (stripePaymentId && getPublicApiBase()) {
           try {
             const res = await fetch(
               `${
-                process.env.NEXT_PUBLIC_API_URL
+                getPublicApiBase()
               }/stripe_payment/session-metadata?payment_id=${encodeURIComponent(
                 stripePaymentId,
               )}`,
@@ -700,7 +701,7 @@ const PaymentSuccess = () => {
               travelerIndex !== ""
             ) {
               await fetch(
-                `${process.env.NEXT_PUBLIC_API_URL}/stripe_payment/test-insurance-payment`,
+                `${getPublicApiBase()}/stripe_payment/test-insurance-payment`,
                 {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
@@ -734,7 +735,7 @@ const PaymentSuccess = () => {
               });
             } else {
               await fetch(
-                `${process.env.NEXT_PUBLIC_API_URL}/stripe_payment/test-insurance-payment`,
+                `${getPublicApiBase()}/stripe_payment/test-insurance-payment`,
                 {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },

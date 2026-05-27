@@ -28,6 +28,7 @@ import {
   getChooseCountryImagePath,
   CHOOSE_COUNTRY_IMAGE_FALLBACK,
 } from "@/utils/staticImages";
+import { DEFAULT_COUNTRY_IMAGE } from "@/utils/countryImage";
 
 const REQUIRED_DOCUMENTS_CTA_TEXT = "Check Required Documents";
 
@@ -388,7 +389,7 @@ const CountryCardsSection = ({
           image:
             dynCountry.image ||
             richMatch?.image ||
-            "/image/country/Germany.webp",
+            DEFAULT_COUNTRY_IMAGE,
           appointmentText:
             dynCountry.appointmentText ||
             richMatch?.appointmentText ||

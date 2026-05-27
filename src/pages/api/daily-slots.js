@@ -26,9 +26,9 @@ export default async function handler(req, res) {
   if (req.method === 'POST') {
     const secret = process.env.REVALIDATE_SECRET || '';
     if (!secret) {
-      return res.status(503).json({
-        success: false,
-        error: 'REVALIDATE_SECRET not configured',
+      return res.status(200).json({
+        success: true,
+        data: { remaining: null, skipped: true },
       });
     }
 
@@ -43,9 +43,18 @@ export default async function handler(req, res) {
         cache: 'no-store',
       });
       const json = await upstream.json();
-      return res.status(upstream.ok ? 200 : upstream.status).json(json);
+      if (!upstream.ok) {
+        return res.status(200).json({
+          success: true,
+          data: { remaining: null, skipped: true },
+        });
+      }
+      return res.status(200).json(json);
     } catch (error) {
-      return res.status(500).json({ success: false, error: 'Decrement failed' });
+      return res.status(200).json({
+        success: true,
+        data: { remaining: null, skipped: true },
+      });
     }
   }
 

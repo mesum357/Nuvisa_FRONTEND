@@ -14,7 +14,9 @@
     "perf:benchmark": "node scripts/perf-benchmark.mjs",
     "images:optimize": "node scripts/optimize-marketing-images.mjs",
     "verify:fixes": "node ../scripts/verify-all-fixes.mjs",
-    "verify:fixes:live": "node ../scripts/verify-all-fixes.mjs --site http://localhost:3002 --admin http://localhost:3001 --backend http://localhost:4000"
+    "verify:fixes:live": "node ../scripts/verify-all-fixes.mjs --site http://localhost:3002 --admin http://localhost:3001 --backend http://localhost:4000",
+    "test:post-payment": "node --test scripts/post-payment-fix.test.mjs",
+    "verify:post-payment": "node ../scripts/verify-post-payment-fix.mjs --site https://staging.nuvisa.co.uk"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

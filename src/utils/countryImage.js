@@ -4,8 +4,8 @@ const LOCAL_COUNTRY_PATH =
 
 export const DEFAULT_COUNTRY_IMAGE = "/image/country/Germany.webp";
 
-/** Country names that have a .webp file in public/image/country */
-export const COUNTRIES_WITH_WEBP = new Set([
+/** Matches files shipped in public/image/country/ (see git). */
+const COUNTRIES_WITH_WEBP = new Set([
   "Belgium",
   "Bulgaria",
   "Estonia",
@@ -28,33 +28,46 @@ export const COUNTRIES_WITH_WEBP = new Set([
   "Switzerland",
 ]);
 
-/**
- * Build a local country image path (WebP when available, else JPEG).
- */
-export function getCountryImagePath(countryName) {
-  const name = String(countryName || "").trim();
-  if (!name) return DEFAULT_COUNTRY_IMAGE;
+function normalizeCountryName(name) {
+  const trimmed = String(name || "").trim();
+  if (!trimmed) return "";
+  if (trimmed.toUpperCase() === "NORWAY") return "Norway";
+  return trimmed;
+}
 
-  const ext = COUNTRIES_WITH_WEBP.has(name) ? "webp" : "jpg";
-  return `/image/country/${encodeURIComponent(name)}.${ext}`;
+function countryWebpPath(countryName) {
+  return `/image/country/${encodeURIComponent(countryName)}.webp`;
 }
 
 /**
- * Rewrite /image/country/*.jpg → .webp when we ship WebP for that country.
+ * Resolve a country image URL or name to a WebP path under /public/image/country.
+ * Falls back to Germany when no asset exists for that country.
  */
-export function preferCountryWebp(imageUrl) {
-  if (!imageUrl || typeof imageUrl !== "string") return imageUrl || "";
-
-  const trimmed = imageUrl.trim();
-  const match = trimmed.match(LOCAL_COUNTRY_PATH);
-  if (!match) return trimmed;
-
-  const countryName = decodeURIComponent(match[1]);
-  if (!COUNTRIES_WITH_WEBP.has(countryName)) {
-    return trimmed;
+export function resolveCountryImage(imageUrlOrName) {
+  if (!imageUrlOrName || typeof imageUrlOrName !== "string") {
+    return DEFAULT_COUNTRY_IMAGE;
   }
 
-  return `/image/country/${encodeURIComponent(countryName)}.webp`;
+  const trimmed = imageUrlOrName.trim();
+  const match = trimmed.match(LOCAL_COUNTRY_PATH);
+  const countryName = normalizeCountryName(
+    match ? decodeURIComponent(match[1]) : trimmed.replace(/^\/+/, ""),
+  );
+
+  if (COUNTRIES_WITH_WEBP.has(countryName)) {
+    return countryWebpPath(countryName);
+  }
+
+  return DEFAULT_COUNTRY_IMAGE;
+}
+
+export function getCountryImagePath(countryName) {
+  return resolveCountryImage(countryName);
+}
+
+/** Normalize admin paths (/image/country/X.jpg) to deployed WebP paths. */
+export function preferCountryWebp(imageUrl) {
+  return resolveCountryImage(imageUrl);
 }
 
 export function isLocalCountryImagePath(url) {
