@@ -819,7 +819,7 @@ const PaymentSuccess = () => {
                   travelerCount > 0 ? packagePrice / travelerCount : packagePrice,
                 travelers: travelerCount,
                 appliedDiscount: visaState.appliedDiscount,
-                appliedGiftCardCount: appliedCount,
+                appliedGiftCards: pendingGiftCards.slice(0, appliedCount),
                 packagePrice,
               });
 

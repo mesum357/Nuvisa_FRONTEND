@@ -9,10 +9,15 @@
  */
 export const fetchContent = async (endpoint) => {
   try {
-    const response = await fetch(`/api/public/${endpoint}`, {
+    const bust =
+      process.env.NODE_ENV !== 'production'
+        ? `?t=${Date.now()}`
+        : '';
+    const response = await fetch(`/api/public/${endpoint}${bust}`, {
       headers: {
         'Content-Type': 'application/json',
       },
+      cache: 'no-store',
     });
 
     if (!response.ok) {
@@ -23,6 +28,10 @@ export const fetchContent = async (endpoint) => {
     
     if (!data.success) {
       throw new Error(data.error || 'Failed to fetch content');
+    }
+
+    if (!Array.isArray(data.data) || data.data.length === 0) {
+      throw new Error('No content returned from admin panel');
     }
 
     return data.data;

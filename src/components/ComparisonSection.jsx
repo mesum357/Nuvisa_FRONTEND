@@ -93,19 +93,109 @@ const ComparisonSection = () => {
   const arrivalDate = useAppSelector((state) => state.visa.arrivalDate);
   const departureDate = useAppSelector((state) => state.visa.departureDate);
 
+  const parseJsonField = (value) => {
+    if (value == null) return null;
+    if (typeof value === "string") {
+      try {
+        return JSON.parse(value);
+      } catch {
+        return null;
+      }
+    }
+    return value;
+  };
+
+  const normalizeComparisonPayload = (raw) => {
+    if (!raw || typeof raw !== "object" || raw.error) return null;
+
+    const parsed = {
+      ...raw,
+      detailSections: parseJsonField(raw.detailSections),
+      comparisonColumns: parseJsonField(raw.comparisonColumns),
+      comparisonRows: parseJsonField(raw.comparisonRows),
+      experienceItems: parseJsonField(raw.experienceItems),
+    };
+
+    const detailSections =
+      Array.isArray(parsed.detailSections) &&
+      parsed.detailSections.some(
+        (section) =>
+          section?.title && Array.isArray(section.items) && section.items.length,
+      )
+        ? parsed.detailSections
+            .filter(
+              (section) =>
+                section?.title &&
+                Array.isArray(section.items) &&
+                section.items.length,
+            )
+            .map((section) => ({
+              title: section.title,
+              items: section.items.filter(Boolean),
+            }))
+        : null;
+
+    const comparisonColumns =
+      Array.isArray(parsed.comparisonColumns) &&
+      parsed.comparisonColumns.length >= 2
+        ? parsed.comparisonColumns
+        : null;
+
+    const comparisonRows =
+      Array.isArray(parsed.comparisonRows) && parsed.comparisonRows.length > 0
+        ? parsed.comparisonRows.filter(
+            (row) =>
+              row?.feature &&
+              Array.isArray(row.values) &&
+              row.values.length >= 2,
+          )
+        : null;
+
+    return {
+      title: parsed.title || null,
+      tooltip: parsed.tooltip ?? null,
+      detailSections,
+      comparisonColumns,
+      comparisonRows,
+      experienceType:
+        parsed.experienceType === "TASKS" ? "TASKS" : "IMAGES",
+      experienceItems: parsed.experienceItems,
+      experienceTitle: parsed.experienceTitle || null,
+      leftSideImage: parsed.leftSideImage || null,
+      rightSideImage: parsed.rightSideImage || null,
+      leftSideTitle: parsed.leftSideTitle || null,
+      rightSideTitle: parsed.rightSideTitle || null,
+    };
+  };
+
   const fetchComparisonData = async (country, occasionEnabled, arrival, departure) => {
     try {
       setLoading(true);
       const countryName = country?.name || country || "";
-      const formattedCountry = countryName.includes(",") ? countryName.split(", ")[1] : countryName;
-      const response = await getComparisonSection(formattedCountry, occasionEnabled, arrival, departure);
-      if (response?.data?.status === "success" && response?.data?.data?.results) {
-        setComparisonData(response.data.data.results);
-      } else if (response?.data) {
-        setComparisonData(response.data);
+      const formattedCountry = countryName.includes(",")
+        ? countryName.split(", ")[1]
+        : countryName;
+      const response = await getComparisonSection(
+        formattedCountry,
+        occasionEnabled,
+        arrival,
+        departure,
+      );
+
+      let payload = null;
+      if (
+        response?.data?.status === "success" &&
+        response?.data?.data?.results
+      ) {
+        payload = response.data.data.results;
+      } else if (response?.data && !response.data.error) {
+        payload = response.data;
       }
+
+      setComparisonData(normalizeComparisonPayload(payload));
     } catch (error) {
       console.error("Error fetching comparison data:", error);
+      setComparisonData(null);
     } finally {
       setLoading(false);
     }
@@ -154,10 +244,22 @@ const ComparisonSection = () => {
     rightSideImage: "/image/nuvisa-image.jpg",
   };
 
-  const data = comparisonData || defaultData;
-  const detailSections = data?.detailSections || defaultData.detailSections;
-  const comparisonColumns = data?.comparisonColumns || defaultData.comparisonColumns;
-  const comparisonRows = data?.comparisonRows || defaultData.comparisonRows;
+  const data = {
+    ...defaultData,
+    ...(comparisonData || {}),
+  };
+  const detailSections =
+    Array.isArray(data.detailSections) && data.detailSections.length
+      ? data.detailSections
+      : defaultData.detailSections;
+  const comparisonColumns =
+    Array.isArray(data.comparisonColumns) && data.comparisonColumns.length >= 2
+      ? data.comparisonColumns
+      : defaultData.comparisonColumns;
+  const comparisonRows =
+    Array.isArray(data.comparisonRows) && data.comparisonRows.length
+      ? data.comparisonRows
+      : defaultData.comparisonRows;
   const trustBadges = [
     { icon: <Shield size={20} strokeWidth={1.5} />, label: "SECURE DATA" },
     { icon: <Headphones size={20} strokeWidth={1.5} />, label: "EXPERT GUIDANCE" },
@@ -166,9 +268,9 @@ const ComparisonSection = () => {
 
   if (loading) {
     return (
-      <div className="w-full bg-[#f4eeff] py-20 px-6">
+      <div className="w-full bg-[#24242d] py-5 md:pb-32 md:pt-15 px-4 md:px-8">
         <div className="max-w-[1280px] mx-auto flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600" />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6F48FF]" />
         </div>
       </div>
     );

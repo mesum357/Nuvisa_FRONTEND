@@ -46,7 +46,7 @@ const StickyBottomBar = dynamic(() => import("@/components/StickyBottomBar"), {
   ),
 });
 const Reviews = dynamic(() => import("@/components/Reviews"), {
-  loading: () => <div className="min-h-[140px] w-full max-w-[1200px] mx-auto" aria-hidden />,
+  loading: () => <div className="min-h-[140px] w-full" aria-hidden />,
 });
 const VisaProcessSection = dynamic(() => import("@/components/home/VisaProcessSection"));
 const DiscountTicket = dynamic(() => import("@/components/DiscountTicket"));
@@ -462,7 +462,10 @@ const Index = () => {
           <div className="relative z-20 -mt-2 md:-mt-12">
             <VisaHeroSection />
           </div>
-          <LazyWhenVisible minHeight="140px" className="w-full max-w-[1200px] mx-auto">
+          <LazyWhenVisible
+            minHeight="140px"
+            className="relative w-screen max-w-none left-1/2 -translate-x-1/2"
+          >
             <Reviews />
           </LazyWhenVisible>
         </main>

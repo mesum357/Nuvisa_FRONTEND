@@ -56,6 +56,8 @@ export interface IVisaState {
     code: string;
     benefits: { freeTraveler: number; freeInsurance: number };
     quantity: number;
+    amount?: number;
+    pendingRedeem?: boolean;
   }>;
   visaPriceDisplay: VisaPriceDisplay | null;
 }
@@ -167,6 +169,7 @@ export const visaSlice = createSlice({
       code: string;
       benefits: { freeTraveler: number; freeInsurance: number };
       quantity: number;
+      amount?: number;
       pendingRedeem?: boolean;
     }>) => {
       if (!state.redeemedGiftCards) {

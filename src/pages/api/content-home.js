@@ -12,26 +12,18 @@ import {
 
 const CACHE_TTL_MS = CONTENT_API_CACHE_TTL_MS;
 
-async function fetchAdminSiteContent(adminUrl) {
-  if (!adminUrl) return {};
-  try {
-    const res = await fetchWithTimeout(`${adminUrl}/api/content`, {
-      headers: { "Content-Type": "application/json" },
-    });
-    if (!res.ok) return {};
-    const json = await res.json();
-    const rows = Array.isArray(json?.data) ? json.data : [];
-    const byKey = {};
-    for (const row of rows) {
-      if (row?.key != null) {
-        byKey[row.key] = row.value;
-      }
+async function fetchAdminSiteContent() {
+  const { fetchAdminJson } = await import("@/utils/adminApiBase");
+  const json = await fetchAdminJson("/api/content");
+  if (!json) return {};
+  const rows = Array.isArray(json?.data) ? json.data : [];
+  const byKey = {};
+  for (const row of rows) {
+    if (row?.key != null) {
+      byKey[row.key] = row.value;
     }
-    return byKey;
-  } catch (e) {
-    console.warn("content-home admin:", e?.message);
-    return {};
   }
+  return byKey;
 }
 
 export default async function handler(req, res) {
@@ -42,7 +34,7 @@ export default async function handler(req, res) {
   const bust = req.query?.t;
   const now = Date.now();
   const cache = getContentHomeCache();
-  if (cache.data && cache.expiresAt > now) {
+  if (!bust && cache.data && cache.expiresAt > now) {
     res.setHeader("Cache-Control", CONTENT_API_HTTP_CACHE);
     return res.status(200).json(cache.data);
   }
@@ -63,9 +55,7 @@ export default async function handler(req, res) {
     }
   }
 
-  const { getAdminApiBase } = await import("@/utils/adminApiBase");
-  const adminUrl = getAdminApiBase();
-  const adminKeys = await fetchAdminSiteContent(adminUrl);
+  const adminKeys = await fetchAdminSiteContent();
   Object.assign(byKey, adminKeys);
 
   const payload = { success: true, data: byKey };

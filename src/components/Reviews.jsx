@@ -98,7 +98,7 @@ export default function Reviews() {
     }, []);
 
     return (
-        <section className="w-full pt-10 text-white flex flex-col items-center justify-center gap-8">
+        <section className="w-full pt-10 text-white flex flex-col gap-8">
             <style jsx>{`
                 @keyframes reviews-marquee {
                     0% { transform: translateX(0); }
@@ -174,7 +174,7 @@ export default function Reviews() {
                 </div>
             </div>
                     {/* BADGE SECTION */}
-                    <div className="w-full">
+                    <div className="w-full flex justify-center px-5 md:px-6">
                     <Badge />
                     </div>
 

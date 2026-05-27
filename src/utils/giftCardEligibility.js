@@ -37,6 +37,7 @@ export function buildGiftCardValidationContext({
   travelers,
   appliedDiscount = null,
   appliedGiftCardCount = 0,
+  appliedGiftCards = [],
   packagePrice,
 }) {
   const travelerCount = Math.max(0, Number(travelers) || 0);
@@ -49,10 +50,17 @@ export function buildGiftCardValidationContext({
           appliedDiscount,
         });
 
+  const appliedCards = Array.isArray(appliedGiftCards) ? appliedGiftCards : [];
+  const appliedCount =
+    appliedCards.length > 0
+      ? appliedCards.length
+      : Math.max(0, Number(appliedGiftCardCount) || 0);
+
   return {
     packagePrice: resolvedPackagePrice,
     travelerCount,
-    appliedGiftCardCount: Math.max(0, Number(appliedGiftCardCount) || 0),
+    appliedGiftCardCount: appliedCount,
+    appliedGiftCardsTotal: getTotalGiftCardMonetaryDiscount(appliedCards),
   };
 }
 
@@ -60,6 +68,7 @@ export function getGiftCardEligibilityError({
   packagePrice,
   travelerCount,
   appliedGiftCardCount = 0,
+  appliedGiftCardsTotal = 0,
   giftCardAmount = DEFAULT_GIFT_CARD_AMOUNT,
 }) {
   const cardAmount = parseGiftCardAmount(giftCardAmount);
@@ -67,6 +76,8 @@ export function getGiftCardEligibilityError({
   const applied = Math.max(0, Math.floor(Number(appliedGiftCardCount) || 0));
   const nextCount = applied + 1;
   const packageTotal = Number(packagePrice) || 0;
+  const alreadyAppliedTotal = Math.max(0, Number(appliedGiftCardsTotal) || 0);
+  const requiredTotal = alreadyAppliedTotal + cardAmount;
 
   if (travelers < 1) {
     return "Add at least one traveller to apply a gift card.";
@@ -76,10 +87,37 @@ export function getGiftCardEligibilityError({
     return `You can apply at most ${travelers} gift card${travelers === 1 ? "" : "s"} for ${travelers} traveller${travelers === 1 ? "" : "s"}.`;
   }
 
-  const requiredTotal = cardAmount * nextCount;
   if (packageTotal < requiredTotal) {
-    return `Your package total must be at least £${requiredTotal.toFixed(2)} to apply ${nextCount} gift card${nextCount === 1 ? "" : "s"} (£${cardAmount.toFixed(2)} each). Your current package total is £${packageTotal.toFixed(2)}.`;
+    const remaining = Math.max(0, packageTotal - alreadyAppliedTotal);
+    if (alreadyAppliedTotal > 0) {
+      return `Your remaining package balance (£${remaining.toFixed(2)}) is not enough to apply this gift card (£${cardAmount.toFixed(2)}).`;
+    }
+    return `Your package total must be at least £${cardAmount.toFixed(2)} to apply this gift card. Your current package total is £${packageTotal.toFixed(2)}.`;
   }
 
   return null;
+}
+
+/** Sum of monetary value for applied gift-card coupon codes (default £159 each). */
+export function getTotalGiftCardMonetaryDiscount(redeemedGiftCards = []) {
+  if (!Array.isArray(redeemedGiftCards) || redeemedGiftCards.length === 0) {
+    return 0;
+  }
+
+  return redeemedGiftCards.reduce(
+    (sum, card) => sum + parseGiftCardAmount(card?.amount),
+    0,
+  );
+}
+
+/** Apply gift-card coupon as a fixed £ discount (not a full traveller waiver). */
+export function subtractGiftCardCouponDiscount(subtotal, redeemedGiftCards = []) {
+  const raw = Number(subtotal) || 0;
+  const discount = Math.min(raw, getTotalGiftCardMonetaryDiscount(redeemedGiftCards));
+  return Math.max(0, Number((raw - discount).toFixed(2)));
+}
+
+export function formatGiftCardAppliedMessage(code, amount = DEFAULT_GIFT_CARD_AMOUNT) {
+  const value = parseGiftCardAmount(amount);
+  return `Gift card ${code} applied! £${value.toFixed(2)} will be deducted when payment completes.`;
 }

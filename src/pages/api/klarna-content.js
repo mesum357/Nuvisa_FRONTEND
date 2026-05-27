@@ -9,16 +9,16 @@ export default async function handler(req, res) {
   try {
     const { section } = req.query;
     const endpoint = section ? `?section=${encodeURIComponent(section)}` : '';
-    const data = await fetchAdminJson(`/api/public/footer-content${endpoint}`);
+    const data = await fetchAdminJson(`/api/public/klarna-content${endpoint}`);
 
     if (!data) {
-      throw new Error('No footer content from admin panel');
+      throw new Error('No Klarna content from admin panel');
     }
 
     res.setHeader('Cache-Control', CONTENT_API_HTTP_CACHE);
     return res.status(200).json(data);
   } catch (error) {
-    console.error('Error fetching footer content:', error);
-    return res.status(500).json({ error: 'Failed to fetch footer content' });
+    console.error('Error fetching klarna content:', error);
+    return res.status(500).json({ error: 'Failed to fetch klarna content' });
   }
 }

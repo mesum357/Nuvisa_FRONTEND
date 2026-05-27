@@ -49,7 +49,6 @@ import { useToast } from "@/contexts/ToastContext";
 import { CommonDatePicker } from "@/ui/date-picker";
 import { useSliderContent } from "@/hooks/useSliderContent";
 import SimpleAlert from "./SimpleAlert";
-import LazyWhenVisible from "./LazyWhenVisible";
 import CountryCarousel from "./slider/CountryCarousel";
 import { normalizeCountryKey, parseOccasionPrice } from "./slider/sliderUtils";
 import VisaFeeBreakdown from "./VisaFeeBreakdown";
@@ -65,13 +64,15 @@ const ExpressPaymentRequestButton = dynamic(
   () => import("./ExpressPaymentRequestButton"),
   { ssr: false },
 );
-const ExpertSection = dynamic(() => import("./ExpertSection"), {
-  loading: () => <div className="min-h-[120px]" aria-hidden />,
-});
-import { validateGiftCardCode, redeemGiftCardCode } from "@/api/giftCard";
+import ExpertSection from "./ExpertSection";
+import { validateGiftCardCode } from "@/api/giftCard";
 import {
   buildGiftCardValidationContext,
+  formatGiftCardAppliedMessage,
   getGiftCardEligibilityError,
+  getTotalGiftCardMonetaryDiscount,
+  parseGiftCardAmount,
+  subtractGiftCardCouponDiscount,
 } from "@/utils/giftCardEligibility";
 import { useCountriesWithAppointmentTexts } from "@/hooks/useCountriesWithAppointmentTexts";
 import { staticCountries } from "@/constants/staticCountries";
@@ -85,7 +86,6 @@ import { setExpertSpotsDefaultFromApi } from "@/utils/expertSpots";
 const CountrySlider = ({
   moreToLoveData,
   checkoutButtonDescription,
-  compactLayout = false,
 }) => {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -1841,19 +1841,13 @@ const CountrySlider = ({
 
   // Memoize calculateFinalPrice to prevent recalculation on every render
   const finalPrice = useMemo(() => {
-    // Apply gift card benefits: reduce effective counts for calculation
-    const effectiveTravelers =
-      giftCardRedeemed && travelers > 0
-        ? Math.max(0, travelers - (giftCardBenefits?.freeTraveler || 0))
-        : travelers;
     const effectiveInsuranceCountForCalc =
-      giftCardRedeemed && insuranceCount > 0
-        ? Math.max(0, insuranceCount - (giftCardBenefits?.freeInsurance || 0))
-        : insuranceCount;
+      recommendedItems.insuranceCertificate && insuranceCount > 0
+        ? insuranceCount
+        : 0;
 
-    // Base discounted prices (not original prices) - using effective counts
-    const baseDiscountedVisaFees =
-      currentVisaFeePerTraveler * effectiveTravelers;
+    // Base discounted prices (not original prices)
+    const baseDiscountedVisaFees = currentVisaFeePerTraveler * travelers;
     const baseDiscountedInsuranceFees =
       recommendedItems.insuranceCertificate &&
       effectiveInsuranceCountForCalc > 0
@@ -1935,7 +1929,13 @@ const CountrySlider = ({
       }
     }
 
-    return finalVisaPrice + finalInsurancePrice + finalGiftCardPrice;
+    const subtotalBeforeGiftCardCoupon =
+      finalVisaPrice + finalInsurancePrice + finalGiftCardPrice;
+
+    return subtractGiftCardCouponDiscount(
+      subtotalBeforeGiftCardCoupon,
+      redeemedGiftCards,
+    );
   }, [
     currentVisaFeePerTraveler,
     travelers,
@@ -1944,8 +1944,7 @@ const CountrySlider = ({
     insuranceCount,
     giftCardCount,
     appliedDiscount,
-    giftCardRedeemed,
-    giftCardBenefits,
+    redeemedGiftCards,
     perDayInsurancePrice,
     effectiveInsuranceDays,
   ]);
@@ -2033,19 +2032,12 @@ const CountrySlider = ({
 
   // Memoize calculateVisaAndInsurancePrice
   const visaAndInsurancePrice = useMemo(() => {
-    // Apply gift card benefits: reduce effective counts for calculation
-    const effectiveTravelers =
-      giftCardRedeemed && travelers > 0
-        ? Math.max(0, travelers - (giftCardBenefits?.freeTraveler || 0))
-        : travelers;
     const effectiveInsuranceCountForCalc =
-      giftCardRedeemed && insuranceCount > 0
-        ? Math.max(0, insuranceCount - (giftCardBenefits?.freeInsurance || 0))
-        : insuranceCount;
+      recommendedItems.insuranceCertificate && insuranceCount > 0
+        ? insuranceCount
+        : 0;
 
-    // Calculate only visa + insurance (excluding gift cards) for main price display
-    const baseDiscountedVisaFees =
-      currentVisaFeePerTraveler * effectiveTravelers;
+    const baseDiscountedVisaFees = currentVisaFeePerTraveler * travelers;
     const baseDiscountedInsuranceFees =
       recommendedItems.insuranceCertificate &&
       effectiveInsuranceCountForCalc > 0
@@ -2115,22 +2107,13 @@ const CountrySlider = ({
     recommendedItems,
     appliedDiscount,
     giftCardCount,
-    giftCardRedeemed,
-    giftCardBenefits,
     perDayInsurancePrice,
     effectiveInsuranceDays,
   ]);
 
   // Memoize visa-only price (without insurance) for traveller card display
   const visaOnlyPrice = useMemo(() => {
-    // Apply gift card benefits: reduce effective count for calculation
-    const effectiveTravelers =
-      giftCardRedeemed && travelers > 0
-        ? Math.max(0, travelers - (giftCardBenefits?.freeTraveler || 0))
-        : travelers;
-
-    const baseDiscountedVisaFees =
-      currentVisaFeePerTraveler * effectiveTravelers;
+    const baseDiscountedVisaFees = currentVisaFeePerTraveler * travelers;
 
     // Check if travelers qualify for quantity discount (3+)
     // Use original count for qualification checks
@@ -2172,21 +2155,16 @@ const CountrySlider = ({
     insuranceCount,
     appliedDiscount,
     giftCardCount,
-    giftCardRedeemed,
-    giftCardBenefits,
   ]);
 
   // Memoize calculateDiscountedInsurancePrice
   const discountedInsurancePrice = useMemo(() => {
-    // Apply gift card benefits: reduce effective count for calculation
     const effectiveInsuranceCountForCalc =
-      giftCardRedeemed && insuranceCount > 0
-        ? Math.max(0, insuranceCount - (giftCardBenefits?.freeInsurance || 0))
-        : insuranceCount;
+      recommendedItems.insuranceCertificate && insuranceCount > 0
+        ? insuranceCount
+        : 0;
 
-    // Use same logic as calculateFinalPrice for insurance
     const baseDiscountedInsuranceFees =
-      recommendedItems.insuranceCertificate &&
       effectiveInsuranceCountForCalc > 0
         ? perDayInsurancePrice *
           effectiveInsuranceDays *
@@ -2238,8 +2216,6 @@ const CountrySlider = ({
     recommendedItems,
     appliedDiscount,
     giftCardCount,
-    giftCardRedeemed,
-    giftCardBenefits,
     perDayInsurancePrice,
     effectiveInsuranceDays,
   ]);
@@ -2397,7 +2373,7 @@ const CountrySlider = ({
           perTravelerFee: currentVisaFeePerTraveler,
           travelers,
           appliedDiscount,
-          appliedGiftCardCount: redeemedGiftCards.length,
+          appliedGiftCards: redeemedGiftCards,
         });
 
         const eligibilityError = getGiftCardEligibilityError(giftCardContext);
@@ -2412,48 +2388,41 @@ const CountrySlider = ({
           giftCardContext,
         );
 
+        const validateResults =
+          validateResponse.data?.results || validateResponse.data || {};
+
         if (
           validateResponse.status === "ERROR" ||
-          !validateResponse.data?.results?.valid
+          validateResults.valid === false
         ) {
-          setCouponError(validateResponse.message || "Invalid gift card code");
+          setCouponError(
+            validateResponse.message ||
+              validateResults.message ||
+              "Invalid gift card code",
+          );
           setIsRedeemingGiftCard(false);
           return;
         }
 
-        // If valid, redeem it
-        const redeemResponse = await redeemGiftCardCode(
-          codeUpper,
-          userEmail || undefined,
-          giftCardContext,
-        );
-
-        // Handle different response structures
-        const isSuccess =
-          redeemResponse.status === "SUCCESS" ||
-          redeemResponse.status === "success";
-        const hasSuccessData =
-          redeemResponse.data?.success || redeemResponse.data?.results?.success;
-
-        if (isSuccess && hasSuccessData) {
-          // Store gift card benefits in Redux - add to array of redeemed cards
-          // Benefits are now based on quantity from backend (e.g., 2 gift cards = 2 free travelers + 2 free insurance)
-          const benefits = redeemResponse.data?.benefits ||
-            redeemResponse.data?.results?.benefits || {
-              freeTraveler: 1,
-              freeInsurance: 1,
-            };
-          const quantity =
-            redeemResponse.data?.giftCard?.quantity ||
-            redeemResponse.data?.results?.giftCard?.quantity ||
-            1;
-
-          // Check if this code is already redeemed
+        if (validateResults.valid !== false) {
           const alreadyRedeemed = redeemedGiftCards.some(
             (card) => card.code === codeUpper,
           );
           if (alreadyRedeemed) {
-            setCouponError("This gift card code has already been redeemed.");
+            setCouponError("This gift card code has already been applied.");
+            setIsRedeemingGiftCard(false);
+            return;
+          }
+
+          const quantity = validateResults.giftCard?.quantity || 1;
+          const cardAmount = parseGiftCardAmount(validateResults.giftCard?.amount);
+
+          const postValidateError = getGiftCardEligibilityError({
+            ...giftCardContext,
+            giftCardAmount: cardAmount,
+          });
+          if (postValidateError) {
+            setCouponError(postValidateError);
             setIsRedeemingGiftCard(false);
             return;
           }
@@ -2461,27 +2430,17 @@ const CountrySlider = ({
           dispatch(
             addRedeemedGiftCard({
               code: codeUpper,
-              benefits,
+              benefits: { freeTraveler: 0, freeInsurance: 0 },
               quantity,
+              amount: cardAmount,
+              pendingRedeem: true,
             }),
           );
-          setCouponCodeLocal(""); // Clear input after successful redemption
-          setCouponError(""); // Clear any error
-
-          // Dynamic success message based on actual benefits
-          const freeTravelerCount = benefits.freeTraveler || 1;
-          const freeInsuranceCount = benefits.freeInsurance || 1;
-          const travelerText =
-            freeTravelerCount === 1 ? "traveller" : "travellers";
-          const insuranceText =
-            freeInsuranceCount === 1 ? "insurance" : "insurances";
-          showSuccess(
-            `Gift card ${codeUpper} applied! You get ${freeTravelerCount} free ${travelerText} and ${freeInsuranceCount} free ${insuranceText}.`,
-          );
+          setCouponCodeLocal("");
+          setCouponError("");
+          showSuccess(formatGiftCardAppliedMessage(codeUpper, cardAmount));
         } else {
-          setCouponError(
-            redeemResponse.message || "Failed to redeem gift card",
-          );
+          setCouponError(validateResponse.message || "Invalid gift card code");
           setIsRedeemingGiftCard(false);
           return;
         }
@@ -2626,7 +2585,6 @@ const CountrySlider = ({
     setAppliedInsuranceDiscount(null);
     setCouponCodeLocal("");
     setCouponError("");
-    dispatch(clearRedeemedGiftCards());
     // email verification reset not required
   };
 
@@ -3437,12 +3395,6 @@ const CountrySlider = ({
       visaDisplay.traditionalPerTraveler || 0,
     );
 
-    const effectiveTravelers =
-      giftCardRedeemed && travelers > 0
-        ? Math.max(0, travelers - (giftCardBenefits?.freeTraveler || 0))
-        : travelers;
-
-    // SUBTOTAL: Original prices (no discounts applied) - matching OrderCheckout
     const originalVisaPerTraveler =
       traditionalPerTraveler > 0
         ? traditionalPerTraveler
@@ -3458,9 +3410,7 @@ const CountrySlider = ({
       originalVisaFees + originalInsuranceFees + originalGiftCardFees;
 
     // Base discounted prices (matching OrderCheckout.jsx and calculateFinalPrice)
-    const baseDiscountedVisaFees =
-      calculateDiscountedVisaFee({ discount: null }) *
-      (travelers > 0 ? effectiveTravelers / travelers : 1);
+    const baseDiscountedVisaFees = calculateDiscountedVisaFee({ discount: null });
     const baseDiscountedInsuranceFees = discountedInsuranceBase;
     const baseDiscountedGiftCardFees = recommendedItems.giftCard
       ? 159 * giftCardCount
@@ -3527,7 +3477,12 @@ const CountrySlider = ({
       }
     }
 
-    const totalAmount = finalVisaFees + finalInsuranceFees + finalGiftCardFees;
+    const totalBeforeGiftCardCoupon =
+      finalVisaFees + finalInsuranceFees + finalGiftCardFees;
+    const totalAmount = subtractGiftCardCouponDiscount(
+      totalBeforeGiftCardCoupon,
+      redeemedGiftCards,
+    );
 
     return {
       totalAmount: totalAmount, // Already in GBP, no conversion needed
@@ -3565,8 +3520,7 @@ const CountrySlider = ({
     strikeOutPrice,
     couponCode,
     calculateDiscountedVisaFee,
-    giftCardRedeemed,
-    giftCardBenefits,
+    redeemedGiftCards,
   ]);
 
   // GA4 begin_checkout is fired exclusively inside the Apple Pay and Google Pay
@@ -3887,23 +3841,8 @@ const CountrySlider = ({
       router.events.off("routeChangeComplete", handleScrollAndHighlight);
     };
   }, [router]);
-  const visaInfoRowClass = compactLayout
-    ? "flex flex-col gap-1 py-1.5 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:py-2"
-    : "flex flex-col gap-2 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-4 md:py-5";
-  const visaInfoLabelClass = compactLayout
-    ? "flex items-center gap-2 min-w-0 text-xs sm:text-sm text-white/90"
-    : "flex items-center gap-2.5 sm:gap-3 min-w-0 text-sm sm:text-base text-white/90";
-  const visaInfoValueClass = compactLayout
-    ? "relative font-semibold text-xs sm:text-sm leading-snug pl-6 sm:pl-0 sm:text-right sm:max-w-[55%] min-w-0"
-    : "relative font-semibold text-sm sm:text-base leading-snug pl-7 sm:pl-0 sm:text-right sm:max-w-[55%] min-w-0";
-  const visaInfoIconClass = compactLayout ? "h-4 w-4 shrink-0" : "h-5 w-5 shrink-0";
-
-  const gridShellClass = compactLayout
-    ? "w-full max-w-none grid grid-cols-1 lg:grid-cols-2 items-start min-w-0 gap-4 sm:gap-5 md:gap-6 lg:gap-6 xl:gap-8"
-    : "w-full max-w-[88rem] mx-auto grid grid-cols-1 lg:grid-cols-2 items-start px-4 sm:px-6 lg:px-8 max-sm:px-3 min-w-0 gap-10 md:gap-12 lg:gap-14 xl:gap-16";
-
   return (
-    <div className={gridShellClass}>
+    <div className="w-full max-w-[1300px] gap-20 max-lg:flex-col max-lg:gap-10 flex items-start justify-center px-5 max-sm:px-3">
       {/* System Alerts */}
       <SimpleAlert
         isOpen={alertState.isOpen}
@@ -3927,17 +3866,10 @@ const CountrySlider = ({
       />
 
       {/* Left Column */}
-      <div
-        className={`w-full min-w-0 flex flex-col items-stretch mt-0 lg:sticky lg:self-start ${
-          compactLayout
-            ? "gap-1 max-sm:gap-1.5 md:mt-0 lg:top-16"
-            : "gap-3 max-sm:gap-4 md:mt-4 lg:top-24 xl:pr-2 2xl:pr-4"
-        }`}
-      >
-        {/* Badges Section — hidden on Get Visa compact layout to keep hero image in view */}
-        {!compactLayout && (
+      <div className="w-full gap-3 flex flex-col items-start lg:max-w-[60%] max-sm:gap-4 mt-0 md:mt-4 lg:sticky lg:top-5 lg:self-start">
+        {/* Badges Section */}
         <section className="text-center text-white rounded-2xl p-2 w-full max-sm:p-1">
-          <div className="w-full hidden md:flex flex-wrap justify-start items-center gap-2 px-3 max-sm:gap-3 max-sm:px-1">
+          <div className="w-full hidden md:flex justify-start items-center gap-2 px-3 max-sm:gap-3 max-sm:px-1">
             <button className="bg-[#24242D] border border-white px-4 py-[10px] rounded-full font-medium text-white select-none transition-colors relative overflow-hidden max-sm:w-full max-sm:px-4 max-sm:py-3">
               <span className="relative z-10 font-bold text-[22px] leading-none max-sm:text-[15px]">
                 {sliderContent["badge_1_text"]}
@@ -3951,203 +3883,176 @@ const CountrySlider = ({
             </button>
           </div>
         </section>
-        )}
 
         {/* Visa Information Section */}
-        <section
-          className={`w-full flex flex-col items-start ${
-            compactLayout ? "gap-1.5 sm:gap-2" : "gap-4 sm:gap-5"
-          }`}
-        >
-          <section
-            className={`w-full min-w-0 ${
-              compactLayout ? "" : "order-2 lg:order-none"
-            }`}
-          >
-            <div
-              className={`bg-[#24242D] rounded-2xl shadow-sm overflow-hidden text-white ${
-                compactLayout ? "p-3 sm:p-4" : "p-5 sm:p-6 md:p-7"
-              }`}
-            >
-              <div
-                className={`flex flex-col lg:items-start ${
-                  compactLayout
-                    ? "gap-2 sm:gap-3 sm:grid sm:grid-cols-[minmax(0,6.5rem)_minmax(0,1fr)] md:grid-cols-[minmax(0,7.5rem)_minmax(0,1fr)] sm:gap-x-4 md:gap-x-5"
-                    : "gap-6 sm:gap-7 lg:grid lg:grid-cols-[minmax(0,10.5rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,12rem)_minmax(0,1fr)] lg:gap-x-8 xl:gap-x-10"
-                }`}
-              >
-                <h2
-                  className={`font-gilroy-bold leading-tight shrink-0 ${
-                    compactLayout
-                      ? "text-lg sm:text-xl md:text-2xl"
-                      : "text-2xl sm:text-3xl md:text-4xl lg:text-[40px]"
-                  }`}
-                >
-                  Visa{" "}
-                  <span className="whitespace-nowrap">information</span>
+        <section className="w-full gap-3 flex flex-col items-start max-sm:gap-4">
+          <section className="w-full">
+            <div className="bg-[#24242D] rounded-2xl shadow-sm p-4 max-sm:p-3">
+              <div className="bg-[#24242D] flex justify-between text-white max-sm:flex-col max-sm:items-start max-sm:gap-4">
+                <h2 className="text-3xl md:text-[40px] font-gilroy-bold my-auto max-sm:text-2xl max-sm:mb-2">
+                  Visa <br className="hidden sm:block" /> information
                 </h2>
-
-                <ul className="flex flex-col gap-0 w-full min-w-0 divide-y divide-white/15">
-                  {/* Visa Types → Sticker */}
-                  <li className={visaInfoRowClass}>
-                    <div className={visaInfoLabelClass}>
-                      <FileText
-                        className={`${visaInfoIconClass} text-[#24242D] stroke-[#24242D] fill-white`}
-                      />
-                      <span className="break-words leading-snug">Visa Types</span>
+                <div className="flex gap-8 justify-between w-full md:px-5 px-0">
+                  <div className="flex max-sm:py-2 flex-col gap-1 max-sm:gap-2 max-sm:w-full">
+                    {/* Visa Types */}
+                    <div className="flex items-center max-sm:text-sm">
+                      <FileText className="h-5 w-5 text-[#24242D] stroke-[#24242D] mr-3 fill-white max-sm:mr-2 max-sm:h-4 max-sm:w-4" />
+                      <span className="whitespace-nowrap">Visa Types</span>
                     </div>
-                    <div
-                      className={visaInfoValueClass}
-                      onMouseEnter={() => setActiveTooltip("sticker")}
-                      onMouseLeave={() => setActiveTooltip(null)}
-                    >
-                      <span className="break-words border-b border-dashed border-white/40 pb-0.5 sm:border-0 sm:pb-0">
-                        Sticker
-                      </span>
-                      {activeTooltip === "sticker" && (
-                        <div className="absolute z-10 bottom-full right-0 sm:right-0 mb-2 w-[min(100%,16rem)] sm:w-64 bg-[#24242D] text-white p-3 rounded-lg shadow-lg border border-gray-200">
-                          <p className="text-xs leading-relaxed">{tooltips.sticker}</p>
-                          <div className="absolute -bottom-1 right-4 w-4 h-4 bg-[#24242D] transform rotate-45 border-b border-r border-gray-200" />
+
+                    {/* Stay Duration */}
+                    <div className="flex items-center max-sm:text-sm">
+                      <Home className="h-5 w-5 mr-3 text-white max-sm:mr-2 max-sm:h-4 max-sm:w-4" />
+                      <span className="whitespace-nowrap">Stay Duration</span>
+                    </div>
+
+                    {/* Term Type */}
+                    <div className="flex items-center max-sm:text-sm">
+                      <ClipboardList className="h-5 w-5 text-[#24242D] stroke-[#24242D] mr-3 fill-white max-sm:mr-2 max-sm:h-4 max-sm:w-4" />
+                      <span className="whitespace-nowrap">Term Type</span>
+                    </div>
+
+                    {/* Entry */}
+                    <div className="flex items-center max-sm:text-sm">
+                      <Clock className="h-5 w-5 mr-3 text-white max-sm:mr-2 max-sm:h-4 max-sm:w-4" />
+                      <span className="whitespace-nowrap">Entry</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col mr-10 max-sm:mr-0 max-sm:w-full max-sm:mt-2">
+                    <div className="grid gap-1 max-sm:gap-2">
+                      {/* Sticker */}
+                      <div
+                        className="relative border-b border-dashed border-white/40 w-fit font-semibold max-sm:w-full"
+                        onMouseEnter={() => setActiveTooltip("sticker")}
+                        onMouseLeave={() => setActiveTooltip(null)}
+                      >
+                        <div className="flex items-center max-sm:justify-between">
+                          <span className="max-sm:text-sm whitespace-nowrap">
+                            Sticker
+                          </span>
                         </div>
-                      )}
-                    </div>
-                  </li>
 
-                  {/* Stay Duration */}
-                  <li className={visaInfoRowClass}>
-                    <div className={visaInfoLabelClass}>
-                      <Home className={`${visaInfoIconClass} text-white`} />
-                      <span className="break-words leading-snug">Stay Duration</span>
-                    </div>
-                    <div
-                      className={visaInfoValueClass}
-                      onMouseEnter={() => setActiveTooltip("duration")}
-                      onMouseLeave={() => setActiveTooltip(null)}
-                    >
-                      <span className="break-words border-b border-dashed border-white/40 pb-0.5 sm:border-0 sm:pb-0">
-                        Upto 90 Days
-                      </span>
-                      {activeTooltip === "duration" && (
-                        <div className="absolute z-10 bottom-full right-0 mb-2 w-[min(100%,16rem)] sm:w-64 bg-[#24242D] text-white p-3 rounded-lg shadow-lg border border-gray-200">
-                          <div className="text-xs leading-relaxed space-y-1">
-                            {tooltips.duration.map((line, index) => (
-                              <p key={index}>{line}</p>
-                            ))}
+                        {activeTooltip === "sticker" && (
+                          <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200 max-sm:w-48 max-sm:-left-20">
+                            <p className="text-xs max-sm:text-xs">
+                              {tooltips.sticker}
+                            </p>
+                            <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200 max-sm:left-20"></div>
                           </div>
-                          <div className="absolute -bottom-1 right-4 w-4 h-4 bg-[#24242D] transform rotate-45 border-b border-r border-gray-200" />
-                        </div>
-                      )}
-                    </div>
-                  </li>
+                        )}
+                      </div>
 
-                  {/* Term Type */}
-                  <li className={visaInfoRowClass}>
-                    <div className={visaInfoLabelClass}>
-                      <ClipboardList
-                        className={`${visaInfoIconClass} text-[#24242D] stroke-[#24242D] fill-white`}
-                      />
-                      <span className="break-words leading-snug">Term Type</span>
-                    </div>
-                    <div
-                      className={visaInfoValueClass}
-                      onMouseEnter={() => setActiveTooltip("term")}
-                      onMouseLeave={() => setActiveTooltip(null)}
-                    >
-                      <span className="break-words border-b border-dashed border-white/40 pb-0.5 sm:border-0 sm:pb-0">
-                        Short Term
-                      </span>
-                      {activeTooltip === "term" && (
-                        <div className="absolute z-10 bottom-full right-0 mb-2 w-[min(100%,16rem)] sm:w-64 bg-[#24242D] text-white p-3 rounded-lg shadow-lg border border-gray-200">
-                          <p className="text-xs leading-relaxed">{tooltips.term}</p>
-                          <div className="absolute -bottom-1 right-4 w-4 h-4 bg-[#24242D] transform rotate-45 border-b border-r border-gray-200" />
+                      {/* Duration */}
+                      <div
+                        className="relative border-b border-dashed border-white/40 w-fit font-semibold max-sm:w-full"
+                        onMouseEnter={() => setActiveTooltip("duration")}
+                        onMouseLeave={() => setActiveTooltip(null)}
+                      >
+                        <div className="flex items-center max-sm:justify-between">
+                          <span className="max-sm:text-sm whitespace-nowrap">
+                            Upto 90 Days
+                          </span>
                         </div>
-                      )}
-                    </div>
-                  </li>
 
-                  {/* Entry */}
-                  <li className={visaInfoRowClass}>
-                    <div className={visaInfoLabelClass}>
-                      <Clock className={`${visaInfoIconClass} text-white`} />
-                      <span className="break-words leading-snug">Entry</span>
-                    </div>
-                    <div
-                      className={visaInfoValueClass}
-                      onMouseEnter={() => setActiveTooltip("entry")}
-                      onMouseLeave={() => setActiveTooltip(null)}
-                    >
-                      <span className="break-words border-b border-dashed border-white/40 pb-0.5 sm:border-0 sm:pb-0">
-                        Multiple or Single
-                      </span>
-                      {activeTooltip === "entry" && (
-                        <div className="absolute z-10 bottom-full right-0 mb-2 w-[min(100%,16rem)] sm:w-64 bg-[#24242D] text-white p-3 rounded-lg shadow-lg border border-gray-200">
-                          <p className="text-xs leading-relaxed">{tooltips.entry}</p>
-                          <div className="absolute -bottom-1 right-4 w-4 h-4 bg-[#24242D] transform rotate-45 border-b border-r border-gray-200" />
+                        {activeTooltip === "duration" && (
+                          <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200 max-sm:w-48 max-sm:-left-20">
+                            <div className="text-xs max-sm:text-xs">
+                              {tooltips.duration.map((line, index) => (
+                                <p
+                                  key={index}
+                                  className={
+                                    index > 0 ? "mt-1 max-sm:mt-0.5" : ""
+                                  }
+                                >
+                                  {line}
+                                </p>
+                              ))}
+                            </div>
+                            <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200 max-sm:left-20"></div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Term Type */}
+                      <div
+                        className="relative border-b border-dashed border-white/40 w-fit font-semibold max-sm:w-full"
+                        onMouseEnter={() => setActiveTooltip("term")}
+                        onMouseLeave={() => setActiveTooltip(null)}
+                      >
+                        <div className="flex items-center max-sm:justify-between">
+                          <span className="max-sm:text-sm whitespace-nowrap">
+                            Short Term
+                          </span>
                         </div>
-                      )}
+
+                        {activeTooltip === "term" && (
+                          <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200 max-sm:w-48 max-sm:-left-20">
+                            <p className="text-xs max-sm:text-xs">
+                              {tooltips.term}
+                            </p>
+                            <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200 max-sm:left-20"></div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Entry */}
+                      <div
+                        className="relative border-b border-dashed border-white/40 w-fit font-semibold max-sm:w-full"
+                        onMouseEnter={() => setActiveTooltip("entry")}
+                        onMouseLeave={() => setActiveTooltip(null)}
+                      >
+                        <div className="flex items-center max-sm:justify-between">
+                          <span className="max-sm:text-sm whitespace-nowrap">
+                            Multiple or Single
+                          </span>
+                        </div>
+
+                        {activeTooltip === "entry" && (
+                          <div className="absolute z-10 bottom-full left-0 mb-2 w-64 bg-[#24242D] flex items-center text-white p-3 rounded-lg shadow-lg border border-gray-200 max-sm:w-48 max-sm:-left-20">
+                            <p className="text-xs max-sm:text-xs">
+                              {tooltips.entry}
+                            </p>
+                            <div className="absolute -bottom-1 left-4 w-4 h-4 bg-[#24242D] flex items-center text-white transform rotate-45 border-b border-r border-gray-200 max-sm:left-20"></div>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </li>
-                </ul>
+                  </div>
+                </div>
               </div>
 
-              <div
-                className={`border-t border-white/15 text-left ${
-                  compactLayout ? "mt-2.5 pt-2.5" : "mt-6 sm:mt-7 pt-5 sm:pt-6"
-                }`}
-              >
-                <p
-                  className={`flex leading-snug min-w-0 ${
-                    compactLayout
-                      ? "gap-2 text-xs sm:text-sm"
-                      : "gap-3 sm:gap-3.5 text-sm sm:text-base leading-relaxed"
-                  }`}
-                >
+              <div className="text-left my-4 max-sm:my-3">
+                <p className="flex gap-2 max-sm:gap-1 max-sm:text-sm">
                   <Image
                     src="/icons/megaphone.png"
                     width={24}
                     height={20}
-                    className={
-                      compactLayout
-                        ? "w-5 h-4 shrink-0 mt-0.5"
-                        : "w-6 h-5 sm:w-6 sm:h-5 shrink-0 mt-0.5"
-                    }
+                    className="w-6 h-5 max-sm:w-5 max-sm:h-4"
                     alt="Notice"
                     loading="lazy"
                   />
-                  <span className="min-w-0 break-words text-white/95">
-                    {sliderContent["embassy_notice_text"]}
-                  </span>
+                  <span>{sliderContent["embassy_notice_text"]}</span>
                 </p>
               </div>
             </div>
           </section>
 
-          <div
-            className={
-              compactLayout ? "w-full" : "order-1 lg:order-none w-full"
-            }
-          >
-            <CountryCarousel
-              carouselCountries={carouselCountries}
-              activeCarouselCountry={activeCarouselCountry}
-              currentIndex={currentIndex}
-              setCurrentIndex={setCurrentIndex}
-              goToPrevious={goToPrevious}
-              goToNext={goToNext}
-              resetTimer={resetTimer}
-              thumbnailContainerRef={thumbnailContainerRef}
-              compact={compactLayout}
-            />
-          </div>
+          <CountryCarousel
+            carouselCountries={carouselCountries}
+            activeCarouselCountry={activeCarouselCountry}
+            currentIndex={currentIndex}
+            setCurrentIndex={setCurrentIndex}
+            goToPrevious={goToPrevious}
+            goToNext={goToNext}
+            resetTimer={resetTimer}
+            thumbnailContainerRef={thumbnailContainerRef}
+          />
         </section>
       </div>
 
       {/* Right Column */}
-      <div
-        className={`w-full min-w-0 gap-4 flex flex-col items-stretch max-sm:gap-4 mt-0 md:mt-4 ${
-          compactLayout ? "" : "lg:pl-0 xl:pl-2"
-        }`}
-      >
+      <div className="w-full gap-4 flex flex-col items-start lg:max-w-[60%] max-sm:gap-4 mt-0 md:mt-4">
         {/* NRI Badge Section */}
         <section className="text-center text-white rounded-2xl p-2 w-full max-sm:p-1">
           <div className="flex justify-start items-center">
@@ -4157,9 +4062,10 @@ const CountrySlider = ({
               } rounded-full font-medium text-sm text-white select-none transition-colors relative overflow-hidden text-center max-sm:w-full max-sm:px-3 max-sm:py-2`}
             >
               <span
-                className={`relative z-10 leading-none text-center font-bold flex justify-center items-center text-sm md:text-base lg:text-[17px] ${
+                className={`relative z-10 leading-none text-center font-bold flex justify-center items-center ${
                   hasEuFlagBadge ? "" : "pt-2"
                 } max-sm:text-[18px]`}
+                style={{ fontSize: "17px" }}
               >
                 {renderedNriBadgeText}
               </span>
@@ -4172,7 +4078,7 @@ const CountrySlider = ({
         <section
           ref={mainSectionRef}
           id="add-to-cart"
-          className="bg-[#24242D] text-white rounded-t-2xl p-4 sm:p-5 lg:p-6 xl:p-7 w-full max-sm:p-4"
+          className="bg-[#24242D] text-white rounded-t-2xl p-6 w-full max-sm:p-4"
         >
           <div className="w-full">
             {/* Header with pricing */}
@@ -4184,7 +4090,7 @@ const CountrySlider = ({
                 {sliderContent?.slider_description ||
                   "Complete visa service with all necessary documents"}
               </p>
-              <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 mb-4 max-sm:gap-3">
+              <div className="flex items-center justify-between gap-3 mb-4 max-sm:flex-col max-sm:items-start max-sm:gap-1">
                 {selectedCountryData.isActive !== false ? (
                   activeOccasionPricing ? (
                     <div className="flex flex-col gap-2">
@@ -4294,8 +4200,7 @@ const CountrySlider = ({
                   </div>
                 )}
 
-                <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full xl:w-auto xl:justify-end">
-                <div className="flex items-center gap-2 shadow-lg shadow-black/20 p-2 rounded-full max-sm:w-full max-sm:justify-between max-sm:px-4 shrink-0">
+                <div className="flex items-center gap-2 shadow-lg shadow-black/20 p-2 rounded-full max-sm:w-full max-sm:justify-between max-sm:px-4">
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 rounded-full flex items-center justify-center">
                       <UserIcon className="fill-white max-sm:w-3 max-sm:h-3" />
@@ -4319,7 +4224,7 @@ const CountrySlider = ({
                 </div>
 
                 {/* Country Selector */}
-                <div className="w-full sm:w-fit min-w-0 max-sm:w-full">
+                <div className="w-fit max-sm:w-full">
                   <label htmlFor="country-select" className="sr-only">
                     Select Country
                   </label>
@@ -4331,7 +4236,7 @@ const CountrySlider = ({
                       disabled={
                         isVisaPricingLoading || !dropdownCountries.length
                       }
-                      className="w-full sm:w-auto max-w-full px-2 py-2 font-semibold rounded-full shadow-black/20 shadow-lg cursor-pointer focus:outline-none max-sm:text-center"
+                      className="px-2 py-2 font-semibold rounded-full shadow-black/20 shadow-lg cursor-pointer focus:outline-none max-sm:w-full max-sm:text-center"
                     >
                       {isVisaPricingLoading ? (
                         <option value="" className="bg-gray-400 text-gray-800">
@@ -4393,7 +4298,6 @@ const CountrySlider = ({
                       </div>
                     </div>
                   )}
-                </div>
                 </div>
               </div>
             </div>
@@ -4654,7 +4558,7 @@ const CountrySlider = ({
                 >
                   <div className="px-4 pb-4 max-sm:px-3 max-sm:pb-3">
                     <div className="h-px bg-white/10 mb-4"></div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-sm:gap-2">
+                    <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1 max-sm:gap-2">
                       {/* Passport */}
                       <div
                         className={`flex items-start space-x-3 cursor-pointer rounded-lg p-3 transition-all duration-200 border max-sm:p-2 ${
@@ -4899,7 +4803,6 @@ const CountrySlider = ({
               </div>
             </div>
 
-            <LazyWhenVisible minHeight="320px" rootMargin="320px 0px" className="w-full">
             <StripeProvider>
               {/* Hidden component that handles payment logic - buttons below trigger it */}
               <ExpressPaymentRequestButton
@@ -5510,15 +5413,12 @@ const CountrySlider = ({
                 );
               })()}
             </StripeProvider>
-            </LazyWhenVisible>
           </div>
 
-          <LazyWhenVisible minHeight="120px" rootMargin="240px 0px" className="w-full">
           <ExpertSection
             checked={isExpertSelected}
             onChange={setIsExpertSelected}
           />
-          </LazyWhenVisible>
 
           {/* Recommended Section */}
           <div className="mt-6">
@@ -5528,7 +5428,9 @@ const CountrySlider = ({
 
             {/* Insurance Certificate & Gift Card Section */}
             <div className="w-full mb-4 max-sm:mb-3">
-              <div className="flex flex-col sm:flex-row gap-4 max-sm:gap-3 items-stretch min-w-0">
+              <div className="flex gap-4 max-sm:gap-3 items-stretch">
+                <div className="w-full mb-4 max-sm:mb-3">
+                  <div className="flex gap-4 max-sm:gap-3 items-stretch">
                     {/* 1. Insurance Certificate Box */}
                     <div
                       className={`flex-1 flex flex-col border px-4  pt-3 max-sm:px-2  rounded-2xl text-white transition-all overflow-hidden bg-white/5 ${
@@ -5566,11 +5468,11 @@ const CountrySlider = ({
                             alt="Insurance"
                             width={100}
                             height={56}
-                            className="w-full h-auto object-cover"
+                            className="w-full h-full object-cover"
                             loading="lazy"
                           />
                         </div>
-                        <h3 className="font-bold text-base max-sm:text-[14px] leading-tight text-center px-1 break-words">
+                        <h3 className="font-bold whitespace-nowrap text-base max-sm:text-[14px] leading-tight text-center px-1">
                           {more_to_love.leftTitle}
                         </h3>
                         {more_to_love.leftSubtitle && (
@@ -5631,7 +5533,7 @@ const CountrySlider = ({
                             alt="Gift Card"
                             width={100}
                             height={56}
-                            className="w-full h-auto object-cover"
+                            className="w-full h-full object-cover"
                             loading="lazy"
                           />
                         </div>
@@ -5663,6 +5565,8 @@ const CountrySlider = ({
                         </div>
                       </div>
                     </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -5763,23 +5667,13 @@ const CountrySlider = ({
 
               {redeemedGiftCards.length > 0 && (
                 <div className="space-y-2">
-                  {redeemedGiftCards.map((card) => {
-                    const freeTravelerCount = card.benefits?.freeTraveler || 0;
-                    const freeInsuranceCount =
-                      card.benefits?.freeInsurance || 0;
-                    const travelerText =
-                      freeTravelerCount === 1 ? "traveller" : "travellers";
-                    const insuranceText =
-                      freeInsuranceCount === 1 ? "insurance" : "insurances";
-                    return (
+                  {redeemedGiftCards.map((card) => (
                       <div
                         key={card.code}
                         className="flex items-center justify-between text-sm text-green-400 bg-green-600/20 p-2 rounded-md max-sm:text-xs max-sm:p-1.5"
                       >
                         <span>
-                          ✓ Gift card {card.code} applied! {freeTravelerCount}{" "}
-                          free {travelerText} and {freeInsuranceCount} free{" "}
-                          {insuranceText}.
+                          {formatGiftCardAppliedMessage(card.code, card.amount)}
                         </span>
                         <button
                           type="button"
@@ -5789,8 +5683,7 @@ const CountrySlider = ({
                           Remove
                         </button>
                       </div>
-                    );
-                  })}
+                    ))}
                 </div>
               )}
               {isRedeemingGiftCard && (

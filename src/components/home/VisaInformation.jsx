@@ -1,28 +1,18 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import ClientOnly from "../ClientOnly";
+import ComparisonSection from "../ComparisonSection";
+import FAQSection from "../Faqs";
+import Footer from "../Footer";
 import Navbar from "../Navbar";
-import submit from "../../../public/icons/submit.png";
+import OurMission from "../OurMission";
+import SeamlessExperience from "../SeamlessExperience";
+import CountrySlider from "../Slider";
+import VisaFinanceFeatureSection from "./VisaFinanceFeatureSection";
+import VisaSolution from "../VisaSolution";
+import StickyBottomBar from "../StickyBottomBar";
 import { useKlarnaContent } from "../../hooks/useKlarnaContent";
 import { useProcessContent } from "../../hooks/useProcessContent";
-import { lazySection } from "@/utils/lazySections";
-import LazyWhenVisible from "@/components/LazyWhenVisible";
-
-const CountrySlider = lazySection(() => import("../Slider"), "300px");
-const ComparisonSection = lazySection(() => import("../ComparisonSection"), "280px");
-const VisaSolution = lazySection(() => import("../VisaSolution"), "320px");
-const VisaFinanceFeatureSection = lazySection(
-  () => import("./VisaFinanceFeatureSection"),
-  "360px"
-);
-const FAQSection = lazySection(() => import("../Faqs"), "240px");
-const SeamlessExperience = lazySection(() => import("../SeamlessExperience"), "120px");
-const OurMission = lazySection(() => import("../OurMission"), "200px");
-const Footer = lazySection(() => import("../Footer"), "220px");
-const StickyBottomBar = lazySection(() => import("../StickyBottomBar"), "0px", {
-  ssr: false,
-  loading: () => null,
-});
 
 const VisaInformation = ({ showKlarnaSection = true }) => {
   const { processContent, loading: processLoading } = useProcessContent();
@@ -38,19 +28,17 @@ const VisaInformation = ({ showKlarnaSection = true }) => {
     subtitleOne: "99.3% Visa approval rate",
     subtitleTwo: "100% Risk free - Get your visa or full refund",
   });
-  // Handle hash fragment scrolling
+
   useEffect(() => {
     const scrollToHash = (retryCount = 0) => {
       if (typeof window === "undefined") return;
 
       const hash = window.location.hash;
       if (hash) {
-        // Remove the # symbol
         const id = hash.substring(1);
         const element = document.getElementById(id);
 
         if (element) {
-          // Small delay to ensure DOM is fully rendered
           setTimeout(() => {
             element.scrollIntoView({
               behavior: "smooth",
@@ -58,16 +46,13 @@ const VisaInformation = ({ showKlarnaSection = true }) => {
             });
           }, 100);
         } else if (retryCount < 10) {
-          // Retry if element not found (for async content)
           setTimeout(() => scrollToHash(retryCount + 1), 200);
         }
       }
     };
 
-    // Scroll on initial load with retry mechanism
     scrollToHash();
 
-    // Also handle hash changes (e.g., when user clicks a link with hash)
     const handleHashChange = () => {
       scrollToHash();
     };
@@ -86,12 +71,13 @@ const VisaInformation = ({ showKlarnaSection = true }) => {
         if (!response.ok) return;
 
         const json = await response.json();
-        const byKey = json?.data && !Array.isArray(json.data)
-          ? json.data
-          : (Array.isArray(json?.data) ? json.data : []).reduce((acc, row) => {
-              if (row?.key) acc[row.key] = row.value;
-              return acc;
-            }, {});
+        const byKey =
+          json?.data && !Array.isArray(json.data)
+            ? json.data
+            : (Array.isArray(json?.data) ? json.data : []).reduce((acc, row) => {
+                if (row?.key) acc[row.key] = row.value;
+                return acc;
+              }, {});
         setMoreToLoveData({
           title: byKey.more_to_love_title_one || "More to love",
           leftTitle: byKey.more_to_love_left_title || "Insurance Certificate",
@@ -112,26 +98,18 @@ const VisaInformation = ({ showKlarnaSection = true }) => {
 
     fetchMoreToLove();
   }, []);
+
   return (
     <ClientOnly>
       <div className="bg-[#1E1E27] text-white w-full overflow-x-clip">
         <Navbar />
-        <div
-          className={`w-full flex flex-col gap-0 pb-24 lg:pb-8 ${
-            showKlarnaSection
-              ? "max-w-[88rem] mx-auto items-center justify-center px-4 sm:px-6 lg:px-8 max-sm:px-3 mt-5"
-              : "max-w-none items-stretch px-3 sm:px-4 md:px-5 lg:px-6 xl:px-8 mt-6 sm:mt-8 md:mt-10 pt-2 sm:pt-3"
-          }`}
-        >
+        <div className="w-full mx-auto flex flex-col gap-0 items-center justify-center mt-5 ">
           <CountrySlider
             moreToLoveData={moreToLoveData}
             checkoutButtonDescription={checkoutButtonDescription}
-            compactLayout={!showKlarnaSection}
           />
 
-          <LazyWhenVisible minHeight="480px" className="w-full flex flex-col">
-          {/* Visa Type Selection */}
-          <section id={"comparison-section"}>
+          <section id={"comparison-section"} className="w-full">
             <ComparisonSection />
           </section>
           <VisaSolution
@@ -144,7 +122,6 @@ const VisaInformation = ({ showKlarnaSection = true }) => {
               <div className="row justify-content-center">
                 <div className="col-12 py-4">
                   <div className="pdp_media_el bg-purple p-3 pt-5 pb-5">
-                    {/* Top Section */}
                     <div className="w-full flex gap-5 md:gap-10 max-md:flex-col mb-10 overflow-hidden">
                       <h2 className="text-3xl md:text-6xl font-gilroy-bold text-[#FFF] text-start flex-1">
                         {processLoading ? (
@@ -164,11 +141,8 @@ const VisaInformation = ({ showKlarnaSection = true }) => {
                       </p>
                     </div>
 
-                    {/* Steps Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                      {/* Step Wrapper Loop / Step 1 */}
                       <div className="flex flex-col text-left">
-                        {/* Mobile: Icon & Heading in one line | Desktop: Stacked */}
                         <div className="flex flex-row md:flex-col items-center md:items-start gap-4 md:gap-0">
                           <Image
                             src="/icons/submit.png"
@@ -176,7 +150,7 @@ const VisaInformation = ({ showKlarnaSection = true }) => {
                             width={80}
                             height={80}
                             className="w-20 h-20 md:mb-3 object-contain"
-                            loading="lazy"
+                            priority
                           />
                           <h1 className="text-xl md:text-3xl md:my-6 font-bold">
                             {processLoading
@@ -191,7 +165,6 @@ const VisaInformation = ({ showKlarnaSection = true }) => {
                         </p>
                       </div>
 
-                      {/* Step 2 */}
                       <div className="flex flex-col text-left">
                         <div className="flex flex-row md:flex-col items-center md:items-start gap-4 md:gap-0">
                           <Image
@@ -200,7 +173,7 @@ const VisaInformation = ({ showKlarnaSection = true }) => {
                             width={80}
                             height={80}
                             className="w-20 h-20 md:mb-3 object-contain"
-                            loading="lazy"
+                            priority
                           />
                           <h1 className="text-xl md:text-3xl md:my-6 font-bold">
                             {processLoading
@@ -215,7 +188,6 @@ const VisaInformation = ({ showKlarnaSection = true }) => {
                         </p>
                       </div>
 
-                      {/* Step 3 */}
                       <div className="flex flex-col text-left">
                         <div className="flex flex-row md:flex-col items-center md:items-start gap-4 md:gap-0">
                           <Image
@@ -224,7 +196,7 @@ const VisaInformation = ({ showKlarnaSection = true }) => {
                             width={80}
                             height={80}
                             className="w-20 h-20 md:mb-3 object-contain"
-                            loading="lazy"
+                            priority
                           />
                           <h1 className="text-xl md:text-3xl md:my-6 font-bold">
                             {processLoading
@@ -239,7 +211,6 @@ const VisaInformation = ({ showKlarnaSection = true }) => {
                         </p>
                       </div>
 
-                      {/* Step 4 */}
                       <div className="flex flex-col text-left">
                         <div className="flex flex-row md:flex-col items-center md:items-start gap-4 md:gap-0">
                           <Image
@@ -248,7 +219,7 @@ const VisaInformation = ({ showKlarnaSection = true }) => {
                             width={80}
                             height={80}
                             className="w-20 h-20 md:mb-3 object-contain"
-                            loading="lazy"
+                            priority
                           />
                           <h1 className="text-xl md:text-3xl md:my-6 font-bold">
                             {processLoading
@@ -284,7 +255,8 @@ const VisaInformation = ({ showKlarnaSection = true }) => {
                     alt="Klarna"
                     width={100}
                     height={40}
-                    loading="lazy"
+                    className=""
+                    priority
                   />
                   {klarnaLoading ? "Loading..." : klarnaContent.heading}
                 </h2>
@@ -313,10 +285,8 @@ const VisaInformation = ({ showKlarnaSection = true }) => {
           )}
           <OurMission className="bg-[#F3E6FF] py-10" />
           <Footer />
-          </LazyWhenVisible>
         </div>
 
-        {/* Sticky Bottom Bar */}
         <StickyBottomBar
           triggerElementId={"comparison-section"}
           key={"visa-info-page"}

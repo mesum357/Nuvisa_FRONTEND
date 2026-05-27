@@ -10,7 +10,8 @@ export const useSliderContent = () => {
       try {
         setLoading(true);
         setError(null);
-        const res = await fetch('/api/slider-content');
+        const bust = process.env.NODE_ENV !== 'production' ? `?t=${Date.now()}` : '';
+        const res = await fetch(`/api/slider-content${bust}`, { cache: 'no-store' });
         if (!res.ok) throw new Error('Failed to load slider content');
         const json = await res.json();
         const payload = Array.isArray(json) ? json : (json.data || json.items || []);

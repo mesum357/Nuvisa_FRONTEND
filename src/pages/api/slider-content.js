@@ -3,6 +3,7 @@ import {
   CONTENT_API_CACHE_TTL_MS,
   CONTENT_API_HTTP_CACHE,
 } from "@/lib/contentCacheConfig";
+import { fetchAdminJson } from "@/utils/adminApiBase";
 
 const CACHE_KEY = "__all__";
 
@@ -11,26 +12,23 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  const bust = req.query?.t;
   const now = Date.now();
   const store = getSliderCacheStore();
   const cached = store.get(CACHE_KEY);
-  if (cached && now - cached.timestamp < CONTENT_API_CACHE_TTL_MS) {
+
+  if (!bust && cached && now - cached.timestamp < CONTENT_API_CACHE_TTL_MS) {
     res.setHeader("Cache-Control", CONTENT_API_HTTP_CACHE);
     return res.status(200).json(cached.data);
   }
 
   try {
-    const { getAdminApiBase } = await import("@/utils/adminApiBase");
-    const adminUrl = getAdminApiBase();
-    const response = await fetch(`${adminUrl}/api/public/slider-content`, {
-      headers: { "Content-Type": "application/json" },
-    });
+    const data = await fetchAdminJson("/api/public/slider-content");
 
-    if (!response.ok) {
-      throw new Error(`Admin panel responded with status: ${response.status}`);
+    if (!data) {
+      throw new Error("No slider content from admin panel");
     }
 
-    const data = await response.json();
     store.set(CACHE_KEY, { data, timestamp: now });
     res.setHeader("Cache-Control", CONTENT_API_HTTP_CACHE);
     return res.status(200).json(data);

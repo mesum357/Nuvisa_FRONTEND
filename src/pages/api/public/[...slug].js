@@ -1,4 +1,4 @@
-import { getAdminApiBase } from '@/utils/adminApiBase';
+import { fetchAdminJson } from '@/utils/adminApiBase';
 
 export default async function handler(req, res) {
 	if (req.method !== 'GET') {
@@ -13,30 +13,24 @@ export default async function handler(req, res) {
 	}
 
 	try {
-		const adminUrl = getAdminApiBase();
 		const { slug: _slug, ...rest } = req.query;
 		const params = new URLSearchParams();
 		Object.entries(rest).forEach(([key, value]) => {
-			if (value !== undefined) {
+			if (value !== undefined && key !== 't') {
 				params.append(key, Array.isArray(value) ? value.join(',') : String(value));
 			}
 		});
 		const qs = params.toString();
-		const url = `${adminUrl}/api/public/${slug}${qs ? `?${qs}` : ''}`;
+		const path = `/api/public/${slug}${qs ? `?${qs}` : ''}`;
+		const data = await fetchAdminJson(path);
 
-		const response = await fetch(url, {
-			method: 'GET',
-			headers: { 'Content-Type': 'application/json' },
-		});
-
-		if (!response.ok) {
-			return res.status(response.status).json({
+		if (!data) {
+			return res.status(502).json({
 				success: false,
-				error: `Admin panel responded with status: ${response.status}`,
+				error: 'Failed to fetch content from admin panel',
 			});
 		}
 
-		const data = await response.json();
 		return res.status(200).json(data);
 	} catch (error) {
 		console.error(`Error fetching public/${slug}:`, error);

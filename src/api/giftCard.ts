@@ -6,6 +6,8 @@ export type GiftCardValidationContext = {
   packagePrice?: number;
   travelerCount?: number;
   appliedGiftCardCount?: number;
+  /** Sum of monetary value already applied via other gift-card codes */
+  appliedGiftCardsTotal?: number;
 };
 
 export const fulfillGiftCardPurchase = async (payload: {

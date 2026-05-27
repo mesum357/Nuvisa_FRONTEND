@@ -1,21 +1,6 @@
 import { DEFAULT_OCCASION_SECTION, DEFAULT_OCCASIONS } from "@/constants/defaultOccasions";
 
-export function getAdminApiBases() {
-  const fromEnv = [
-    process.env.NEXT_PUBLIC_ADMIN_API_URL,
-    process.env.NEXT_PUBLIC_ADMIN_URL,
-    process.env.ADMIN_PUBLIC_URL,
-  ]
-    .filter(Boolean)
-    .map((u) => String(u).replace(/\/+$/, ""));
-
-  const bases = [
-    ...fromEnv,
-    "https://nuvisa-admin-updated.vercel.app",
-    "https://nuvisa-admin.vercel.app",
-  ];
-  return [...new Set(bases)];
-}
+export { getAdminApiBases } from "@/utils/adminApiBase";
 
 export function normalizeOccasionCard(raw) {
   if (!raw || typeof raw !== "object") return null;

@@ -89,6 +89,8 @@ const VisaFinanceFeatureSection = () => {
     resetTimer();
   };
 
+  const activeCountry = carouselCountries[currentIndex];
+
   return (
     <section className="visa-finance-section">
       <div className="visa-finance-panel">
@@ -98,13 +100,23 @@ const VisaFinanceFeatureSection = () => {
               className="visa-finance-background-layer is-active"
               style={{
                 backgroundImage: `url("${preferCountryWebp(
-                  carouselCountries[currentIndex]?.image,
+                  activeCountry?.image,
                 )}")`,
               }}
             />
           )}
           <div className="visa-finance-background-overlay" />
         </div>
+
+        {activeCountry?.name && (
+          <p
+            className="visa-finance-country-label"
+            aria-live="polite"
+            key={activeCountry.id}
+          >
+            {activeCountry.name}
+          </p>
+        )}
 
         {carouselLength > 1 && (
           <>
@@ -232,6 +244,39 @@ const VisaFinanceFeatureSection = () => {
           inset: 0;
           background: rgba(0, 0, 0, 0.52);
           pointer-events: none;
+        }
+
+        .visa-finance-country-label {
+          position: absolute;
+          top: 28px;
+          left: 50%;
+          z-index: 3;
+          transform: translateX(-50%);
+          margin: 0;
+          padding: 10px 22px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.94);
+          color: #111111;
+          font-family: "GilroyBold", -apple-system, BlinkMacSystemFont, Roboto,
+            "Helvetica Neue", Arial, sans-serif;
+          font-size: 15px;
+          line-height: 1;
+          font-weight: 700;
+          letter-spacing: 0.02em;
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+          pointer-events: none;
+          animation: visa-finance-label-in ${FADE_DURATION_MS}ms ease-out;
+        }
+
+        @keyframes visa-finance-label-in {
+          from {
+            opacity: 0;
+            transform: translateX(-50%) translateY(-6px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+          }
         }
 
         .visa-finance-carousel-btn {
@@ -523,20 +568,24 @@ const VisaFinanceFeatureSection = () => {
           .visa-finance-carousel-dots {
             bottom: 18px;
           }
+
+          .visa-finance-country-label {
+            top: 18px;
+            padding: 8px 18px;
+            font-size: 13px;
+          }
         }
 
         @media (prefers-reduced-motion: reduce) {
+          .visa-finance-country-label {
+            animation: none;
+          }
+
           .visa-finance-background-layer {
             transition: none;
           }
 
           .visa-finance-carousel-dot {
-            transition: none;
-          }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-          .visa-finance-background-layer {
             transition: none;
           }
         }

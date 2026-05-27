@@ -40,19 +40,59 @@ export const shouldBlockLocalhostUrls = () => {
 /** Production NestJS host (Render). Used when env still points at localhost. */
 const DEFAULT_PRODUCTION_BACKEND_URL = "https://nuvisa-backend.onrender.com";
 
-// Returns the admin API base URL without any trailing slashes
-export const getAdminApiBase = () => {
-	const raw = process.env.NEXT_PUBLIC_ADMIN_API_URL;
-	if (!raw) {
-		return 'https://nuvisa-admin.vercel.app';
-	}
+const isDevRuntime = () =>
+	process.env.NODE_ENV !== 'production' ||
+	process.env.NEXT_PUBLIC_NODE_ENV === 'development';
 
-	if (shouldBlockLocalhostUrls() && isLocalhost(raw)) {
-		return 'https://nuvisa-admin.vercel.app';
-	}
+/** Ordered admin API bases — local admin first in dev, then env, then deployed fallbacks. */
+export const getAdminApiBases = () => {
+	const fromEnv = [
+		process.env.NEXT_PUBLIC_ADMIN_API_URL,
+		process.env.NEXT_PUBLIC_ADMIN_URL,
+		process.env.ADMIN_PUBLIC_URL,
+	]
+		.filter(Boolean)
+		.map((u) => String(u).replace(/\/+$/, ''));
 
-	return raw.replace(/\/+$/, '');
+	const bases = [
+		...(isDevRuntime() ? ['http://localhost:3001'] : []),
+		...fromEnv,
+		'https://nuvisa-admin-updated.vercel.app',
+		'https://nuvisa-admin.vercel.app',
+	];
+
+	const filtered = bases.filter(
+		(url) => !(shouldBlockLocalhostUrls() && isLocalhost(url))
+	);
+
+	return [...new Set(filtered.length ? filtered : ['https://nuvisa-admin.vercel.app'])];
 };
+
+// Returns the admin API base URL without any trailing slashes
+export const getAdminApiBase = () => getAdminApiBases()[0];
+
+/** Fetch JSON from the first admin base that responds successfully. */
+export async function fetchAdminJson(path, { timeout = 8000, headers = {} } = {}) {
+	for (const base of getAdminApiBases()) {
+		const url = `${base}${path.startsWith('/') ? path : `/${path}`}`;
+		try {
+			const controller = new AbortController();
+			const timeoutId = setTimeout(() => controller.abort(), timeout);
+			const response = await fetch(url, {
+				method: 'GET',
+				headers: { Accept: 'application/json', ...headers },
+				signal: controller.signal,
+				cache: 'no-store',
+			});
+			clearTimeout(timeoutId);
+			if (!response.ok) continue;
+			return await response.json();
+		} catch (error) {
+			console.warn(`Admin fetch failed (${url}):`, error?.message || error);
+		}
+	}
+	return null;
+}
 
 const BACKEND_PROXY_PREFIX = "/api/backend";
 

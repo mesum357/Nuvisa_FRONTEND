@@ -3,8 +3,10 @@ import {
   CONTENT_API_CACHE_TTL_MS,
   CONTENT_API_HTTP_CACHE,
 } from "@/lib/contentCacheConfig";
-
-let occasionResponseCache = { data: null, expiresAt: 0 };
+import {
+  getOccasionResponseCache,
+  setOccasionResponseCache,
+} from "@/lib/contentApiCache";
 import {
   extractOccasionFromAdminJson,
   finalizeOccasionPayload,
@@ -70,8 +72,14 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  const bust = req.query?.t;
   const now = Date.now();
-  if (occasionResponseCache.data && occasionResponseCache.expiresAt > now) {
+  const occasionResponseCache = getOccasionResponseCache();
+  if (
+    !bust &&
+    occasionResponseCache.data &&
+    occasionResponseCache.expiresAt > now
+  ) {
     res.setHeader("Cache-Control", CONTENT_API_HTTP_CACHE);
     return res.status(200).json(occasionResponseCache.data);
   }
@@ -113,17 +121,18 @@ export default async function handler(req, res) {
     const data = finalizeOccasionPayload(merged, { allowDefaults: true });
     const payload = { success: true, data, source };
 
-    occasionResponseCache = {
+    setOccasionResponseCache({
       data: payload,
       expiresAt: now + CONTENT_API_CACHE_TTL_MS,
-    };
+    });
     res.setHeader("Cache-Control", CONTENT_API_HTTP_CACHE);
     return res.status(200).json(payload);
   } catch (error) {
     console.error("occasion-content error:", error?.message || error);
-    if (occasionResponseCache.data) {
+    const staleOccasionCache = getOccasionResponseCache();
+    if (staleOccasionCache.data) {
       res.setHeader("Cache-Control", CONTENT_API_HTTP_CACHE);
-      return res.status(200).json(occasionResponseCache.data);
+      return res.status(200).json(staleOccasionCache.data);
     }
     const data = finalizeOccasionPayload(
       { title: "", description: "", occasions: [] },

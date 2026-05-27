@@ -39,10 +39,13 @@ import StripeElementsCheckout from "./StripeElementsCheckout";
 import ExpressPaymentRequestButton from "./ExpressPaymentRequestButton";
 import KlarnaForm from "./KlarnaForm";
 import { useRouter } from "next/router";
-import { validateGiftCardCode, redeemGiftCardCode } from "@/api/giftCard";
+import { validateGiftCardCode } from "@/api/giftCard";
 import {
   buildGiftCardValidationContext,
+  formatGiftCardAppliedMessage,
   getGiftCardEligibilityError,
+  parseGiftCardAmount,
+  subtractGiftCardCouponDiscount,
 } from "@/utils/giftCardEligibility";
 import { getDynamicMonthText } from "@/utils/getDynamicMonthText";
 import { getCurrentWeekSlotPercentage } from "@/utils/getCurrentWeekSlotPercentage";
@@ -712,7 +715,7 @@ const VisaCheckout = () => {
           perTravelerFee: currentVisaFeePerTraveler,
           travelers,
           appliedDiscount,
-          appliedGiftCardCount: redeemedGiftCards.length,
+          appliedGiftCards: redeemedGiftCards,
         });
 
         const eligibilityError = getGiftCardEligibilityError(giftCardContext);
@@ -738,13 +741,20 @@ const VisaCheckout = () => {
 
         const validateResults =
           validateResponse.data?.results || validateResponse.data || {};
-        const benefits = validateResults.benefits || {
-          freeTraveler: validateResults.giftCard?.quantity || 1,
-          freeInsurance: validateResults.giftCard?.quantity || 1,
-        };
+        const cardAmount = parseGiftCardAmount(validateResults.giftCard?.amount);
         const quantity = validateResults.giftCard?.quantity || 1;
 
         if (validateResults.valid !== false) {
+          const postValidateError = getGiftCardEligibilityError({
+            ...giftCardContext,
+            giftCardAmount: cardAmount,
+          });
+          if (postValidateError) {
+            setCouponError(postValidateError);
+            setIsRedeemingGiftCard(false);
+            return;
+          }
+
           // Check if this code is already redeemed
           const alreadyRedeemed = redeemedGiftCards.some(
             (card) => card.code === codeUpper,
@@ -758,24 +768,16 @@ const VisaCheckout = () => {
           dispatch(
             addRedeemedGiftCard({
               code: codeUpper,
-              benefits,
+              benefits: { freeTraveler: 0, freeInsurance: 0 },
               quantity,
+              amount: cardAmount,
               pendingRedeem: true,
             }),
           );
-          setCouponCodeLocal(""); // Clear input after successful redemption
-          setCouponError(""); // Clear any error
+          setCouponCodeLocal("");
+          setCouponError("");
 
-          // Dynamic success message based on actual benefits
-          const freeTravelerCount = benefits.freeTraveler || 1;
-          const freeInsuranceCount = benefits.freeInsurance || 1;
-          const travelerText =
-            freeTravelerCount === 1 ? "traveller" : "travellers";
-          const insuranceText =
-            freeInsuranceCount === 1 ? "insurance" : "insurances";
-          showSuccess(
-            `Gift card ${codeUpper} applied! You get ${freeTravelerCount} free ${travelerText} and ${freeInsuranceCount} free ${insuranceText}. Code will be redeemed when payment completes.`,
-          );
+          showSuccess(formatGiftCardAppliedMessage(codeUpper, cardAmount));
         } else {
           setCouponError(validateResponse.message || "Invalid gift card code");
           setIsRedeemingGiftCard(false);
@@ -880,7 +882,6 @@ const VisaCheckout = () => {
     setCouponCodeLocal("");
     dispatch(setAppliedDiscount(null));
     setCouponError("");
-    dispatch(clearRedeemedGiftCards());
   };
 
   const removeGiftCard = (code) => {
@@ -1137,21 +1138,11 @@ const VisaCheckout = () => {
   const subtotal =
     originalVisaFees + originalInsuranceFees + originalGiftCardFees + eVisaFees;
 
-  // TOTAL: Start with discounted base prices
-  // Apply gift card benefits: 1 free traveller and 1 free insurance
-  const effectiveTravelers =
-    giftCardRedeemed && travelers > 0
-      ? Math.max(0, travelers - (giftCardBenefits?.freeTraveler || 0))
-      : travelers;
-  const effectiveInsuranceCountForCalc =
-    giftCardRedeemed && insuranceCount > 0
-      ? Math.max(0, insuranceCount - (giftCardBenefits?.freeInsurance || 0))
-      : insuranceCount;
-
-  const baseDiscountedVisaFees = currentVisaFeePerTraveler * effectiveTravelers; // Dynamic per traveler (with gift card benefit)
+  // TOTAL: Start with discounted base prices (full traveller/insurance counts)
+  const baseDiscountedVisaFees = currentVisaFeePerTraveler * travelers;
   const baseDiscountedInsuranceFees = includeInsurance
-    ? perDayInsurancePrice * travelDays * effectiveInsuranceCountForCalc
-    : 0; // £2 per day per traveller (with gift card benefit)
+    ? perDayInsurancePrice * travelDays * insuranceCount
+    : 0;
   const baseDiscountedGiftCardFees = includeGiftCard ? 159 * giftCardCount : 0; // £159 per gift card
 
   // Check if any component qualifies for quantity discount (3+)
@@ -1247,8 +1238,12 @@ const VisaCheckout = () => {
     }
   }
 
-  const total =
+  const totalBeforeGiftCardCoupon =
     finalVisaFees + finalInsuranceFees + finalGiftCardFees + eVisaFees;
+  const total = subtractGiftCardCouponDiscount(
+    totalBeforeGiftCardCoupon,
+    redeemedGiftCards,
+  );
 
   const checkoutPaymentType = resolveCheckoutPaymentType({
     travelers,
@@ -3794,24 +3789,13 @@ const VisaCheckout = () => {
                 )}
                 {redeemedGiftCards.length > 0 && (
                   <div className="space-y-2">
-                    {redeemedGiftCards.map((card) => {
-                      const freeTravelerCount =
-                        card.benefits?.freeTraveler || 0;
-                      const freeInsuranceCount =
-                        card.benefits?.freeInsurance || 0;
-                      const travelerText =
-                        freeTravelerCount === 1 ? "traveller" : "travellers";
-                      const insuranceText =
-                        freeInsuranceCount === 1 ? "insurance" : "insurances";
-                      return (
+                    {redeemedGiftCards.map((card) => (
                         <div
                           key={card.code}
                           className="flex items-center justify-between text-sm text-green-600 bg-green-50 p-2 rounded-md"
                         >
                           <span>
-                            ✓ Gift card {card.code} applied! {freeTravelerCount}{" "}
-                            free {travelerText} and {freeInsuranceCount} free{" "}
-                            {insuranceText}.
+                            {formatGiftCardAppliedMessage(card.code, card.amount)}
                           </span>
                           <button
                             type="button"
@@ -3821,8 +3805,7 @@ const VisaCheckout = () => {
                             Remove
                           </button>
                         </div>
-                      );
-                    })}
+                      ))}
                   </div>
                 )}
                 {isRedeemingGiftCard && (

@@ -20,7 +20,6 @@ export default function CountryCarousel({
   goToNext,
   resetTimer,
   thumbnailContainerRef,
-  compact = false,
 }) {
   const heroSrc = preferCountryWebp(
     activeCarouselCountry?.image || DEFAULT_COUNTRY_IMAGE,
@@ -48,13 +47,9 @@ export default function CountryCarousel({
   }, [carouselCountries]);
 
   return (
-    <section className={compact ? "mt-0 w-full" : "mt-1 w-full max-sm:mt-0"}>
+    <section className="mt-1 w-full max-sm:mt-0">
       <div className="relative w-full">
-        <div
-          className={`overflow-hidden shadow-lg ${
-            compact ? "rounded-2xl max-sm:rounded-xl" : "rounded-3xl max-sm:rounded-2xl"
-          }`}
-        >
+        <div className="overflow-hidden rounded-3xl shadow-lg max-sm:rounded-2xl">
           <div className="relative h-full w-full">
             <Image
               src={heroSrc}
@@ -62,27 +57,13 @@ export default function CountryCarousel({
               width={800}
               height={800}
               sizes={HERO_SIZES}
-              className={`w-full object-cover ${
-                compact
-                  ? "aspect-[16/9] sm:aspect-[16/10] max-h-[min(50vh,380px)] sm:max-h-[min(52vh,420px)] lg:max-h-[min(48vh,400px)]"
-                  : "aspect-[4/3] sm:aspect-[5/4] lg:aspect-[16/10] xl:aspect-[4/3] max-h-[min(70vh,560px)]"
-              }`}
+              className="w-full aspect-square object-cover"
               priority={currentIndex === 0}
               fetchPriority={currentIndex === 0 ? "high" : "auto"}
               loading={currentIndex === 0 ? "eager" : "lazy"}
             />
-            <div
-              className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent ${
-                compact ? "p-3 max-sm:p-2.5" : "p-6 max-sm:p-4"
-              }`}
-            >
-              <h3
-                className={`font-gilroy-bold text-white ${
-                  compact
-                    ? "text-lg max-sm:text-base mb-0"
-                    : "text-2xl max-sm:text-xl mb-5"
-                }`}
-              >
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6 max-sm:p-4">
+              <h3 className="text-2xl font-gilroy-bold text-white max-sm:text-xl mb-5">
                 {activeCarouselCountry?.name || ""}
               </h3>
             </div>
@@ -106,11 +87,7 @@ export default function CountryCarousel({
           <ChevronRight size={24} className="max-sm:w-5 max-sm:h-5" />
         </button>
 
-        <div
-          className={`flex justify-center gap-2 absolute left-1/2 -translate-x-1/2 ${
-            compact ? "bottom-3 max-sm:bottom-2.5" : "bottom-5 max-sm:bottom-3"
-          }`}
-        >
+        <div className="flex justify-center gap-2 absolute bottom-5 left-1/2 -translate-x-1/2 max-sm:bottom-3">
           {carouselCountries.map((_, index) => (
             <button
               key={index}
@@ -132,11 +109,7 @@ export default function CountryCarousel({
 
       <div
         ref={thumbnailContainerRef}
-        className={`flex justify-start gap-2 overflow-x-auto overflow-y-hidden w-full px-1 sm:px-4 ${
-          compact
-            ? "mt-2 pb-2 md:mt-2.5 md:pb-3 max-sm:mt-1.5"
-            : "pb-6 md:pb-10 mt-6 md:mt-8 max-sm:mt-4"
-        }`}
+        className="flex justify-start pb-10 gap-2 max-lg:hidden mt-8 overflow-x-auto overflow-y-hidden w-full max-sm:mt-4 px-4"
         style={{
           scrollbarWidth: "none",
           msOverflowStyle: "none",
@@ -155,9 +128,7 @@ export default function CountryCarousel({
               setCurrentIndex(index);
               resetTimer();
             }}
-            className={`aspect-square object-cover cursor-pointer rounded-xl border-2 transition-all max-sm:rounded-lg ${
-              compact ? "w-14 max-sm:w-11" : "w-20 max-sm:w-12"
-            } ${
+            className={`w-20 aspect-square object-cover cursor-pointer rounded-xl border-2 transition-all max-sm:w-12 max-sm:rounded-lg ${
               index === currentIndex
                 ? "border-[#7350FF]"
                 : "border-white opacity-70 hover:opacity-100"
