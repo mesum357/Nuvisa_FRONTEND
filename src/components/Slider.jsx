@@ -4188,29 +4188,12 @@ const CountrySlider = ({
                 {selectedCountryData.isActive !== false ? (
                   activeOccasionPricing ? (
                     <div className="flex flex-col gap-2">
-                      {/* Row 1: Discounted + Original */}
-                      <div className="flex flex-wrap gap-6 md:gap-8 lg:gap-12 max-sm:w-full max-sm:justify-between items-center">
-                        <div className="flex flex-col items-center">
-                          <span className="text-2xl lg:text-3xl font-gilroy-bold max-sm:text-xl">
-                            £{discountedVisaDisplayTotal.toFixed(2)}
-                          </span>
-                          {occasionDisplayedSaveAmount > 0 && (
-                            <span className="text-[11px] text-gray-500 font-medium max-sm:text-[10px]">
-                              {activeOccasionPricing.priceMode === "two"
-                                ? activeOccasionPricing.originalPriceLabel ||
-                                  sliderContent?.slider_save ||
-                                  "You save "
-                                : activeOccasionPricing.earlyDiscountLabel ||
-                                  sliderContent?.slider_save ||
-                                  "Early Bird "}
-                              {Math.round(occasionDisplayedSaveAmount)}
-                            </span>
-                          )}
-                        </div>
+                      {/* Row 1: Original (strike) then discounted — single horizontal row */}
+                      <div className="inline-flex flex-row flex-nowrap items-end gap-4 sm:gap-6 md:gap-8 max-w-full">
                         {activeOccasionPricing.comparisonPrice > 0 && (
-                          <div className="flex flex-col items-center">
+                          <div className="flex flex-col items-start min-w-0 shrink-0">
                             <span
-                              className={`text-xl font-semibold max-sm:text-sm line-through decoration-2 decoration-neutral-400 ${
+                              className={`text-xl sm:text-2xl font-semibold line-through decoration-2 decoration-neutral-400 whitespace-nowrap ${
                                 activeOccasionPricing.priceMode === "two"
                                   ? "text-gray-500"
                                   : "text-red-400"
@@ -4222,7 +4205,7 @@ const CountrySlider = ({
                                 (travelers || 1)
                               ).toFixed(2)}
                             </span>
-                            <span className="text-[11px] text-gray-500 font-medium max-sm:text-[10px]">
+                            <span className="text-[11px] text-gray-500 font-medium max-sm:text-[10px] mt-0.5">
                               {activeOccasionPricing.priceMode === "two"
                                 ? activeOccasionPricing.traditionalPriceLabel ||
                                   sliderContent?.slider_traditional ||
@@ -4233,6 +4216,23 @@ const CountrySlider = ({
                             </span>
                           </div>
                         )}
+                        <div className="flex flex-col items-start min-w-0 shrink-0">
+                          <span className="text-2xl lg:text-3xl font-gilroy-bold max-sm:text-xl whitespace-nowrap">
+                            £{discountedVisaDisplayTotal.toFixed(2)}
+                          </span>
+                          {occasionDisplayedSaveAmount > 0 && (
+                            <span className="text-[11px] text-gray-500 font-medium max-sm:text-[10px] mt-0.5">
+                              {activeOccasionPricing.priceMode === "two"
+                                ? activeOccasionPricing.originalPriceLabel ||
+                                  sliderContent?.slider_save ||
+                                  "You save "
+                                : activeOccasionPricing.earlyDiscountLabel ||
+                                  sliderContent?.slider_save ||
+                                  "Early Bird "}
+                              {Math.round(occasionDisplayedSaveAmount)}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       {/* Row 2: Traditional price below */}
                       {activeOccasionPricing.thirdPrice > 0 && (
@@ -4256,13 +4256,23 @@ const CountrySlider = ({
                     </div>
                   ) : (
                     /* Default 2-tier pricing */
-                    <div className="flex flex-wrap gap-6 md:gap-8 lg:gap-12 max-sm:w-full max-sm:justify-between items-center">
-                      <div className="flex flex-col items-center">
-                        <span className="text-2xl lg:text-3xl font-gilroy-bold max-sm:text-xl">
+                    <div className="inline-flex flex-row flex-nowrap items-end gap-4 sm:gap-6 md:gap-8 max-w-full">
+                      <div className="flex flex-col items-start min-w-0 shrink-0">
+                        <span className="text-xl sm:text-2xl font-semibold line-through decoration-2 decoration-neutral-400 text-gray-500 whitespace-nowrap">
+                          £{calculateOriginalPrice()}
+                        </span>
+                        {Number(calculateOriginalPrice()) > visaOnlyPrice && (
+                          <span className="text-[11px] text-gray-500 font-medium max-sm:text-[10px] mt-0.5">
+                            {sliderContent?.slider_traditional}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex flex-col items-start min-w-0 shrink-0">
+                        <span className="text-2xl lg:text-3xl font-gilroy-bold max-sm:text-xl whitespace-nowrap">
                           £{visaOnlyPrice.toFixed(2)}
                         </span>
                         {Number(calculateOriginalPrice()) > visaOnlyPrice && (
-                          <span className="text-[12px] text-gray-500 font-medium max-sm:text-[11px]">
+                          <span className="text-[11px] text-gray-500 font-medium max-sm:text-[10px] mt-0.5">
                             {sliderContent?.slider_save}
                             {Math.round(
                               ((Number(calculateOriginalPrice()) -
@@ -4271,16 +4281,6 @@ const CountrySlider = ({
                                 100,
                             )}
                             %
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex flex-col items-center">
-                        <span className="text-2xl font-semibold max-sm:text-base line-through decoration-2 decoration-neutral-400 text-gray-500">
-                          £{calculateOriginalPrice()}
-                        </span>
-                        {Number(calculateOriginalPrice()) > visaOnlyPrice && (
-                          <span className="text-[12px] text-gray-500 font-medium max-sm:text-[11px]">
-                            {sliderContent?.slider_traditional}
                           </span>
                         )}
                       </div>
