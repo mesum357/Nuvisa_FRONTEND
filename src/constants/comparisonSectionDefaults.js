@@ -2,16 +2,16 @@
 export const comparisonSectionDefaults = {
   title: "Transparency builds trust",
   tooltip:
-    "Competitor information gathered in March 2026; pricing is subject to change.",
+    "Competitor information gathered in April 2026 pricing is subject to change.",
   comparisonColumns: ["NUVIsa", "IVISA", "SCOTT'S", "CIBT"],
   comparisonRows: [
     {
       feature: "Price",
-      values: ["£169", "£295", "£395", "£475"],
+      values: ["£110", "£295", "£395", "£475"],
     },
     {
       feature: "Savings",
-      values: ["—", "+43%", "+57%", "+64%"],
+      values: ["—", "+63%", "+72%", "+77%"],
     },
     {
       feature: "Average appointment time",

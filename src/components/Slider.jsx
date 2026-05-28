@@ -130,9 +130,9 @@ const CountrySlider = ({
 
   const more_to_love = useMemo(
     () => ({
-      title: moreToLoveData?.title || "More to love",
-      leftTitle: moreToLoveData?.leftTitle || "Insurance Certificate",
-      rightTitle: moreToLoveData?.rightTitle || "E-Gift Card",
+      title: moreToLoveData?.title || "More to Love",
+      leftTitle: moreToLoveData?.leftTitle || "Insurance certificate",
+      rightTitle: moreToLoveData?.rightTitle || "NUvisa Gift Card",
       leftSubtitle: moreToLoveData?.leftSubtitle || "",
       rightSubtitle: moreToLoveData?.rightSubtitle || "",
     }),

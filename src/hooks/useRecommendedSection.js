@@ -9,7 +9,7 @@ export const transformRecommendedContent = (rawData) => {
 
   return {
     id: rawData.id,
-    title: rawData.title || 'More to love',
+    title: rawData.title || 'More to Love',
     description: rawData.description || '',
     cards: (rawData.cards || []).map(card => ({
       title: card.title || '',
@@ -25,7 +25,7 @@ export const useRecommendedSection = () => {
   const { data, loading, error } = useContentData('recommended-section', transformRecommendedContent);
   
   const recommendedContent = useMemo(() => data || {
-    title: 'More to love',
+    title: 'More to Love',
     description: '',
     cards: []
   }, [data]);

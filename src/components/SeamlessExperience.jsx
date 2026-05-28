@@ -20,15 +20,15 @@ const SeamlessExperience = () => {
         strikeOutPrice: "£45"
       },
       {
-        title: "NUvisa E-Gift Card",
-        description: "Give the gift of unforgettable memories this Christmas! Order now and your digital gift card will be sent to your email address immediately.",
+        title: "NUvisa Gift Card",
+        description: "Give the gift of unforgettable memories this Easter! Order now and your digital gift card will be sent to your email address immediately.",
         image: "/image/gitftnewcard.png",
         price: "£159",
         strikeOutPrice: "£245"
       }
     ];
 
-  const sectionTitle = (!recommendedLoading && recommendedContent.title) ? recommendedContent.title : "More to love";
+  const sectionTitle = (!recommendedLoading && recommendedContent.title) ? recommendedContent.title : "More to Love";
 
   return (
     <div className="pt-5 bg-[#1E1E27]">

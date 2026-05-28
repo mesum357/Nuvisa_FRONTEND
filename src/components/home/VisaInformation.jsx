@@ -18,9 +18,9 @@ const VisaInformation = ({ showKlarnaSection = true }) => {
   const { processContent, loading: processLoading } = useProcessContent();
   const { klarnaContent, loading: klarnaLoading } = useKlarnaContent();
   const [moreToLoveData, setMoreToLoveData] = useState({
-    title: "More to love",
-    leftTitle: "Insurance Certificate",
-    rightTitle: "E-Gift Card",
+    title: "More to Love",
+    leftTitle: "Insurance certificate",
+    rightTitle: "NUvisa Gift Card",
     leftSubtitle: "",
     rightSubtitle: "",
   });
@@ -79,9 +79,9 @@ const VisaInformation = ({ showKlarnaSection = true }) => {
                 return acc;
               }, {});
         setMoreToLoveData({
-          title: byKey.more_to_love_title_one || "More to love",
-          leftTitle: byKey.more_to_love_left_title || "Insurance Certificate",
-          rightTitle: byKey.more_to_love_right_title || "E-Gift Card",
+          title: byKey.more_to_love_title_one || "More to Love",
+          leftTitle: byKey.more_to_love_left_title || "Insurance certificate",
+          rightTitle: byKey.more_to_love_right_title || "NUvisa Gift Card",
           leftSubtitle: byKey.more_to_love_left_subtitle || "",
           rightSubtitle: byKey.more_to_love_right_subtitle || "",
         });
