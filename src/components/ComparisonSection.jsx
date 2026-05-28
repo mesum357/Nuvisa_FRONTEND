@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { Check, CircleX, Shield, Headphones, Zap, Info } from "lucide-react";
 import { getComparisonSection } from "@/api/comparisonSection";
+import { comparisonSectionDefaults } from "@/constants/comparisonSectionDefaults";
 import { useAppSelector } from "@/store";
 
 // Portal Tooltip Component
@@ -205,44 +206,7 @@ const ComparisonSection = () => {
     fetchComparisonData(selectedCountry, isOccasion, arrivalDate, departureDate);
   }, [selectedCountry, isOccasion, arrivalDate, departureDate]);
 
-  const defaultData = {
-    title: "Beyond Compare",
-    tooltip: "Competitor information gathered in March 2026; pricing is subject to change.",
-    comparisonColumns: ["NUvisa", "Traditional Agency"],
-    comparisonRows: [
-      { feature: "Price", values: ["Flat £250 – no hidden fees", "£250–£300 + extra fees"] },
-      { feature: "Process", values: ["AI powered seamless process", "Traditional, often heavy-paperwork"] },
-      { feature: "Appointment Time", values: ["Appointment in 10 days or less", "Appointment in 6–8 weeks"] },
-      { feature: "Availability", values: ["24/7 instant submission & tracking", "Application business hours only"] },
-      { feature: "Contact", values: ["Complete digital experience", "In-person or lengthy phone appointments"] },
-    ],
-    detailSections: [
-      {
-        title: "DETAILS",
-        items: [
-          "Schengen visa processed in as little as 10 days",
-          "Flat-fee pricing — no hidden costs or surcharges",
-          "AI-powered document review reduces errors",
-          "Real-time status tracking from anywhere",
-          "Dedicated expert support throughout the process",
-        ],
-      },
-      {
-        title: "Tips",
-        items: [
-          "Ensure your passport is valid for at least 6 months beyond stay",
-          "Upload clear, high-resolution scans to speed up AI verification",
-          "Double-check that flight dates match your visa request period",
-          "Keep your digital profile updated for faster future applications",
-          "Check the specific insurance requirements for your destination",
-        ],
-      },
-    ],
-    experienceType: "IMAGES",
-    experienceItems: null,
-    leftSideImage: "/image/visa-agency.png",
-    rightSideImage: "/image/nuvisa-image.jpg",
-  };
+  const defaultData = comparisonSectionDefaults;
 
   const data = {
     ...defaultData,
@@ -378,9 +342,15 @@ const ComparisonSection = () => {
                         val.trim().toLowerCase() === "check" ||
                         val.trim() === "●" ||
                         val.trim() === "○";
+                      const normalizedVal = val.trim().toLowerCase();
                       const isValueCross =
-                        val.trim().toLowerCase() === "x" ||
-                        val.trim().toLowerCase() === "no";
+                        normalizedVal === "x" ||
+                        normalizedVal === "no" ||
+                        normalizedVal === "✖" ||
+                        normalizedVal === "✖️" ||
+                        normalizedVal === "✗" ||
+                        normalizedVal === "❌" ||
+                        normalizedVal.includes("✖");
 
                       return (
                         <div

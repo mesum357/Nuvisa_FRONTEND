@@ -1,4 +1,37 @@
-import { fetchAdminJson } from '@/utils/adminApiBase';
+import { comparisonSectionDefaults } from '@/constants/comparisonSectionDefaults';
+import { fetchAdminJson, getAdminApiBases } from '@/utils/adminApiBase';
+
+const hasComparisonPayload = (data) =>
+  data &&
+  typeof data === 'object' &&
+  !data.error &&
+  (Array.isArray(data.comparisonRows) ||
+    Array.isArray(data.detailSections) ||
+    data.title);
+
+async function fetchComparisonFromAdmin(queryString) {
+  const path = `/api/comparison-section?${queryString}`;
+
+  for (const base of getAdminApiBases()) {
+    const url = `${base}${path}`;
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+        cache: 'no-store',
+      });
+      if (!response.ok) continue;
+      const data = await response.json();
+      if (hasComparisonPayload(data)) {
+        return data;
+      }
+    } catch (error) {
+      console.warn(`Comparison fetch failed (${url}):`, error?.message || error);
+    }
+  }
+
+  return null;
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -14,15 +47,35 @@ export default async function handler(req, res) {
     if (arrivalDate) params.append('arrivalDate', String(arrivalDate));
     if (departureDate) params.append('departureDate', String(departureDate));
 
-    const data = await fetchAdminJson(`/api/comparison-section?${params.toString()}`);
+    let data = await fetchComparisonFromAdmin(params.toString());
+
+    if (!data && country) {
+      const defaultParams = new URLSearchParams(params);
+      defaultParams.set('country', 'Default');
+      data = await fetchComparisonFromAdmin(defaultParams.toString());
+    }
 
     if (!data) {
-      throw new Error('No comparison section data from admin panel');
+      data = await fetchAdminJson(`/api/comparison-section?path=active&country=Default`);
+    }
+
+    if (!data) {
+      return res.status(200).json({
+        ...comparisonSectionDefaults,
+        countryName: 'Default',
+        isActive: true,
+        source: 'fallback',
+      });
     }
 
     return res.status(200).json(data);
   } catch (error) {
     console.error('Error fetching comparison section:', error);
-    return res.status(500).json({ error: 'Failed to fetch comparison section' });
+    return res.status(200).json({
+      ...comparisonSectionDefaults,
+      countryName: 'Default',
+      isActive: true,
+      source: 'fallback',
+    });
   }
 }
