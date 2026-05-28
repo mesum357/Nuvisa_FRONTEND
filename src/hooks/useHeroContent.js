@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
+import { DEFAULT_HERO_DESCRIPTION } from '@/utils/parseHeroDescription';
 
 export const useHeroContent = () => {
   const [heroContent, setHeroContent] = useState({
     title: "Don't Postpone Your Happiness!",
-    description: 'Flat £200 fee, faster processing, dedicated support',
+    description: DEFAULT_HERO_DESCRIPTION,
     ctaText: 'Get the Visa',
     ctaLink: '/get-the-visa',
     discountTicketText: 'Students! Get 10% Off',
