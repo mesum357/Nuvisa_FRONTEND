@@ -18,7 +18,6 @@ const COUNTRIES_WITH_WEBP = new Set([
   "Italy",
   "Latvia",
   "Lithuania",
-  "Luxembourg",
   "Malta",
   "Netherlands",
   "Norway",

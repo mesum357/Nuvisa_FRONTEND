@@ -15,7 +15,8 @@ const CountryCardsSection = dynamic(() => import("@/components/CountryCardsSecti
   loading: () => <div className="min-h-[120px]" />,
 });
 const VisaHeroSection = dynamic(() => import("@/components/CountryRotator"), {
-  loading: () => <div className="min-h-[80px]" />,
+  loading: () => <div className="min-h-[80px]" aria-hidden />,
+  ssr: false,
 });
 const sectionSkeleton = (minH = "120px") => () => (
   <div className="animate-pulse bg-gray-100/40 dark:bg-gray-800/30 rounded-lg min-h-[120px]" style={{ minHeight: minH }} />
@@ -345,11 +346,17 @@ const Index = () => {
 
             <div className="relative z-10 max-w-4xl min-h-[12rem] sm:min-h-[14rem] w-full">
               <div className="hidden lg:block" />
-              <h1 className="text-4xl sm:text-4xl md:text-[5.5rem] font-gilroy-bold leading-tight mb-2 max-sm:mb-2 sm:mb-8 max-sm:tracking-tighter [text-wrap:balance] min-h-[2.75rem] sm:min-h-[3rem] md:min-h-[6.5rem]">
+              <h1
+                suppressHydrationWarning
+                className="text-4xl sm:text-4xl md:text-[5.5rem] font-gilroy-bold leading-tight mb-2 max-sm:mb-2 sm:mb-8 max-sm:tracking-tighter [text-wrap:balance] min-h-[2.75rem] sm:min-h-[3rem] md:min-h-[6.5rem]"
+              >
                 {heroContent.title}
               </h1>
 
-              <p className="text-base sm:text-[25px] md:text-[28px] font-extrabold leading-tight md:text-center min-h-[3.5rem] sm:min-h-[4rem] md:min-h-[4.5rem]">
+              <p
+                suppressHydrationWarning
+                className="text-base sm:text-[25px] md:text-[28px] font-extrabold leading-tight md:text-center min-h-[3.5rem] sm:min-h-[4rem] md:min-h-[4.5rem]"
+              >
                 {heroContent.description?.includes("+Link+") ? (
                   <span className="inline-flex items-center gap-x-1 sm:gap-x-3 gap-y-2 border rounded-4xl px-2 sm:px-3 py-1.5 sm:px-5 sm:py-3">
                     {heroContent.description
@@ -519,7 +526,10 @@ const Index = () => {
                     height={40}
                     alt="Badge Icon"
                   />
-                  <h2 className="text-[26px] lg:text-[32px] font-gilroy-bold text-white leading-tight">
+                  <h2
+                    suppressHydrationWarning
+                    className="text-[26px] lg:text-[32px] font-gilroy-bold text-white leading-tight"
+                  >
                     {priceMatchTitle}
                   </h2>
 
@@ -541,14 +551,17 @@ const Index = () => {
                     />
                     {showTooltip && (
                       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 p-3 bg-[#6F48FF] text-white text-[12px] font-normal leading-tight rounded-xl shadow-2xl z-50">
-                        <p>{priceMatchTooltip}</p>
+                        <p suppressHydrationWarning>{priceMatchTooltip}</p>
                         <div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-[#6F48FF]" />
                       </div>
                     )}
                   </div>
                 </div>
 
-                <p className="text-gray-400 text-sm md:text-md max-w-2xl font-gilroy-medium">
+                <p
+                  suppressHydrationWarning
+                  className="text-gray-400 text-sm md:text-md max-w-2xl font-gilroy-medium"
+                >
                   {priceMatchDescription}
                 </p>
               </div>

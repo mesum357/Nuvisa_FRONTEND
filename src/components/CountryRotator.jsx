@@ -103,17 +103,16 @@ const VisaHeroSection = () => {
       <style>{`
         .highlight-animation-top {
           position: relative;
+          display: block;
           height: 1em;
           min-height: 1em;
           min-width: 11ch;
-          display: flex;
-          justify-content: center;
-          align-items: center;
           width: 100%;
         }
 
         .highlight-animation-word {
           position: absolute;
+          display: block;
           color: #fff;
           text-align: center;
           opacity: 0;
@@ -144,10 +143,13 @@ const VisaHeroSection = () => {
         }
       `}</style>
 
-      <h1 className="text-[40px] whitespace-nowrap uppercase md:text-[60px] font-gilroy-bold mt-2 max-sm:my-[-30px] md:mt-5 min-h-[1.1em]">
-        <div className="highlight-animation-top">
+      <p
+        className="text-[40px] whitespace-nowrap uppercase md:text-[60px] font-gilroy-bold mt-2 max-sm:my-[-30px] md:mt-5 min-h-[1.1em]"
+        aria-label="Schengen destinations"
+      >
+        <span className="highlight-animation-top">
           {WORDS.map((word, index) => (
-            <div
+            <span
               key={word}
               className="highlight-animation-word"
               ref={(el) => {
@@ -156,10 +158,10 @@ const VisaHeroSection = () => {
               style={{ opacity: index === 0 ? 1 : 0 }}
             >
               {word}
-            </div>
+            </span>
           ))}
-        </div>
-      </h1>
+        </span>
+      </p>
     </div>
   );
 };
