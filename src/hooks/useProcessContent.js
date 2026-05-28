@@ -1,19 +1,11 @@
+import { mergeProcessContent } from '@/constants/processContentDefaults';
 import { useMemo } from 'react';
 import { useContentData, transformProcessContent } from './useContentData';
 
 export const useProcessContent = () => {
   const { data, loading, error } = useContentData('process-content', transformProcessContent);
   
-  const processContent = useMemo(() => data || {
-    heading: '',
-    description: '',
-    steps: [
-      { title: '', description: '' },
-      { title: '', description: '' },
-      { title: '', description: '' },
-      { title: '', description: '' }
-    ]
-  }, [data]);
+  const processContent = useMemo(() => mergeProcessContent(data), [data]);
   
   return { processContent, loading, error };
 };

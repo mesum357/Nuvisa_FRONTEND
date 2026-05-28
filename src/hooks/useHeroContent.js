@@ -3,7 +3,7 @@ import { DEFAULT_HERO_DESCRIPTION } from '@/utils/parseHeroDescription';
 
 export const useHeroContent = () => {
   const [heroContent, setHeroContent] = useState({
-    title: "Don't Postpone Your Happiness!",
+    title: "Don't Postpone Your Happines!",
     description: DEFAULT_HERO_DESCRIPTION,
     ctaText: 'Get the Visa',
     ctaLink: '/get-the-visa',

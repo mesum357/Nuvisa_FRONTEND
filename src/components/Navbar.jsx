@@ -1,3 +1,4 @@
+import { HEADER_CONTENT_DEFAULTS } from "@/constants/headerContentDefaults";
 import GetTheVisaButton from "@/components/layout/GetTheVisaButton";
 import Image from "next/image";
 import Link from "next/link";
@@ -63,8 +64,8 @@ const Navbar = () => {
 
   // Helper function to get content with fallback
   const getContent = (key, fallback = '') => {
-    if (loading) return fallback;
-    return getHeaderContentByKey(headerContent, key) || fallback;
+    if (loading) return HEADER_CONTENT_DEFAULTS[key] || fallback;
+    return getHeaderContentByKey(headerContent, key) || HEADER_CONTENT_DEFAULTS[key] || fallback;
   };
 
 
@@ -76,9 +77,9 @@ const Navbar = () => {
           {/* Left Content (Text + Button aligned LEFT) */}
           <div className="flex items-center gap-3 md:flex-row   ">
             <span className="font-medium md:text-start text-center md:font-medium md:text-base text-sm">
-              {getContent('banner_offer_text', ' NEW CUSTOMER OFFER - £20 fee for your first visa with us, then £200')}
+              {getContent('banner_offer_text', HEADER_CONTENT_DEFAULTS.banner_offer_text)}
 
-              <Link href={getContent('banner_button_link', '#')}>
+              <Link href={getContent('banner_button_link', HEADER_CONTENT_DEFAULTS.banner_button_link)}>
                 <span className="underline decoration-[#7351ff] public_text_clr ml-2 rounded-md text-white font-medium transition-colors">
                   {getContent('banner_button_text', 'Get now')}
                 </span>
@@ -97,7 +98,7 @@ const Navbar = () => {
             <div className="flex items-center gap-2">
               <FaWhatsapp className="text-green-400 size-4" />
               <span className="text-sm font-medium text-gray-300 hidden md:inline">
-                {getContent('contact_phone', '+44 7876505800')}
+                {getContent('contact_phone', HEADER_CONTENT_DEFAULTS.contact_phone)}
               </span>
             </div>
             </a>
@@ -116,7 +117,7 @@ const Navbar = () => {
 
         <div className="text-center my-2.5 md:hidden block">
           <span className="text-xl sm:text-2xl font-gilroy-bold md:block ">
-            {getContent('nav_tagline', 'Schengen visa for Indians from the UK')}
+            {getContent('nav_tagline', HEADER_CONTENT_DEFAULTS.nav_tagline)}
           </span>
         </div>
 
