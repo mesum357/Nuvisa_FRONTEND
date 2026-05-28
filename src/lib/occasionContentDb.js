@@ -4,9 +4,11 @@ import { normalizeOccasionList } from "@/utils/occasionData";
 /** Same Postgres table nuvisa-admin reads/writes (`occasion_content`). */
 export async function fetchOccasionContentFromDb() {
   try {
-    const row = await prisma.occasionContent.findUnique({
-      where: { id: "current" },
-    });
+    const row =
+      (await prisma.occasionContent.findUnique({ where: { id: "current" } })) ||
+      (await prisma.occasionContent.findFirst({
+        orderBy: { updatedAt: "desc" },
+      }));
     if (!row) return null;
 
     const occasions = normalizeOccasionList(row.occasions);

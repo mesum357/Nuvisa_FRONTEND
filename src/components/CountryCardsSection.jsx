@@ -595,19 +595,20 @@ const CountryCardsSection = ({
             />
             <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent"></div>
             <div className="absolute bottom-4 left-4 text-white">
-              <h3 className="text-xl font-gilroy-bold mb-0.5">
-                {dynamicSection
-                  ? dynamicSection.title
-                  : image
-                    ? "Everyday Steals"
-                    : sectionContent.title}
+              <h3
+                suppressHydrationWarning
+                className="text-xl font-gilroy-bold mb-0.5"
+              >
+                {dynamicSection?.title ||
+                  occasionContent ||
+                  sectionContent.title ||
+                  "Everyday Steals"}
               </h3>
-              <p className="text-xs opacity-90">
-                {dynamicSection
-                  ? dynamicSection.description
-                  : image
-                    ? "Best deals on flights and hotels"
-                    : sectionContent.description}
+              <p suppressHydrationWarning className="text-xs opacity-90">
+                {dynamicSection?.description ||
+                  occasionSubtitle ||
+                  sectionContent.description ||
+                  "Best deals on flights and hotels"}
               </p>
             </div>
           </div>

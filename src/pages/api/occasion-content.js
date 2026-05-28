@@ -92,30 +92,42 @@ export default async function handler(req, res) {
     const fromCms = await fetchBackendCms(apiBase);
     const fromAdmin = await fetchAdminOccasions();
 
-    const merged = {
-      title: fromDb?.title || fromCms?.title || fromAdmin?.title || "",
-      description:
-        fromDb?.description || fromCms?.description || fromAdmin?.description || "",
-      occasions:
-        fromDb?.occasions?.length > 0
-          ? fromDb.occasions
-          : fromCms?.occasions?.length > 0
-          ? fromCms.occasions
-          : fromAdmin?.occasions || [],
+    const pickTitle = (...sources) => {
+      for (const source of sources) {
+        const value = String(source?.title || "").trim();
+        if (value) return value;
+      }
+      return "";
     };
 
-    const source = fromDb?.occasions?.length
-      ? fromDb.source
-      : fromCms?.occasions?.length
-      ? fromCms.source
-      : fromAdmin?.occasions?.length
+    const pickDescription = (...sources) => {
+      for (const source of sources) {
+        const value = String(source?.description || "").trim();
+        if (value) return value;
+      }
+      return "";
+    };
+
+    const pickOccasions = (...sources) => {
+      for (const source of sources) {
+        if (source?.occasions?.length > 0) return source.occasions;
+      }
+      return [];
+    };
+
+    // Admin CMS is the source of truth; local DB / legacy CMS are fallbacks only.
+    const merged = {
+      title: pickTitle(fromAdmin, fromDb, fromCms),
+      description: pickDescription(fromAdmin, fromDb, fromCms),
+      occasions: pickOccasions(fromAdmin, fromDb, fromCms),
+    };
+
+    const source = fromAdmin?.title || fromAdmin?.description || fromAdmin?.occasions?.length
       ? fromAdmin.source
-      : fromDb?.title || fromDb?.description
+      : fromDb?.title || fromDb?.description || fromDb?.occasions?.length
       ? fromDb.source
-      : fromCms?.title || fromCms?.description
+      : fromCms?.title || fromCms?.description || fromCms?.occasions?.length
       ? fromCms.source
-      : fromAdmin?.title || fromAdmin?.description
-      ? fromAdmin.source
       : "defaults";
 
     const data = finalizeOccasionPayload(merged, { allowDefaults: true });
