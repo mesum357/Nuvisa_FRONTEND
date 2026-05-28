@@ -53,6 +53,16 @@ const StickyBottomBar = ({ triggerElementId }) => {
   const requiredDocuments = visaState.requiredDocuments || {};
   const visaPriceDisplay = visaState.visaPriceDisplay;
 
+  /** Third strike column only for true 3-tier occasion pricing — not 2-tier duplicate */
+  const showThirdPriceTier = useMemo(() => {
+    const traditional = Number(visaPriceDisplay?.traditionalPerTraveler || 0);
+    const original = Number(visaPriceDisplay?.originalPerTraveler || 0);
+    return traditional > 0 && traditional !== original;
+  }, [
+    visaPriceDisplay?.traditionalPerTraveler,
+    visaPriceDisplay?.originalPerTraveler,
+  ]);
+
   // Refs to track previous values for toast notifications
   const prevTravelerCountRef = useRef(travelerCount);
   const prevInsuranceCountRef = useRef(insuranceCount);
@@ -317,10 +327,10 @@ const StickyBottomBar = ({ triggerElementId }) => {
             setVisaPriceDisplay({
               isOccasion: false,
               originalPerTraveler,
-              traditionalPerTraveler: originalPerTraveler,
+              traditionalPerTraveler: 0,
               discountedLabel: "You save",
               originalLabel: "Traditional fee",
-              traditionalLabel: "Traditional",
+              traditionalLabel: "",
             }),
           );
           if (!visaState.visaFees && (visaState.travelers ?? 0) > 0) {
@@ -828,21 +838,21 @@ const StickyBottomBar = ({ triggerElementId }) => {
                       <h3 className="text-sm font-medium text-white mb-1">
                         {getDisplayTitle(item)}
                       </h3>
-                      <div className="flex flex-wrap items-start gap-3">
-                        <div className="flex flex-col">
-                          <span className="text-white font-bold">
+                      <div className="flex flex-wrap items-end gap-4 sm:gap-6">
+                        <div className="flex flex-col items-start shrink-0">
+                          <span className="text-white font-bold text-lg whitespace-nowrap">
                             £
                             {quantities[item.id] > 0
                               ? getItemDiscountedPrice(item.id).toFixed(2)
                               : visaFeePerTraveler}
                           </span>
                           {!!visaPriceDisplay?.discountedLabel ? (
-                            <span className="text-[10px] text-gray-500 font-medium">
+                            <span className="text-[10px] text-gray-500 font-medium whitespace-nowrap">
                               {visaPriceDisplay.discountedLabel}{" "}
                               {schengenMaxDiscountPercent}%
                             </span>
                           ) : (
-                            <span className="text-[10px] text-gray-500 font-medium">
+                            <span className="text-[10px] text-gray-500 font-medium whitespace-nowrap">
                               {item.currentPrice < item.originalPrice
                                 ? "You save " +
                                   (
@@ -855,13 +865,11 @@ const StickyBottomBar = ({ triggerElementId }) => {
                             </span>
                           )}
                         </div>
-                        <div className="flex gap-1 flex-col">
+                        <div className="flex flex-col items-start shrink-0">
                           <span
-                            className={` ${
-                              visaPriceDisplay?.traditionalPerTraveler
-                                ? "text-red-400"
-                                : ""
-                            } line-through text-sm`}
+                            className={`line-through text-sm whitespace-nowrap ${
+                              showThirdPriceTier ? "text-red-400" : "text-gray-400"
+                            }`}
                           >
                             £
                             {(
@@ -875,19 +883,18 @@ const StickyBottomBar = ({ triggerElementId }) => {
                             ).toFixed(2)}
                           </span>
                           {!!visaPriceDisplay?.originalLabel ? (
-                            <span className="text-[10px] text-gray-500 font-medium">
+                            <span className="text-[10px] text-gray-500 font-medium whitespace-nowrap">
                               {visaPriceDisplay.originalLabel}
                             </span>
                           ) : (
-                            <span className="text-[10px] text-gray-500 font-medium">
-                              {"Traditional fee"}
+                            <span className="text-[10px] text-gray-500 font-medium whitespace-nowrap">
+                              Traditional fee
                             </span>
                           )}
                         </div>
-                        {Number(visaPriceDisplay?.traditionalPerTraveler || 0) >
-                          0 && (
-                          <div className="flex  gap-1 flex-col">
-                            <span className="text-gray-500 line-through text-sm">
+                        {showThirdPriceTier && (
+                          <div className="flex flex-col items-start shrink-0">
+                            <span className="text-gray-500 line-through text-sm whitespace-nowrap">
                               £
                               {(
                                 Number(
@@ -899,7 +906,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
                               ).toFixed(2)}
                             </span>
                             {!!visaPriceDisplay?.traditionalLabel && (
-                              <span className="text-[10px] text-gray-500 font-medium">
+                              <span className="text-[10px] text-gray-500 font-medium whitespace-nowrap">
                                 {visaPriceDisplay.traditionalLabel}
                               </span>
                             )}
@@ -1142,21 +1149,21 @@ const StickyBottomBar = ({ triggerElementId }) => {
                         <h3 className="text-sm font-medium text-white mb-1">
                           {getDisplayTitle(item)}
                         </h3>
-                        <div className="flex flex-wrap items-start gap-2">
-                          <div className="flex flex-col">
-                            <span className="text-white font-bold">
+                        <div className="flex flex-wrap items-end gap-3">
+                          <div className="flex flex-col items-start shrink-0">
+                            <span className="text-white font-bold whitespace-nowrap">
                               £
                               {quantities[item.id] > 0
                                 ? getItemDiscountedPrice(item.id).toFixed(2)
                                 : visaFeePerTraveler}
                             </span>
                             {!!visaPriceDisplay?.discountedLabel ? (
-                              <span className="text-[10px] text-gray-500 font-medium">
+                              <span className="text-[10px] text-gray-500 font-medium whitespace-nowrap">
                                 {visaPriceDisplay.discountedLabel}{" "}
                                 {schengenMaxDiscountPercent}%
                               </span>
                             ) : item.currentPrice < item.originalPrice ? (
-                              <span className="text-[10px] text-gray-500 font-medium">
+                              <span className="text-[10px] text-gray-500 font-medium whitespace-nowrap">
                                 You save{" "}
                                 {(
                                   ((item.originalPrice - item.currentPrice) /
@@ -1167,8 +1174,8 @@ const StickyBottomBar = ({ triggerElementId }) => {
                               </span>
                             ) : null}
                           </div>
-                          <div className="flex gap-1 flex-col">
-                            <span className="text-gray-400 line-through text-sm">
+                          <div className="flex flex-col items-start shrink-0">
+                            <span className="text-gray-400 line-through text-sm whitespace-nowrap">
                               £
                               {(
                                 Number(
@@ -1181,20 +1188,18 @@ const StickyBottomBar = ({ triggerElementId }) => {
                               ).toFixed(2)}
                             </span>
                             {!!visaPriceDisplay?.originalLabel ? (
-                              <span className="text-[10px] text-gray-500 font-medium">
+                              <span className="text-[10px] text-gray-500 font-medium whitespace-nowrap">
                                 {visaPriceDisplay.originalLabel}
                               </span>
                             ) : (
-                              <span className="text-[10px] text-gray-500 font-medium">
+                              <span className="text-[10px] text-gray-500 font-medium whitespace-nowrap">
                                 Traditional fee
                               </span>
                             )}
                           </div>
-                          {Number(
-                            visaPriceDisplay?.traditionalPerTraveler || 0,
-                          ) > 0 && (
-                            <div className="flex gap-1 flex-col">
-                              <span className="text-gray-500 line-through text-sm">
+                          {showThirdPriceTier && (
+                            <div className="flex flex-col items-start shrink-0">
+                              <span className="text-gray-500 line-through text-sm whitespace-nowrap">
                                 £
                                 {(
                                   Number(
@@ -1207,7 +1212,7 @@ const StickyBottomBar = ({ triggerElementId }) => {
                                 ).toFixed(2)}
                               </span>
                               {!!visaPriceDisplay?.traditionalLabel && (
-                                <span className="text-[10px] text-gray-500 font-medium">
+                                <span className="text-[10px] text-gray-500 font-medium whitespace-nowrap">
                                   {visaPriceDisplay.traditionalLabel}
                                 </span>
                               )}

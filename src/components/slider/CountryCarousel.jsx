@@ -9,11 +9,10 @@ const HERO_SIZES =
   "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1440px) 800px, 960px";
 
 /**
- * Country image carousel — kept separate so the main Slider chunk parses less upfront.
+ * Country image carousel — horizontal slide track (no single-image src swap).
  */
 export default function CountryCarousel({
   carouselCountries,
-  activeCarouselCountry,
   currentIndex,
   setCurrentIndex,
   goToPrevious,
@@ -21,52 +20,70 @@ export default function CountryCarousel({
   resetTimer,
   thumbnailContainerRef,
 }) {
-  const heroSrc = preferCountryWebp(
-    activeCarouselCountry?.image || DEFAULT_COUNTRY_IMAGE,
-  );
-
   useEffect(() => {
-    const first = carouselCountries[0]?.image;
-    if (!first || typeof document === "undefined") return undefined;
+    if (typeof document === "undefined" || !carouselCountries.length) {
+      return undefined;
+    }
 
-    const existing = document.querySelector(
-      'link[data-nuvisa-preload="carousel-hero"]',
-    );
-    if (existing) return undefined;
+    const preloadCount = Math.min(3, carouselCountries.length);
+    const links = [];
 
-    const link = document.createElement("link");
-    link.rel = "preload";
-    link.as = "image";
-    link.href = preferCountryWebp(first);
-    link.setAttribute("data-nuvisa-preload", "carousel-hero");
-    document.head.appendChild(link);
+    for (let i = 0; i < preloadCount; i += 1) {
+      const href = preferCountryWebp(carouselCountries[i]?.image);
+      if (!href) continue;
+
+      const link = document.createElement("link");
+      link.rel = "preload";
+      link.as = "image";
+      link.href = href;
+      link.setAttribute("data-nuvisa-preload", `carousel-hero-${i}`);
+      document.head.appendChild(link);
+      links.push(link);
+    }
 
     return () => {
-      link.remove();
+      links.forEach((link) => link.remove());
     };
   }, [carouselCountries]);
+
+  if (!carouselCountries.length) {
+    return null;
+  }
 
   return (
     <section className="mt-1 w-full max-sm:mt-0">
       <div className="relative w-full">
         <div className="overflow-hidden rounded-3xl shadow-lg max-sm:rounded-2xl">
-          <div className="relative h-full w-full">
-            <Image
-              src={heroSrc}
-              alt={activeCarouselCountry?.name || "Country"}
-              width={800}
-              height={800}
-              sizes={HERO_SIZES}
-              className="w-full aspect-square object-cover"
-              priority={currentIndex === 0}
-              fetchPriority={currentIndex === 0 ? "high" : "auto"}
-              loading={currentIndex === 0 ? "eager" : "lazy"}
-            />
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6 max-sm:p-4">
-              <h3 className="text-2xl font-gilroy-bold text-white max-sm:text-xl mb-5">
-                {activeCarouselCountry?.name || ""}
-              </h3>
-            </div>
+          <div
+            className="flex transition-transform duration-500 ease-in-out motion-reduce:transition-none motion-reduce:duration-0"
+            style={{
+              transform: `translateX(-${currentIndex * 100}%)`,
+            }}
+            aria-live="polite"
+          >
+            {carouselCountries.map((country, index) => (
+              <div
+                key={country.id ?? country.name ?? index}
+                className="relative w-full shrink-0"
+              >
+                <Image
+                  src={preferCountryWebp(country.image || DEFAULT_COUNTRY_IMAGE)}
+                  alt={country.name || "Country"}
+                  width={800}
+                  height={800}
+                  sizes={HERO_SIZES}
+                  className="w-full aspect-square object-cover"
+                  priority={index <= 1}
+                  fetchPriority={index === 0 ? "high" : "auto"}
+                  loading={index <= 1 ? "eager" : "lazy"}
+                />
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6 max-sm:p-4 pointer-events-none">
+                  <h3 className="text-2xl font-gilroy-bold text-white max-sm:text-xl mb-5">
+                    {country.name || ""}
+                  </h3>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -87,7 +104,7 @@ export default function CountryCarousel({
           <ChevronRight size={24} className="max-sm:w-5 max-sm:h-5" />
         </button>
 
-        <div className="flex justify-center gap-2 absolute bottom-5 left-1/2 -translate-x-1/2 max-sm:bottom-3">
+        <div className="flex justify-center gap-2 absolute bottom-5 left-1/2 -translate-x-1/2 max-sm:bottom-3 z-10">
           {carouselCountries.map((_, index) => (
             <button
               key={index}
@@ -102,6 +119,7 @@ export default function CountryCarousel({
                   : "bg-white/50"
               }`}
               aria-label={`Go to slide ${index + 1}`}
+              aria-current={index === currentIndex ? "true" : undefined}
             />
           ))}
         </div>

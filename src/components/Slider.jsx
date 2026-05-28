@@ -4090,67 +4090,70 @@ const CountrySlider = ({
                 {sliderContent?.slider_description ||
                   "Complete visa service with all necessary documents"}
               </p>
-              <div className="flex items-center justify-between gap-3 mb-4 max-sm:flex-col max-sm:items-start max-sm:gap-1">
+              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 mb-4 max-sm:flex-col max-sm:items-stretch max-sm:gap-3">
                 {selectedCountryData.isActive !== false ? (
                   activeOccasionPricing ? (
-                    <div className="flex flex-col gap-2">
-                      {/* Row 1: Original (strike) then discounted — single horizontal row */}
-                      <div className="inline-flex flex-row flex-nowrap items-end gap-4 sm:gap-6 md:gap-8 max-w-full">
-                        {activeOccasionPricing.comparisonPrice > 0 && (
-                          <div className="flex flex-col items-start min-w-0 shrink-0">
-                            <span
-                              className={`text-xl sm:text-2xl font-semibold line-through decoration-2 decoration-neutral-400 whitespace-nowrap ${
-                                activeOccasionPricing.priceMode === "two"
-                                  ? "text-gray-500"
-                                  : "text-red-400"
-                              }`}
-                            >
-                              £
-                              {(
-                                activeOccasionPricing.comparisonPrice *
-                                (travelers || 1)
-                              ).toFixed(2)}
-                            </span>
-                            <span className="text-[11px] text-gray-500 font-medium max-sm:text-[10px] mt-0.5">
-                              {activeOccasionPricing.priceMode === "two"
-                                ? activeOccasionPricing.traditionalPriceLabel ||
-                                  sliderContent?.slider_traditional ||
-                                  "Traditional fee"
-                                : activeOccasionPricing.originalPriceLabel ||
-                                  sliderContent?.slider_traditional ||
-                                  "Traditional fee"}
-                            </span>
-                          </div>
-                        )}
-                        <div className="flex flex-col items-start min-w-0 shrink-0">
-                          <span className="text-2xl lg:text-3xl font-gilroy-bold max-sm:text-xl whitespace-nowrap">
-                            £{discountedVisaDisplayTotal.toFixed(2)}
-                          </span>
-                          {occasionDisplayedSaveAmount > 0 && (
-                            <span className="text-[11px] text-gray-500 font-medium max-sm:text-[10px] mt-0.5">
+                    <div className="inline-flex flex-row flex-nowrap items-end gap-4 sm:gap-6 md:gap-8 min-w-0">
+                      <div className="flex flex-col items-start min-w-0 shrink-0">
+                        <span className="text-2xl lg:text-3xl font-gilroy-bold max-sm:text-xl whitespace-nowrap">
+                          £{discountedVisaDisplayTotal.toFixed(2)}
+                        </span>
+                        {occasionDisplayedSaveAmount > 0 &&
+                          activeOccasionPricing.comparisonPrice > 0 && (
+                            <span className="text-[11px] text-gray-500 font-medium max-sm:text-[10px] mt-0.5 whitespace-nowrap">
                               {activeOccasionPricing.priceMode === "two"
                                 ? activeOccasionPricing.originalPriceLabel ||
                                   sliderContent?.slider_save ||
                                   "You save "
                                 : activeOccasionPricing.earlyDiscountLabel ||
                                   sliderContent?.slider_save ||
-                                  "Early Bird "}
-                              {Math.round(occasionDisplayedSaveAmount)}
+                                  "You save "}
+                              {Math.round(
+                                (occasionDisplayedSaveAmount /
+                                  (activeOccasionPricing.comparisonPrice *
+                                    (travelers || 1))) *
+                                  100,
+                              )}
+                              %
                             </span>
                           )}
-                        </div>
                       </div>
-                      {/* Row 2: Traditional price below */}
+                      {activeOccasionPricing.comparisonPrice > 0 && (
+                        <div className="flex flex-col items-start min-w-0 shrink-0">
+                          <span
+                            className={`text-xl sm:text-2xl font-semibold line-through decoration-2 decoration-neutral-400 whitespace-nowrap ${
+                              activeOccasionPricing.priceMode === "two"
+                                ? "text-gray-500"
+                                : "text-red-400"
+                            }`}
+                          >
+                            £
+                            {(
+                              activeOccasionPricing.comparisonPrice *
+                              (travelers || 1)
+                            ).toFixed(2)}
+                          </span>
+                          <span className="text-[11px] text-gray-500 font-medium max-sm:text-[10px] mt-0.5 whitespace-nowrap">
+                            {activeOccasionPricing.priceMode === "two"
+                              ? activeOccasionPricing.traditionalPriceLabel ||
+                                sliderContent?.slider_traditional ||
+                                "Traditional fee"
+                              : activeOccasionPricing.originalPriceLabel ||
+                                sliderContent?.slider_traditional ||
+                                "Traditional fee"}
+                          </span>
+                        </div>
+                      )}
                       {activeOccasionPricing.thirdPrice > 0 && (
-                        <div className="flex flex-col">
-                          <span className="text-xl font-semibold max-sm:text-sm line-through decoration-2 decoration-neutral-400 text-gray-500">
+                        <div className="flex flex-col items-start min-w-0 shrink-0">
+                          <span className="text-xl font-semibold max-sm:text-sm line-through decoration-2 decoration-neutral-400 text-gray-500 whitespace-nowrap">
                             £
                             {(
                               activeOccasionPricing.thirdPrice *
                               (travelers || 1)
                             ).toFixed(2)}
                           </span>
-                          <span className="text-[12px] text-gray-500 font-medium max-sm:text-[11px]">
+                          <span className="text-[11px] text-gray-500 font-medium max-sm:text-[10px] mt-0.5 whitespace-nowrap">
                             {activeOccasionPricing.traditionalPriceLabel ||
                               sliderContent?.third_price_message ||
                               occasionTraditionalText ||
@@ -4161,25 +4164,15 @@ const CountrySlider = ({
                       )}
                     </div>
                   ) : (
-                    /* Default 2-tier pricing */
-                    <div className="inline-flex flex-row flex-nowrap items-end gap-4 sm:gap-6 md:gap-8 max-w-full">
-                      <div className="flex flex-col items-start min-w-0 shrink-0">
-                        <span className="text-xl sm:text-2xl font-semibold line-through decoration-2 decoration-neutral-400 text-gray-500 whitespace-nowrap">
-                          £{calculateOriginalPrice()}
-                        </span>
-                        {Number(calculateOriginalPrice()) > visaOnlyPrice && (
-                          <span className="text-[11px] text-gray-500 font-medium max-sm:text-[10px] mt-0.5">
-                            {sliderContent?.slider_traditional}
-                          </span>
-                        )}
-                      </div>
+                    /* Default 2-tier: current price + save label, then strike + traditional label */
+                    <div className="inline-flex flex-row flex-nowrap items-end gap-4 sm:gap-6 md:gap-8 min-w-0">
                       <div className="flex flex-col items-start min-w-0 shrink-0">
                         <span className="text-2xl lg:text-3xl font-gilroy-bold max-sm:text-xl whitespace-nowrap">
                           £{visaOnlyPrice.toFixed(2)}
                         </span>
                         {Number(calculateOriginalPrice()) > visaOnlyPrice && (
-                          <span className="text-[11px] text-gray-500 font-medium max-sm:text-[10px] mt-0.5">
-                            {sliderContent?.slider_save}
+                          <span className="text-[11px] text-gray-500 font-medium max-sm:text-[10px] mt-0.5 whitespace-nowrap">
+                            {sliderContent?.slider_save || "You save "}
                             {Math.round(
                               ((Number(calculateOriginalPrice()) -
                                 visaOnlyPrice) /
@@ -4190,6 +4183,17 @@ const CountrySlider = ({
                           </span>
                         )}
                       </div>
+                      {Number(calculateOriginalPrice()) > visaOnlyPrice && (
+                        <div className="flex flex-col items-start min-w-0 shrink-0">
+                          <span className="text-xl sm:text-2xl font-semibold line-through decoration-2 decoration-neutral-400 text-gray-500 whitespace-nowrap">
+                            £{calculateOriginalPrice()}
+                          </span>
+                          <span className="text-[11px] text-gray-500 font-medium max-sm:text-[10px] mt-0.5 whitespace-nowrap">
+                            {sliderContent?.slider_traditional ||
+                              "Traditional fee"}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   )
                 ) : (
@@ -4200,7 +4204,8 @@ const CountrySlider = ({
                   </div>
                 )}
 
-                <div className="flex items-center gap-2 shadow-lg shadow-black/20 p-2 rounded-full max-sm:w-full max-sm:justify-between max-sm:px-4">
+                <div className="flex flex-wrap items-center gap-2 shrink-0 max-sm:w-full max-sm:justify-between">
+                  <div className="flex items-center gap-2 shadow-lg shadow-black/20 p-2 rounded-full max-sm:flex-1 max-sm:justify-between max-sm:px-4">
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 rounded-full flex items-center justify-center">
                       <UserIcon className="fill-white max-sm:w-3 max-sm:h-3" />
@@ -4298,6 +4303,7 @@ const CountrySlider = ({
                       </div>
                     </div>
                   )}
+                </div>
                 </div>
               </div>
             </div>
