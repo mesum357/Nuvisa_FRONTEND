@@ -1,3 +1,4 @@
+import { mergeSliderContentResponse } from "@/constants/sliderContentDefaults";
 import { getSliderCacheStore } from "@/lib/contentApiCache";
 import {
   CONTENT_API_CACHE_TTL_MS,
@@ -19,13 +20,15 @@ export default async function handler(req, res) {
 
   if (!bust && cached && now - cached.timestamp < CONTENT_API_CACHE_TTL_MS) {
     res.setHeader("Cache-Control", CONTENT_API_HTTP_CACHE);
-    return res.status(200).json(cached.data);
+    return res.status(200).json(mergeSliderContentResponse(cached.data));
   }
 
   try {
-    const data = await fetchAdminJson("/api/public/slider-content");
+    const data = mergeSliderContentResponse(
+      await fetchAdminJson("/api/public/slider-content"),
+    );
 
-    if (!data) {
+    if (!data?.data?.length) {
       throw new Error("No slider content from admin panel");
     }
 
@@ -36,8 +39,8 @@ export default async function handler(req, res) {
     console.error("slider-content proxy error:", error?.message);
     if (cached?.data) {
       res.setHeader("Cache-Control", CONTENT_API_HTTP_CACHE);
-      return res.status(200).json(cached.data);
+      return res.status(200).json(mergeSliderContentResponse(cached.data));
     }
-    return res.status(500).json({ error: "Failed to fetch slider content" });
+    return res.status(200).json(mergeSliderContentResponse(null));
   }
 }

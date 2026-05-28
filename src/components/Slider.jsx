@@ -4084,11 +4084,11 @@ const CountrySlider = ({
             {/* Header with pricing */}
             <div className="mb-8 max-sm:mb-6">
               <h1 className="text-3xl font-gilroy-bold max-sm:text-2xl">
-                {sliderContent?.slider_header}
+                {sliderContent?.slider_header || "Schengen visa from the UK"}
               </h1>
               <p className="text-xs mb-4 max-sm:text-[11px] max-sm:mb-3 leading-relaxed">
                 {sliderContent?.slider_description ||
-                  "Complete visa service with all necessary documents"}
+                  "Complete visa service end-to-end with all necessary documents"}
               </p>
               <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 mb-4 max-sm:flex-col max-sm:items-stretch max-sm:gap-3">
                 {selectedCountryData.isActive !== false ? (

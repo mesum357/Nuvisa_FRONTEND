@@ -1,3 +1,4 @@
+import { mergeSliderContentMap } from '@/constants/sliderContentDefaults';
 import { useEffect, useState } from 'react';
 
 export const useSliderContent = () => {
@@ -22,11 +23,11 @@ export const useSliderContent = () => {
               map[item.key] = item.value;
             }
           });
-          setContent(map);
+          setContent(mergeSliderContentMap(map));
         } else {
           // As a fallback, if API returned an object map already
           if (json && typeof json === 'object') {
-            setContent(json);
+            setContent(mergeSliderContentMap(json));
           }
         }
       } catch (e) {
