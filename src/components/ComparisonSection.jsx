@@ -206,47 +206,57 @@ const ComparisonSection = () => {
   }, [selectedCountry, isOccasion, arrivalDate, departureDate]);
 
   const defaultData = {
-    title: "Beyond Compare",
+    title: "Transparency builds trust",
     tooltip: "Competitor information gathered in March 2026; pricing is subject to change.",
-    comparisonColumns: ["NUvisa", "Traditional Agency"],
+    comparisonColumns: ["NUvisa", "IVISA", "SCOTT'S", "CIBT"],
     comparisonRows: [
-      { feature: "Price", values: ["Flat £250 – no hidden fees", "£250–£300 + extra fees"] },
-      { feature: "Process", values: ["AI powered seamless process", "Traditional, often heavy-paperwork"] },
-      { feature: "Appointment Time", values: ["Appointment in 10 days or less", "Appointment in 6–8 weeks"] },
-      { feature: "Availability", values: ["24/7 instant submission & tracking", "Application business hours only"] },
-      { feature: "Contact", values: ["Complete digital experience", "In-person or lengthy phone appointments"] },
+      { feature: "Price", values: ["£169", "£295", "£395", "£475"] },
+      { feature: "Savings", values: ["—", "+43%", "+57%", "+64%"] },
+      {
+        feature: "Average appointment time",
+        values: ["10 days or less", "4-6 weeks", "4-6 weeks", "3-4 weeks"],
+      },
+      { feature: "Urgent appointment help", values: ["check", "x", "x", "x"] },
     ],
     detailSections: [
       {
-        title: "DETAILS",
+        title: "Care & professionalism",
         items: [
-          "Schengen visa processed in as little as 10 days",
-          "Flat-fee pricing — no hidden costs or surcharges",
-          "AI-powered document review reduces errors",
+          "Appointments with us are 2x faster than the industry average",
           "Real-time status tracking from anywhere",
-          "Dedicated expert support throughout the process",
+          "Full itinerary included — flight reservations, hotel bookings, and cover letters, all in one place",
+          "We prepare and verify every document so nothing gets rejected at the embassy",
+          "Fast turnaround — we aim to review every application within 3 working hours",
         ],
       },
       {
-        title: "Tips",
+        title: "Take a closer look",
         items: [
-          "Ensure your passport is valid for at least 6 months beyond stay",
-          "Upload clear, high-resolution scans to speed up AI verification",
-          "Double-check that flight dates match your visa request period",
-          "Keep your digital profile updated for faster future applications",
-          "Check the specific insurance requirements for your destination",
+          "A criminal history may disqualify you from obtaining a visa",
+          "Previous overstays or visa breaches can impact your application",
+          "A passport valid for less than 3 months after your Schengen trip may affect your visa eligibility",
+          "Valid and adequate travel insurance is mandatory. You can add it to your order or provide your existing policy",
         ],
       },
     ],
     experienceType: "IMAGES",
     experienceItems: null,
+    experienceTitle: "THE EXPERIENCE",
     leftSideImage: "/image/visa-agency.png",
     rightSideImage: "/image/nuvisa-image.jpg",
+    leftSideTitle: "Traditional Agency",
+    rightSideTitle: "NUvisa",
   };
+
+  const cmsOverrides = comparisonData
+    ? Object.fromEntries(
+        Object.entries(comparisonData).filter(([, value]) => value != null),
+      )
+    : {};
 
   const data = {
     ...defaultData,
-    ...(comparisonData || {}),
+    ...cmsOverrides,
   };
   const detailSections =
     Array.isArray(data.detailSections) && data.detailSections.length
