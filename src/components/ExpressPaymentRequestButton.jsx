@@ -157,7 +157,7 @@ const ExpressPaymentRequestButton = forwardRef(
       setPaymentRequest(null);
       setIsSupported(false);
 
-      const displayItems = [
+      const lineItems = [
         {
           label: "Visa Fees",
           amount: Math.round((visaFees || 0) * 100),
@@ -171,6 +171,23 @@ const ExpressPaymentRequestButton = forwardRef(
           amount: Math.round((giftCardFees || 0) * 100),
         },
       ].filter(Boolean);
+
+      const lineItemsTotal = lineItems.reduce(
+        (sum, item) => sum + (item?.amount || 0),
+        0
+      );
+
+      // Stripe rejects payment requests when display item amounts don't equal the total
+      // (e.g. redeemed gift-card coupons reduce total but not individual line items).
+      const displayItems =
+        lineItems.length > 0 && lineItemsTotal === normalizedAmount
+          ? lineItems
+          : [
+              {
+                label: "NUvisa - Visa Application",
+                amount: normalizedAmount,
+              },
+            ];
 
       logExpressDebug("payment_request_create", {
         stripePaymentRequestPayload: {
@@ -697,11 +714,15 @@ const ExpressPaymentRequestButton = forwardRef(
         },
         getAvailableMethods: () => availableMethods,
         getIsRefreshingRequest: () => isRefreshingRequest,
+        getIsSupported: () => isSupported && !!paymentRequest,
       }),
       [paymentRequest, isSupported, onBeforePayment, availableMethods, isRefreshingRequest, travellers, normalizedAmount]
     );
 
     if (disabled) {
+      if (hideUI) {
+        return null;
+      }
       return (
         <div className="p-4 border border-yellow-200 bg-yellow-50 rounded-lg text-sm text-yellow-800">
           {disabled}
@@ -730,6 +751,9 @@ const ExpressPaymentRequestButton = forwardRef(
     // Email is optional - Apple Pay and Google Pay provide it automatically
 
     if (!normalizedAmount) {
+      if (hideUI) {
+        return null;
+      }
       return (
         <div className="p-4 border border-yellow-200 bg-yellow-50 rounded-lg text-sm text-yellow-800">
           Add at least one traveller to enable express checkout.
@@ -743,6 +767,9 @@ const ExpressPaymentRequestButton = forwardRef(
       process.env.NEXT_PUBLIC_NODE_ENV === "development";
 
     if (!isSupported && !isDevelopment) {
+      if (hideUI) {
+        return null;
+      }
       if (!hasLoggedUnsupportedRef.current) {
         logExpressDebug("pre_render_error_express_not_supported", {
           userFacingMessage:

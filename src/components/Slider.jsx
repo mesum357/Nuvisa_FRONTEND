@@ -52,18 +52,13 @@ import SimpleAlert from "./SimpleAlert";
 import CountryCarousel from "./slider/CountryCarousel";
 import { normalizeCountryKey, parseOccasionPrice } from "./slider/sliderUtils";
 import VisaFeeBreakdown from "./VisaFeeBreakdown";
+import StripeProvider from "./StripeProvider";
+import ExpressPaymentRequestButton from "./ExpressPaymentRequestButton";
 import dynamic from "next/dynamic";
 
 const ConfirmationModal = dynamic(() => import("./ConfirmationModal"), {
   ssr: false,
 });
-const StripeProvider = dynamic(() => import("./StripeProvider"), {
-  ssr: false,
-});
-const ExpressPaymentRequestButton = dynamic(
-  () => import("./ExpressPaymentRequestButton"),
-  { ssr: false },
-);
 import ExpertSection from "./ExpertSection";
 import { validateGiftCardCode } from "@/api/giftCard";
 import {
@@ -372,6 +367,8 @@ const CountrySlider = ({
     applePay: false,
     googlePay: false,
   });
+  const [isExpressCheckoutRefreshing, setIsExpressCheckoutRefreshing] =
+    useState(false);
   const hasCheckedAvailabilityRef = useRef(false);
 
   // Refs to track previous values for threshold crossing detection
@@ -3752,6 +3749,12 @@ const CountrySlider = ({
   // Check available payment methods from ExpressPaymentRequestButton
   useEffect(() => {
     const checkAvailableMethods = () => {
+      if (expressPaymentButtonRef.current?.getIsRefreshingRequest) {
+        const refreshing =
+          expressPaymentButtonRef.current.getIsRefreshingRequest();
+        setIsExpressCheckoutRefreshing(!!refreshing);
+      }
+
       if (expressPaymentButtonRef.current?.getAvailableMethods) {
         const methods = expressPaymentButtonRef.current.getAvailableMethods();
         if (methods) {
@@ -3770,6 +3773,9 @@ const CountrySlider = ({
     expressPaymentData.totalAmount,
     travelers,
     expressPaymentData.includeInsurance,
+    expressPaymentData.includeGiftCard,
+    expressPaymentData.giftCardFees,
+    expressPaymentData.visaFees,
   ]);
 
   // Smoothly navigating to Required Documents section
@@ -4858,7 +4864,12 @@ const CountrySlider = ({
                   availablePaymentMethods.applePay ||
                   process.env.NODE_ENV === "development" ||
                   process.env.NEXT_PUBLIC_NODE_ENV === "development";
-                const showGooglePayButton = true;
+                const isGooglePayAvailable =
+                  availablePaymentMethods.googlePay ||
+                  process.env.NODE_ENV === "development" ||
+                  process.env.NEXT_PUBLIC_NODE_ENV === "development";
+                const isExpressPayDisabled =
+                  isExpressCheckoutRefreshing || !isGooglePayAvailable;
 
                 return (
                   <div className="w-full space-y-2">
@@ -4866,7 +4877,15 @@ const CountrySlider = ({
                       {/* Apple Pay Button */}
                       {isApplePayAvailable && (
                         <button
+                          disabled={isExpressCheckoutRefreshing}
                           onClick={() => {
+                            if (isExpressCheckoutRefreshing) {
+                              showError(
+                                "Updating checkout total. Please try again in a moment.",
+                              );
+                              return;
+                            }
+
                             if (
                               !expressPaymentButtonRef.current
                                 ?.triggerPaymentRequest
@@ -5106,14 +5125,29 @@ const CountrySlider = ({
                         </button>
                       )}
 
-                      {/* Google Pay — always shown beneath Express checkout (Stripe opens wallet on click) */}
-                      {showGooglePayButton && (
-                        <button
-                          onClick={() => {
-                            if (
-                              !expressPaymentButtonRef.current
-                                ?.triggerPaymentRequest
-                            ) {
+                      {/* Google Pay — always visible; enabled once Stripe reports availability */}
+                      <button
+                        disabled={isExpressPayDisabled}
+                        aria-disabled={isExpressPayDisabled}
+                        onClick={() => {
+                          if (isExpressCheckoutRefreshing) {
+                            showError(
+                              "Updating checkout total. Please try again in a moment.",
+                            );
+                            return;
+                          }
+
+                          if (!isGooglePayAvailable) {
+                            showError(
+                              "Google Pay is not available on this device. Please select another payment method.",
+                            );
+                            return;
+                          }
+
+                          if (
+                            !expressPaymentButtonRef.current
+                              ?.triggerPaymentRequest
+                          ) {
                               showError(
                                 "Payment system is not initialized. Please refresh and try again.",
                               );
@@ -5362,7 +5396,6 @@ const CountrySlider = ({
                             </span>
                           </div>
                         </button>
-                      )}
                     </div>
 
                     {/* {canShowVisaFeeBreakdown ? (
