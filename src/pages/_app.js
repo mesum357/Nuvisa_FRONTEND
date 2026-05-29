@@ -12,7 +12,8 @@ export default function App({ Component, pageProps }) {
   const isCheckoutRoute =
     router.pathname?.includes("checkout") ||
     router.pathname?.includes("payment") ||
-    router.pathname?.includes("application-step");
+    router.pathname?.includes("application-step") ||
+    router.pathname?.includes("get-the-visa");
 
   // GTM router listener (queued until DeferredAnalytics enables GTM)
   useEffect(() => {

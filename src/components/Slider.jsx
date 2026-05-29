@@ -4858,21 +4858,11 @@ const CountrySlider = ({
                   availablePaymentMethods.applePay ||
                   process.env.NODE_ENV === "development" ||
                   process.env.NEXT_PUBLIC_NODE_ENV === "development";
-                const isGooglePayAvailable =
-                  availablePaymentMethods.googlePay ||
-                  process.env.NODE_ENV === "development" ||
-                  process.env.NEXT_PUBLIC_NODE_ENV === "development";
-                const availableCount =
-                  (isApplePayAvailable ? 1 : 0) +
-                  (isGooglePayAvailable ? 1 : 0);
-                const gridCols =
-                  availableCount === 1 ? "grid-cols-1" : "grid-cols-2";
+                const showGooglePayButton = true;
 
                 return (
-                  <div className="w-full">
-                    <div
-                      className={`flex flex-col sm:flex-row items-center justify-between gap-2`}
-                    >
+                  <div className="w-full space-y-2">
+                    <div className="flex flex-col gap-2 w-full">
                       {/* Apple Pay Button */}
                       {isApplePayAvailable && (
                         <button
@@ -5116,8 +5106,8 @@ const CountrySlider = ({
                         </button>
                       )}
 
-                      {/* Google Pay Button */}
-                      {isGooglePayAvailable && (
+                      {/* Google Pay — always shown beneath Express checkout (Stripe opens wallet on click) */}
+                      {showGooglePayButton && (
                         <button
                           onClick={() => {
                             if (
@@ -5335,20 +5325,18 @@ const CountrySlider = ({
                               showError(fallbackMessage);
                             }
                           }}
-                          className="group relative flex items-center justify-center bg-white text-gray-800 rounded-full px-[20px] py-3.5 text-sm font-medium hover:shadow-md transition-all duration-200 shadow-sm border border-gray-200 w-full max-sm:py-2.5"
+                          className="group relative flex w-full items-center justify-center rounded-full border border-gray-200 bg-white px-6 py-3.5 text-sm font-medium text-gray-900 shadow-sm transition-all duration-200 hover:shadow-md max-sm:py-3"
                           style={{
-                            minHeight: "44px",
-                            maxHeight: "44px",
-                            background:
-                              "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)",
+                            minHeight: "48px",
                           }}
                         >
                           <div className="flex items-center gap-2">
                             <svg
-                              width="18"
-                              height="18"
+                              width="22"
+                              height="22"
                               viewBox="0 0 18 18"
-                              className="shrink-0 max-sm:w-4 max-sm:h-4"
+                              className="shrink-0"
+                              aria-hidden="true"
                             >
                               <g fill="none" fillRule="evenodd">
                                 <path
@@ -5369,7 +5357,7 @@ const CountrySlider = ({
                                 />
                               </g>
                             </svg>
-                            <span className="font-bold tracking-wide text-gray-700 text-lg">
+                            <span className="text-lg font-bold tracking-wide text-gray-900">
                               Pay
                             </span>
                           </div>
