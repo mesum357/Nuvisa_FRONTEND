@@ -1,6 +1,7 @@
 /**
  * Resolves Stripe/backend paymentType from checkout cart composition.
  */
+import { isExpertCoachSelected } from "@/utils/expertCoachSelection";
 export function resolveCheckoutPaymentType({
   travelers = 0,
   finalVisaFees = 0,
@@ -86,7 +87,7 @@ export function paymentTypeIncludesVisaApplication(paymentType) {
   );
 }
 
-/** Decrement shared “spots left” on every successful checkout (visa, gift, insurance). */
-export function shouldDecrementExpertSpots(_paymentType) {
-  return true;
+/** Decrement shared spots only when the expert coach add-on was selected at checkout. */
+export function shouldDecrementExpertSpots(options = {}) {
+  return isExpertCoachSelected(options);
 }

@@ -69,6 +69,7 @@ const ExpressPaymentRequestButton = forwardRef(
       discountedInsuranceFeesGBP,
       visaFeesGBP,
       couponCode,
+      includeExpertCoach = false,
       hideUI = false, // If true, hide the Stripe button UI (buttons will be in parent)
     },
     ref
@@ -416,6 +417,7 @@ const ExpressPaymentRequestButton = forwardRef(
             ...(paymentType && paymentType.includes("gift_card") && includeGiftCard && giftCardCount > 0
               ? { quantity: String(giftCardCount), noOfGiftCards: String(giftCardCount) }
               : {}),
+            expertCoachSelected: includeExpertCoach ? "true" : "false",
           };
 
           logExpressDebug("create_payment_intent_payload", {
@@ -518,6 +520,7 @@ const ExpressPaymentRequestButton = forwardRef(
               country: checkoutPayload.country,
               insurance: checkoutPayload.insurance,
               paymentType: checkoutPayload.paymentType,
+              expertCoachSelected: includeExpertCoach ? "true" : "false",
               timestamp: Date.now(),
               paymentDate: new Date().toISOString(),
             };

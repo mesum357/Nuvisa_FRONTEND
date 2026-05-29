@@ -1,4 +1,5 @@
 const DEFAULT_SPOTS_LEFT = 12;
+const SPOTS_ROLLOVER_THRESHOLD = 8;
 const SPOTS_LEFT_STORAGE_KEY = "expertSpotsLeft";
 const LAST_RESET_DAY_STORAGE_KEY = "expertSpotsLastResetDayUk";
 const PROCESSED_PAYMENTS_STORAGE_KEY = "expertSpotsProcessedPayments";
@@ -41,6 +42,15 @@ const normalizeSpotsLeft = (value, maxSpots) => {
   return Math.max(0, Math.min(maxSpots, Math.floor(parsed)));
 };
 
+/** UK midnight rollover: below 8 → reset to default (12); otherwise keep count. */
+const applyDayRollover = (previousRemaining, defaultSpots) => {
+  const normalized = normalizeSpotsLeft(previousRemaining, defaultSpots);
+  if (normalized < SPOTS_ROLLOVER_THRESHOLD) {
+    return defaultSpots;
+  }
+  return normalized;
+};
+
 const readProcessedPayments = () => {
   if (typeof window === "undefined") return [];
   try {
@@ -71,9 +81,8 @@ export const syncExpertSpots = () => {
 
   let spots = normalizeSpotsLeft(storedSpots, dynamicDefaultSpots);
 
-  // Reset to default at UK midnight (top up to admin default, usually 12).
   if (lastResetDay !== dayKey) {
-    spots = dynamicDefaultSpots;
+    spots = applyDayRollover(spots, dynamicDefaultSpots);
     localStorage.setItem(SPOTS_LEFT_STORAGE_KEY, String(spots));
     localStorage.setItem(LAST_RESET_DAY_STORAGE_KEY, dayKey);
   } else {

@@ -1,5 +1,6 @@
 import { localStorageEnums } from "@/enums/localstorage.enums";
 import { localStorageGateway } from "@/gateways/localStoragegateway";
+import { readExpertCoachSelectedFromStorage } from "@/utils/expertCoachSelection";
 
 /**
  * Persist checkout context before leaving the site (Klarna redirect).
@@ -64,6 +65,7 @@ export async function persistCheckoutPaymentContext({
     insurance: hasInsurance ? "true" : "false",
     paymentType,
     applicationId: applicationId || undefined,
+    expertCoachSelected: readExpertCoachSelectedFromStorage() ? "true" : "false",
     timestamp: Date.now(),
     paymentDate: new Date().toISOString(),
     paymentMethod: "klarna",

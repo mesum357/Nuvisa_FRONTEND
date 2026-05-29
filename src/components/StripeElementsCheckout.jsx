@@ -15,7 +15,7 @@ import { createPaymentIntent } from "@/api/stripePayment";
 import { extractPaymentApiError } from "@/utils/extractPaymentApiError";
 import { parsePaymentIntentApiResponse } from "@/utils/parsePaymentIntentApiResponse";
 import StripePaymentForm from "./StripePaymentForm";
-import Cookies from "js-cookie";
+import { readExpertCoachSelectedFromStorage } from "@/utils/expertCoachSelection";
 import { Loader } from "lucide-react";
 
 const isValidAuthToken = (token) =>
@@ -231,6 +231,7 @@ const StripeElementsCheckout = forwardRef(
           paymentType: paymentType,
           applicationId: applicationId,
           travelerIndex: travelerIndex,
+          expertCoachSelected: readExpertCoachSelectedFromStorage() ? "true" : "false",
           timestamp: Date.now(),
           paymentDate: new Date().toISOString(),
         };

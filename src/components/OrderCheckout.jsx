@@ -49,12 +49,10 @@ import {
 } from "@/utils/giftCardEligibility";
 import { getDynamicMonthText } from "@/utils/getDynamicMonthText";
 import { getCurrentWeekSlotPercentage } from "@/utils/getCurrentWeekSlotPercentage";
-import { decrementExpertSpotsOnSuccessfulCheckout } from "@/utils/expertSpots";
 import {
   resolveCheckoutPaymentType,
   canCheckoutWithoutDestinationCountry,
   hasCheckoutLineItems,
-  shouldDecrementExpertSpots,
 } from "@/utils/checkoutPaymentType";
 import { GIFT_CARD_PRODUCT_NAME } from "@/constants/productLabels";
 import {
@@ -2514,15 +2512,6 @@ const VisaCheckout = () => {
                           hideSubmitButton={true}
                           includeGiftCard={includeGiftCard}
                           giftCardCount={giftCardCount}
-                          onPaymentSuccess={(paymentIntentId) => {
-                            if (
-                              shouldDecrementExpertSpots(checkoutPaymentType)
-                            ) {
-                              decrementExpertSpotsOnSuccessfulCheckout(
-                                paymentIntentId,
-                              );
-                            }
-                          }}
                         />
                       </StripeProvider>
                     </div>

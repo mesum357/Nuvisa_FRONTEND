@@ -10,6 +10,7 @@ import { useAppDispatch } from "@/store";
 import { setAuthId, setAuthState } from "@/store/authSlice";
 import Cookies from "js-cookie";
 import React, { useState } from "react";
+import { readExpertCoachSelectedFromStorage } from "@/utils/expertCoachSelection";
 
 const isValidAuthToken = (token) =>
   token && token !== "existing_session_reused";
@@ -300,6 +301,7 @@ const useCreateDynamicCheckoutSession = () => {
       ...(phone !== undefined && phone !== null && String(phone).trim() !== ""
         ? { phone: String(phone).trim() }
         : {}),
+      expertCoachSelected: readExpertCoachSelectedFromStorage() ? "true" : "false",
       // Flag insurance-only checkout for webhook (no application creation)
       ...(normalizedPaymentType === "traveler_insurance" && !normalizedApplicationId
         ? { checkoutType: "insurance_only", insuranceOnly: "true" }

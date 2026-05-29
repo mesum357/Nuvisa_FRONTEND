@@ -17,9 +17,9 @@ import { localStorageEnums } from "@/enums/localstorage.enums";
 import { localStorageGateway } from "@/gateways/localStoragegateway";
 import { buildGtmUserData, normalizePhoneE164, resolveCoupon, computeCouponDiscountPerUnit } from "@/utils/gtmUserData";
 import {
-  decrementExpertSpotsOnSuccessfulCheckout,
   decrementExpertSpotsViaApi,
 } from "@/utils/expertSpots";
+import { shouldDecrementExpertSpots } from "@/utils/checkoutPaymentType";
 import { fulfillGiftCardPurchase, redeemGiftCardCode } from "@/api/giftCard";
 import { buildGiftCardValidationContext } from "@/utils/giftCardEligibility";
 import {
@@ -34,6 +34,13 @@ import Cookies from "js-cookie";
 
 const isValidAuthToken = (token) =>
   token && token !== "existing_session_reused";
+
+async function maybeDecrementExpertSpots(paymentId, context = {}) {
+  if (!shouldDecrementExpertSpots(context)) return;
+  if (paymentId) {
+    await decrementExpertSpotsViaApi(paymentId);
+  }
+}
 
 const PaymentSuccess = () => {
   const router = useRouter();
@@ -287,7 +294,9 @@ const PaymentSuccess = () => {
             sessionId || klarnaPaymentIntentId || embeddedPaymentIntentId;
 
           if (stripePaymentId) {
-            await decrementExpertSpotsViaApi(stripePaymentId);
+            await maybeDecrementExpertSpots(stripePaymentId, {
+              paymentMetadata: currentData.paymentMetadata,
+            });
           }
 
           let giftPaymentMeta = null;
@@ -419,7 +428,9 @@ const PaymentSuccess = () => {
           }
 
           if (stripePaymentIdEarly) {
-            await decrementExpertSpotsViaApi(stripePaymentIdEarly);
+            await maybeDecrementExpertSpots(stripePaymentIdEarly, {
+              paymentMetadata: usedStoredInsuranceMetadata || currentData.paymentMetadata,
+            });
           }
 
           setIsCreatingApplication(false);
@@ -477,10 +488,6 @@ const PaymentSuccess = () => {
           } catch {}
         }
 
-        if (dedupePaymentId) {
-          await decrementExpertSpotsViaApi(dedupePaymentId);
-        }
-
         let sessionMetadata = {};
         if (stripePaymentId && getPublicApiBase()) {
           try {
@@ -504,6 +511,13 @@ const PaymentSuccess = () => {
           } catch (e) {
             console.warn("Could not fetch session metadata:", e);
           }
+        }
+
+        if (dedupePaymentId) {
+          await maybeDecrementExpertSpots(dedupePaymentId, {
+            paymentMetadata: currentData.paymentMetadata,
+            sessionMetadata,
+          });
         }
 
         const resolvedCountry = resolveVisaCountryName(

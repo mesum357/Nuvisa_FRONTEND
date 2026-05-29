@@ -82,6 +82,7 @@ import { fetchVisaPricingResults } from "@/utils/fetchVisaPricingClient";
 import { GIFT_CARD_PRODUCT_NAME } from "@/constants/productLabels";
 import { buildGtmUserData, clearStaleGtmUserData, resolveCoupon, computeCouponDiscountPerUnit } from "@/utils/gtmUserData";
 import { setExpertSpotsDefaultFromApi } from "@/utils/expertSpots";
+import { persistExpertCoachSelected } from "@/utils/expertCoachSelection";
 
 const CountrySlider = ({
   moreToLoveData,
@@ -2883,6 +2884,7 @@ const CountrySlider = ({
     dispatch(setTotalAmount(totalAmount || 0));
     dispatch(setInsuranceOnly(hasOnlyInsurance || false));
     dispatch(setReduxInsuranceCount(insuranceCount || 0));
+    persistExpertCoachSelected(isExpertSelected);
 
     // Store selected visa type information
     if (selectedVisaType) {
@@ -4847,6 +4849,7 @@ const CountrySlider = ({
                 }
                 visaFeesGBP={expressPaymentData.visaFeesGBP}
                 couponCode={expressPaymentData.couponCode}
+                includeExpertCoach={isExpertSelected}
               />
 
               {/* Simple buttons that use the same trigger method as radio button */}
@@ -5423,7 +5426,10 @@ const CountrySlider = ({
 
           <ExpertSection
             checked={isExpertSelected}
-            onChange={setIsExpertSelected}
+            onChange={(checked) => {
+              setIsExpertSelected(checked);
+              persistExpertCoachSelected(checked);
+            }}
           />
 
           {/* Recommended Section */}
